@@ -1,5 +1,6 @@
 package com.sgtechstack.helloworldauthapp.admin;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenRepository;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
@@ -14,9 +15,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItems;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,6 +47,9 @@ class AdminUserControllerTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
@@ -92,5 +100,122 @@ class AdminUserControllerTest {
     void unauthenticatedRequestToUserListingIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/admin/users"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void adminCanDisableAnotherUsersAccountAndThatUserCanNoLongerLogIn() throws Exception {
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+        User target = userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow();
+
+        mockMvc.perform(patch("/api/admin/users/{id}/enabled", target.getId())
+                        .with(csrf())
+                        .session(adminSession)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SetEnabledRequest(false))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false));
+
+        assertThat(userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow().isEnabled()).isFalse();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
+                        .param("username", REGULAR_USERNAME)
+                        .param("password", REGULAR_PASSWORD))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void adminCannotDisableTheirOwnAccount() throws Exception {
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+        User admin = userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow();
+
+        mockMvc.perform(patch("/api/admin/users/{id}/enabled", admin.getId())
+                        .with(csrf())
+                        .session(adminSession)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SetEnabledRequest(false))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("An admin cannot disable or enable their own account"));
+
+        assertThat(userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow().isEnabled()).isTrue();
+    }
+
+    @Test
+    void adminCanChangeAnotherUsersRole() throws Exception {
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+        User target = userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow();
+
+        mockMvc.perform(patch("/api/admin/users/{id}/role", target.getId())
+                        .with(csrf())
+                        .session(adminSession)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RoleChangeRequest(Role.ADMIN))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("ADMIN"));
+
+        assertThat(userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow().getRole())
+                .isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void adminCannotChangeTheirOwnRole() throws Exception {
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+        User admin = userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow();
+
+        mockMvc.perform(patch("/api/admin/users/{id}/role", admin.getId())
+                        .with(csrf())
+                        .session(adminSession)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RoleChangeRequest(Role.USER))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("An admin cannot change the role of their own account"));
+
+        assertThat(userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow().getRole())
+                .isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void adminCanDeleteAnotherUsersAccount() throws Exception {
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+        User target = userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow();
+
+        mockMvc.perform(delete("/api/admin/users/{id}", target.getId())
+                        .with(csrf())
+                        .session(adminSession))
+                .andExpect(status().isNoContent());
+
+        assertThat(userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME)).isEmpty();
+    }
+
+    @Test
+    void adminCannotDeleteTheirOwnAccount() throws Exception {
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+        User admin = userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow();
+
+        mockMvc.perform(delete("/api/admin/users/{id}", admin.getId())
+                        .with(csrf())
+                        .session(adminSession))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("An admin cannot delete their own account"));
+
+        assertThat(userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME)).isPresent();
+    }
+
+    @Test
+    void nonAdminCannotPerformAnyMutation() throws Exception {
+        MockHttpSession regularSession = loginAndGetSession(REGULAR_USERNAME, REGULAR_PASSWORD);
+        User admin = userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow();
+
+        mockMvc.perform(patch("/api/admin/users/{id}/enabled", admin.getId())
+                        .with(csrf())
+                        .session(regularSession)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SetEnabledRequest(false))))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(delete("/api/admin/users/{id}", admin.getId())
+                        .with(csrf())
+                        .session(regularSession))
+                .andExpect(status().isForbidden());
     }
 }

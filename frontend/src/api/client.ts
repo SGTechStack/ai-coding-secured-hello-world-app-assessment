@@ -251,6 +251,61 @@ export async function fetchAdminUsers(): Promise<AdminUserSummary[]> {
 }
 
 /**
+ * Enables or disables another user's account. Throws {@link ApiError}
+ * (400) if the target is the caller's own account — the backend rejects
+ * self-targeting outright, this call just surfaces that.
+ */
+export async function setUserEnabled(userId: string, enabled: boolean): Promise<AdminUserSummary> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/enabled`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(await csrfHeader()) },
+    body: JSON.stringify({ enabled }),
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.json() as Promise<AdminUserSummary>;
+}
+
+/**
+ * Changes another user's role. Throws {@link ApiError} (400) if the
+ * target is the caller's own account.
+ */
+export async function setUserRole(userId: string, role: UserRole): Promise<AdminUserSummary> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/role`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(await csrfHeader()) },
+    body: JSON.stringify({ role }),
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.json() as Promise<AdminUserSummary>;
+}
+
+/**
+ * Deletes another user's account. Throws {@link ApiError} (400) if the
+ * target is the caller's own account.
+ */
+export async function deleteUser(userId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: await csrfHeader(),
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+}
+
+/**
  * Calls the protected greeting endpoint. Throws {@link ApiError} with a
  * 401-flavoured message if there is no valid session.
  */

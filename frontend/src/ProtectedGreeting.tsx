@@ -63,7 +63,7 @@ export function ProtectedGreeting({ username, role, onLoggedOut }: ProtectedGree
         {isLoggingOut ? "Logging out…" : "Log out"}
       </button>
 
-      {role === "ADMIN" && <AdminUserList />}
+      {role === "ADMIN" && <AdminUserList currentUsername={username} />}
     </section>
   );
 }

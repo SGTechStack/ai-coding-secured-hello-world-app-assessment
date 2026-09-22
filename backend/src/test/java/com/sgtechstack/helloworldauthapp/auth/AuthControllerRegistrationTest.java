@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -51,7 +52,7 @@ class AuthControllerRegistrationTest {
         String body = objectMapper.writeValueAsString(
                 new RegistrationRequest("newuser", "newuser@example.com", STRONG_PASSWORD));
 
-        mockMvc.perform(post(ENDPOINT).contentType(APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ENDPOINT).with(csrf()).contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.username").value("newuser"))
                 .andExpect(jsonPath("$.email").value("newuser@example.com"))
@@ -74,7 +75,7 @@ class AuthControllerRegistrationTest {
         String body = objectMapper.writeValueAsString(
                 new RegistrationRequest("taken", "different@example.com", STRONG_PASSWORD));
 
-        mockMvc.perform(post(ENDPOINT).contentType(APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ENDPOINT).with(csrf()).contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Username is already taken"));
 
@@ -89,7 +90,7 @@ class AuthControllerRegistrationTest {
         String body = objectMapper.writeValueAsString(
                 new RegistrationRequest("different", "taken@example.com", STRONG_PASSWORD));
 
-        mockMvc.perform(post(ENDPOINT).contentType(APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ENDPOINT).with(csrf()).contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Email is already registered"));
 
@@ -101,7 +102,7 @@ class AuthControllerRegistrationTest {
         String body = objectMapper.writeValueAsString(
                 new RegistrationRequest("shortpassworduser", "shortpw@example.com", "tooshort1"));
 
-        mockMvc.perform(post(ENDPOINT).contentType(APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ENDPOINT).with(csrf()).contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(
                         "Password must be at least " + PasswordPolicy.MIN_LENGTH + " characters long"));
@@ -114,7 +115,7 @@ class AuthControllerRegistrationTest {
         String body = objectMapper.writeValueAsString(
                 new RegistrationRequest("", "not-an-email", STRONG_PASSWORD));
 
-        mockMvc.perform(post(ENDPOINT).contentType(APPLICATION_JSON).content(body))
+        mockMvc.perform(post(ENDPOINT).with(csrf()).contentType(APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"));
     }

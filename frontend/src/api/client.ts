@@ -1,8 +1,38 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+const CSRF_COOKIE_NAME = "XSRF-TOKEN";
+const CSRF_HEADER_NAME = "X-XSRF-TOKEN";
 
 export interface HealthResponse {
   status: string;
   timestamp: string;
+}
+
+function readCookie(name: string): string | undefined {
+  const prefix = `${name}=`;
+  const cookie = document.cookie.split("; ").find((entry) => entry.startsWith(prefix));
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : undefined;
+}
+
+/**
+ * Ensures the XSRF-TOKEN cookie is present, fetching it from the backend
+ * if it isn't yet (e.g. first load of the SPA), then returns the header
+ * to attach to a state-changing request.
+ *
+ * The backend uses Spring Security's cookie-based CSRF protection: the
+ * token cookie is readable by JS (not HttpOnly) specifically so the SPA
+ * can echo it back as a header, proving the request came from a page
+ * that could read the cookie (i.e. same-origin, since the browser's
+ * same-origin policy prevents a hostile page from reading it cross-origin).
+ */
+async function csrfHeader(): Promise<Record<string, string>> {
+  let token = readCookie(CSRF_COOKIE_NAME);
+
+  if (!token) {
+    await fetch(`${API_BASE_URL}/api/csrf`, { credentials: "include" });
+    token = readCookie(CSRF_COOKIE_NAME);
+  }
+
+  return token ? { [CSRF_HEADER_NAME]: token } : {};
 }
 
 export interface RegistrationRequest {
@@ -82,7 +112,7 @@ export async function register(
   const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await csrfHeader()) },
     body: JSON.stringify(request),
   });
 
@@ -91,4 +121,74 @@ export async function register(
   }
 
   return response.json() as Promise<RegistrationResponse>;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  username: string;
+}
+
+/**
+ * Logs in with username and password. On success, the backend sets a
+ * secure session cookie. On failure (wrong password or unknown username)
+ * throws {@link ApiError} with the same generic message either way, so the
+ * UI cannot be used to probe for valid usernames.
+ */
+export async function login(request: LoginRequest): Promise<LoginResponse> {
+  const body = new URLSearchParams({
+    username: request.username,
+    password: request.password,
+  });
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      ...(await csrfHeader()),
+    },
+    body: body.toString(),
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.json() as Promise<LoginResponse>;
+}
+
+/**
+ * Logs out, invalidating the server-side session and clearing the cookie.
+ */
+export async function logout(): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+    headers: await csrfHeader(),
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+}
+
+/**
+ * Calls the protected greeting endpoint. Throws {@link ApiError} with a
+ * 401-flavoured message if there is no valid session.
+ */
+export async function fetchGreeting(): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/hello`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.text();
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchHealth, type HealthResponse } from "./api/client";
 import { RegistrationForm } from "./RegistrationForm";
+import { LoginForm } from "./LoginForm";
+import { ProtectedGreeting } from "./ProtectedGreeting";
 
 type Status =
   | { kind: "loading" }
@@ -9,6 +11,7 @@ type Status =
 
 function App() {
   const [status, setStatus] = useState<Status>({ kind: "loading" });
+  const [loggedInAs, setLoggedInAs] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,7 +54,14 @@ function App() {
         </p>
       )}
 
-      <RegistrationForm />
+      {loggedInAs ? (
+        <ProtectedGreeting username={loggedInAs} onLoggedOut={() => setLoggedInAs(null)} />
+      ) : (
+        <>
+          <LoginForm onLoginSuccess={setLoggedInAs} />
+          <RegistrationForm />
+        </>
+      )}
     </main>
   );
 }

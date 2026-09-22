@@ -1,0 +1,4 @@
+* [Common Automatic Database Role Synchronization and Deleted Role Backups](Common_Automatic_Database_Role_Synchronization_and_Deleted_Role_Backups.md) - Automatic database role synchronization with configuration-owned source of truth and archive-based backup for deleted roles
+* [Common Role-Based Access Control Configuration](Common_Role-Based_Access_Control_Configuration.md) - Configuration-owned role-based access control (RBAC) setup and authorization policy enforcement
+* [Common Secure Self-Read User Endpoint](Common_Secure_Self-Read_User_Endpoint.md) - Secure self-read endpoint (/profile or /me) for retrieving user authorization profiles
+* [Common Security Headers and SPA CSRF Configuration](Common_Security_Headers_and_SPA_CSRF_Configuration.md) - Security headers and SPA-friendly CSRF protection configuration for Spring Security

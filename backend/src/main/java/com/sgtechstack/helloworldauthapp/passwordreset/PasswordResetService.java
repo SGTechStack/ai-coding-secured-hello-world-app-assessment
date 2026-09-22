@@ -7,6 +7,7 @@ import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,6 +46,7 @@ public class PasswordResetService {
     private final PasswordPolicy passwordPolicy;
     private final EmailService emailService;
     private final SessionRegistry sessionRegistry;
+    private final String frontendBaseUrl;
 
     public PasswordResetService(
             UserRepository userRepository,
@@ -52,7 +54,8 @@ public class PasswordResetService {
             PasswordEncoder passwordEncoder,
             PasswordPolicy passwordPolicy,
             EmailService emailService,
-            SessionRegistry sessionRegistry
+            SessionRegistry sessionRegistry,
+            @Value("${app.frontend.base-url}") String frontendBaseUrl
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
@@ -60,6 +63,7 @@ public class PasswordResetService {
         this.passwordPolicy = passwordPolicy;
         this.emailService = emailService;
         this.sessionRegistry = sessionRegistry;
+        this.frontendBaseUrl = frontendBaseUrl;
     }
 
     /**
@@ -83,7 +87,7 @@ public class PasswordResetService {
 
         tokenRepository.save(new PasswordResetToken(user.get(), tokenHash, expiresAt));
 
-        String resetLink = "https://app.example.com/reset-password?token=" + plaintextToken;
+        String resetLink = frontendBaseUrl + "/?token=" + plaintextToken;
         emailService.sendPasswordResetEmail(user.get().getEmail(), resetLink);
 
         log.info("Password reset token issued username={} expiresAt={}", user.get().getUsername(), expiresAt);

@@ -17,6 +17,12 @@ server:
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  frontend:
+    # Base URL the frontend is served from, used to build links that leave
+    # the backend (e.g. the password reset link emailed to users). Defaults
+    # to the dev frontend origin; must be overridden to the real deployed
+    # frontend URL outside dev.
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
   admin:
     # No default outside dev: a predictable initial admin password must
     # never ship to a real deployment. The dev profile below supplies a

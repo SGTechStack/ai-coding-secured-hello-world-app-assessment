@@ -51,7 +51,7 @@ export function ResetPasswordForm({ onResetComplete }: ResetPasswordFormProps) {
         <p className="alert alert-success" role="status">
           {state.message}
         </p>
-        <button type="button" onClick={onResetComplete}>
+        <button type="button" className="btn-primary" onClick={onResetComplete}>
           Back to log in
         </button>
       </>

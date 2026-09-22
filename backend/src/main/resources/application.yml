@@ -58,4 +58,4 @@ server:
 app:
   admin:
     username: ${APP_ADMIN_USERNAME:admin}
-    password: ${APP_ADMIN_PASSWORD:password}
+    password: ${APP_ADMIN_PASSWORD:password1234}

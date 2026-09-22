@@ -97,6 +97,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(csrfRequestHandler)
+                        // H2 console posts plain HTML forms with no CSRF token and
+                        // is only ever registered when spring.h2.console.enabled=true
+                        // (the dev profile), so exempting it here has no effect
+                        // outside dev.
+                        .ignoringRequestMatchers("/h2-console/**")
+                )
+                // H2 console renders itself inside an iframe; same-origin framing
+                // is fine for a local dev-only tool.
+                .headers(headers -> headers
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
                 )
                 // Session-fixation protection: Spring Security's default session
                 // management already rotates the session ID on authentication
@@ -115,6 +125,9 @@ public class SecurityConfig {
                                 "/api/auth/password-reset/request", "/api/auth/password-reset/confirm"
                         )
                         .permitAll()
+                        // Only reachable when spring.h2.console.enabled=true (dev
+                        // profile); the servlet itself doesn't exist otherwise.
+                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

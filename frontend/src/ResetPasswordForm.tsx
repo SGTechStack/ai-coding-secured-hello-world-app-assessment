@@ -44,11 +44,25 @@ export function ResetPasswordForm({ onResetComplete }: ResetPasswordFormProps) {
 
   const isSubmitting = state.kind === "submitting";
 
+  if (state.kind === "success") {
+    return (
+      <>
+        <h2>Reset password</h2>
+        <p className="alert alert-success" role="status">
+          {state.message}
+        </p>
+        <button type="button" onClick={onResetComplete}>
+          Back to log in
+        </button>
+      </>
+    );
+  }
+
   return (
-    <section>
+    <>
       <h2>Reset password</h2>
       <form onSubmit={handleSubmit}>
-        <div>
+        <div className="field">
           <label htmlFor="reset-token">Reset token</label>
           <input
             id="reset-token"
@@ -61,7 +75,7 @@ export function ResetPasswordForm({ onResetComplete }: ResetPasswordFormProps) {
           />
         </div>
 
-        <div>
+        <div className="field">
           <label htmlFor="reset-new-password">New password</label>
           <input
             id="reset-new-password"
@@ -74,35 +88,28 @@ export function ResetPasswordForm({ onResetComplete }: ResetPasswordFormProps) {
             onChange={(e) => setNewPassword(e.target.value)}
             aria-describedby="reset-password-hint"
           />
-          <p id="reset-password-hint">At least {MIN_PASSWORD_LENGTH} characters.</p>
+          <p id="reset-password-hint" className="field-hint">
+            At least {MIN_PASSWORD_LENGTH} characters.
+          </p>
         </div>
+
+        {state.kind === "error" && (
+          <div className="alert alert-error" role="alert">
+            <p>{state.message}</p>
+            {state.details.length > 0 && (
+              <ul>
+                {state.details.map((detail) => (
+                  <li key={detail}>{detail}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         <button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Resetting…" : "Reset password"}
         </button>
       </form>
-
-      {state.kind === "success" && (
-        <div>
-          <p role="status">{state.message}</p>
-          <button type="button" onClick={onResetComplete}>
-            Back to log in
-          </button>
-        </div>
-      )}
-
-      {state.kind === "error" && (
-        <div role="alert" style={{ color: "crimson" }}>
-          <p>{state.message}</p>
-          {state.details.length > 0 && (
-            <ul>
-              {state.details.map((detail) => (
-                <li key={detail}>{detail}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </section>
+    </>
   );
 }

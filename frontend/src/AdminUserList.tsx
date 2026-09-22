@@ -73,78 +73,92 @@ export function AdminUserList({ currentUsername }: AdminUserListProps) {
     <section>
       <h3>All users</h3>
 
-      {state.kind === "loading" && <p role="status">Loading users…</p>}
+      {state.kind === "loading" && <p className="skeleton-text" role="status">Loading users…</p>}
 
       {state.kind === "error" && (
-        <p role="alert" style={{ color: "crimson" }}>
+        <p className="alert alert-error" role="alert">
           {state.message}
         </p>
       )}
 
       {actionError && (
-        <p role="alert" style={{ color: "crimson" }}>
+        <p className="alert alert-error" role="alert">
           {actionError}
         </p>
       )}
 
       {state.kind === "success" && (
-        <table>
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Enabled</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.users.map((user) => {
-              const isSelf = user.username === currentUsername;
-              const isPending = pendingUserId === user.id;
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Enabled</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.users.map((user) => {
+                const isSelf = user.username === currentUsername;
+                const isPending = pendingUserId === user.id;
 
-              return (
-                <tr key={user.id}>
-                  <td>{user.username}</td>
-                  <td>{user.email}</td>
-                  <td>{user.role}</td>
-                  <td>{user.enabled ? "Yes" : "No"}</td>
-                  <td>{new Date(user.createdAt).toLocaleString()}</td>
-                  <td>
-                    <button
-                      type="button"
-                      disabled={isSelf || isPending}
-                      onClick={() => handleToggleEnabled(user)}
-                    >
-                      {user.enabled ? "Disable" : "Enable"}
-                    </button>
+                return (
+                  <tr key={user.id}>
+                    <td>{user.username}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className={`role-badge${user.role === "ADMIN" ? " is-admin" : ""}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge-enabled ${user.enabled ? "is-enabled" : "is-disabled"}`}>
+                        {user.enabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </td>
+                    <td>{new Date(user.createdAt).toLocaleString()}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={isSelf || isPending}
+                          onClick={() => handleToggleEnabled(user)}
+                        >
+                          {user.enabled ? "Disable" : "Enable"}
+                        </button>
 
-                    <select
-                      id={`role-select-${user.id}`}
-                      name={`role-select-${user.id}`}
-                      aria-label={`Change role for ${user.username}`}
-                      value={user.role}
-                      disabled={isSelf || isPending}
-                      onChange={(e) => handleRoleChange(user, e.target.value as UserRole)}
-                    >
-                      <option value="USER">USER</option>
-                      <option value="ADMIN">ADMIN</option>
-                    </select>
+                        <select
+                          id={`role-select-${user.id}`}
+                          name={`role-select-${user.id}`}
+                          aria-label={`Change role for ${user.username}`}
+                          value={user.role}
+                          disabled={isSelf || isPending}
+                          onChange={(e) => handleRoleChange(user, e.target.value as UserRole)}
+                        >
+                          <option value="USER">USER</option>
+                          <option value="ADMIN">ADMIN</option>
+                        </select>
 
-                    <button
-                      type="button"
-                      disabled={isSelf || isPending}
-                      onClick={() => handleDelete(user)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        <button
+                          type="button"
+                          className="btn-danger"
+                          disabled={isSelf || isPending}
+                          onClick={() => handleDelete(user)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );

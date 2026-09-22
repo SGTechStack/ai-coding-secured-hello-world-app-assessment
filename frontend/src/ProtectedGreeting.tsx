@@ -48,22 +48,34 @@ export function ProtectedGreeting({ username, role, onLoggedOut }: ProtectedGree
   }
 
   return (
-    <section>
-      <h2>Welcome</h2>
+    <>
+      <div className="card welcome-card">
+        <div className="greeting">
+          <span className={`role-badge${role === "ADMIN" ? " is-admin" : ""}`}>{role}</span>
 
-      {greeting.kind === "loading" && <p role="status">Loading greeting…</p>}
-      {greeting.kind === "success" && <p role="status">{greeting.greeting}</p>}
-      {greeting.kind === "error" && (
-        <p role="alert" style={{ color: "crimson" }}>
-          {greeting.message}
-        </p>
+          {greeting.kind === "loading" && <p className="greeting-text skeleton-text">Loading greeting…</p>}
+          {greeting.kind === "success" && (
+            <p className="greeting-text" role="status">
+              {greeting.greeting}
+            </p>
+          )}
+          {greeting.kind === "error" && (
+            <p className="alert alert-error" role="alert">
+              {greeting.message}
+            </p>
+          )}
+        </div>
+
+        <button type="button" className="btn-secondary" onClick={handleLogout} disabled={isLoggingOut}>
+          {isLoggingOut ? "Logging out…" : "Log out"}
+        </button>
+      </div>
+
+      {role === "ADMIN" && (
+        <div className="card">
+          <AdminUserList currentUsername={username} />
+        </div>
       )}
-
-      <button type="button" onClick={handleLogout} disabled={isLoggingOut}>
-        {isLoggingOut ? "Logging out…" : "Log out"}
-      </button>
-
-      {role === "ADMIN" && <AdminUserList currentUsername={username} />}
-    </section>
+    </>
   );
 }

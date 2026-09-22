@@ -41,66 +41,61 @@ export function RegistrationForm() {
   const isSubmitting = state.kind === "submitting";
 
   return (
-    <section>
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="username">Username</label>
-          <input
-            id="username"
-            name="username"
-            type="text"
-            autoComplete="username"
-            required
-            minLength={3}
-            maxLength={64}
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
+    <form onSubmit={handleSubmit}>
+      <div className="field">
+        <label htmlFor="username">Username</label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          autoComplete="username"
+          required
+          minLength={3}
+          maxLength={64}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+      </div>
 
-        <div>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
+      <div className="field">
+        <label htmlFor="email">Email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
 
-        <div>
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={MIN_PASSWORD_LENGTH}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            aria-describedby="password-hint"
-          />
-          <p id="password-hint">At least {MIN_PASSWORD_LENGTH} characters.</p>
-        </div>
-
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Registering…" : "Register"}
-        </button>
-      </form>
+      <div className="field">
+        <label htmlFor="password">Password</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={MIN_PASSWORD_LENGTH}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          aria-describedby="password-hint"
+        />
+        <p id="password-hint" className="field-hint">
+          At least {MIN_PASSWORD_LENGTH} characters.
+        </p>
+      </div>
 
       {state.kind === "success" && (
-        <p role="status">
+        <p className="alert alert-success" role="status">
           Account <strong>{state.data.username}</strong> created. You can now log in.
         </p>
       )}
 
       {state.kind === "error" && (
-        <div role="alert" style={{ color: "crimson" }}>
+        <div className="alert alert-error" role="alert">
           <p>{state.message}</p>
           {state.details.length > 0 && (
             <ul>
@@ -111,6 +106,10 @@ export function RegistrationForm() {
           )}
         </div>
       )}
-    </section>
+
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Registering…" : "Register"}
+      </button>
+    </form>
   );
 }

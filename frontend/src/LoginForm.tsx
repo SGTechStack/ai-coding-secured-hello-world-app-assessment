@@ -39,45 +39,42 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const isSubmitting = state.kind === "submitting";
 
   return (
-    <section>
-      <h2>Log in</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="login-username">Username</label>
-          <input
-            id="login-username"
-            name="username"
-            type="text"
-            autoComplete="username"
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
+    <form onSubmit={handleSubmit}>
+      <div className="field">
+        <label htmlFor="login-username">Username</label>
+        <input
+          id="login-username"
+          name="username"
+          type="text"
+          autoComplete="username"
+          required
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+      </div>
 
-        <div>
-          <label htmlFor="login-password">Password</label>
-          <input
-            id="login-password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Logging in…" : "Log in"}
-        </button>
-      </form>
+      <div className="field">
+        <label htmlFor="login-password">Password</label>
+        <input
+          id="login-password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
 
       {state.kind === "error" && (
-        <p role="alert" style={{ color: "crimson" }}>
+        <p className="alert alert-error" role="alert">
           {state.message}
         </p>
       )}
-    </section>
+
+      <button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Logging in…" : "Log in"}
+      </button>
+    </form>
   );
 }

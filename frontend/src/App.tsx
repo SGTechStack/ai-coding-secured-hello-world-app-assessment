@@ -11,7 +11,7 @@ type Status =
   | { kind: "success"; data: HealthResponse }
   | { kind: "error"; message: string };
 
-type View = "login" | "forgot-password" | "reset-password";
+type View = "login" | "register" | "forgot-password" | "reset-password";
 
 function initialView(): View {
   const params = new URLSearchParams(window.location.search);
@@ -44,57 +44,101 @@ function App() {
     };
   }, []);
 
+  const isAuthView = view === "login" || view === "register";
+
   return (
     <main className="app">
-      <h1>Hello World Auth App</h1>
-      <p>Frontend origin talking to the backend across origins.</p>
+      <div className="app-header">
+        <h1>Hello World Auth App</h1>
+        <p>A secure username/password reference implementation.</p>
 
-      {status.kind === "loading" && <p role="status">Checking backend health…</p>}
+        {status.kind === "loading" && (
+          <span className="status-banner">
+            <span className="dot" />
+            Checking backend…
+          </span>
+        )}
 
-      {status.kind === "success" && (
-        <p role="status">
-          Backend says: <strong>{status.data.status}</strong> (as of{" "}
-          {status.data.timestamp})
-        </p>
-      )}
+        {status.kind === "success" && (
+          <span className="status-banner is-ok">
+            <span className="dot" />
+            Backend online
+          </span>
+        )}
 
-      {status.kind === "error" && (
-        <p role="alert" style={{ color: "crimson" }}>
-          Could not reach backend: {status.message}
-        </p>
-      )}
+        {status.kind === "error" && (
+          <span className="status-banner is-error">
+            <span className="dot" />
+            Could not reach backend: {status.message}
+          </span>
+        )}
+      </div>
 
-      {loggedInAs && (
-        <ProtectedGreeting
-          username={loggedInAs.username}
-          role={loggedInAs.role}
-          onLoggedOut={() => {
-            setLoggedInAs(null);
-            setView("login");
-          }}
-        />
-      )}
+      <div className={`app-content${loggedInAs ? " is-wide" : ""}`}>
+        {loggedInAs && (
+          <ProtectedGreeting
+            username={loggedInAs.username}
+            role={loggedInAs.role}
+            onLoggedOut={() => {
+              setLoggedInAs(null);
+              setView("login");
+            }}
+          />
+        )}
 
-      {!loggedInAs && view === "login" && (
-        <>
-          <LoginForm onLoginSuccess={setLoggedInAs} />
-          <button type="button" onClick={() => setView("forgot-password")}>
-            Forgot password?
-          </button>
-          <RegistrationForm />
-        </>
-      )}
+        {!loggedInAs && isAuthView && (
+          <div className="card">
+            <div className="tabs" role="tablist" aria-label="Authentication">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "login"}
+                className={view === "login" ? "is-active" : ""}
+                onClick={() => setView("login")}
+              >
+                Log in
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "register"}
+                className={view === "register" ? "is-active" : ""}
+                onClick={() => setView("register")}
+              >
+                Register
+              </button>
+            </div>
 
-      {!loggedInAs && view === "forgot-password" && (
-        <ForgotPasswordForm
-          onBackToLogin={() => setView("login")}
-          onHaveToken={() => setView("reset-password")}
-        />
-      )}
+            {view === "login" ? (
+              <>
+                <LoginForm onLoginSuccess={setLoggedInAs} />
+                <p className="form-footer">
+                  <button type="button" className="btn-link" onClick={() => setView("forgot-password")}>
+                    Forgot password?
+                  </button>
+                </p>
+              </>
+            ) : (
+              <RegistrationForm />
+            )}
+          </div>
+        )}
 
-      {!loggedInAs && view === "reset-password" && (
-        <ResetPasswordForm onResetComplete={() => setView("login")} />
-      )}
+        {!loggedInAs && view === "forgot-password" && (
+          <div className="card">
+            <ForgotPasswordForm
+              onBackToLogin={() => setView("login")}
+              onHaveToken={() => setView("reset-password")}
+            />
+          </div>
+        )}
+
+        {!loggedInAs && view === "reset-password" && (
+          <div className="card">
+            <ResetPasswordForm onResetComplete={() => setView("login")} />
+          </div>
+        )}
+      </div>
     </main>
   );
 }

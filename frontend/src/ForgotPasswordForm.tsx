@@ -39,10 +39,10 @@ export function ForgotPasswordForm({ onBackToLogin, onHaveToken }: ForgotPasswor
   const isSubmitting = state.kind === "submitting";
 
   return (
-    <section>
+    <>
       <h2>Forgot password</h2>
       <form onSubmit={handleSubmit}>
-        <div>
+        <div className="field">
           <label htmlFor="forgot-email">Email</label>
           <input
             id="forgot-email"
@@ -55,29 +55,33 @@ export function ForgotPasswordForm({ onBackToLogin, onHaveToken }: ForgotPasswor
           />
         </div>
 
+        {state.kind === "success" && (
+          <p className="alert alert-success" role="status">
+            {state.message}
+          </p>
+        )}
+
+        {state.kind === "error" && (
+          <p className="alert alert-error" role="alert">
+            {state.message}
+          </p>
+        )}
+
         <button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Sending…" : "Send reset link"}
         </button>
       </form>
 
-      {state.kind === "success" && (
-        <div>
-          <p role="status">{state.message}</p>
-          <button type="button" onClick={onHaveToken}>
+      <div className="form-footer btn-row">
+        <button type="button" className="btn-link" onClick={onBackToLogin}>
+          Back to log in
+        </button>
+        {state.kind === "success" && (
+          <button type="button" className="btn-link" onClick={onHaveToken}>
             I have a reset token
           </button>
-        </div>
-      )}
-
-      {state.kind === "error" && (
-        <p role="alert" style={{ color: "crimson" }}>
-          {state.message}
-        </p>
-      )}
-
-      <button type="button" onClick={onBackToLogin}>
-        Back to log in
-      </button>
-    </section>
+        )}
+      </div>
+    </>
   );
 }

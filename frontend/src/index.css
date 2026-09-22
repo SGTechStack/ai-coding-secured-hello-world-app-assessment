@@ -144,41 +144,6 @@ body {
   font-size: 0.9rem;
 }
 
-.status-banner {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.9rem;
-  padding: 0.4rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-}
-
-.status-banner .dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--color-text-muted);
-  flex-shrink: 0;
-}
-
-.status-banner.is-ok .dot {
-  background: var(--color-success);
-}
-
-.status-banner.is-error {
-  color: var(--color-danger);
-  border-color: var(--color-danger-border);
-  background: var(--color-danger-bg);
-}
-
-.status-banner.is-error .dot {
-  background: var(--color-danger);
-}
-
 .app-content {
   width: 100%;
   max-width: 26rem;

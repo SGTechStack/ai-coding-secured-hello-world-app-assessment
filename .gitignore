@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Agent tooling / local skill installs (not part of the app)
+.agents/
+.claude/
+.kiro/
+skills-lock.json
+
+# Scratch and generated artifacts
+.scratch/
+artifacts/

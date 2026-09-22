@@ -1,5 +1,8 @@
 package com.sgtechstack.helloworldauthapp.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.auth.IpLoginThrottle;
+import com.sgtechstack.helloworldauthapp.auth.IpThrottleFilter;
 import com.sgtechstack.helloworldauthapp.auth.LoginFailureHandler;
 import com.sgtechstack.helloworldauthapp.auth.LoginSuccessHandler;
 import com.sgtechstack.helloworldauthapp.auth.LogoutSuccessResponseHandler;
@@ -11,6 +14,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -47,13 +51,22 @@ public class SecurityConfig {
             LoginSuccessHandler loginSuccessHandler,
             LoginFailureHandler loginFailureHandler,
             LogoutSuccessResponseHandler logoutSuccessHandler,
-            RestAuthenticationEntryPoint authenticationEntryPoint
+            RestAuthenticationEntryPoint authenticationEntryPoint,
+            IpLoginThrottle ipLoginThrottle,
+            ObjectMapper objectMapper
     ) throws Exception {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                // Runs before Spring Security's own login-processing filter, so
+                // a throttled IP is rejected before an authentication attempt
+                // is even made.
+                .addFilterBefore(
+                        new IpThrottleFilter(ipLoginThrottle, objectMapper),
+                        UsernamePasswordAuthenticationFilter.class
+                )
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(csrfRequestHandler)

@@ -15,9 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 
 /**
- * On successful login: resets the failed-attempt counter and responds with
- * the account summary. The session cookie itself is already set by Spring
- * Security before this handler runs.
+ * On successful login: resets the failed-attempt counter and any active
+ * lockout, clears this IP's throttle count, and responds with the account
+ * summary. The session cookie itself is already set by Spring Security
+ * before this handler runs.
  */
 @Component
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
@@ -26,10 +27,16 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final IpLoginThrottle ipLoginThrottle;
 
-    public LoginSuccessHandler(UserRepository userRepository, ObjectMapper objectMapper) {
+    public LoginSuccessHandler(
+            UserRepository userRepository,
+            ObjectMapper objectMapper,
+            IpLoginThrottle ipLoginThrottle
+    ) {
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
+        this.ipLoginThrottle = ipLoginThrottle;
     }
 
     @Override
@@ -43,8 +50,11 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         userRepository.findByUsernameIgnoreCase(username).ifPresent(user -> {
             user.setFailedLoginAttempts(0);
+            user.setLockedUntil(null);
             userRepository.save(user);
         });
+
+        ipLoginThrottle.recordSuccess(request.getRemoteAddr());
 
         log.info("Login succeeded username={}", username);
 

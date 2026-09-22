@@ -6,6 +6,7 @@ import com.sgtechstack.helloworldauthapp.auth.IpThrottleFilter;
 import com.sgtechstack.helloworldauthapp.auth.LoginFailureHandler;
 import com.sgtechstack.helloworldauthapp.auth.LoginSuccessHandler;
 import com.sgtechstack.helloworldauthapp.auth.LogoutSuccessResponseHandler;
+import com.sgtechstack.helloworldauthapp.auth.RestAccessDeniedHandler;
 import com.sgtechstack.helloworldauthapp.auth.RestAuthenticationEntryPoint;
 import com.sgtechstack.helloworldauthapp.auth.RestSessionExpiredStrategy;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
@@ -78,7 +79,8 @@ public class SecurityConfig {
             IpLoginThrottle ipLoginThrottle,
             ObjectMapper objectMapper,
             SessionRegistry sessionRegistry,
-            RestSessionExpiredStrategy sessionExpiredStrategy
+            RestSessionExpiredStrategy sessionExpiredStrategy,
+            RestAccessDeniedHandler accessDeniedHandler
     ) throws Exception {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
@@ -113,6 +115,7 @@ public class SecurityConfig {
                                 "/api/auth/password-reset/request", "/api/auth/password-reset/confirm"
                         )
                         .permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -131,6 +134,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 );
 
         return http.build();

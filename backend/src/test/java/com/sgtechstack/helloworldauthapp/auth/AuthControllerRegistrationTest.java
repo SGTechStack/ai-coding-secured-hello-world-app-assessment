@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenRepository;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
@@ -40,10 +41,16 @@ class AuthControllerRegistrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private PasswordResetTokenRepository tokenRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void cleanUp() {
+        // Clear tokens first: they FK-reference users, so a leftover token
+        // row from another test class would otherwise block this delete.
+        tokenRepository.deleteAll();
         userRepository.deleteAll();
     }
 

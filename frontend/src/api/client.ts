@@ -35,6 +35,8 @@ async function csrfHeader(): Promise<Record<string, string>> {
   return token ? { [CSRF_HEADER_NAME]: token } : {};
 }
 
+export type UserRole = "USER" | "ADMIN";
+
 export interface RegistrationRequest {
   username: string;
   email: string;
@@ -45,7 +47,7 @@ export interface RegistrationResponse {
   id: string;
   username: string;
   email: string;
-  role: "USER" | "ADMIN";
+  role: UserRole;
   enabled: boolean;
   createdAt: string;
 }
@@ -130,6 +132,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   username: string;
+  role: UserRole;
 }
 
 /**
@@ -217,6 +220,34 @@ export async function confirmPasswordReset(token: string, newPassword: string): 
 
   const body = (await response.json()) as { message: string };
   return body.message;
+}
+
+export interface AdminUserSummary {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  enabled: boolean;
+  createdAt: string;
+}
+
+/**
+ * Lists all registered users. Admin-only: throws {@link ApiError} with a
+ * 403-flavoured message for a non-admin session, 401 for no session at
+ * all — the role check happens entirely server-side, this call just
+ * surfaces whatever the backend decides.
+ */
+export async function fetchAdminUsers(): Promise<AdminUserSummary[]> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.json() as Promise<AdminUserSummary[]>;
 }
 
 /**

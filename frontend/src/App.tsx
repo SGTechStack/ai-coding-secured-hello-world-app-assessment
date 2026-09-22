@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchHealth, type HealthResponse } from "./api/client";
+import { fetchHealth, type HealthResponse, type LoginResponse } from "./api/client";
 import { RegistrationForm } from "./RegistrationForm";
 import { LoginForm } from "./LoginForm";
 import { ProtectedGreeting } from "./ProtectedGreeting";
@@ -20,7 +20,7 @@ function initialView(): View {
 
 function App() {
   const [status, setStatus] = useState<Status>({ kind: "loading" });
-  const [loggedInAs, setLoggedInAs] = useState<string | null>(null);
+  const [loggedInAs, setLoggedInAs] = useState<LoginResponse | null>(null);
   const [view, setView] = useState<View>(initialView);
 
   useEffect(() => {
@@ -66,7 +66,8 @@ function App() {
 
       {loggedInAs && (
         <ProtectedGreeting
-          username={loggedInAs}
+          username={loggedInAs.username}
+          role={loggedInAs.role}
           onLoggedOut={() => {
             setLoggedInAs(null);
             setView("login");

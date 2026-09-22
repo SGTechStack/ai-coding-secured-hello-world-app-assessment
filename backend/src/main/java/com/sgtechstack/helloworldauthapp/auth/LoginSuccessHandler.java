@@ -1,6 +1,8 @@
 package com.sgtechstack.helloworldauthapp.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.user.Role;
+import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -48,18 +50,18 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     ) throws IOException {
         String username = authentication.getName();
 
-        userRepository.findByUsernameIgnoreCase(username).ifPresent(user -> {
-            user.setFailedLoginAttempts(0);
-            user.setLockedUntil(null);
-            userRepository.save(user);
-        });
+        User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow();
+        user.setFailedLoginAttempts(0);
+        user.setLockedUntil(null);
+        userRepository.save(user);
 
         ipLoginThrottle.recordSuccess(request.getRemoteAddr());
 
         log.info("Login succeeded username={}", username);
 
+        Role role = user.getRole();
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(objectMapper.writeValueAsString(LoginResponse.forUsername(username)));
+        response.getWriter().write(objectMapper.writeValueAsString(LoginResponse.of(username, role)));
     }
 }

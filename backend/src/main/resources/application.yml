@@ -17,6 +17,13 @@ server:
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  admin:
+    # No default outside dev: a predictable initial admin password must
+    # never ship to a real deployment. The dev profile below supplies a
+    # documented, dev-only default so `mvn spring-boot:run -Pdev` works
+    # out of the box.
+    username: ${APP_ADMIN_USERNAME}
+    password: ${APP_ADMIN_PASSWORD}
 
 ---
 spring:
@@ -41,3 +48,8 @@ server:
     session:
       cookie:
         secure: false
+
+app:
+  admin:
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:change-this-admin-password}

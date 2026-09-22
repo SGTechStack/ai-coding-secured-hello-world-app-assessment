@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { ApiError, login } from "./api/client";
+import { ApiError, login, type LoginResponse } from "./api/client";
 
 interface LoginFormProps {
-  onLoginSuccess: (username: string) => void;
+  onLoginSuccess: (result: LoginResponse) => void;
 }
 
 type SubmitState =
@@ -22,7 +22,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
     try {
       const result = await login({ username, password });
       setPassword("");
-      onLoginSuccess(result.username);
+      onLoginSuccess(result);
     } catch (error: unknown) {
       setState({
         kind: "error",

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { fetchGreeting, logout } from "./api/client";
+import { fetchGreeting, logout, type UserRole } from "./api/client";
+import { AdminUserList } from "./AdminUserList";
 
 interface ProtectedGreetingProps {
   username: string;
+  role: UserRole;
   onLoggedOut: () => void;
 }
 
@@ -11,7 +13,7 @@ type GreetingState =
   | { kind: "success"; greeting: string }
   | { kind: "error"; message: string };
 
-export function ProtectedGreeting({ username, onLoggedOut }: ProtectedGreetingProps) {
+export function ProtectedGreeting({ username, role, onLoggedOut }: ProtectedGreetingProps) {
   const [greeting, setGreeting] = useState<GreetingState>({ kind: "loading" });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -60,6 +62,8 @@ export function ProtectedGreeting({ username, onLoggedOut }: ProtectedGreetingPr
       <button type="button" onClick={handleLogout} disabled={isLoggingOut}>
         {isLoggingOut ? "Logging out…" : "Log out"}
       </button>
+
+      {role === "ADMIN" && <AdminUserList />}
     </section>
   );
 }

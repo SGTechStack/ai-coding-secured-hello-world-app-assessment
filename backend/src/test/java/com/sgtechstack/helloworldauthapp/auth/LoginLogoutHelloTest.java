@@ -1,5 +1,6 @@
 package com.sgtechstack.helloworldauthapp.auth;
 
+import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenRepository;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
@@ -37,10 +38,16 @@ class LoginLogoutHelloTest {
     private UserRepository userRepository;
 
     @Autowired
+    private PasswordResetTokenRepository tokenRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
+        // Clear tokens first: they FK-reference users, so a leftover token
+        // row from another test class would otherwise block this delete.
+        tokenRepository.deleteAll();
         userRepository.deleteAll();
         User user = new User(USERNAME, "loginuser@example.com", passwordEncoder.encode(PASSWORD), Role.USER, true);
         user.setFailedLoginAttempts(3);

@@ -7,16 +7,21 @@ import com.sgtechstack.helloworldauthapp.auth.LoginFailureHandler;
 import com.sgtechstack.helloworldauthapp.auth.LoginSuccessHandler;
 import com.sgtechstack.helloworldauthapp.auth.LogoutSuccessResponseHandler;
 import com.sgtechstack.helloworldauthapp.auth.RestAuthenticationEntryPoint;
+import com.sgtechstack.helloworldauthapp.auth.RestSessionExpiredStrategy;
+import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
@@ -44,6 +49,24 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Tracks each principal's active {@code HttpSession}s so a password
+     * reset (or any future "log out everywhere" action) can invalidate
+     * every session belonging to a user, not just the one making the
+     * request. Requires {@link org.springframework.security.web.session.HttpSessionEventPublisher}
+     * (registered as a servlet listener bean below) so the registry is
+     * notified when sessions are created and destroyed.
+     */
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+
+    @Bean
+    public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
+        return new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());
+    }
+
     @Bean
     public SecurityFilterChain filterChain(
             HttpSecurity http,
@@ -53,7 +76,9 @@ public class SecurityConfig {
             LogoutSuccessResponseHandler logoutSuccessHandler,
             RestAuthenticationEntryPoint authenticationEntryPoint,
             IpLoginThrottle ipLoginThrottle,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            SessionRegistry sessionRegistry,
+            RestSessionExpiredStrategy sessionExpiredStrategy
     ) throws Exception {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
@@ -73,10 +98,20 @@ public class SecurityConfig {
                 )
                 // Session-fixation protection: Spring Security's default session
                 // management already rotates the session ID on authentication
-                // (changeSessionId()), so no explicit .sessionManagement(...) override
-                // is needed here to get that behaviour.
+                // (changeSessionId()). maximumSessions/sessionRegistry here is for
+                // tracking, not capping, concurrent sessions: it feeds SessionRegistry
+                // so a password reset can invalidate every session for a user, not
+                // to limit how many a user may have open.
+                .sessionManagement(session -> session
+                        .maximumSessions(-1)
+                        .sessionRegistry(sessionRegistry)
+                        .expiredSessionStrategy(sessionExpiredStrategy)
+                )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/auth/register", "/api/health", "/api/csrf", "/api/auth/login")
+                        .requestMatchers(
+                                "/api/auth/register", "/api/health", "/api/csrf", "/api/auth/login",
+                                "/api/auth/password-reset/request", "/api/auth/password-reset/confirm"
+                        )
                         .permitAll()
                         .anyRequest().authenticated()
                 )

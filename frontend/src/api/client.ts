@@ -177,6 +177,49 @@ export async function logout(): Promise<void> {
 }
 
 /**
+ * Requests a password reset link for the given email. Always resolves
+ * with the same generic message, whether or not the email is registered
+ * — that's the backend's enumeration-resistance guarantee, not something
+ * the client can or should try to distinguish.
+ */
+export async function requestPasswordReset(email: string): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/password-reset/request`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(await csrfHeader()) },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  const body = (await response.json()) as { message: string };
+  return body.message;
+}
+
+/**
+ * Confirms a password reset with the token from the reset link. Throws
+ * {@link ApiError} for an invalid/expired/already-used token (400) or a
+ * password failing the strength policy (400).
+ */
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/password-reset/confirm`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...(await csrfHeader()) },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  const body = (await response.json()) as { message: string };
+  return body.message;
+}
+
+/**
  * Calls the protected greeting endpoint. Throws {@link ApiError} with a
  * 401-flavoured message if there is no valid session.
  */

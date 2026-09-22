@@ -3,15 +3,25 @@ import { fetchHealth, type HealthResponse } from "./api/client";
 import { RegistrationForm } from "./RegistrationForm";
 import { LoginForm } from "./LoginForm";
 import { ProtectedGreeting } from "./ProtectedGreeting";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import { ResetPasswordForm } from "./ResetPasswordForm";
 
 type Status =
   | { kind: "loading" }
   | { kind: "success"; data: HealthResponse }
   | { kind: "error"; message: string };
 
+type View = "login" | "forgot-password" | "reset-password";
+
+function initialView(): View {
+  const params = new URLSearchParams(window.location.search);
+  return params.has("token") ? "reset-password" : "login";
+}
+
 function App() {
   const [status, setStatus] = useState<Status>({ kind: "loading" });
   const [loggedInAs, setLoggedInAs] = useState<string | null>(null);
+  const [view, setView] = useState<View>(initialView);
 
   useEffect(() => {
     let isMounted = true;
@@ -54,13 +64,35 @@ function App() {
         </p>
       )}
 
-      {loggedInAs ? (
-        <ProtectedGreeting username={loggedInAs} onLoggedOut={() => setLoggedInAs(null)} />
-      ) : (
+      {loggedInAs && (
+        <ProtectedGreeting
+          username={loggedInAs}
+          onLoggedOut={() => {
+            setLoggedInAs(null);
+            setView("login");
+          }}
+        />
+      )}
+
+      {!loggedInAs && view === "login" && (
         <>
           <LoginForm onLoginSuccess={setLoggedInAs} />
+          <button type="button" onClick={() => setView("forgot-password")}>
+            Forgot password?
+          </button>
           <RegistrationForm />
         </>
+      )}
+
+      {!loggedInAs && view === "forgot-password" && (
+        <ForgotPasswordForm
+          onBackToLogin={() => setView("login")}
+          onHaveToken={() => setView("reset-password")}
+        />
+      )}
+
+      {!loggedInAs && view === "reset-password" && (
+        <ResetPasswordForm onResetComplete={() => setView("login")} />
       )}
     </main>
   );

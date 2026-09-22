@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchHealth, type HealthResponse } from "./api/client";
+import { RegistrationForm } from "./RegistrationForm";
 
 type Status =
   | { kind: "loading" }
@@ -49,6 +50,8 @@ function App() {
           Could not reach backend: {status.message}
         </p>
       )}
+
+      <RegistrationForm />
     </main>
   );
 }

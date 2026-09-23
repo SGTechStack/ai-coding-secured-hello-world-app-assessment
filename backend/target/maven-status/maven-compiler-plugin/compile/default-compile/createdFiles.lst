@@ -1,7 +1,0 @@
-com/assessment/securedhelloworld/passwordreset/PasswordResetToken.class
-com/assessment/securedhelloworld/user/UserRepository.class
-com/assessment/securedhelloworld/passwordreset/PasswordResetTokenRepository.class
-com/assessment/securedhelloworld/SecuredHelloWorldApplication.class
-com/assessment/securedhelloworld/user/Role.class
-com/assessment/securedhelloworld/config/SecurityConfig.class
-com/assessment/securedhelloworld/user/User.class

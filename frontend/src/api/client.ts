@@ -320,10 +320,11 @@ export async function deleteUser(userId: string): Promise<void> {
  * Calls the protected greeting endpoint. Throws {@link ApiError} with a
  * 401-flavoured message if there is no valid session.
  */
-export async function fetchGreeting(): Promise<string> {
+export async function fetchGreeting(signal?: AbortSignal): Promise<string> {
   const response = await fetch(`${API_BASE_URL}/api/hello`, {
     method: "GET",
     credentials: "include",
+    signal,
   });
 
   if (!response.ok) {

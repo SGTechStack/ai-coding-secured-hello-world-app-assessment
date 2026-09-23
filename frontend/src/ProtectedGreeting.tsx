@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchGreeting, logout, type UserRole } from "./api/client";
+import { fetchGreeting, isAbortError, logout, type UserRole } from "./api/client";
 import { AdminUserList } from "./AdminUserList";
 
 interface ProtectedGreetingProps {
@@ -17,26 +17,30 @@ export function ProtectedGreeting({ username, role, onLoggedOut }: ProtectedGree
   const [greeting, setGreeting] = useState<GreetingState>({ kind: "loading" });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  /**
+   * Real cancellation rather than an `isMounted` flag: aborting also tears down
+   * the in-flight request instead of merely ignoring its response, which matters
+   * under StrictMode's deliberate double-invocation of effects in development.
+   *
+   * Empty deps, not `[username]`: the request's only input is the session
+   * cookie, and this component is unmounted on logout, so a new session always
+   * arrives as a fresh mount.
+   */
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
 
-    fetchGreeting()
-      .then((text) => {
-        if (isMounted) setGreeting({ kind: "success", greeting: text });
-      })
+    fetchGreeting(controller.signal)
+      .then((text) => setGreeting({ kind: "success", greeting: text }))
       .catch((error: unknown) => {
-        if (isMounted) {
-          setGreeting({
-            kind: "error",
-            message: error instanceof Error ? error.message : "Could not load greeting",
-          });
-        }
+        if (isAbortError(error)) return;
+        setGreeting({
+          kind: "error",
+          message: error instanceof Error ? error.message : "Could not load greeting",
+        });
       });
 
-    return () => {
-      isMounted = false;
-    };
-  }, [username]);
+    return () => controller.abort();
+  }, []);
 
   async function handleLogout() {
     setIsLoggingOut(true);

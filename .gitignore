@@ -1,2 +1,3 @@
-App-Standards/*
-App-Standards/
+node_modules/
+dist/
+.env

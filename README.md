@@ -76,6 +76,29 @@ git push -u origin janedoe
 Continue committing to your branch as you make progress. Keep all of your work
 on your own branch.
 
+## Running the App
+
+### Backend
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.10"
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
+Run from the `backend/` directory. Starts on `http://localhost:8080` and seeds
+a dev admin account (`admin` / `password1234`). The H2 console is available at
+`http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:mem:hello-world-auth-app`,
+user `sa`, no password).
+
+### Frontend
+
+```powershell
+npm run dev
+```
+
+Run from the `frontend/` directory. Starts on `http://localhost:3000`.
+
 ## Rules Summary
 
 - Read the PRD first — it is the source of truth.

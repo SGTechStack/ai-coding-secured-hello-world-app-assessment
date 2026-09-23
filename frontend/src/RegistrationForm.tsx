@@ -9,7 +9,12 @@ type SubmitState =
   | { kind: "success"; data: RegistrationResponse }
   | { kind: "error"; message: string; details: string[] };
 
-export function RegistrationForm() {
+interface RegistrationFormProps {
+  /** Called once the account has been created, so the parent can move the user off the form (e.g. to login). */
+  onRegistered?: (data: RegistrationResponse) => void;
+}
+
+export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +30,7 @@ export function RegistrationForm() {
       setUsername("");
       setEmail("");
       setPassword("");
+      onRegistered?.(data);
     } catch (error: unknown) {
       if (error instanceof ApiError) {
         setState({ kind: "error", message: error.message, details: error.details });
@@ -39,6 +45,17 @@ export function RegistrationForm() {
   }
 
   const isSubmitting = state.kind === "submitting";
+
+  if (state.kind === "success") {
+    return (
+      <div className="alert alert-success" role="status">
+        <p>
+          Account <strong>{state.data.username}</strong> created successfully.
+        </p>
+        <p>You can now log in with your new credentials.</p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit}>
@@ -87,12 +104,6 @@ export function RegistrationForm() {
           At least {MIN_PASSWORD_LENGTH} characters.
         </p>
       </div>
-
-      {state.kind === "success" && (
-        <p className="alert alert-success" role="status">
-          Account <strong>{state.data.username}</strong> created. You can now log in.
-        </p>
-      )}
 
       {state.kind === "error" && (
         <div className="alert alert-error" role="alert">

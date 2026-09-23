@@ -22,6 +22,7 @@ function App() {
   const [loggedInAs, setLoggedInAs] = useState<LoginResponse | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(readTokenFromUrl);
   const [view, setView] = useState<View>(() => (readTokenFromUrl() ? "reset-password" : "login"));
+  const [registeredUsername, setRegisteredUsername] = useState<string | null>(null);
 
   /**
    * Treat the reset token as one-shot: now that it lives in React state, take
@@ -80,7 +81,10 @@ function App() {
                   role="tab"
                   aria-selected={view === "register"}
                   className={view === "register" ? "is-active" : ""}
-                  onClick={() => setView("register")}
+                  onClick={() => {
+                    setRegisteredUsername(null);
+                    setView("register");
+                  }}
                 >
                   Register
                 </button>
@@ -88,7 +92,18 @@ function App() {
 
               {view === "login" ? (
                 <>
-                  <LoginForm onLoginSuccess={setLoggedInAs} />
+                  {registeredUsername && (
+                    <p className="alert alert-success" role="status">
+                      Account <strong>{registeredUsername}</strong> created successfully. Log in below to continue.
+                    </p>
+                  )}
+                  <LoginForm
+                    initialUsername={registeredUsername ?? undefined}
+                    onLoginSuccess={(result) => {
+                      setRegisteredUsername(null);
+                      setLoggedInAs(result);
+                    }}
+                  />
                   <p className="form-footer">
                     <button type="button" className="btn-link" onClick={() => setView("forgot-password")}>
                       Forgot password?
@@ -96,7 +111,12 @@ function App() {
                   </p>
                 </>
               ) : (
-                <RegistrationForm />
+                <RegistrationForm
+                  onRegistered={(data) => {
+                    setRegisteredUsername(data.username);
+                    setView("login");
+                  }}
+                />
               )}
             </div>
           )}

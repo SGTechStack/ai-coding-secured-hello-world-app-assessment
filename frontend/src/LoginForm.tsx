@@ -3,6 +3,8 @@ import { ApiError, login, type LoginResponse } from "./api/client";
 
 interface LoginFormProps {
   onLoginSuccess: (result: LoginResponse) => void;
+  /** Prefills the username field, e.g. right after a successful registration. */
+  initialUsername?: string;
 }
 
 type SubmitState =
@@ -10,8 +12,8 @@ type SubmitState =
   | { kind: "submitting" }
   | { kind: "error"; message: string };
 
-export function LoginForm({ onLoginSuccess }: LoginFormProps) {
-  const [username, setUsername] = useState("");
+export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
+  const [username, setUsername] = useState(initialUsername ?? "");
   const [password, setPassword] = useState("");
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
 

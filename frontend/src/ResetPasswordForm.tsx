@@ -4,6 +4,12 @@ import { ApiError, confirmPasswordReset } from "./api/client";
 const MIN_PASSWORD_LENGTH = 12;
 
 interface ResetPasswordFormProps {
+  /**
+   * Token captured from the reset link by the parent, or `""` when the user
+   * navigated here manually and will paste one in. The parent owns the URL
+   * read so the token can be stripped from the address bar immediately.
+   */
+  initialToken: string;
   onResetComplete: () => void;
 }
 
@@ -13,12 +19,8 @@ type SubmitState =
   | { kind: "success"; message: string }
   | { kind: "error"; message: string; details: string[] };
 
-function tokenFromUrl(): string {
-  return new URLSearchParams(window.location.search).get("token") ?? "";
-}
-
-export function ResetPasswordForm({ onResetComplete }: ResetPasswordFormProps) {
-  const [token, setToken] = useState(tokenFromUrl);
+export function ResetPasswordForm({ initialToken, onResetComplete }: ResetPasswordFormProps) {
+  const [token, setToken] = useState(initialToken);
   const [newPassword, setNewPassword] = useState("");
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
 

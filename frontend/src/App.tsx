@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type LoginResponse } from "./api/client";
 import { RegistrationForm } from "./RegistrationForm";
 import { LoginForm } from "./LoginForm";
@@ -9,14 +9,36 @@ import { DevToolsBanner } from "./DevToolsBanner";
 
 type View = "login" | "register" | "forgot-password" | "reset-password";
 
-function initialView(): View {
-  const params = new URLSearchParams(window.location.search);
-  return params.has("token") ? "reset-password" : "login";
+/**
+ * Reads the reset token out of the address bar. Called only from lazy state
+ * initialisers, so the URL is sampled once per mount rather than on every
+ * render — and always before the effect below erases it.
+ */
+function readTokenFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get("token");
 }
 
 function App() {
   const [loggedInAs, setLoggedInAs] = useState<LoginResponse | null>(null);
-  const [view, setView] = useState<View>(initialView);
+  const [resetToken, setResetToken] = useState<string | null>(readTokenFromUrl);
+  const [view, setView] = useState<View>(() => (readTokenFromUrl() ? "reset-password" : "login"));
+
+  /**
+   * Treat the reset token as one-shot: now that it lives in React state, take
+   * it out of the address bar. This keeps it out of browser history entries and
+   * out of the `Referer` header on any outbound navigation, and stops a page
+   * refresh from dropping the user back into the reset flow holding a token
+   * that has already been consumed.
+   *
+   * This belongs in an effect rather than the render body: mutating browser
+   * history is a side effect, and the render phase can be re-entered or
+   * abandoned by the scheduler.
+   */
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("token")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const isAuthView = view === "login" || view === "register";
 
@@ -90,7 +112,13 @@ function App() {
 
           {!loggedInAs && view === "reset-password" && (
             <div className="card">
-              <ResetPasswordForm onResetComplete={() => setView("login")} />
+              <ResetPasswordForm
+                initialToken={resetToken ?? ""}
+                onResetComplete={() => {
+                  setResetToken(null);
+                  setView("login");
+                }}
+              />
             </div>
           )}
         </div>

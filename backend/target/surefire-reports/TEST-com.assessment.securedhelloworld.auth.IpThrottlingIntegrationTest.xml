@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.assessment.securedhelloworld.auth.LogoutAndHelloIntegrationTest" time="0.287" tests="3" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.assessment.securedhelloworld.auth.IpThrottlingIntegrationTest" time="0.151" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="27"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -62,16 +62,31 @@
     <property name="java.class.version" value="71.0"/>
     <property name="LOGGED_APPLICATION_NAME" value="[secured-hello-world-backend] "/>
   </properties>
-  <testcase name="logoutInvalidatesSessionAndRejectsReuse" classname="com.assessment.securedhelloworld.auth.LogoutAndHelloIntegrationTest" time="0.141">
-    <system-out><![CDATA[2026-09-23T17:27:36.996+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.assessment.securedhelloworld.auth.LogoutAndHelloIntegrationTest]: LogoutAndHelloIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-2026-09-23T17:27:37.004+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.assessment.securedhelloworld.SecuredHelloWorldApplication for test class com.assessment.securedhelloworld.auth.LogoutAndHelloIntegrationTest
-2026-09-23T17:27:37.140+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login succeeded username=logout-user
-2026-09-23T17:27:37.144+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.s.auth.LogoutController              : Logout username=logout-user
-]]></system-out>
-  </testcase>
-  <testcase name="helloReturns401WithoutSession" classname="com.assessment.securedhelloworld.auth.LogoutAndHelloIntegrationTest" time="0.005"/>
-  <testcase name="helloReturnsGreetingForAuthenticatedSession" classname="com.assessment.securedhelloworld.auth.LogoutAndHelloIntegrationTest" time="0.122">
-    <system-out><![CDATA[2026-09-23T17:27:37.273+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login succeeded username=hello-user
+  <testcase name="ipIsThrottledAfterThresholdAcrossDistinctUsernamesIndependentOfAccountLockout" classname="com.assessment.securedhelloworld.auth.IpThrottlingIntegrationTest" time="0.143">
+    <system-out><![CDATA[2026-09-23T17:27:37.284+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.assessment.securedhelloworld.auth.IpThrottlingIntegrationTest]: IpThrottlingIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-09-23T17:27:37.286+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.assessment.securedhelloworld.SecuredHelloWorldApplication for test class com.assessment.securedhelloworld.auth.IpThrottlingIntegrationTest
+2026-09-23T17:27:37.348+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.355+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.358+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.361+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.366+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.370+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.373+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.376+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.379+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.382+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.384+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.387+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.390+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.394+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.397+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.401+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.406+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.411+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.418+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.423+08:00  INFO 73120 --- [secured-hello-world-backend] [           main] c.a.securedhelloworld.auth.LoginService  : Login failed: unknown username, ip=127.0.0.1
+2026-09-23T17:27:37.427+08:00  WARN 73120 --- [secured-hello-world-backend] [           main] c.a.s.auth.LoginAttemptService           : IP throttled ip=127.0.0.1 attempts=20
+2026-09-23T17:27:37.429+08:00  WARN 73120 --- [secured-hello-world-backend] [           main] c.a.s.auth.LoginAttemptService           : IP throttled ip=127.0.0.1 attempts=20
 ]]></system-out>
   </testcase>
 </testsuite>

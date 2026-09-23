@@ -1,5 +1,6 @@
 /home/lminglia/development/ai-coding-secured-hello-world-app-assessment/backend/src/test/java/com/assessment/securedhelloworld/SecuredHelloWorldApplicationTests.java
 /home/lminglia/development/ai-coding-secured-hello-world-app-assessment/backend/src/test/java/com/assessment/securedhelloworld/admin/AdminUserManagementIntegrationTest.java
+/home/lminglia/development/ai-coding-secured-hello-world-app-assessment/backend/src/test/java/com/assessment/securedhelloworld/auth/IpThrottlingIntegrationTest.java
 /home/lminglia/development/ai-coding-secured-hello-world-app-assessment/backend/src/test/java/com/assessment/securedhelloworld/auth/LoginIntegrationTest.java
 /home/lminglia/development/ai-coding-secured-hello-world-app-assessment/backend/src/test/java/com/assessment/securedhelloworld/auth/LogoutAndHelloIntegrationTest.java
 /home/lminglia/development/ai-coding-secured-hello-world-app-assessment/backend/src/test/java/com/assessment/securedhelloworld/bootstrap/AdminBootstrapIntegrationTest.java

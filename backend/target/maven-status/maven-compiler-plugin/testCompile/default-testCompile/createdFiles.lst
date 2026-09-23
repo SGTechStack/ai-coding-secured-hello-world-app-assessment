@@ -4,5 +4,6 @@ com/assessment/securedhelloworld/auth/LoginIntegrationTest.class
 com/assessment/securedhelloworld/config/SecurityHardeningIntegrationTest.class
 com/assessment/securedhelloworld/user/UserRepositoryTest.class
 com/assessment/securedhelloworld/auth/LogoutAndHelloIntegrationTest.class
+com/assessment/securedhelloworld/auth/IpThrottlingIntegrationTest.class
 com/assessment/securedhelloworld/registration/RegistrationIntegrationTest.class
 com/assessment/securedhelloworld/passwordreset/PasswordResetIntegrationTest.class

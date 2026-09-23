@@ -8,7 +8,7 @@
 | **Code reviewed** | Full `backend/` and `frontend/` source as committed, `pom.xml`, `package.json`, `application.yml`, all 6 backend test classes |
 | **Date** | 2026-09-23 |
 | **Owner** | Samuel Wong |
-| **Status** | Draft — owners and target dates not yet assigned |
+| **Status** | Partially remediated — TM-02 and TM-04 fixed and test-covered (see §12). Owners and target dates not yet assigned for the remainder. |
 
 Open the model in [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon/releases) (desktop) or a Docker instance, then use *Open existing threat model* and select the JSON file. To export a PDF report, use Threat Dragon's own *Report* view.
 
@@ -47,13 +47,15 @@ Open the model in [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon/r
 
 | Status | High | Medium | Low | Total |
 | --- | --- | --- | --- | --- |
-| **Open** | 7 | 19 | 14 | **40** |
-| **Mitigated** | 14 | 5 | 1 | **20** |
+| **Open** | 4 | 20 | 14 | **38** |
+| **Mitigated** | 16 | 5 | 1 | **22** |
 | **Not applicable** | 1 | — | — | **1** |
 
-The headline: this is a genuinely well-built security baseline, and the open findings are concentrated in three places rather than scattered. The authentication core — password storage, session handling, CSRF, enumeration resistance, reset-token cryptography, admin self-action guards — is correct and largely test-covered. What is missing clusters into **deployment posture** (no prod profile, no transport enforcement, dev-profile rules shipping unconditionally), **revocation consistency** (password reset kills sessions; disable and demote do not), and **secret handling on the reset path** (the live token is written to the log and carried in a URL query string).
+The headline: this is a genuinely well-built security baseline, and the open findings are concentrated rather than scattered. The authentication core — password storage, session handling, CSRF, enumeration resistance, reset-token cryptography, admin self-action guards — is correct and largely test-covered.
 
-Four of the seven High findings (TM-01, TM-05, TM-06, TM-07) are deployment-configuration problems rather than code defects. That is worth saying plainly: the application logic is in better shape than the raw count suggests, but the configuration is not currently deployable outside dev, and the dev configuration is unsafe to expose.
+The original model found three clusters of weakness. Two have since been closed (§12): **secret handling on the reset path** (the live token was written to the log) and **revocation consistency** (password reset killed sessions, disable and demote did not). What remains is **deployment posture**: no prod profile, no transport enforcement, and dev-profile rules that ship unconditionally.
+
+All four remaining High findings (TM-01, TM-05, TM-06, TM-07) are deployment-configuration problems rather than code defects. That is worth saying plainly: the application logic is in good shape, but the configuration is not currently deployable outside dev, and the dev configuration is unsafe to expose.
 
 ---
 
@@ -78,21 +80,7 @@ Four of the seven High findings (TM-01, TM-05, TM-06, TM-07) are deployment-conf
 - **Evidence:** `config/SecurityConfig.java:104, 108-110, 130`; `application.yml:41-50`
 - **Fix:** move these rules into a `@Profile("dev")` `SecurityFilterChain` bean; scope `frameOptions().sameOrigin()` to `/h2-console/**` only; set `spring.h2.console.settings.web-allow-others=false`; move the `h2` dependency to `<scope>test</scope>` once a real datasource exists.
 
-### TM-02 · Information disclosure · The reset link, token included, is written to the log
-
-`EmailService` logs the complete reset link at INFO. That link contains the plaintext, currently-valid, single-use reset token. Anyone with log read access — an operator, a log aggregator, a CI job tailing output — can take over any account that has requested a reset, inside the 30-minute window. This is the sharpest finding in the model: it converts log read access into account takeover. It also contradicts the spirit of the PRD's "never log passwords" requirement, even though the letter of that requirement names only passwords.
-
-- **Evidence:** `passwordreset/EmailService.java:16-18`
-- **Fix:** log a correlation id and the target user id, never the token or the assembled link. Add a test asserting the token value never appears in captured log output, so the real `EmailService` cannot reintroduce it.
-
-### TM-04 · Elevation of privilege · Disabling or demoting a user does not revoke their live session
-
-`setEnabled(false)` and `changeRole(USER)` write the `users` row and nothing else — neither touches `SessionRegistry`. Authorities are resolved at authentication time and cached in the session's `Authentication`, so a user who is already logged in keeps their old privileges until the session expires. An admin suspending a compromised or departing account believes access is cut; it is not. A demoted admin retains `ADMIN` authorities and can re-promote themselves before the session lapses, which defeats the revocation entirely.
-
-The codebase already solves exactly this problem for password reset, in `PasswordResetService.invalidateAllSessionsFor()`. The mechanism exists and is simply not called here — an inconsistent revocation story rather than a missing capability, which is what makes it both a real risk and a cheap fix.
-
-- **Evidence:** `admin/AdminUserManagementService.java:42-67` vs `passwordreset/PasswordResetService.java:130, 135-143`
-- **Fix:** extract the session-expiry logic into a shared `SessionRevoker` and call it from `setEnabled(false)`, `changeRole` and `delete`. Add tests asserting a disabled or demoted user's existing session is rejected on its next request.
+> **TM-02 and TM-04 were the other two High findings in this section. Both are now fixed, test-covered, and verified failing-first — see §12.**
 
 ### TM-05 · Information disclosure · No transport security is enforced anywhere
 
@@ -117,13 +105,6 @@ Credit where due: the base profile binds `app.admin.username`/`password` with **
 - **Evidence:** `application.yml:58-61`; `README.md:82`; `frontend/src/LoginForm.tsx:45, 66`
 - **Fix:** require `APP_ADMIN_USERNAME`/`APP_ADMIN_PASSWORD` even in dev (via `.env.example`, or generate a random password and log it once at startup), force a password change on first admin login, and bind the dev server to `127.0.0.1`.
 
-### TM-36 · Disclosure of information (LINDDUN) · Personal data and reset secrets land in logs with no retention bound
-
-The logged reset link carries both the data subject's email address and a live account-takeover token (TM-02, TM-03); usernames appear across the audit lines. Logs go to stdout with no retention, access control, redaction or shipping policy, so personal data spreads to wherever stdout is collected — CI output, terminal scrollback, container log drivers, aggregators — and stays there indefinitely.
-
-- **Evidence:** `passwordreset/EmailService.java:16-18`
-- **Fix:** resolve TM-02 first (stop logging the link and the email), then define retention, access control and redaction for what remains.
-
 ---
 
 ## 5. Open findings — Medium
@@ -146,6 +127,7 @@ The logged reset link carries both the data subject's email address and a live a
 | TM-19 | T | The only datasource is dev H2: `sa` with a blank password, `ddl-auto: update`, no migrations, no prod profile. The app as committed cannot start outside dev. | `application.yml:35-50` | Add a prod profile with an external datasource, env/secret-manager credentials, `ddl-auto: validate`, and Flyway migrations. |
 | TM-34 | LINDDUN (Disclosure) | `GET /api/admin/users` returns every user's full email to any admin in one call, with no minimisation, purpose limitation or read logging — the PRD says email exists solely for password reset. | `admin/UserSummaryResponse.java` | Drop email from the default listing or mask it; expose it only via a purpose-logged per-user lookup. |
 | TM-30 | LINDDUN (Unawareness) | Registration collects and indefinitely stores an email address with no privacy notice, no stated purpose or retention, and no recorded lawful basis. | no notice anywhere in the repo | Add a notice at the point of collection; record the lawful basis as an ADR. |
+| TM-36 | LINDDUN (Disclosure) | **Downgraded from High** by the TM-02 fix, which removed the reset link, its token and the recipient email from the logs. Residual: usernames still appear across the audit lines, and logs still go to stdout with no retention, access control, redaction or shipping policy. | no `logback-spring.xml`; no retention config | Log a pseudonymous user id instead of the username (TM-35), then define retention and access control. |
 | TM-31 | LINDDUN (Non-compliance) | No retention policy for accounts, reset tokens or logs, and no self-service erasure, export or rectification path — deletion is admin-only. | PRD (no retention requirement) | Define retention periods and add self-service deletion/export. |
 | TM-38 | T | CSRF is configured correctly but **untested**: no test submits a mutating request without `X-XSRF-TOKEN` and asserts 403. A refactor could silently disable it. Same for cookie attributes, CORS origin rejection and session-ID rotation. | `backend/src/test/java/...` | Add the four missing integration assertions (see §8). |
 | TM-39 | R | Destructive admin actions are irreversible but recorded only as an unstructured INFO line — no client IP, no correlation id, no immutable store, no step-up re-authentication. | `admin/AdminUserManagementService.java:49-50, 63-64, 81-85` | Require re-authentication for delete; write to an append-only audit table in the same transaction; consider soft-delete. |
@@ -178,8 +160,9 @@ The logged reset link carries both the data subject's email address and a live a
 Worth recording explicitly, because a threat model that only lists problems misrepresents the system. Each of these was confirmed by reading the implementation; where a test asserts it, the test is named.
 
 **Credentials and passwords**
-- BCrypt only, never plaintext or reversible encoding; the seeded admin password is hashed like any other (`AdminBootstrapRunnerTest`).
+- BCrypt only, never plaintext or reversible encoding; the seeded admin password is hashed like any other (`AdminBootstrapRunnerTest`). **Caveat worth recording:** when this model was first written that test was failing, and had been since commit `e0730ee` — it asserted a hardcoded password literal that configuration had since moved away from. The product code was always correct; the assertion was not actually running green. Fixed in `7ff9624` by reading the expected value from `app.admin.password`.
 - Passwords never appear in any log statement; exception handlers deliberately log messages without payloads.
+- Reset tokens never appear in any log statement either, as of the TM-02 fix (§12), enforced by `EmailServiceTest`.
 - Password hashes never leave the API: `/api/admin/users` returns a purpose-built projection, asserted explicitly by `AdminUserControllerTest`.
 - Admin credentials are mandatory with no defaults in the base profile — startup fails rather than seeding a guessable account.
 
@@ -203,6 +186,7 @@ Worth recording explicitly, because a threat model that only lists problems misr
 **Authorization**
 - Role comes from the authenticated principal; the acting admin id comes from `@AuthenticationPrincipal`, never from the request body.
 - Self-action guards on all three admin mutations, each test-covered.
+- Disable, demote and delete all revoke the target's live sessions as of the TM-04 fix (§12), so a narrowed privilege takes effect immediately rather than at next login (`AdminSessionRevocationTest`).
 - Client-side admin gating is cosmetic by design and the server is authoritative; a `USER` gets 403 on every admin mutation and 401 when unauthenticated.
 
 **Injection**
@@ -214,13 +198,14 @@ Worth recording explicitly, because a threat model that only lists problems misr
 
 ## 8. Testing gaps
 
-34 backend tests across 7 classes cover every security path the PRD's testing section requires, and they are well-targeted. Five security properties are configured but unasserted, which is how a correct control becomes an incorrect one during a refactor:
+41 backend tests across 9 classes cover every security path the PRD's testing section requires, and they are well-targeted. Four security properties remain configured but unasserted, which is how a correct control becomes an incorrect one during a refactor:
 
 1. A mutating request without `X-XSRF-TOKEN` is rejected with 403 (TM-38).
 2. A request bearing a disallowed `Origin` is refused (TM-06).
 3. `Set-Cookie` on login carries `HttpOnly`, `SameSite` and — outside dev — `Secure`.
 4. The session id changes across successful authentication (session-fixation rotation).
-5. A disabled or demoted user's **existing** session is rejected on its next request (TM-04 — currently this test would fail, which is the point).
+
+A fifth gap — that a disabled or demoted user's **existing** session is rejected — was closed by the TM-04 fix and is now asserted by `AdminSessionRevocationTest`.
 
 The frontend has no test framework at all (`package.json` scripts are dev/build/preview/typecheck only).
 
@@ -238,7 +223,7 @@ Against the non-functional requirements in [`prd/assessment-prd.md:112-123`](../
 | CORS — explicit allow-list with credentials | **Met** | Unvalidated at startup (TM-06) |
 | Enumeration resistance on login and password reset | **Met** | Timing side-channel (TM-23); registration is out of the requirement's scope but enumerable (TM-22) |
 | Transport — HTTPS behind any real deployment | **Partial** | Documented as an accepted gap, but nothing enforces it and there is no prod profile (TM-05) |
-| Audit logging — structured lines for all named events, never passwords | **Partial** | All events logged and no passwords, but unstructured and uncorrelated (TM-27); the reset token *is* logged (TM-02) |
+| Audit logging — structured lines for all named events, never passwords | **Partial** | All events logged, no passwords, and no reset token since the TM-02 fix; still unstructured and uncorrelated (TM-27) |
 | Least privilege — role checks server-side, never trusted from the client | **Met** | Single point of enforcement, no method-level backstop (TM-14) |
 | Account lockout after N failures *within a window* | **Partial** | Lockout works; there is no window (TM-08) |
 | IP throttling independent of account lockout | **Partial** | Works in a direct-connection topology only (TM-09) |
@@ -251,9 +236,9 @@ Sequenced by risk reduction per unit of effort, not by severity alone. Owners an
 
 | Order | Items | Rationale | Owner | Target |
 | --- | --- | --- | --- | --- |
-| 1 | TM-02 | Stop writing a live account-takeover secret to the log. One line, removes the model's sharpest finding. | _TBD_ | _TBD_ |
-| 2 | TM-04 | The revocation mechanism already exists; wire it into the admin path. Small change, closes a High. | _TBD_ | _TBD_ |
-| 3 | TM-01, TM-07 | Profile-gate the dev-only rules and remove the fixed admin password. Makes the profile people actually run safe to expose. | _TBD_ | _TBD_ |
+| ~~1~~ | ~~TM-02~~ | **Done** (§12). Stop writing a live account-takeover secret to the log. | Samuel Wong | 2026-09-23 |
+| ~~2~~ | ~~TM-04~~ | **Done** (§12). The revocation mechanism already existed; wired into the admin path. | Samuel Wong | 2026-09-23 |
+| 3 | TM-01, TM-07 | Profile-gate the dev-only rules and remove the fixed admin password. Makes the profile people actually run safe to expose. **Next up.** | _TBD_ | _TBD_ |
 | 4 | TM-05, TM-06, TM-13, TM-16, TM-03 | Deployment posture: transport enforcement, CORS validation, security headers (which also completes TM-03), session timeout, and the token-in-fragment change. Mostly configuration. | _TBD_ | _TBD_ |
 | 5 | TM-08, TM-09, TM-10, TM-11, TM-12, TM-18b | Make the anti-automation controls actually hold in a real topology, and stop them being DoS vectors themselves. | _TBD_ | _TBD_ |
 | 6 | TM-38 + the other four testing gaps | Lock in the controls that are correct today so they stay correct. | _TBD_ | _TBD_ |
@@ -284,3 +269,36 @@ npx ajv validate --allow-union-types -s threat-dragon-v2.schema.json --all-error
 Threat Dragon warns on schema mismatches but still loads the model, so a warning is not a blocker. Structural invariants *were* checked on generation: unique cell ids, no dangling data-flow endpoints, contiguous threat numbering, and valid shape/element/threat-type values for both STRIDE and LINDDUN.
 
 **No ADRs exist yet.** `docs/adr/` and `CONTEXT.md` are absent, so every accepted risk in this model — HTTP in dev, registration enumeration, single-instance deployment, H2 persistence — is recorded only here and in class Javadoc. The four accepted risks deserve ADRs so the reasoning survives.
+
+---
+
+## 12. Remediation log
+
+### 2026-09-23 — TM-02 and TM-04 closed
+
+Baseline before starting: **34 tests, one failing.** `AdminBootstrapRunnerTest.seededAdminPasswordIsHashedNotPlaintext` had been red since commit `e0730ee`, because it asserted the literal `change-this-admin-password` while the dev default moved to `password` and then `password1234`. Product code was never at fault — `AdminBootstrapRunner` always hashed via `passwordEncoder.encode`. Fixed by reading the expected value from `app.admin.password` so the assertion tracks configuration instead of duplicating it (`7ff9624`).
+
+This matters for the model's credibility: §7 credits that test as evidence the seeded password is hashed, and it was not actually passing. The claim was true; its stated proof was not running.
+
+**TM-02 — reset token in the log.** `EmailService` no longer logs the link, the token or the recipient address. It records only that a dispatch occurred, which is the part with audit value.
+
+The judgement call: the stub logged the link because that is how a developer walks the reset flow with no mail server. Deleting the line outright breaks local testing, so the link is now behind `app.mail.log-reset-link`, defaulting to **false in every profile including dev**. Enabling it in dev was tempting and would have been wrong — dev is the only profile with a working datasource and therefore the profile the app is actually started with, so a dev-on default would have left the leak in place everywhere it runs and made the fix cosmetic. The opt-in is documented in README.
+
+Covered by `EmailServiceTest` (3 tests), deliberately a plain unit test rather than `@SpringBootTest` so the assertions cannot be satisfied by whatever the active profile happens to set.
+
+**TM-04 — stale authorization after disable or demote.** The session-expiry logic moved out of `PasswordResetService`'s private method into a shared `auth/SessionRevoker`, now called from `setEnabled(false)`, `changeRole` and `deleteUser`. Each call site records `revokedSessions=` in its audit line.
+
+Role changes revoke in **both** directions, not only on demotion: a demotion has to take effect immediately or it can be undone by the very session it failed to cut, a promotion otherwise leaves the new admin with stale `USER` authorities, and one rule is easier to reason about than two.
+
+Covered by `AdminSessionRevocationTest` (4 tests), **verified failing-first**: with the fix reverted, three of the four failed with `expected:<401> but was:<200>`. The delete case was the most striking — a deleted user's session was still served `/api/hello` successfully, authenticated against a principal no longer in the database.
+
+**Residual:** `SessionRegistry` is in-process, so revocation only reaches the instance handling the call. Tracked as TM-25; a multi-instance deployment needs Spring Session before revocation can be relied on.
+
+**After:** 41 tests across 9 classes, all green, `mvn test` exit code 0.
+
+| | Before | After |
+| --- | --- | --- |
+| Open High | 7 | 4 |
+| Open total | 40 | 38 |
+| Mitigated | 20 | 22 |
+| Tests | 34 (1 failing) | 41 (all green) |

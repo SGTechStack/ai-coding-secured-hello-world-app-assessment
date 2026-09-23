@@ -483,6 +483,13 @@ button:disabled {
   scrollbar-width: thin;
 }
 
+/* Rows stay mounted while the list refreshes after a mutation, so the refresh
+   is signalled by dimming rather than by replacing the table. */
+.table-wrapper.is-refreshing {
+  opacity: 0.6;
+  transition: opacity 120ms ease-in;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

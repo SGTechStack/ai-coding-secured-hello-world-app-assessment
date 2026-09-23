@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  ApiError,
   deleteUser,
   fetchAdminUsers,
+  isAbortError,
   setUserEnabled,
   setUserRole,
   type AdminUserSummary,
@@ -20,39 +20,68 @@ type ListState =
 
 export function AdminUserList({ currentUsername }: AdminUserListProps) {
   const [state, setState] = useState<ListState>({ kind: "loading" });
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [pendingUserIds, setPendingUserIds] = useState<ReadonlySet<string>>(new Set());
 
-  function load() {
-    setState({ kind: "loading" });
-    fetchAdminUsers()
-      .then((users) => setState({ kind: "success", users }))
-      .catch((error: unknown) => {
-        setState({
-          kind: "error",
-          message: error instanceof Error ? error.message : "Could not load users",
-        });
+  /**
+   * Fetches the user list. A *refresh* (after a mutation) keeps the existing
+   * rows mounted and only flags `isRefreshing`; a first load clears to the
+   * loading state. The distinction matters: dropping back to `{ kind: "loading" }`
+   * would unmount the whole table subtree, so React would delete every row's
+   * DOM node and rebuild it, throwing away scroll position and keyboard focus.
+   */
+  const load = useCallback(async (isRefresh: boolean, signal?: AbortSignal) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setState({ kind: "loading" });
+    }
+
+    try {
+      setState({ kind: "success", users: await fetchAdminUsers(signal) });
+    } catch (error: unknown) {
+      if (isAbortError(error)) return;
+      setState({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Could not load users",
       });
-  }
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
 
-  useEffect(load, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(false, controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
+  /**
+   * Runs a single-user mutation, then awaits the refresh before releasing the
+   * row. Awaiting matters: returning early would re-enable the controls while
+   * the list was still in flight, and two quick actions would leave two
+   * refetches racing with no ordering guarantee — the slower response would win
+   * and could repaint pre-mutation data.
+   */
   async function runAction(userId: string, action: () => Promise<unknown>) {
     setActionError(null);
-    setPendingUserId(userId);
+    // A Set rather than a single id, so overlapping actions on different rows
+    // can't clobber each other's pending flag. Always a fresh Set: mutating the
+    // previous one in place would leave the reference unchanged, and React would
+    // bail out of the re-render because `Object.is(prev, next)` holds.
+    setPendingUserIds((prev) => new Set(prev).add(userId));
     try {
       await action();
-      load();
+      await load(true);
     } catch (error: unknown) {
-      setActionError(
-        error instanceof ApiError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : "Action failed",
-      );
+      setActionError(error instanceof Error ? error.message : "Action failed");
     } finally {
-      setPendingUserId(null);
+      setPendingUserIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
     }
   }
 
@@ -88,7 +117,7 @@ export function AdminUserList({ currentUsername }: AdminUserListProps) {
       )}
 
       {state.kind === "success" && (
-        <div className="table-wrapper">
+        <div className={`table-wrapper${isRefreshing ? " is-refreshing" : ""}`} aria-busy={isRefreshing}>
           <table>
             <thead>
               <tr>
@@ -103,7 +132,10 @@ export function AdminUserList({ currentUsername }: AdminUserListProps) {
             <tbody>
               {state.users.map((user) => {
                 const isSelf = user.username === currentUsername;
-                const isPending = pendingUserId === user.id;
+                // Locked while this row is mutating, and also while the list is
+                // refreshing — acting on rows that are about to be replaced by
+                // fresh server data would be acting on stale ids.
+                const isLocked = isSelf || pendingUserIds.has(user.id) || isRefreshing;
 
                 return (
                   <tr key={user.id}>
@@ -125,7 +157,7 @@ export function AdminUserList({ currentUsername }: AdminUserListProps) {
                         <button
                           type="button"
                           className="btn-secondary"
-                          disabled={isSelf || isPending}
+                          disabled={isLocked}
                           onClick={() => handleToggleEnabled(user)}
                         >
                           {user.enabled ? "Disable" : "Enable"}
@@ -136,7 +168,7 @@ export function AdminUserList({ currentUsername }: AdminUserListProps) {
                           name={`role-select-${user.id}`}
                           aria-label={`Change role for ${user.username}`}
                           value={user.role}
-                          disabled={isSelf || isPending}
+                          disabled={isLocked}
                           onChange={(e) => handleRoleChange(user, e.target.value as UserRole)}
                         >
                           <option value="USER">USER</option>
@@ -146,7 +178,7 @@ export function AdminUserList({ currentUsername }: AdminUserListProps) {
                         <button
                           type="button"
                           className="btn-danger"
-                          disabled={isSelf || isPending}
+                          disabled={isLocked}
                           onClick={() => handleDelete(user)}
                         >
                           Delete

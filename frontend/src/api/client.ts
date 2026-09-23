@@ -71,6 +71,16 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * True when a rejection came from an {@link AbortController} cancelling the
+ * request rather than from a real failure. Callers should stay silent on
+ * these: an aborted request is one the caller itself no longer wants, so
+ * rendering it as an error would be misleading.
+ */
+export function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
 async function parseErrorResponse(response: Response): Promise<never> {
   let body: Partial<ErrorResponseBody> | undefined;
   try {
@@ -237,10 +247,11 @@ export interface AdminUserSummary {
  * all — the role check happens entirely server-side, this call just
  * surfaces whatever the backend decides.
  */
-export async function fetchAdminUsers(): Promise<AdminUserSummary[]> {
+export async function fetchAdminUsers(signal?: AbortSignal): Promise<AdminUserSummary[]> {
   const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
     method: "GET",
     credentials: "include",
+    signal,
   });
 
   if (!response.ok) {

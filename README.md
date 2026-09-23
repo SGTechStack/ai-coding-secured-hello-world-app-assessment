@@ -86,6 +86,21 @@ mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
 npm run dev
 ```
 
+### Walking the password reset flow locally
+
+Email delivery is a stub, and the reset link is **not** logged by default: it
+contains a live single-use token, so logging it would mean anyone who can read
+the logs can take over any account that has requested a reset.
+
+To surface the link for local testing, opt in explicitly:
+
+```powershell
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev" "-Dspring-boot.run.arguments=--app.mail.log-reset-link=true"
+```
+
+The link is then printed at `WARN`. Never enable this flag anywhere real
+accounts exist.
+
 ## Rules Summary
 
 - Read the PRD first — it is the source of truth.

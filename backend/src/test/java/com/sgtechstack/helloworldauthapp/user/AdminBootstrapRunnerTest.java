@@ -4,6 +4,7 @@ import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenReposit
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +35,15 @@ class AdminBootstrapRunnerTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    /**
+     * Read from configuration rather than hardcoded: this assertion is about
+     * the seeded password being <em>hashed</em>, not about any particular
+     * password value. A literal here silently rots the moment the configured
+     * default changes, which is exactly what happened previously.
+     */
+    @Value("${app.admin.password}")
+    private String configuredAdminPassword;
+
     @BeforeEach
     void setUp() {
         // Clear tokens first: they FK-reference users, so a leftover token
@@ -63,8 +73,8 @@ class AdminBootstrapRunnerTest {
                 .findFirst()
                 .orElseThrow();
 
-        assertThat(admin.getPasswordHash()).isNotEqualTo("change-this-admin-password");
-        assertThat(passwordEncoder.matches("change-this-admin-password", admin.getPasswordHash())).isTrue();
+        assertThat(admin.getPasswordHash()).isNotEqualTo(configuredAdminPassword);
+        assertThat(passwordEncoder.matches(configuredAdminPassword, admin.getPasswordHash())).isTrue();
     }
 
     @Test

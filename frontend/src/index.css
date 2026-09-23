@@ -79,6 +79,90 @@ body {
   }
 }
 
+.demo-credentials {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .demo-credentials {
+    background: #2b2110;
+    border-color: #4a3a14;
+  }
+}
+
+.demo-credentials-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.demo-credentials-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #78350f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .demo-credentials-title {
+    color: #fde68a;
+  }
+}
+
+.demo-credentials-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.demo-credentials-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.demo-credentials-row dt {
+  width: 4.5rem;
+  flex-shrink: 0;
+  color: #92640d;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .demo-credentials-row dt {
+    color: #d9b662;
+  }
+}
+
+.demo-credentials-row dd {
+  margin: 0;
+}
+
+.demo-credentials-row code {
+  background: rgba(120, 53, 15, 0.1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.82rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .demo-credentials-row code {
+    background: rgba(253, 230, 138, 0.12);
+  }
+}
+
+.demo-credentials-fill {
+  align-self: flex-start;
+  font-size: 0.8rem;
+}
+
 .dev-banner-tag {
   display: inline-flex;
   align-items: center;

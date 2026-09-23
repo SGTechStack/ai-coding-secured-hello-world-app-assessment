@@ -38,8 +38,39 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
   const isSubmitting = state.kind === "submitting";
 
+  function fillDemoAdminCredentials() {
+    setUsername("admin");
+    setPassword("password1234");
+  }
+
   return (
     <form onSubmit={handleSubmit}>
+      {import.meta.env.DEV && (
+        <div className="demo-credentials" data-testid="demo-admin-credentials">
+          <div className="demo-credentials-header">
+            <span className="dev-banner-tag">DEV</span>
+            <span className="demo-credentials-title">Demo admin login</span>
+          </div>
+          <dl className="demo-credentials-list">
+            <div className="demo-credentials-row">
+              <dt>Username</dt>
+              <dd>
+                <code>admin</code>
+              </dd>
+            </div>
+            <div className="demo-credentials-row">
+              <dt>Password</dt>
+              <dd>
+                <code>password1234</code>
+              </dd>
+            </div>
+          </dl>
+          <button type="button" className="btn-link demo-credentials-fill" onClick={fillDemoAdminCredentials}>
+            Fill in demo credentials
+          </button>
+        </div>
+      )}
+
       <div className="field">
         <label htmlFor="login-username">Username</label>
         <input

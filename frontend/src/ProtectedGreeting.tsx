@@ -46,7 +46,14 @@ export function ProtectedGreeting({ username, role, onLoggedOut }: ProtectedGree
     setIsLoggingOut(true);
     try {
       await logout();
+    } catch {
+      // Server-side invalidation failed (network down, stale CSRF token). Clear
+      // client state anyway so the user isn't trapped in a session they've asked
+      // to leave. Swallowing this is deliberate: without the catch, `finally`
+      // would let the rejection escape an async handler whose promise nobody
+      // holds, surfacing as an unhandled rejection.
     } finally {
+      setIsLoggingOut(false);
       onLoggedOut();
     }
   }

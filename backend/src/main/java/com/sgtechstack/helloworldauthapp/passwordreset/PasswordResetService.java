@@ -1,15 +1,13 @@
 package com.sgtechstack.helloworldauthapp.passwordreset;
 
 import com.sgtechstack.helloworldauthapp.auth.PasswordPolicy;
-import com.sgtechstack.helloworldauthapp.auth.UserPrincipal;
+import com.sgtechstack.helloworldauthapp.auth.SessionRevoker;
 import com.sgtechstack.helloworldauthapp.auth.WeakPasswordException;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.session.SessionInformation;
-import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +18,6 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -45,7 +42,7 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
     private final EmailService emailService;
-    private final SessionRegistry sessionRegistry;
+    private final SessionRevoker sessionRevoker;
     private final String frontendBaseUrl;
 
     public PasswordResetService(
@@ -54,7 +51,7 @@ public class PasswordResetService {
             PasswordEncoder passwordEncoder,
             PasswordPolicy passwordPolicy,
             EmailService emailService,
-            SessionRegistry sessionRegistry,
+            SessionRevoker sessionRevoker,
             @Value("${app.frontend.base-url}") String frontendBaseUrl
     ) {
         this.userRepository = userRepository;
@@ -62,7 +59,7 @@ public class PasswordResetService {
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
         this.emailService = emailService;
-        this.sessionRegistry = sessionRegistry;
+        this.sessionRevoker = sessionRevoker;
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
@@ -127,19 +124,10 @@ public class PasswordResetService {
         token.markUsed();
         tokenRepository.save(token);
 
-        invalidateAllSessionsFor(user);
+        int revokedSessions = sessionRevoker.revokeAllSessionsFor(user.getId());
 
-        log.info("Password reset completed username={}", user.getUsername());
-    }
-
-    private void invalidateAllSessionsFor(User user) {
-        List<Object> principals = sessionRegistry.getAllPrincipals();
-
-        principals.stream()
-                .filter(principal -> principal instanceof UserPrincipal userPrincipal
-                        && userPrincipal.getId().equals(user.getId()))
-                .flatMap(principal -> sessionRegistry.getAllSessions(principal, false).stream())
-                .forEach(SessionInformation::expireNow);
+        log.info("Password reset completed username={} revokedSessions={}",
+                user.getUsername(), revokedSessions);
     }
 
     private static String generateToken() {

@@ -1,5 +1,6 @@
 package com.sgtechstack.helloworldauthapp.admin;
 
+import com.sgtechstack.helloworldauthapp.auth.SessionRevoker;
 import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenRepository;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
@@ -21,6 +22,12 @@ import java.util.UUID;
  * Role enforcement (that the caller is actually an admin) happens at the
  * HTTP layer, in {@code SecurityConfig}; this service only enforces the
  * self-action guard, which is a business rule, not an authorization rule.
+ *
+ * Every mutation that narrows what the target account can do also revokes
+ * that account's live sessions. Writing the row is not enough on its own:
+ * authorities are cached in the session established at login, so a suspended
+ * user would otherwise keep working and a demoted admin would keep admin
+ * authorities for long enough to undo their own demotion.
  */
 @Service
 public class AdminUserManagementService {
@@ -29,13 +36,16 @@ public class AdminUserManagementService {
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
+    private final SessionRevoker sessionRevoker;
 
     public AdminUserManagementService(
             UserRepository userRepository,
-            PasswordResetTokenRepository tokenRepository
+            PasswordResetTokenRepository tokenRepository,
+            SessionRevoker sessionRevoker
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
+        this.sessionRevoker = sessionRevoker;
     }
 
     @Transactional
@@ -46,8 +56,12 @@ public class AdminUserManagementService {
         target.setEnabled(enabled);
         userRepository.save(target);
 
-        log.info("Admin action actorId={} targetUsername={} action={} enabled={}",
-                actingAdminId, target.getUsername(), "SET_ENABLED", enabled);
+        // Only disabling needs revocation. Enabling widens access, and a
+        // disabled account shouldn't have had a live session to begin with.
+        int revokedSessions = enabled ? 0 : sessionRevoker.revokeAllSessionsFor(targetUserId);
+
+        log.info("Admin action actorId={} targetUsername={} action={} enabled={} revokedSessions={}",
+                actingAdminId, target.getUsername(), "SET_ENABLED", enabled, revokedSessions);
 
         return target;
     }
@@ -60,8 +74,15 @@ public class AdminUserManagementService {
         target.setRole(newRole);
         userRepository.save(target);
 
-        log.info("Admin action actorId={} targetUsername={} action={} newRole={}",
-                actingAdminId, target.getUsername(), "CHANGE_ROLE", newRole);
+        // Revoke in both directions, not just on demotion. A demotion has to
+        // take effect immediately or it can be undone by the very session it
+        // failed to cut; a promotion has to, or the newly-promoted admin sits
+        // there with stale USER authorities wondering why nothing changed.
+        // One rule is also easier to reason about than two.
+        int revokedSessions = sessionRevoker.revokeAllSessionsFor(targetUserId);
+
+        log.info("Admin action actorId={} targetUsername={} action={} newRole={} revokedSessions={}",
+                actingAdminId, target.getUsername(), "CHANGE_ROLE", newRole, revokedSessions);
 
         return target;
     }
@@ -81,8 +102,12 @@ public class AdminUserManagementService {
         tokenRepository.deleteAllByUser(target);
         userRepository.delete(target);
 
-        log.info("Admin action actorId={} targetUsername={} action={}",
-                actingAdminId, targetUsername, "DELETE");
+        // A deleted user's session would otherwise stay authenticated against
+        // a principal that no longer exists.
+        int revokedSessions = sessionRevoker.revokeAllSessionsFor(targetUserId);
+
+        log.info("Admin action actorId={} targetUsername={} action={} revokedSessions={}",
+                actingAdminId, targetUsername, "DELETE", revokedSessions);
     }
 
     private void requireNotSelf(UUID actingAdminId, UUID targetUserId, String actionDescription) {

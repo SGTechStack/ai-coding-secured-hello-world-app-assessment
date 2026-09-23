@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:securedhelloworld;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: true
+
+# Local dev runs over HTTP; a Secure cookie would never be sent back by
+# the browser over plain HTTP, so it is relaxed only in this profile. Any
+# non-dev profile keeps the base application.yml's secure: true default,
+# per the PRD's documented HTTPS deployment assumption.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false

@@ -15,6 +15,10 @@ export const handlers = [
     });
   }),
   http.post("/api/v1/auth/login", () => HttpResponse.json(demoUser)),
+  http.post(
+    "/api/v1/auth/logout",
+    () => new HttpResponse(null, { status: 204 }),
+  ),
   // Anonymous by default; tests with a live session override this with demoUser.
   http.get("/api/v1/auth/me", () =>
     HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),

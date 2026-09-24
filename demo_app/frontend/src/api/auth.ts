@@ -21,6 +21,24 @@ function postLogin(credentials: Credentials): Promise<UserProfile> {
   });
 }
 
+/**
+ * Ends the session on the server, which answers an empty `204`. A 401 means there is no session
+ * left to end, so it counts as success. A `rejected` error is retried once with a fresh CSRF token,
+ * like `login()`; anything else, or a failed retry, propagates.
+ */
+export async function logout(): Promise<void> {
+  try {
+    await withCsrfRetry(postLogout);
+  } catch (error) {
+    if (!(error instanceof ApiError && error.kind === "unauthorized"))
+      throw error;
+  }
+}
+
+function postLogout(): Promise<void> {
+  return apiRequest<void>("/api/v1/auth/logout", { method: "POST" });
+}
+
 /** Runs `request`; on a `rejected` error, re-primes the CSRF token and runs it once more. */
 async function withCsrfRetry<T>(request: () => Promise<T>): Promise<T> {
   try {

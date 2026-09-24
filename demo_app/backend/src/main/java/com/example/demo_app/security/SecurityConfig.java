@@ -24,6 +24,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.authentication.AccountStatusUserDetailsChecker;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -72,6 +73,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  *   <li>Login and registration are throttled per client IP ({@link IpThrottle}, limits in {@link
  *       ThrottleProperties}); a throttled request answers {@code 429} with {@code Retry-After},
  *       which CORS exposes to the SPA.
+ *   <li>Lockout: 5 consecutive failed logins lock an account for 15 minutes ({@code
+ *       app.security.lockout}); a locked or disabled account gets the same {@code 401} as a wrong
+ *       password, and is checked only after the password (see {@link #authenticationManager}).
  *   <li>Session fixation: login replaces the session with a new one ({@code newSession}).
  *   <li>Logout is Spring Security's logout filter on {@code POST /api/v1/auth/logout}. It runs
  *       after the CSRF check and before authorization, so it needs a valid CSRF token but no
@@ -232,11 +236,20 @@ class SecurityConfig {
     return new BCryptPasswordEncoder(12);
   }
 
+  /**
+   * Username/password against the account table. The lock and enabled checks run only
+   * <strong>after</strong> the password comparison (the provider's default is before), so a locked
+   * or disabled account costs the same BCrypt comparison as any other login, and an unknown
+   * username costs the provider's dummy-hash comparison. Timing doesn't reveal the account's
+   * state, and every failure is rendered as the same {@code 401 INVALID_CREDENTIALS}.
+   */
   @Bean
   AuthenticationManager authenticationManager(
       UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
     DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
     provider.setPasswordEncoder(passwordEncoder);
+    provider.setPreAuthenticationChecks(user -> {});
+    provider.setPostAuthenticationChecks(new AccountStatusUserDetailsChecker());
     return new ProviderManager(provider);
   }
 }

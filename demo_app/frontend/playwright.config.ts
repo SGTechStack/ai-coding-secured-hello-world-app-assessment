@@ -28,12 +28,13 @@ export default defineConfig({
       command: "mvn -q spring-boot:run -Dspring-boot.run.profiles=dev",
       cwd: "../backend",
       // The CORS allow-list must name the SPA's origin, whatever its port. Every test shares one
-      // client IP, so the registration throttle (10 per IP per 15 minutes by default) is raised;
-      // the API tests cover the real limit.
+      // client IP, so the registration and failed-login throttles (10 and 20 per IP per 15
+      // minutes by default) are raised; the API tests cover the real limits.
       env: {
         SERVER_PORT: BACKEND_PORT,
         APP_CORS_ALLOWED_ORIGINS: FRONTEND_URL,
         APP_SECURITY_THROTTLE_REGISTRATION_MAX_ATTEMPTS: "1000",
+        APP_SECURITY_THROTTLE_LOGIN_MAX_ATTEMPTS: "1000",
       },
       url: `${BACKEND_URL}/api/v1/auth/csrf`,
       reuseExistingServer: !CI,

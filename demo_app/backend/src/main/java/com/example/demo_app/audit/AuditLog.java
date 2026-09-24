@@ -1,6 +1,5 @@
 package com.example.demo_app.audit;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -35,18 +34,18 @@ public class AuditLog {
 
   private static final Pattern UNSAFE = Pattern.compile("[\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}]");
 
-  /** Records {@code event} by {@code actor} ({@code null} for {@link #ANONYMOUS}). */
-  public void record(AuditEvent event, String actor, HttpServletRequest request) {
-    record(event, actor, request, Map.of());
+  /** Records {@code event} by {@code actor}. */
+  public void record(AuditEvent event, Actor actor) {
+    record(event, actor, Map.of());
   }
 
   /**
-   * Records {@code event} by {@code actor} ({@code null} for {@link #ANONYMOUS}) with extra
-   * event-specific {@code fields}, logged after the standard ones in iteration order.
+   * Records {@code event} by {@code actor} with extra event-specific {@code fields}, logged after
+   * the standard ones in iteration order (see {@link #withTarget}).
    */
-  public void record(
-      AuditEvent event, String actor, HttpServletRequest request, Map<String, ?> fields) {
-    write(event, actor == null ? ANONYMOUS : actor, request.getRemoteAddr(), fields);
+  public void record(AuditEvent event, Actor actor, Map<String, ?> fields) {
+    String username = actor.username();
+    write(event, username == null ? ANONYMOUS : username, actor.ip(), fields);
   }
 
   /**
@@ -57,6 +56,26 @@ public class AuditLog {
     write(event, SYSTEM, SYSTEM, fields);
   }
 
+  /**
+   * The event-specific fields of an action on another account: {@code target} (its username) first,
+   * then {@code extra} in its iteration order.
+   */
+  public static Map<String, Object> withTarget(String target, Map<String, ?> extra) {
+    Map<String, Object> fields = new LinkedHashMap<>();
+    fields.put("target", target);
+    fields.putAll(extra);
+    return fields;
+  }
+
+  /** Just {@code target}, for an event with no other specific fields. */
+  public static Map<String, Object> withTarget(String target) {
+    return withTarget(target, Map.of());
+  }
+
+  /**
+   * Logs one line: the standard pairs, then {@code fields}, all neutralised, as SLF4J key-value
+   * pairs and again as the {@code key=value} message text.
+   */
   private void write(AuditEvent event, String actor, String ip, Map<String, ?> fields) {
     Map<String, String> pairs = new LinkedHashMap<>();
     pairs.put("event", event.name());
@@ -73,6 +92,10 @@ public class AuditLog {
             .collect(Collectors.joining(" ")));
   }
 
+  /**
+   * {@code value} with every control, format and line/paragraph-separator character replaced by
+   * {@code _}, so it can't break the line; {@code null} becomes {@code "null"}.
+   */
   static String neutralise(String value) {
     return value == null ? "null" : UNSAFE.matcher(value).replaceAll("_");
   }

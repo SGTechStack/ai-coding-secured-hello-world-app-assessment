@@ -11,7 +11,6 @@ import com.example.demo_app.user.UserAccountRepository;
 import com.example.demo_app.web.ApiException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -88,7 +87,8 @@ class AdminBootstrap implements ApplicationRunner {
           refused.getMessage()
               + " (app.admin.username or app.admin.email is already used by another account)");
     }
-    auditLog.recordSystem(AuditEvent.ADMIN_BOOTSTRAPPED, Map.of("target", admin.getUsername()));
+    auditLog.recordSystem(
+        AuditEvent.ADMIN_BOOTSTRAPPED, AuditLog.withTarget(admin.getUsername()));
   }
 
   private void requirePropertiesSet() {

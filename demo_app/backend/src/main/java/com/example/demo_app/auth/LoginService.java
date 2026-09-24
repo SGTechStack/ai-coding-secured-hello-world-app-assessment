@@ -1,5 +1,6 @@
 package com.example.demo_app.auth;
 
+import com.example.demo_app.audit.Actor;
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.security.IpThrottle;
@@ -77,7 +78,7 @@ class LoginService {
     Authentication authentication = authenticate(credentials, request);
     loginAttempts.recordSuccess(authentication.getName());
     startSession(authentication, request, response);
-    auditLog.record(AuditEvent.LOGIN_SUCCESS, authentication.getName(), request);
+    auditLog.record(AuditEvent.LOGIN_SUCCESS, Actor.of(authentication.getName(), request));
     return (AccountUserDetails) authentication.getPrincipal();
   }
 
@@ -86,7 +87,7 @@ class LoginService {
     try {
       loginThrottle.check(request);
     } catch (TooManyRequestsException e) {
-      auditLog.record(AuditEvent.LOGIN_THROTTLED, username, request);
+      auditLog.record(AuditEvent.LOGIN_THROTTLED, Actor.of(username, request));
       throw e;
     }
   }
@@ -99,10 +100,10 @@ class LoginService {
           UsernamePasswordAuthenticationToken.unauthenticated(username, credentials.password()));
     } catch (AuthenticationException e) {
       loginThrottle.recordAttempt(request);
-      auditLog.record(AuditEvent.LOGIN_FAILURE, username, request);
+      auditLog.record(AuditEvent.LOGIN_FAILURE, Actor.of(username, request));
       if (e instanceof BadCredentialsException && loginAttempts.recordFailure(username)) {
         auditLog.record(
-            AuditEvent.ACCOUNT_LOCKED, UserAccount.normaliseUsername(username), request);
+            AuditEvent.ACCOUNT_LOCKED, Actor.of(UserAccount.normaliseUsername(username), request));
       }
       throw e;
     }

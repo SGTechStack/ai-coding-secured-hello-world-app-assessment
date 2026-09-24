@@ -1,5 +1,6 @@
 package com.example.demo_app.admin;
 
+import com.example.demo_app.audit.Actor;
 import com.example.demo_app.user.AccountUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -31,11 +32,13 @@ class AdminUserController {
     this.service = service;
   }
 
+  /** Every account, oldest first. */
   @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
   List<AdminUserView> listUsers() {
     return service.listUsers();
   }
 
+  /** Disables ({@code enabled: false}) or re-enables account {@code id}; answers the new row. */
   @PatchMapping(
       value = "/{id}/status",
       consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -45,9 +48,10 @@ class AdminUserController {
       @Valid @RequestBody StatusChangeRequest body,
       @AuthenticationPrincipal AccountUserDetails admin,
       HttpServletRequest request) {
-    return service.setEnabled(id, body.enabled(), admin.getUsername(), request);
+    return service.setEnabled(id, body.enabled(), actor(admin, request));
   }
 
+  /** Gives account {@code id} the submitted role; answers the new row. */
   @PatchMapping(
       value = "/{id}/role",
       consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -57,15 +61,21 @@ class AdminUserController {
       @Valid @RequestBody RoleChangeRequest body,
       @AuthenticationPrincipal AccountUserDetails admin,
       HttpServletRequest request) {
-    return service.setRole(id, body.toRole(), admin.getUsername(), request);
+    return service.setRole(id, body.toRole(), actor(admin, request));
   }
 
+  /** Deletes account {@code id}; answers an empty {@code 204}. */
   @DeleteMapping("/{id}")
   ResponseEntity<Void> deleteUser(
       @PathVariable long id,
       @AuthenticationPrincipal AccountUserDetails admin,
       HttpServletRequest request) {
-    service.deleteUser(id, admin.getUsername(), request);
+    service.deleteUser(id, actor(admin, request));
     return ResponseEntity.noContent().build();
+  }
+
+  /** The signed-in {@code admin}, acting through {@code request}. */
+  private static Actor actor(AccountUserDetails admin, HttpServletRequest request) {
+    return Actor.of(admin.getUsername(), request);
   }
 }

@@ -1,5 +1,6 @@
 package com.example.demo_app.admin;
 
+import com.example.demo_app.audit.Actor;
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.security.SessionExpiry;
@@ -7,7 +8,6 @@ import com.example.demo_app.user.Role;
 import com.example.demo_app.user.UserAccount;
 import com.example.demo_app.user.UserAccountRepository;
 import com.example.demo_app.web.ApiException;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,8 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * User management for admins. Every method requires {@code ROLE_ADMIN} itself, on top of the
@@ -39,6 +37,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @PreAuthorize("hasRole('ADMIN')")
 class AdminUserService {
 
+  /** The error code for an account id that doesn't exist (any more). */
+  static final String USER_NOT_FOUND = "USER_NOT_FOUND";
+
+  /** The error code for an action on the caller's own account. */
+  static final String SELF_ACTION_NOT_ALLOWED = "SELF_ACTION_NOT_ALLOWED";
+
   /** The refusal message for an action on the caller's own account; the UI shows the same. */
   static final String SELF_ACTION_MESSAGE = "You can't change your own account.";
 
@@ -59,98 +63,73 @@ class AdminUserService {
     return accounts.findAllByOrderByCreatedAtAscIdAsc().stream().map(AdminUserView::of).toList();
   }
 
-  /** Disables or re-enables account {@code id} on behalf of admin {@code actor}. */
+  /** Disables or re-enables account {@code id} on behalf of the admin {@code actor}. */
   @Transactional
-  AdminUserView setEnabled(long id, boolean enabled, String actor, HttpServletRequest request) {
-    UserAccount target = otherAccount(id, actor, "status", request);
+  AdminUserView setEnabled(long id, boolean enabled, Actor actor) {
+    UserAccount target = otherAccount(id, actor, AdminAction.STATUS);
     if (target.isEnabled() != enabled) {
       target.setEnabled(enabled);
-      changed(
-          enabled ? AuditEvent.USER_ENABLED : AuditEvent.USER_DISABLED,
-          target,
-          actor,
-          request,
-          Map.of());
+      signOutAndAuditOnCommit(
+          enabled ? AuditEvent.USER_ENABLED : AuditEvent.USER_DISABLED, target, actor, Map.of());
     }
     return AdminUserView.of(target);
   }
 
-  /** Gives account {@code id} the {@code role} on behalf of admin {@code actor}. */
+  /** Gives account {@code id} the {@code role} on behalf of the admin {@code actor}. */
   @Transactional
-  AdminUserView setRole(long id, Role role, String actor, HttpServletRequest request) {
-    UserAccount target = otherAccount(id, actor, "role", request);
+  AdminUserView setRole(long id, Role role, Actor actor) {
+    UserAccount target = otherAccount(id, actor, AdminAction.ROLE);
     Role oldRole = target.getRole();
     if (oldRole != role) {
       target.setRole(role);
       Map<String, Role> roles = new LinkedHashMap<>();
       roles.put("oldRole", oldRole);
       roles.put("newRole", role);
-      changed(AuditEvent.USER_ROLE_CHANGED, target, actor, request, roles);
+      signOutAndAuditOnCommit(AuditEvent.USER_ROLE_CHANGED, target, actor, roles);
     }
     return AdminUserView.of(target);
   }
 
   /**
-   * Deletes account {@code id} on behalf of admin {@code actor}. The database cascades the delete
-   * to the account's password reset tokens.
+   * Deletes account {@code id} on behalf of the admin {@code actor}. The database cascades the
+   * delete to the account's password reset tokens.
    */
   @Transactional
-  void deleteUser(long id, String actor, HttpServletRequest request) {
-    UserAccount target = otherAccount(id, actor, "delete", request);
+  void deleteUser(long id, Actor actor) {
+    UserAccount target = otherAccount(id, actor, AdminAction.DELETE);
     accounts.delete(target);
-    changed(AuditEvent.USER_DELETED, target, actor, request, Map.of());
+    signOutAndAuditOnCommit(AuditEvent.USER_DELETED, target, actor, Map.of());
   }
 
   /** Account {@code id}, provided it exists and isn't the {@code actor}'s own. */
-  private UserAccount otherAccount(
-      long id, String actor, String action, HttpServletRequest request) {
+  private UserAccount otherAccount(long id, Actor actor, AdminAction action) {
     UserAccount target =
         accounts
             .findById(id)
             .orElseThrow(
                 () ->
                     new ApiException(
-                        HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found", List.of()));
-    if (target.getUsername().equals(actor)) {
+                        HttpStatus.NOT_FOUND, USER_NOT_FOUND, "User not found", List.of()));
+    if (target.getUsername().equals(actor.username())) {
       auditLog.record(
           AuditEvent.ADMIN_SELF_ACTION_REJECTED,
           actor,
-          request,
-          fields(target, Map.of("action", action)));
+          AuditLog.withTarget(target.getUsername(), Map.of("action", action.auditName())));
       throw new ApiException(
-          HttpStatus.CONFLICT, "SELF_ACTION_NOT_ALLOWED", SELF_ACTION_MESSAGE, List.of());
+          HttpStatus.CONFLICT, SELF_ACTION_NOT_ALLOWED, SELF_ACTION_MESSAGE, List.of());
     }
     return target;
   }
 
   /**
-   * Once the change to {@code target} is committed, ends the target's sessions and audits it.
-   * Waiting for the commit means a login racing the change can't keep a session with the old
-   * state, and the audit log never records a change that was rolled back.
+   * Once the change to {@code target} is committed, ends the target's sessions and audits the
+   * change as {@code event} with {@code extra} after its {@code target} field (see {@link
+   * SessionExpiry#expireAllSessionsOnCommit}).
    */
-  private void changed(
-      AuditEvent event,
-      UserAccount target,
-      String actor,
-      HttpServletRequest request,
-      Map<String, ?> extra) {
-    String username = target.getUsername();
-    Map<String, Object> fields = fields(target, extra);
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            sessionExpiry.expireAllSessionsOf(username);
-            auditLog.record(event, actor, request, fields);
-          }
-        });
-  }
-
-  /** {@code target} first, then the event-specific fields in their given order. */
-  private static Map<String, Object> fields(UserAccount target, Map<String, ?> extra) {
-    Map<String, Object> fields = new LinkedHashMap<>();
-    fields.put("target", target.getUsername());
-    fields.putAll(extra);
-    return fields;
+  private void signOutAndAuditOnCommit(
+      AuditEvent event, UserAccount target, Actor actor, Map<String, ?> extra) {
+    Map<String, Object> fields = AuditLog.withTarget(target.getUsername(), extra);
+    sessionExpiry.expireAllSessionsOnCommit(
+        target.getUsername(), () -> auditLog.record(event, actor, fields));
   }
 }

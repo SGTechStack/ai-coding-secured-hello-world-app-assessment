@@ -3,6 +3,8 @@ package com.example.demo_app.security;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Signs a user out everywhere: the one "expire all sessions for user X" operation that a password
@@ -23,10 +25,26 @@ public class SessionExpiry {
   }
 
   /**
-   * Expires every live session of the account named {@code username} (the stored, lowercase
-   * name). A user with no session is a no-op.
+   * Once the current transaction commits, expires every live session of the account named {@code
+   * username} (the stored, lowercase name) and then runs {@code andThen}, typically the change's
+   * audit line. Waiting for the commit means a login racing the change can't keep a session with
+   * the old state, and a change that was rolled back neither signs anyone out nor gets audited.
+   *
+   * @throws IllegalStateException if no transaction is active
    */
-  public void expireAllSessionsOf(String username) {
+  public void expireAllSessionsOnCommit(String username, Runnable andThen) {
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            expireAllSessionsOf(username);
+            andThen.run();
+          }
+        });
+  }
+
+  /** Expires every live session of {@code username}. A user with no session is a no-op. */
+  private void expireAllSessionsOf(String username) {
     sessionRegistry.getAllPrincipals().stream()
         .filter(
             principal ->

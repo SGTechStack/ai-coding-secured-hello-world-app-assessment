@@ -1,12 +1,12 @@
 package com.example.demo_app.passwordreset;
 
+import com.example.demo_app.audit.Actor;
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.security.SessionExpiry;
 import com.example.demo_app.user.UserAccount;
 import com.example.demo_app.user.UserAccountRepository;
 import com.example.demo_app.web.ApiException;
-import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -16,7 +16,6 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpStatus;
@@ -35,9 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
  *       never send to a server or in a {@code Referer}. Any other email does nothing, so the
  *       caller's answer can't reveal which emails have accounts.
  *   <li>{@link #confirm}: a known, unused, unexpired token sets the new BCrypt hash, is marked
- *       used, clears any lockout and signs the user out everywhere ({@link SessionExpiry}). Every
- *       other token gets the same {@code 400 INVALID_RESET_TOKEN} and changes nothing. The caller
- *       checks the password policy first, so a weak password never consumes the token.
+ *       used, clears any lockout and, once committed, signs the user out everywhere ({@link
+ *       SessionExpiry}). Every other token gets the same {@code 400 INVALID_RESET_TOKEN} and
+ *       changes nothing. The caller checks the password policy first, so a weak password never
+ *       consumes the token.
  * </ul>
  *
  * <p>Both are audited. The submitted email is never logged: an unknown one is {@code
@@ -85,14 +85,13 @@ public class PasswordReset {
    * to an enabled account; otherwise does nothing. Either way it returns normally.
    */
   @Transactional
-  public void request(String email, HttpServletRequest request) {
+  public void request(String email, Actor actor) {
     Optional<UserAccount> account =
         email == null ? Optional.empty() : accounts.findByEmail(UserAccount.normaliseEmail(email));
     auditLog.record(
         AuditEvent.PASSWORD_RESET_REQUESTED,
-        null,
-        request,
-        Map.of("target", account.map(UserAccount::getUsername).orElse(UNKNOWN)));
+        actor,
+        AuditLog.withTarget(account.map(UserAccount::getUsername).orElse(UNKNOWN)));
     if (account.isEmpty() || !account.get().isEnabled()) {
       return;
     }
@@ -114,7 +113,7 @@ public class PasswordReset {
    *     expired token
    */
   @Transactional
-  public void confirm(String token, String newPassword, HttpServletRequest request) {
+  public void confirm(String token, String newPassword, Actor actor) {
     Instant now = clock.instant();
     Optional<PasswordResetToken> found =
         token == null ? Optional.empty() : tokens.findByTokenHash(sha256(token));
@@ -123,9 +122,8 @@ public class PasswordReset {
         || tokens.markUsed(found.get().getId(), now) == 0) {
       auditLog.record(
           AuditEvent.PASSWORD_RESET_REJECTED,
-          null,
-          request,
-          Map.of("target", found.map(t -> t.getUser().getUsername()).orElse(UNKNOWN)));
+          actor,
+          AuditLog.withTarget(found.map(t -> t.getUser().getUsername()).orElse(UNKNOWN)));
       throw new ApiException(
           HttpStatus.BAD_REQUEST, "INVALID_RESET_TOKEN", INVALID_TOKEN_MESSAGE, List.of());
     }
@@ -133,8 +131,12 @@ public class PasswordReset {
     UserAccount user = found.get().getUser();
     user.resetPassword(passwordEncoder.encode(newPassword));
     accounts.saveAndFlush(user);
-    sessionExpiry.expireAllSessionsOf(user.getUsername());
-    auditLog.record(AuditEvent.PASSWORD_RESET_COMPLETED, user.getUsername(), request);
+    String username = user.getUsername();
+    sessionExpiry.expireAllSessionsOnCommit(
+        username,
+        () ->
+            auditLog.record(
+                AuditEvent.PASSWORD_RESET_COMPLETED, new Actor(username, actor.ip())));
   }
 
   /** 256 random bits, URL-safe Base64 without padding (43 characters). */

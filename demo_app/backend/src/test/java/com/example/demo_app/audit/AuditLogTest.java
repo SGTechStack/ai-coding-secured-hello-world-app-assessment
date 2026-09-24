@@ -40,7 +40,7 @@ class AuditLogTest {
 
   @Test
   void logsTheStandardFieldsAsKeyValuePairsAtInfo() {
-    auditLog.record(AuditEvent.LOGIN_FAILURE, "johndoe", request);
+    auditLog.record(AuditEvent.LOGIN_FAILURE, Actor.of("johndoe", request));
 
     ILoggingEvent line = appender.list.getFirst();
     assertThat(line.getLevel()).hasToString("INFO");
@@ -57,7 +57,7 @@ class AuditLogTest {
 
   @Test
   void aMissingActorIsAnonymous() {
-    auditLog.record(AuditEvent.LOGOUT, null, request);
+    auditLog.record(AuditEvent.LOGOUT, Actor.anonymous(request));
 
     assertThat(pairs()).containsEntry("actor", "anonymous").containsEntry("outcome", "success");
   }
@@ -68,7 +68,7 @@ class AuditLogTest {
     fields.put("target", "bob\nevent=FORGED");
     fields.put("newRole", null);
 
-    auditLog.record(AuditEvent.USER_ROLE_CHANGED, "admin\u0085", request, fields);
+    auditLog.record(AuditEvent.USER_ROLE_CHANGED, Actor.of("admin\u0085", request), fields);
 
     assertThat(pairs())
         .containsExactly(
@@ -81,8 +81,20 @@ class AuditLogTest {
   }
 
   @Test
+  void targetFieldsPutTheTargetFirst() {
+    Map<String, Object> extra = new LinkedHashMap<>();
+    extra.put("oldRole", "USER");
+    extra.put("newRole", "ADMIN");
+
+    assertThat(AuditLog.withTarget("bob", extra))
+        .containsExactly(
+            Map.entry("target", "bob"), Map.entry("oldRole", "USER"), Map.entry("newRole", "ADMIN"));
+    assertThat(AuditLog.withTarget("bob")).containsExactly(Map.entry("target", "bob"));
+  }
+
+  @Test
   void placeholdersInValuesAreNotInterpreted() {
-    auditLog.record(AuditEvent.LOGIN_FAILURE, "{}", request);
+    auditLog.record(AuditEvent.LOGIN_FAILURE, Actor.of("{}", request));
 
     assertThat(appender.list.getFirst().getFormattedMessage()).contains("actor={} ");
   }

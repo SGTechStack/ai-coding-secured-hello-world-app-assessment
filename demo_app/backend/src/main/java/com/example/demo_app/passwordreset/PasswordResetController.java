@@ -1,5 +1,6 @@
 package com.example.demo_app.passwordreset;
 
+import com.example.demo_app.audit.Actor;
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.security.IpThrottle;
@@ -62,6 +63,7 @@ class PasswordResetController {
     }
   }
 
+  /** Asks for a reset link for {@code body.email}; always an empty {@code 202}. */
   @PostMapping(value = "/request", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.ACCEPTED)
   void request(@RequestBody ResetRequest body, HttpServletRequest request) {
@@ -70,17 +72,17 @@ class PasswordResetController {
     } catch (TooManyRequestsException e) {
       auditLog.record(
           AuditEvent.REQUEST_THROTTLED,
-          null,
-          request,
+          Actor.anonymous(request),
           Map.of("endpoint", "password-reset-request"));
       throw e;
     }
-    passwordReset.request(body.email(), request);
+    passwordReset.request(body.email(), Actor.anonymous(request));
   }
 
+  /** Sets the new password with a link's token; an empty {@code 204}, or {@code 400}. */
   @PostMapping(value = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.NO_CONTENT)
   void confirm(@Valid @RequestBody ResetConfirmation body, HttpServletRequest request) {
-    passwordReset.confirm(body.token(), body.newPassword(), request);
+    passwordReset.confirm(body.token(), body.newPassword(), Actor.anonymous(request));
   }
 }

@@ -1,6 +1,11 @@
 import { http, HttpResponse } from "msw";
+import type { UserProfile } from "../api/auth";
 
-export const demoUser = { username: "johndoe", firstName: "John" };
+export const demoUser: UserProfile = {
+  username: "johndoe",
+  firstName: "John",
+  role: "USER",
+};
 export const csrfToken = "test-xsrf-token";
 
 /**

@@ -184,9 +184,13 @@ class SecurityConfig {
         List.of(newSession, new CsrfAuthenticationStrategy(csrfTokenRepository)));
   }
 
+  /**
+   * BCrypt at cost 12 for new hashes. The cost is read from each stored hash, so older cost-10
+   * hashes (such as the demo seed) keep verifying.
+   */
   @Bean
   PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
+    return new BCryptPasswordEncoder(12);
   }
 
   @Bean

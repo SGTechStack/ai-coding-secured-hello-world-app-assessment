@@ -3,8 +3,11 @@ import { ApiError, apiRequest, refreshCsrfToken } from "./client";
 
 export type Credentials = { username: string; password: string };
 
+/** What an account may do. Admin-only UI keys off this; the API enforces it independently. */
+export type Role = "USER" | "ADMIN";
+
 /** Public profile of the signed-in user, as returned by the auth API. */
-export type UserProfile = { username: string; firstName: string };
+export type UserProfile = { username: string; firstName: string; role: Role };
 
 /**
  * Logs in. A 4xx other than 401 (typically a 403 for a stale CSRF token) is retried once with a

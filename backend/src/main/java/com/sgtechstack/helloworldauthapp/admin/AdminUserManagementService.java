@@ -23,6 +23,11 @@ import java.util.UUID;
  * HTTP layer, in {@code SecurityConfig}; this service only enforces the
  * self-action guard, which is a business rule, not an authorization rule.
  *
+ * {@link #changeRole} additionally routes through {@link RoleMutationGuard}
+ * immediately before writing the new role: see that class for why this
+ * exists as a named, independently testable checkpoint rather than an
+ * inline log line.
+ *
  * Every mutation that narrows what the target account can do also revokes
  * that account's live sessions. Writing the row is not enough on its own:
  * authorities are cached in the session established at login, so a suspended
@@ -37,15 +42,18 @@ public class AdminUserManagementService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final SessionRevoker sessionRevoker;
+    private final RoleMutationGuard roleMutationGuard;
 
     public AdminUserManagementService(
             UserRepository userRepository,
             PasswordResetTokenRepository tokenRepository,
-            SessionRevoker sessionRevoker
+            SessionRevoker sessionRevoker,
+            RoleMutationGuard roleMutationGuard
     ) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.sessionRevoker = sessionRevoker;
+        this.roleMutationGuard = roleMutationGuard;
     }
 
     @Transactional
@@ -71,6 +79,8 @@ public class AdminUserManagementService {
         requireNotSelf(actingAdminId, targetUserId, "change the role of");
 
         User target = requireUser(targetUserId);
+        Role previousRole = target.getRole();
+        roleMutationGuard.recordSanctionedMutation(actingAdminId, targetUserId, previousRole, newRole);
         target.setRole(newRole);
         userRepository.save(target);
 

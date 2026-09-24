@@ -1,6 +1,14 @@
 spring:
   application:
     name: hello-world-auth-app
+  flyway:
+    # Schema is owned by versioned migrations, not by Hibernate. Enabled by
+    # default so a deployment cannot accidentally run without them; the dev
+    # profile below turns it off, because dev uses an in-memory H2 that is
+    # recreated from the entity model on every boot and has no schema to
+    # migrate.
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
 
 server:
   # This governs the framework's own view of the request. The throttle's view
@@ -45,6 +53,69 @@ server:
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  logging:
+    # Key used to derive the pseudonymous user references that appear in logs
+    # and audit rows in place of usernames (see UserPseudonym).
+    #
+    # Unset by default, which means "generate one per boot". That is deliberate:
+    # a fixed fallback baked into this file would be readable by anyone with the
+    # repository, making every pseudonym reversible and the protection
+    # decorative. The cost is that references do not survive a restart, so an
+    # investigation spanning one cannot join across it — set this from a secret
+    # manager if that matters.
+    pseudonym-salt: ${APP_LOG_PSEUDONYM_SALT:}
+  retention:
+    # Retention is a policy decision expressed as configuration, so the period
+    # in force is visible in a diff rather than buried in a scheduler.
+    #
+    # Reset-token rows are kept for this long past expiry or use, then deleted.
+    # Not deleted on expiry: "did a reset happen on this account last week, and
+    # was the link consumed" is a question that arises exactly when an account
+    # turns out to have been compromised, and purging on expiry would destroy
+    # the answer at the moment it became useful.
+    reset-token-grace: ${APP_RESET_TOKEN_GRACE:P7D}
+    purge-interval: ${APP_PURGE_INTERVAL:PT1H}
+    # Keeps the sweep off the startup path, where it would compete with schema
+    # setup and the admin bootstrap for the same connection pool to delete
+    # nothing.
+    purge-initial-delay: ${APP_PURGE_INITIAL_DELAY:PT5M}
+    # Master switch for the scheduler. The test suite sets this false: a purge
+    # firing on its own timetable inside an integration test is a background
+    # thread deleting rows another test is asserting on.
+    purge-enabled: ${APP_PURGE_ENABLED:true}
+  privacy:
+    # The notice shown at the point of collection and served from
+    # GET /api/privacy-notice. Held here rather than as frontend copy so one
+    # source of truth is testable, reusable by any client, and adjustable per
+    # deployment — the lawful basis and the retention periods are exactly the
+    # parts that differ by jurisdiction and operator.
+    #
+    # Drafted against general PDPA/GDPR-style expectations because the PRD
+    # declares no regime. This is input to a compliance review, not its output;
+    # see docs/adr/0005-personal-data-lawful-basis-and-retention.md.
+    controller: ${APP_PRIVACY_CONTROLLER:Hello World Auth App (reference implementation)}
+    contact: ${APP_PRIVACY_CONTACT:privacy@example.invalid}
+    lawful-basis: >-
+      Performance of a contract: the email address is required to operate the
+      account it belongs to, specifically to deliver a password reset link at
+      the account holder's request. It is used for nothing else — no marketing,
+      no profiling, no disclosure to third parties.
+    data-collected:
+      - "Username — identifies the account at sign-in and in audit records."
+      - "Email address — used solely to deliver a password reset link you ask for."
+      - "Password — stored only as a BCrypt hash; the password itself is never stored or logged."
+      - "Sign-in activity — failed attempt counts and lockout times, to detect and slow brute-force attacks."
+    retention:
+      - "Account data (username, email, password hash): kept until you erase the account."
+      - "Password reset requests: deleted 7 days after the link expires or is used."
+      - "Security and audit logs: retained 90 days, then deleted."
+      - "Administrative audit records: retained 1 year for accountability, and identify accounts by a pseudonymous reference rather than by name."
+    rights:
+      - "Access — download everything held about your account from Account, Download my data."
+      - "Erasure — delete your account and its data from Account, Delete my account."
+      - "Rectification — change your password at any time; contact us to correct a username or email."
+      - "Complaint — contact the address above."
+    last-updated: ${APP_PRIVACY_LAST_UPDATED:2026-09-24}
   frontend:
     # Base URL the frontend is served from, used to build links that leave
     # the backend (e.g. the password reset link emailed to users). Defaults
@@ -134,9 +205,19 @@ app:
     # role-mappings: which authorities a role is entitled to. USER's
     # authorities are also reachable by ADMIN via the role-hierarchy
     # below, so ADMIN does not need HELLO_READ repeated here.
+    # ADMIN_USER_EMAIL_READ is separate from ADMIN_USER_READ on purpose. Reading
+    # the user list and reading somebody's actual email address are different
+    # acts with different sensitivity, and splitting the authority means a future
+    # read-only or support role can be granted the listing without the personal
+    # data behind it. Both land on ADMIN today; the seam is what makes that
+    # changeable without a code change.
+    #
+    # ACCOUNT_SELF_MANAGE sits on USER, and ADMIN reaches it through the role
+    # hierarchy — an admin is a data subject too and has the same rights over
+    # their own account.
     role-mappings:
-      ADMIN: [ADMIN_USER_READ, ADMIN_USER_WRITE]
-      USER: [HELLO_READ]
+      ADMIN: [ADMIN_USER_READ, ADMIN_USER_EMAIL_READ, ADMIN_USER_WRITE]
+      USER: [HELLO_READ, ACCOUNT_SELF_MANAGE]
     # ROLE_ADMIN inherits every authority reachable by ROLE_USER, so an
     # admin can reach USER-guarded endpoints without USER's authorities
     # being duplicated into ADMIN's role-mapping above.
@@ -151,6 +232,20 @@ app:
       ADMIN_USER_READ:
         - method: GET
           path: /api/admin/users
+      # One account at a time, with a mandatory purpose and an audit row. This
+      # replaced GET /api/admin/users returning every registered email address
+      # in a single response.
+      ADMIN_USER_EMAIL_READ:
+        - method: GET
+          path: /api/admin/users/*/email
+      # Data-subject rights over the caller's own account. Neither route takes
+      # an account id — the subject is always the authenticated principal — so
+      # there is no parameter through which one user could reach another's data.
+      ACCOUNT_SELF_MANAGE:
+        - method: GET
+          path: /api/account/export
+        - method: DELETE
+          path: /api/account
       ADMIN_USER_WRITE:
         - method: PATCH
           path: /api/admin/users/*/enabled
@@ -170,6 +265,10 @@ app:
     # the whitelist nor a url-guard and is therefore denied by default.
     whitelist:
       - /api/auth/register
+      # The privacy notice has to be readable before an account exists: the
+      # person deciding whether to hand over an email address has not registered
+      # yet. It describes the processing and contains no personal data.
+      - /api/privacy-notice
       - /api/health
       - /api/csrf
       - /api/auth/login
@@ -191,6 +290,19 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+  flyway:
+    # Off in dev. The dev datasource is an in-memory H2 that is created from the
+    # entity model on every boot and discarded on shutdown, so there is no
+    # schema with a history to migrate. The migrations are written for the
+    # production engine; running them against H2 would mean either constraining
+    # them to the intersection of two SQL dialects or maintaining two sets.
+    #
+    # The cost is that dev does not exercise the migrations, so a migration can
+    # be wrong in a way dev cannot reveal. That is the reason
+    # FlywayMigrationTest asserts the checked-in migration matches the entity
+    # model, and the reason a real staging environment on the production engine
+    # remains outstanding work.
+    enabled: false
   h2:
     console:
       enabled: true
@@ -222,3 +334,100 @@ app:
     # structurally unreachable outside dev — an unset password there fails
     # startup instead.
     password: ${APP_ADMIN_PASSWORD:}
+
+---
+# Production profile.
+#
+# Before this existed, the only datasource in the application was the dev one:
+# in-process H2, user `sa` with a blank password, `ddl-auto: update` and no
+# migrations. The application as committed could not start outside dev at all,
+# which meant several controls hardened earlier — HTTPS enforcement, CORS origin
+# validation, Secure cookies — were protecting a deployment that did not exist.
+#
+# Nothing here has a usable default. Every value is an unresolvable placeholder
+# unless the environment supplies it, so a deployment that forgets one fails to
+# start rather than silently falling back to something weaker. That is the same
+# fail-fast rule the admin credentials already follow, applied to the datasource.
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # JDBC URL for the external database. No default: an absent URL must stop
+    # startup, not fall back to an in-memory database that accepts writes and
+    # loses them on restart — the failure mode where everything looks healthy and
+    # nothing is persisted.
+    #
+    # TLS to the database belongs in this URL, and the parameters are
+    # engine-specific. For PostgreSQL:
+    #   ...?sslmode=verify-full&sslrootcert=/etc/ssl/certs/db-ca.crt
+    # verify-full rather than require: `require` encrypts without checking who is
+    # on the other end, so it stops passive sniffing and not an active
+    # man-in-the-middle, which is the threat that matters for credentials in
+    # transit.
+    url: ${APP_DB_URL}
+    username: ${APP_DB_USERNAME}
+    # Supplied by the platform's secret mechanism — a mounted file, an injected
+    # environment variable from a secret manager, or an IAM-derived token. Never
+    # committed, and deliberately not defaulted.
+    password: ${APP_DB_PASSWORD}
+    hikari:
+      # Bounded pool. The Tomcat thread ceiling is 100; a pool larger than the
+      # database can serve just moves queuing from the application to the
+      # database, where it is harder to see.
+      maximum-pool-size: ${APP_DB_POOL_MAX:10}
+      minimum-idle: ${APP_DB_POOL_MIN_IDLE:2}
+      connection-timeout: 10s
+  jpa:
+    hibernate:
+      # validate, never update. `update` lets the running application alter the
+      # schema, which is an ambient write privilege over the data model and a
+      # silent divergence between environments: the schema becomes whatever the
+      # entity classes happened to say on the day each instance started, with no
+      # record of the change. `validate` fails startup when the schema and the
+      # entities disagree, which turns a drift into a deployment failure instead
+      # of a data problem discovered later.
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    # The schema this validates against is created by the checked-in migrations
+    # and nothing else. baseline-on-migrate stays false so pointing a fresh
+    # deployment at a database that already has tables fails loudly rather than
+    # assuming its current state is the baseline.
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+  h2:
+    console:
+      enabled: false
+
+logging:
+  # Structured output, replacing key=value text nobody can query reliably. ECS
+  # because it is the format the common aggregators ingest without a custom
+  # parser, and because a parser is the part that breaks silently when a log line
+  # gains a field.
+  #
+  # This is also what makes the log-forging defences meaningful: in JSON, a
+  # newline inside a value is escaped by the encoder, so a forged line cannot be
+  # produced by content alone. The validation and sanitising remain, because
+  # something still has to hold when a plaintext appender is configured.
+  structured:
+    format:
+      console: ecs
+      file: ecs
+  file:
+    name: ${APP_LOG_FILE:/var/log/hello-world-auth-app/application.log}
+  logback:
+    rollingpolicy:
+      # Retention, enforced rather than described. 90 days matches the period
+      # stated in the privacy notice; without a cap the rotation policy is
+      # "forever", which is the finding.
+      #
+      # Access control on the directory is a deployment concern this file cannot
+      # enforce — the logs carry pseudonymous references rather than usernames
+      # specifically so that a wider-than-intended read grant is less damaging.
+      max-history: ${APP_LOG_MAX_HISTORY:90}
+      max-file-size: 100MB
+      total-size-cap: 5GB
+      clean-history-on-start: false

@@ -14,3 +14,16 @@ app:
   admin:
     username: test-admin
     password: test-admin-password-1234
+  retention:
+    # Retention sweeps run on a schedule in a background thread. Inside an
+    # integration test that is a thread deleting rows another test is asserting
+    # on, which fails roughly one run in twenty and gets written off as a flake.
+    # The purge is covered directly by ExpiredTokenPurgeTest, which calls it with
+    # an explicit cutoff — the behaviour worth testing is which rows it removes,
+    # not whether Spring's scheduler fires.
+    purge-enabled: false
+  logging:
+    # Pinned so pseudonymous references are reproducible within a test run and a
+    # test can assert that a specific reference appears in an audit row. Unset in
+    # production, where a per-boot key is the safer default.
+    pseudonym-salt: test-only-pseudonym-salt

@@ -27,8 +27,36 @@ class SecurityPropertiesTest {
     @Test
     void roleMappingsAreBoundFromYaml() {
         assertThat(securityProperties.roleMappings())
-                .containsEntry("ADMIN", List.of("ADMIN_USER_READ", "ADMIN_USER_WRITE"))
-                .containsEntry("USER", List.of("HELLO_READ"));
+                .containsEntry("ADMIN", List.of("ADMIN_USER_READ", "ADMIN_USER_EMAIL_READ", "ADMIN_USER_WRITE"))
+                .containsEntry("USER", List.of("HELLO_READ", "ACCOUNT_SELF_MANAGE"));
+    }
+
+    @Test
+    void readingAUsersEmailIsASeparateAuthorityFromListingUsers() {
+        // Split on purpose. Listing accounts and reading somebody's actual email
+        // address are different acts with different sensitivity, and keeping the
+        // authorities distinct is what would let a future support or read-only
+        // role hold the listing without the personal data behind it. Both land
+        // on ADMIN today; the seam is the point.
+        assertThat(securityProperties.roleMappings().get("ADMIN"))
+                .contains("ADMIN_USER_READ", "ADMIN_USER_EMAIL_READ");
+
+        assertThat(securityProperties.urlGuards().get("ADMIN_USER_EMAIL_READ"))
+                .containsExactly(new SecurityProperties.UrlGuard("GET", "/api/admin/users/*/email"));
+    }
+
+    @Test
+    void selfServiceRightsAreGuardedAndTakeNoAccountId() {
+        // Neither route carries an account id: the subject is always the
+        // authenticated principal, so there is no parameter one user could
+        // tamper with to reach another's data.
+        assertThat(securityProperties.urlGuards().get("ACCOUNT_SELF_MANAGE"))
+                .containsExactlyInAnyOrder(
+                        new SecurityProperties.UrlGuard("GET", "/api/account/export"),
+                        new SecurityProperties.UrlGuard("DELETE", "/api/account"));
+
+        assertThat(securityProperties.urlGuards().get("ACCOUNT_SELF_MANAGE"))
+                .allSatisfy(guard -> assertThat(guard.path()).doesNotContain("*"));
     }
 
     @Test
@@ -56,6 +84,9 @@ class SecurityPropertiesTest {
     void whitelistContainsEveryPubliclyReachableRoute() {
         assertThat(securityProperties.whitelist()).containsExactlyInAnyOrder(
                 "/api/auth/register",
+                // Readable before an account exists, because the person deciding
+                // whether to hand over an email address has not registered yet.
+                "/api/privacy-notice",
                 "/api/health",
                 "/api/csrf",
                 "/api/auth/login",

@@ -55,18 +55,26 @@ class AppUserDetailsServiceTest {
 
         assertThat(authorities)
                 .extracting(GrantedAuthority::getAuthority)
-                .containsExactlyInAnyOrder("ROLE_USER", "HELLO_READ");
+                .containsExactlyInAnyOrder("ROLE_USER", "HELLO_READ", "ACCOUNT_SELF_MANAGE");
     }
 
     @Test
     void adminRoleResolvesToRoleAdminItsOwnAuthoritiesAndInheritedUserAuthorities() {
-        // ADMIN_USER_READ/WRITE come from ADMIN's own role-mapping; HELLO_READ
-        // is only mapped to USER, and reaches ADMIN purely because ROLE_ADMIN
-        // is senior to ROLE_USER in the configured role-hierarchy.
+        // ADMIN_USER_* come from ADMIN's own role-mapping. HELLO_READ and
+        // ACCOUNT_SELF_MANAGE are only mapped to USER, and reach ADMIN purely
+        // because ROLE_ADMIN is senior to ROLE_USER in the configured
+        // role-hierarchy — an admin is a data subject with the same rights over
+        // their own account as anyone else.
         var authorities = appUserDetailsService.loadUserByUsername(ADMIN_USERNAME).getAuthorities();
 
         assertThat(authorities)
                 .extracting(GrantedAuthority::getAuthority)
-                .containsExactlyInAnyOrder("ROLE_ADMIN", "ADMIN_USER_READ", "ADMIN_USER_WRITE", "HELLO_READ");
+                .containsExactlyInAnyOrder(
+                        "ROLE_ADMIN",
+                        "ADMIN_USER_READ",
+                        "ADMIN_USER_EMAIL_READ",
+                        "ADMIN_USER_WRITE",
+                        "HELLO_READ",
+                        "ACCOUNT_SELF_MANAGE");
     }
 }

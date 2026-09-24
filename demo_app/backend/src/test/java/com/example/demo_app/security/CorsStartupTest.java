@@ -12,13 +12,15 @@ class CorsStartupTest {
   @Test
   void prodStartupFailsWithoutAllowedOrigins() {
     SpringApplicationBuilder app =
-        new SpringApplicationBuilder(DemoAppApplication.class)
-            .profiles("prod")
-            .properties(
-                "server.port=0",
-                "spring.datasource.url=jdbc:h2:mem:cors-startup-test;DB_CLOSE_DELAY=-1");
+        new SpringApplicationBuilder(DemoAppApplication.class).profiles("prod");
 
-    assertThatThrownBy(app::run)
+    // Command-line args, not builder properties: those are defaults, which application.yml would
+    // override with the shared test database that other contexts have already seeded.
+    assertThatThrownBy(
+            () ->
+                app.run(
+                    "--server.port=0",
+                    "--spring.datasource.url=jdbc:h2:mem:cors-startup-test;DB_CLOSE_DELAY=-1"))
         .rootCause()
         .hasMessageContaining("app.cors.allowed-origins must list at least one origin");
   }

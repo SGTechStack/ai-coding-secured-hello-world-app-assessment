@@ -60,6 +60,28 @@ npx vite build
 `npm run check` runs all four in order. Use `npm test` for watch mode and `npm run format` to fix
 formatting.
 
+### Dependency vulnerability scans
+
+Run both before merging. Neither is part of `mvn verify` or `npm run check`, because both need
+network access to vulnerability databases.
+
+Frontend: fails on any high or critical advisory in the locked dependency tree.
+
+```sh
+cd frontend
+npm audit --audit-level=high
+```
+
+Backend: the OWASP dependency-check Maven plugin (the repo's `dependency-vuln-scan` gate), run as
+a fully qualified goal, so it is not declared in `pom.xml`. The first run downloads the NVD data
+and can take a long time. Add `-DnvdApiKey=<key>` to speed that up. The report is written to
+`target/dependency-check-report.json`.
+
+```sh
+cd backend
+mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -Dformat=JSON
+```
+
 ## End-to-end acceptance suite
 
 A Playwright suite in `frontend/e2e/` runs the real SPA against the real API. It has one test per

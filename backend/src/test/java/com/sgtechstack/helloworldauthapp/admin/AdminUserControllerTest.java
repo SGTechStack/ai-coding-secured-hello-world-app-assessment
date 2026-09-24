@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.auth.StepUpAuthenticator;
 import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenRepository;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
@@ -181,7 +182,10 @@ class AdminUserControllerTest {
 
         mockMvc.perform(delete("/api/admin/users/{id}", target.getId())
                         .with(csrf())
-                        .session(adminSession))
+                        .session(adminSession)
+                        // Delete is irreversible, so a valid session is not
+                        // sufficient on its own — see StepUpAuthenticator.
+                        .header(StepUpAuthenticator.CONFIRM_PASSWORD_HEADER, ADMIN_PASSWORD))
                 .andExpect(status().isNoContent());
 
         assertThat(userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME)).isEmpty();

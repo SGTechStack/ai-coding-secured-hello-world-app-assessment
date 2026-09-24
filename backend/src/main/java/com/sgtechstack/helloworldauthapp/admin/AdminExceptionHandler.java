@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.admin;
 
 import com.sgtechstack.helloworldauthapp.auth.ErrorResponse;
+import com.sgtechstack.helloworldauthapp.auth.ReauthenticationRequiredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -35,6 +36,36 @@ public class AdminExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(exception.getMessage()));
+    }
+
+    /**
+     * 409, not 400. The request is well-formed and the caller is authorized;
+     * what refuses it is the current state of the system — there is exactly one
+     * enabled admin left. 409 says "retry once the state differs", which is
+     * accurate and actionable: promote another admin, then repeat.
+     */
+    @ExceptionHandler(LastAdminProtectedException.class)
+    public ResponseEntity<ErrorResponse> handleLastAdmin(LastAdminProtectedException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(exception.getMessage()));
+    }
+
+    /**
+     * 403, not 401. A 401 would tell the browser the session is gone and send
+     * the SPA back to the login screen, discarding the admin's context over
+     * what is really a missing confirmation on one action. The session is
+     * valid; this particular request is not authorized without the password.
+     */
+    @ExceptionHandler(ReauthenticationRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleReauthentication(ReauthenticationRequiredException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ErrorResponse.of(exception.getMessage()));
+    }
+
+    @ExceptionHandler(PurposeRequiredException.class)
+    public ResponseEntity<ErrorResponse> handlePurposeRequired(PurposeRequiredException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(exception.getMessage()));
     }
 }

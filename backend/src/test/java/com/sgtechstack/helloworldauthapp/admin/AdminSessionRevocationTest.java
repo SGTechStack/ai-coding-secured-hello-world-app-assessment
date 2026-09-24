@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.auth.StepUpAuthenticator;
 import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenRepository;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
@@ -128,7 +129,8 @@ class AdminSessionRevocationTest {
 
         mockMvc.perform(delete("/api/admin/users/{id}", targetId)
                         .session(loginAndAssertUsable(ADMIN_USERNAME, ADMIN_PASSWORD))
-                        .with(csrf()))
+                        .with(csrf())
+                        .header(StepUpAuthenticator.CONFIRM_PASSWORD_HEADER, ADMIN_PASSWORD))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/hello").session(targetSession))

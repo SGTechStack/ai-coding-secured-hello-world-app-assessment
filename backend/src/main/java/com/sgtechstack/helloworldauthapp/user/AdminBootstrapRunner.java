@@ -11,21 +11,50 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Optional;
 
 /**
  * Seeds a single initial {@code ADMIN} account on startup, from
  * {@code app.admin.username} / {@code app.admin.password}, hashed exactly
- * like any other account's password. Runs once per startup; if an
- * {@code ADMIN} already exists (from a previous run, or created some
- * other way), does nothing — this is a bootstrap for the very first
- * deployment, not an upsert.
+ * like any other account's password.
  *
- * <p>If the configured password is blank, a random one is generated for that
- * boot and logged once. This exists so local development works with no setup
- * without shipping a fixed, publicly-known admin password — the dev profile
- * previously defaulted to {@code password1234}, which was also printed in the
- * README and rendered in the login form, making any reachable dev instance a
- * one-guess admin takeover.
+ * <h2>The condition is "no admin who can sign in", not "no admin row"</h2>
+ *
+ * This used to skip on {@code existsByRole(ADMIN)}. A disabled {@code ADMIN}
+ * row satisfies that check while being unable to authenticate, so a system whose
+ * only administrator had been disabled looked bootstrapped and was in fact
+ * locked out of its own administration — recoverable only by editing the
+ * database directly, which is the situation the bootstrap story exists to
+ * prevent. The condition is now {@code existsByRoleAndEnabledTrue}, so a
+ * restart recovers that state.
+ *
+ * <p>Pair this with {@code LastAdminGuard}, which stops the state arising
+ * through the application in the first place. The two are complementary: the
+ * guard closes the door, this reopens it if the door was shut some other way (a
+ * manual database edit, a restore from a partial backup, a bug in a future
+ * mutation path that forgot the guard).
+ *
+ * <h2>Reviving versus creating</h2>
+ *
+ * With the condition relaxed, seeding can now run while an account already holds
+ * the configured username — a disabled admin, typically the same one. Inserting
+ * would violate the unique constraint, so that row is revived instead: enabled,
+ * password reset, lockout state cleared.
+ *
+ * <p>Reviving is confined to rows that are <em>already</em> {@code ADMIN}. If
+ * the configured username belongs to a regular account, startup logs an error
+ * and seeds nothing. Promoting it would be a privilege escalation reachable by
+ * setting one environment variable, bypassing {@code RoleMutationGuard} and
+ * leaving no audit record — a worse outcome than refusing to recover.
+ *
+ * <h2>The generated password</h2>
+ *
+ * If the configured password is blank, a random one is generated for that boot
+ * and logged once. This exists so local development works with no setup without
+ * shipping a fixed, publicly-known admin password — the dev profile previously
+ * defaulted to {@code password1234}, which was also printed in the README and
+ * rendered in the login form, making any reachable dev instance a one-guess
+ * admin takeover.
  */
 @Component
 public class AdminBootstrapRunner implements ApplicationRunner {
@@ -54,22 +83,51 @@ public class AdminBootstrapRunner implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (userRepository.existsByRole(Role.ADMIN)) {
-            log.info("Admin bootstrap skipped: an ADMIN account already exists");
+        if (userRepository.existsByRoleAndEnabledTrue(Role.ADMIN)) {
+            log.info("Admin bootstrap skipped: an enabled ADMIN account already exists");
             return;
         }
 
         boolean generated = adminPassword == null || adminPassword.isBlank();
         String password = generated ? generateRandomPassword() : adminPassword;
-
         String passwordHash = passwordEncoder.encode(password);
-        String placeholderEmail = adminUsername + "@admin.local";
 
-        User admin = new User(adminUsername, placeholderEmail, passwordHash, Role.ADMIN, true);
-        userRepository.save(admin);
+        Optional<User> existing = userRepository.findByUsernameIgnoreCase(adminUsername);
 
-        log.info("Seeded initial admin account username={} passwordSource={}",
-                adminUsername, generated ? "generated" : "configured");
+        if (existing.isPresent()) {
+            User account = existing.get();
+
+            if (account.getRole() != Role.ADMIN) {
+                log.error("""
+                        Cannot bootstrap an admin account: no enabled ADMIN exists, but the configured \
+                        app.admin.username is already held by a non-admin account. Refusing to promote it \
+                        — that would grant admin rights from a single environment variable, with no audit \
+                        record. Choose a different app.admin.username, or promote an account through the \
+                        admin API.""");
+                return;
+            }
+
+            // A disabled admin, revived rather than duplicated. The lockout
+            // state is cleared too: an account disabled after a run of failed
+            // logins would otherwise come back still locked, which looks
+            // identical to the bootstrap not having worked.
+            account.setEnabled(true);
+            account.setPasswordHash(passwordHash);
+            account.setFailedLoginAttempts(0);
+            account.setLockedUntil(null);
+            account.setLastFailedLoginAt(null);
+            userRepository.save(account);
+
+            log.warn("Re-enabled the existing disabled ADMIN account username={} passwordSource={} "
+                            + "— no enabled admin remained",
+                    adminUsername, generated ? "generated" : "configured");
+        } else {
+            String placeholderEmail = adminUsername + "@admin.local";
+            userRepository.save(new User(adminUsername, placeholderEmail, passwordHash, Role.ADMIN, true));
+
+            log.info("Seeded initial admin account username={} passwordSource={}",
+                    adminUsername, generated ? "generated" : "configured");
+        }
 
         if (generated) {
             // The one credential this application prints. It has no other

@@ -22,7 +22,7 @@ class SecurityHeadersTest {
   @Test
   void responsesCarryCspReferrerAndPermissionsPolicies() throws Exception {
     mvc.perform(get("/api/v1/auth/csrf"))
-        .andExpect(status().isNoContent())
+        .andExpect(status().isOk())
         .andExpect(
             header()
                 .string("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none'"))
@@ -45,7 +45,7 @@ class SecurityHeadersTest {
   @Test
   void plainHttpIsServedWithoutRedirectOutsideProd() throws Exception {
     mvc.perform(get("http://localhost/api/v1/auth/csrf"))
-        .andExpect(status().isNoContent())
+        .andExpect(status().isOk())
         .andExpect(header().doesNotExist("Location"));
   }
 }

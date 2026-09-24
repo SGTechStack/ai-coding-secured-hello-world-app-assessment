@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { csrfToken, demoUser } from "../test/handlers";
+import { csrfResponse, csrfToken, demoUser } from "../test/handlers";
 import { renderApp } from "../test/renderApp";
 import { server } from "../test/server";
 
@@ -28,10 +28,7 @@ function fakeSession({
     ),
     http.get("/api/v1/auth/csrf", () => {
       counts.primes += 1;
-      return new HttpResponse(null, {
-        status: 204,
-        headers: { "Set-Cookie": `XSRF-TOKEN=${csrfToken}; Path=/` },
-      });
+      return csrfResponse();
     }),
     http.post("/api/v1/auth/login", () => {
       signedIn = true;

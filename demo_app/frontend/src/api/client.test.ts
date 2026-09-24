@@ -1,6 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { csrfToken } from "../test/handlers";
+import { csrfResponse, csrfToken } from "../test/handlers";
 import { server } from "../test/server";
 import { ApiError, apiRequest, refreshCsrfToken } from "./client";
 
@@ -41,10 +41,7 @@ describe("apiRequest", () => {
 
   it("primes the CSRF cookie, then sends it as X-XSRF-TOKEN on state-changing requests", async () => {
     const primes = captureRequests("get", "/api/v1/auth/csrf", () => {
-      return new HttpResponse(null, {
-        status: 204,
-        headers: { "Set-Cookie": `XSRF-TOKEN=${csrfToken}; Path=/` },
-      });
+      return csrfResponse();
     });
     const posts = captureRequests("post", "/api/v1/thing", () =>
       HttpResponse.json({}),

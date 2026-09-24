@@ -169,7 +169,7 @@ class LoginApiTest {
   void csrfEndpointIssuesJsReadableTokenCookie() throws Exception {
     Cookie xsrf =
         mvc.perform(get("/api/v1/auth/csrf"))
-            .andExpect(status().isNoContent())
+            .andExpect(status().isOk())
             .andReturn()
             .getResponse()
             .getCookie("XSRF-TOKEN");

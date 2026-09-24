@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -15,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,10 +40,14 @@ class AuthController {
     this.securityContextRepository = securityContextRepository;
   }
 
-  /** Lets the SPA obtain the {@code XSRF-TOKEN} cookie before its first state-changing call. */
-  @GetMapping("/csrf")
-  ResponseEntity<Void> csrf() {
-    return ResponseEntity.noContent().build();
+  /**
+   * Gives the SPA a CSRF token before its first state-changing call: in the body, which a
+   * cross-origin SPA can read, and as the {@code XSRF-TOKEN} cookie that the double-submit check
+   * compares the header against. The token is raw (unmasked), matching the plain request handler.
+   */
+  @GetMapping(value = "/csrf", produces = MediaType.APPLICATION_JSON_VALUE)
+  CsrfTokenResponse csrf(CsrfToken token) {
+    return new CsrfTokenResponse(token.getHeaderName(), token.getToken());
   }
 
   /**

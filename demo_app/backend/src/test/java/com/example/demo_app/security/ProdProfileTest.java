@@ -16,8 +16,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * The {@code prod} profile: plain HTTP is redirected to HTTPS, and the demo user is not seeded.
- * Uses its own in-memory database so the seed applied by other test contexts cannot leak in.
+ * The {@code prod} profile: plain HTTP is redirected to HTTPS, HTTPS responses carry HSTS, and the
+ * demo user is not seeded. Uses its own in-memory database so the seed applied by other test
+ * contexts cannot leak in.
  */
 @SpringBootTest(
     properties = "spring.datasource.url=jdbc:h2:mem:prod-profile-test;DB_CLOSE_DELAY=-1")
@@ -35,8 +36,12 @@ class ProdProfileTest {
   }
 
   @Test
-  void httpsIsServed() throws Exception {
-    mvc.perform(get("https://localhost/api/v1/auth/csrf")).andExpect(status().isNoContent());
+  void httpsIsServedWithHsts() throws Exception {
+    mvc.perform(get("https://localhost/api/v1/auth/csrf"))
+        .andExpect(status().isOk())
+        // Spring Security's default HSTS header, written only on secure requests.
+        .andExpect(
+            header().string("Strict-Transport-Security", "max-age=31536000 ; includeSubDomains"));
   }
 
   @Test

@@ -47,8 +47,8 @@ Open the model in [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon/r
 
 | Status | High | Medium | Low | Total |
 | --- | --- | --- | --- | --- |
-| **Open** | — | 16 | 16 | **32** |
-| **Mitigated** | 20 | 7 | 1 | **28** |
+| **Open** | — | 10 | 16 | **26** |
+| **Mitigated** | 20 | 13 | 1 | **34** |
 | **Not applicable** | 1 | — | — | **1** |
 
 The headline: this is a genuinely well-built security baseline, and the open findings are concentrated rather than scattered. The authentication core — password storage, session handling, CSRF, enumeration resistance, reset-token cryptography, admin self-action guards — is correct and largely test-covered.
@@ -59,7 +59,7 @@ Authorization was separately strengthened by work outside this model's original 
 
 **No High findings remain.** That deserves a caveat rather than a victory lap: it means nothing in this model is currently rated High, not that the system is deployable. The largest outstanding item is TM-19 — there is still **no production configuration at all**: no non-dev datasource, no migrations, H2 only. It sits at Medium because it is absent work rather than a defect, but it is the reason two of the fixes just made (TM-05, TM-06) protect a deployment that does not yet exist.
 
-What remains is mostly anti-automation hardening that only bites under attack (TM-08 through TM-12, TM-18b), operational maturity (structured logs, audit trail, dependency scanning), and privacy groundwork that needs a compliance decision first.
+The anti-automation cluster (TM-08 through TM-12 and TM-18b) is also now closed. What remains is operational maturity — structured logs, an audit trail, dependency scanning, a real datasource — and privacy groundwork that needs a compliance decision before it can be scoped.
 
 ---
 
@@ -89,16 +89,10 @@ This is worth stating carefully rather than triumphantly. It means no finding in
 
 | ID | STRIDE | Finding | Evidence | Fix in one line |
 | --- | --- | --- | --- | --- |
-| TM-08 | D | Failed-attempt counter never decays, so five cheap requests lock any known username indefinitely (repeatable every 15 min). The PRD asks for failures "within a window"; there is no window. | `auth/LoginFailureHandler.java:84-95`; `LockoutPolicy.java:14-18`; PRD:52 | Add `last_failed_login_at` and expire the counter once the window elapses; consider exponential backoff instead of a hard lock. |
-| TM-09 | D | IP throttle keys on `getRemoteAddr()` with no forwarded-header handling. Behind any proxy every client collapses to one key: per-client throttling vanishes and the 10th failure from anyone locks out everyone. | `auth/IpLoginThrottle.java:33, 40-70` | Set `server.forward-headers-strategy=framework`, resolve the client IP from a trusted proxy's `X-Forwarded-For` (rightmost untrusted hop), and list trusted proxies. |
-| TM-10 | D | Throttle map has no TTL sweep or size cap; entries clear only on a successful login from the same address, so distributed failures grow the heap without bound. | `auth/IpLoginThrottle.java:27-33, 40-70` | Replace with a bounded expiring cache (Caffeine `expireAfterWrite` + `maximumSize`). |
-| TM-11 | D | Rate limiting matches only `POST /api/auth/login`. Registration and both reset endpoints are unthrottled and each runs a BCrypt hash. | `auth/IpThrottleFilter.java:44-45` | Apply a shared rate-limit filter to every unauthenticated write endpoint. |
-| TM-12 | D | No request-size, multipart or Tomcat thread/connection limits. Boot caps no JSON body by default, so an unauthenticated caller can force buffering and parsing of an arbitrarily large payload. | `application.yml` (absent) | Set `server.tomcat.max-http-form-post-size`/`max-swallow-size`, cap threads, and add `@Size` to every string field in the request DTOs. |
 
 | TM-15 | R | Raw `username` is logged with no validation on login, and `RegistrationRequest` has `@Size` but no `@Pattern`, so CRLF and control characters reach the log — forged audit entries and broken parsers. | `auth/LoginFailureHandler.java:64, 77`; `RegistrationRequest.java:13-24` | Add `@Pattern` to username, strip CR/LF and cap length before logging, emit JSON logs. |
 | TM-17 | D | The only admin guard is "not yourself". Two admins can eliminate each other down to one, and a disabled `ADMIN` row still satisfies the bootstrap check — so recovery means direct DB edits, exactly what Story 12 exists to prevent. | `admin/AdminUserManagementService.java:43, 57, 71, 88-92`; `user/AdminBootstrapRunner.java:42-57` | Reject any mutation leaving zero **enabled** admins; seed on "no enabled admin" rather than "no admin". |
 | TM-18 | T | Issuing a new reset token does not invalidate outstanding ones, so several live paths into an account can coexist; expired and used rows are never purged. | `passwordreset/PasswordResetService.java:83-86` | Invalidate outstanding tokens on issue; add a scheduled purge past expiry. |
-| TM-18b | D | Reset requests are unthrottled: unlimited token rows per user and, once real mail is wired, an inbox-flooding vector that trains users to expect reset mails. | `auth/IpThrottleFilter.java:44-45` | Rate-limit per IP and per target email; refuse a new token while an unexpired one exists. |
 | TM-19 | T | The only datasource is dev H2: `sa` with a blank password, `ddl-auto: update`, no migrations, no prod profile. The app as committed cannot start outside dev. | `application.yml:35-50` | Add a prod profile with an external datasource, env/secret-manager credentials, `ddl-auto: validate`, and Flyway migrations. |
 | TM-34 | LINDDUN (Disclosure) | `GET /api/admin/users` returns every user's full email to any admin in one call, with no minimisation, purpose limitation or read logging — the PRD says email exists solely for password reset. | `admin/UserSummaryResponse.java` | Drop email from the default listing or mask it; expose it only via a purpose-logged per-user lookup. |
 | TM-30 | LINDDUN (Unawareness) | Registration collects and indefinitely stores an email address with no privacy notice, no stated purpose or retention, and no recorded lawful basis. | no notice anywhere in the repo | Add a notice at the point of collection; record the lawful basis as an ADR. |
@@ -219,8 +213,8 @@ Sequenced by risk reduction per unit of effort, not by severity alone. Owners an
 | ~~2~~ | ~~TM-04~~ | **Done** (§12). The revocation mechanism already existed; wired into the admin path. | Samuel Wong | 2026-09-23 |
 | ~~3~~ | ~~TM-01, TM-07~~ | **Done** (§12). Profile-gated the dev-only rules and removed the fixed admin password. | Samuel Wong | 2026-09-24 |
 | ~~4~~ | ~~TM-05, TM-06, TM-16, TM-03~~ | **Done** (§12). Transport enforcement, CORS validation, security headers, session lifetime caps, token-in-fragment. TM-13 partly done and downgraded to Low: the SPA's own CSP needs a frontend host that does not exist yet. | Samuel Wong | 2026-09-24 |
-| 5 | TM-08, TM-09, TM-10, TM-11, TM-12, TM-18b | Make the anti-automation controls actually hold in a real topology, and stop them being DoS vectors themselves. **Next up**, and the largest remaining cluster. | _TBD_ | _TBD_ |
-| 6 | TM-38 + the other four testing gaps | Lock in the controls that are correct today so they stay correct. | _TBD_ | _TBD_ |
+| ~~5~~ | ~~TM-08, TM-09, TM-10, TM-11, TM-12, TM-18b~~ | **Done** (§12). Lockout decay, proxy-aware and bounded throttling, request-rate limits on unauthenticated writes, request-size caps. | Samuel Wong | 2026-09-24 |
+| 6 | TM-38 + the remaining three testing gaps | Lock in the controls that are correct today so they stay correct. **Next up.** | _TBD_ | _TBD_ |
 | 7 | TM-14, TM-15, TM-17, TM-18, TM-19, TM-39 | Defence in depth, log integrity, last-admin protection, and a real datasource with migrations. | _TBD_ | _TBD_ |
 | 8 | TM-30, TM-31, TM-34, TM-36 | Privacy: notice, retention, data minimisation in the admin listing. Needs a compliance-regime decision first. | _TBD_ | _TBD_ |
 | 9 | Remaining Low findings | Opportunistic. | _TBD_ | _TBD_ |
@@ -350,3 +344,43 @@ Two existing non-dev tests needed adjusting: `H2ConsoleNotExposedOutsideDevTest`
 | Tests | 34 (1 failing) | 41 | 66 | **87** |
 
 Next is step 5 in §10: the anti-automation cluster (TM-08 lockout decay, TM-09 proxy-blind throttling, TM-10 unbounded throttle map, TM-11/TM-18b unthrottled endpoints, TM-12 request limits). Six findings, all Medium, and the largest remaining group.
+
+### 2026-09-24 (later still) — the anti-automation cluster closed
+
+TM-08, TM-09, TM-10, TM-11, TM-12 and TM-18b. Split into two commits because the findings divide cleanly: the login throttle and lockout core (`e1c2da6`), then rate limiting and request caps (`0f3717d`).
+
+**TM-08 — the counter now decays.** `last_failed_login_at` plus `LockoutPolicy.continuesStreak` mean only failures inside a 15-minute window accumulate. This closed a cheap, repeatable denial of service: five requests denied any known username access, repeatable whenever the cooldown lapsed, and five stayed under the ten-attempt per-IP threshold so IP throttling never engaged. The PRD's "N consecutive failed attempts within a window" is now actually what the code does.
+
+Verified failing-first by making `continuesStreak` always return true, reproducing the old lifetime tally — it failed exactly the two window cases and left the other three passing, which is the right blast radius.
+
+This also exposed something worth recording: `LoginLogoutHelloTest` seeded `failedLoginAttempts = 3` with no timestamp. That is a state the application can no longer produce, because every increment now writes one. The fixture was made consistent rather than the assertion relaxed — the alternative would have been to weaken a test to accommodate an impossible fixture.
+
+**TM-09 — the topology is now declared, not assumed.** `ClientIpResolver` is driven by `app.security.trusted-proxy-hops`. This one deserved care because both obvious fixes are exploitable in opposite directions: ignoring `X-Forwarded-For` behind a proxy collapses every client into one bucket, so the tenth failed login from anyone locks out everyone; trusting it while directly reachable lets a caller rotate a forged value and never be throttled at all. Neither could be adopted as a default, so the deployment has to say which world it is in. Zero — the default — ignores the header entirely.
+
+Counting back from the *right* of the chain is the load-bearing detail. The rightmost entries were appended by infrastructure we control; the leftmost is whatever the original caller claimed.
+
+**TM-10 — the map is bounded**, at 10,000 addresses, sweeping expired windows first and dropping the oldest if that is not enough. The trade is explicit: forgetting old throttle state is recoverable, exhausting the heap is not. Note the specific reason the old code leaked — entries were pruned only on a *successful* login from the same address, and no successful login ever arrives to clean up after a spray.
+
+**TM-11 and TM-18b — request limits on the endpoints that had none.** `RequestRateLimiter` and `RateLimitFilter`, with rules in YAML beside the guard matrix.
+
+Deliberately *not* a generalisation of `IpLoginThrottle`, because the two measure different things. Login counts failures, which is correct there — a legitimate user logging in repeatedly should never be limited. Registration and password reset have no notion of failure: they succeed from the caller's point of view every time, and the cost to defend is the work performed regardless of outcome. Each runs a BCrypt hash, roughly 100ms of server CPU for a rounding error of client effort.
+
+**TM-12 — bodies capped before they are read.** Tomcat caps on header size, form size, threads, connections and backlog, plus `MaxRequestSizeFilter` refusing oversized bodies from `Content-Length` ahead of the rest of the chain. A filter was necessary rather than `@Size`: bean validation runs *after* Jackson has buffered and parsed the whole payload, so an oversized body was fully materialised before anything rejected it, and Tomcat's `max-http-form-post-size` does not apply to JSON.
+
+Stated as a floor, not a guarantee. A chunked request sends no `Content-Length`, so a hard ceiling belongs at an ingress that can enforce one while streaming — deployment capability this repo still lacks (TM-19).
+
+**Verification.** 120 tests across 26 classes, all green, `mvn test` exit 0. New: `ClientIpResolverTest` (8), `IpLoginThrottleEvictionTest` (4), `LockoutWindowTest` (5), `RequestRateLimiterTest` (6), `RateLimitFilterTest` (4), `MaxRequestSizeFilterTest` (3), plus three `SecurityPropertiesTest` cases pinning the configured limits.
+
+Also confirmed live: five password-reset requests served, the sixth and seventh refused with 429. The restart additionally showed the TM-07 fix working in situ — `passwordSource=generated` with a fresh random admin password.
+
+Two test-quality notes. Three existing classes needed the shared rate-limit or throttle singleton cleared between methods, since every MockMvc request arrives from the same address and the beans live in a cached context. And `RequestRateLimiterTest`'s window-expiry case had to be rewritten: the first version used a zero-length window and so depended on clock resolution rather than on the behaviour under test, which is exactly the kind of test that passes or fails for the wrong reason.
+
+| | Session start | Entry 1 | Entry 2 | Entry 3 | Now |
+| --- | --- | --- | --- | --- | --- |
+| Open High | 8 | 4 | 2 | 0 | **0** |
+| Open Medium | 18 | 20 | 19 | 16 | **10** |
+| Open total | 40 | 38 | 36 | 32 | **26** |
+| Mitigated | 20 | 22 | 24 | 28 | **34** |
+| Tests | 34 (1 failing) | 41 | 66 | 87 | **120** |
+
+Next is step 6 in §10: the testing gaps (TM-38 — CSRF rejection, CORS origin rejection, cookie attributes, session-ID rotation), which lock in controls that are correct today but unasserted.

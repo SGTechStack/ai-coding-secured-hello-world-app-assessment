@@ -139,9 +139,13 @@ class IpThrottleTest {
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(() -> new ThrottleProperties.Limit(1, null))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> new ThrottleProperties(0, new ThrottleProperties.Limit(1, WINDOW)))
+    ThrottleProperties.Limit limit = new ThrottleProperties.Limit(1, WINDOW);
+    assertThatThrownBy(() -> new ThrottleProperties(0, limit, limit))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> new ThrottleProperties(1, null))
+    assertThatThrownBy(() -> new ThrottleProperties(1, null, limit))
         .isInstanceOf(IllegalArgumentException.class);
+    assertThatThrownBy(() -> new ThrottleProperties(1, limit, null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("app.security.throttle.registration");
   }
 }

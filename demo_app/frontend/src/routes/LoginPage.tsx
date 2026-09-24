@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { LoaderCircle } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { CircleCheck, LoaderCircle } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { FormField } from "@/components/FormField";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,8 +12,10 @@ import {
   CardDescription,
   CardHeader,
 } from "@/components/ui/card";
+import { settleNoSoonerThan } from "@/lib/timing";
 import { login, meQueryOptions, type Credentials } from "../api/auth";
 import { ApiError } from "../api/client";
+import { loginNoticeText } from "./loginNotice";
 
 /** The loading state is shown for at least this long so it never flickers. */
 const MIN_SUBMITTING_MS = 400;
@@ -37,6 +40,7 @@ export function LoginPage() {
   const queryClient = useQueryClient();
   const [credentials, setCredentials] = useState(NO_CREDENTIALS);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const notice = useOneShotNotice();
   const loginMutation = useMutation({
     mutationFn: (submitted: Credentials) =>
       settleNoSoonerThan(MIN_SUBMITTING_MS, login(submitted)),
@@ -51,6 +55,7 @@ export function LoginPage() {
     const errors = validate(credentials);
     setFieldErrors(errors);
     if (errors.username || errors.password) return;
+    notice.dismiss();
     loginMutation.mutate(credentials);
   }
 
@@ -72,6 +77,12 @@ export function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        {notice.text && (
+          <Alert role="status">
+            <CircleCheck />
+            <AlertDescription>{notice.text}</AlertDescription>
+          </Alert>
+        )}
         {/* The banner sits above the form, outside the <form> element. */}
         {loginMutation.isError && (
           <ErrorAlert>{bannerMessage(loginMutation.error)}</ErrorAlert>
@@ -121,6 +132,15 @@ export function LoginPage() {
             )}
           </Button>
         </form>
+        <p className="text-center text-sm text-muted-foreground">
+          New here?{" "}
+          <Link
+            to="/register"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Create an account
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );
@@ -143,12 +163,19 @@ function bannerMessage(error: Error): string {
   }
 }
 
-/** Settles like `promise`, but no sooner than `ms` after this call. */
-async function settleNoSoonerThan<T>(ms: number, promise: Promise<T>) {
-  const minimum = new Promise((resolve) => setTimeout(resolve, ms));
-  try {
-    return await promise;
-  } finally {
-    await minimum;
-  }
+/**
+ * The notice the page was opened with (e.g. "Account created. Please log in."), shown until the
+ * user submits. The search param is removed from the URL straight away, so a reload or a shared
+ * link doesn't show it again.
+ */
+function useOneShotNotice() {
+  const navigate = useNavigate();
+  const { notice } = useSearch({ from: "/login" });
+  const [text, setText] = useState(notice && loginNoticeText(notice));
+
+  useEffect(() => {
+    if (notice) void navigate({ to: "/login", search: {}, replace: true });
+  }, [notice, navigate]);
+
+  return { text, dismiss: () => setText(undefined) };
 }

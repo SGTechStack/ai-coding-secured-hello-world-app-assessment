@@ -4,12 +4,15 @@ import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.security.IpThrottle;
 import com.example.demo_app.user.AccountUserDetails;
+import com.example.demo_app.web.ApiError;
 import com.example.demo_app.web.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,6 +24,8 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -116,5 +121,22 @@ class AuthController {
     auditLog.record(AuditEvent.LOGIN_SUCCESS, authentication.getName(), request);
 
     return UserProfile.of((AccountUserDetails) authentication.getPrincipal());
+  }
+
+  /**
+   * A blank or missing login field. The UI never sends one, so this is defence in depth. Login
+   * keeps its original single message and no {@code fieldErrors}; other endpoints get the global
+   * per-field {@code VALIDATION_FAILED}.
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  ResponseEntity<ApiError> blankCredentials(HttpServletRequest request) {
+    return ResponseEntity.badRequest()
+        .contentType(MediaType.APPLICATION_JSON)
+        .body(
+            ApiError.of(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_FAILED",
+                "Username and password are required",
+                request));
   }
 }

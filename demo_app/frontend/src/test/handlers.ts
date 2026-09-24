@@ -30,6 +30,18 @@ export function csrfResponse() {
 export const handlers = [
   http.get(api("/api/v1/auth/csrf"), () => csrfResponse()),
   http.post(api("/api/v1/auth/login"), () => HttpResponse.json(demoUser)),
+  // Registration succeeds with the profile of whoever registered (the API creates no session).
+  http.post(api("/api/v1/auth/register"), async ({ request }) => {
+    const body = (await request.json()) as Record<string, string>;
+    return HttpResponse.json(
+      {
+        username: body.username?.toLowerCase(),
+        firstName: body.firstName,
+        role: "USER",
+      } satisfies Partial<UserProfile>,
+      { status: 201 },
+    );
+  }),
   http.post(
     api("/api/v1/auth/logout"),
     () => new HttpResponse(null, { status: 204 }),

@@ -5,9 +5,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.net.HttpCookie;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +37,11 @@ public final class SpaAuthFlow {
       """
       {"username": "johndoe", "password": "Password123!"}
       """;
+
+  private static final ObjectMapper JSON = new ObjectMapper();
+
+  /** Source of {@link #uniqueIp()} addresses. */
+  private static final AtomicInteger NEXT_IP = new AtomicInteger();
 
   private SpaAuthFlow() {}
 
@@ -66,6 +76,15 @@ public final class SpaAuthFlow {
     };
   }
 
+  /**
+   * A client address no other request in this JVM has used ({@code 10.x.y.z}), so a test's
+   * registrations or failed logins never share throttle counters with another test's.
+   */
+  public static String uniqueIp() {
+    int n = NEXT_IP.incrementAndGet();
+    return "10." + (n >> 16 & 0xff) + "." + (n >> 8 & 0xff) + "." + (n & 0xff);
+  }
+
   /** Logs in as the demo user; returns the authenticated session. */
   public static MockHttpSession logIn(MockMvc mvc) throws Exception {
     return (MockHttpSession)
@@ -74,6 +93,63 @@ public final class SpaAuthFlow {
             .andReturn()
             .getRequest()
             .getSession(false);
+  }
+
+  /** Logs in as {@code username}; returns the authenticated session. */
+  public static MockHttpSession logIn(MockMvc mvc, String username, String password)
+      throws Exception {
+    return (MockHttpSession)
+        mvc.perform(loginRequest(mvc, credentialsJson(username, password)))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getRequest()
+            .getSession(false);
+  }
+
+  /** A login body for {@code username} and {@code password}, JSON-escaped. */
+  public static String credentialsJson(String username, String password) {
+    return json(Map.of("username", username, "password", password));
+  }
+
+  /** A registration body, JSON-escaped (so a first name may hold quotes or markup). */
+  public static String registrationJson(
+      String username, String email, String firstName, String password) {
+    Map<String, String> body = new LinkedHashMap<>();
+    body.put("username", username);
+    body.put("email", email);
+    body.put("firstName", firstName);
+    body.put("password", password);
+    return json(body);
+  }
+
+  /** A CSRF-protected JSON registration POST with {@code body}. */
+  public static MockHttpServletRequestBuilder registerRequest(MockMvc mvc, String body)
+      throws Exception {
+    return withCsrf(mvc, post("/api/v1/auth/register"))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(body);
+  }
+
+  /**
+   * Registers a {@code USER} named {@code username} (email {@code <username>@example.com}, first
+   * name {@code Test}) from a {@link #uniqueIp()}, so it never counts against another test's
+   * registration throttle. Fails unless the API answers {@code 201}.
+   */
+  public static void register(MockMvc mvc, String username, String password) throws Exception {
+    mvc.perform(
+            registerRequest(
+                    mvc,
+                    registrationJson(username, username + "@example.com", "Test", password))
+                .with(fromIp(uniqueIp())))
+        .andExpect(status().isCreated());
+  }
+
+  private static String json(Object value) {
+    try {
+      return JSON.writeValueAsString(value);
+    } catch (JsonProcessingException e) {
+      throw new IllegalArgumentException(e);
+    }
   }
 
   /**

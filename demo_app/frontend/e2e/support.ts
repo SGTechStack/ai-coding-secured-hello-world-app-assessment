@@ -1,10 +1,11 @@
-import type { Page, Route } from "@playwright/test";
+import type { Page, Route, TestInfo } from "@playwright/test";
 import { expect } from "./fixtures";
 
 /** The demo account the backend seeds in its dev profile. */
 export const JOHN = { username: "johndoe", password: "Password123!" };
 
 export const LOGIN_API = "**/api/v1/auth/login";
+export const REGISTER_PATH = "/api/v1/auth/register";
 export const LOGOUT_API = "**/api/v1/auth/logout";
 export const ME_PATH = "/api/v1/auth/me";
 
@@ -69,4 +70,85 @@ export async function expectBannerAboveForm(page: Page) {
   expect(banner).not.toBeNull();
   expect(username).not.toBeNull();
   expect(banner!.y + banner!.height).toBeLessThanOrEqual(username!.y);
+}
+
+/** A registrable account. */
+export type NewUser = {
+  username: string;
+  email: string;
+  firstName: string;
+  password: string;
+};
+
+/**
+ * A fresh account no other test (or earlier run against a reused backend) has taken, so tests stay
+ * independent under `fullyParallel`.
+ */
+export function uniqueUser(
+  testInfo: TestInfo,
+  overrides: Partial<NewUser> = {},
+): NewUser {
+  const id = `${Date.now().toString(36)}${testInfo.workerIndex}${Math.random().toString(36).slice(2, 6)}`;
+  return {
+    username: `e2e-${id}`,
+    email: `e2e-${id}@example.com`,
+    firstName: "Tess",
+    password: `correct horse ${id}`,
+    ...overrides,
+  };
+}
+
+/** The registration page's controls, located the way a user (or screen reader) finds them. */
+export function registrationForm(page: Page) {
+  return {
+    username: page.getByLabel("Username", { exact: true }),
+    email: page.getByLabel("Email", { exact: true }),
+    firstName: page.getByLabel("First name", { exact: true }),
+    password: page.getByLabel("Password", { exact: true }),
+    confirmPassword: page.getByLabel("Confirm password", { exact: true }),
+    // Its name changes to "Creating account..." while in flight.
+    submit: page.getByRole("button", { name: /^Creat(e|ing) account/ }),
+  };
+}
+
+/**
+ * Fills in and submits the registration form, once it is on screen (the login page also has a
+ * "Username" field, which a fill could otherwise hit mid-navigation).
+ */
+export async function submitRegistration(page: Page, user: NewUser) {
+  await expect(
+    page.getByRole("heading", { name: "Create an account" }),
+  ).toBeVisible();
+  const form = registrationForm(page);
+  await form.username.fill(user.username);
+  await form.email.fill(user.email);
+  await form.firstName.fill(user.firstName);
+  await form.password.fill(user.password);
+  await form.confirmPassword.fill(user.password);
+  await form.submit.click();
+}
+
+/** Registers `user` through the UI and waits for the login page's notice. */
+export async function registerThroughUi(page: Page, user: NewUser) {
+  await page.goto("/register");
+  await submitRegistration(page, user);
+  await expect(page).toHaveURL("/login");
+  await expect(page.getByRole("status")).toHaveText(REGISTERED_NOTICE);
+}
+
+export const REGISTERED_NOTICE = "Account created. Please log in.";
+
+/** Logs in through the UI and waits for the greeting. */
+export async function logInThroughUi(
+  page: Page,
+  { username, password, firstName }: NewUser,
+) {
+  await page.goto("/login");
+  const form = loginForm(page);
+  await form.username.fill(username);
+  await form.password.fill(password);
+  await form.submit.click();
+  await expect(
+    page.getByRole("heading", { name: `Hello, ${firstName}!` }),
+  ).toBeVisible();
 }

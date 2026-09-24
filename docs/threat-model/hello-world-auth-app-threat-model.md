@@ -47,15 +47,17 @@ Open the model in [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon/r
 
 | Status | High | Medium | Low | Total |
 | --- | --- | --- | --- | --- |
-| **Open** | 4 | 20 | 14 | **38** |
-| **Mitigated** | 16 | 5 | 1 | **22** |
+| **Open** | 2 | 19 | 15 | **36** |
+| **Mitigated** | 18 | 5 | 1 | **24** |
 | **Not applicable** | 1 | — | — | **1** |
 
 The headline: this is a genuinely well-built security baseline, and the open findings are concentrated rather than scattered. The authentication core — password storage, session handling, CSRF, enumeration resistance, reset-token cryptography, admin self-action guards — is correct and largely test-covered.
 
-The original model found three clusters of weakness. Two have since been closed (§12): **secret handling on the reset path** (the live token was written to the log) and **revocation consistency** (password reset killed sessions, disable and demote did not). What remains is **deployment posture**: no prod profile, no transport enforcement, and dev-profile rules that ship unconditionally.
+The original model found three clusters of weakness, and all three have now been closed (§12): **secret handling on the reset path** (the live token was written to the log), **revocation consistency** (password reset killed sessions, disable and demote did not), and **dev-only concessions shipping in every profile** (the H2 console's rules, the fixed admin password).
 
-All four remaining High findings (TM-01, TM-05, TM-06, TM-07) are deployment-configuration problems rather than code defects. That is worth saying plainly: the application logic is in good shape, but the configuration is not currently deployable outside dev, and the dev configuration is unsafe to expose.
+Two High findings remain, both pure deployment configuration: **TM-05** (nothing enforces HTTPS) and **TM-06** (the CORS allow-list is unvalidated environment input). Neither is an application-logic defect. Separately, authorization was substantially strengthened by work that landed outside this model's original scope — a configuration-owned RBAC matrix with a deny-by-default terminal rule — which is why TM-14 dropped from Medium to Low.
+
+The honest summary is that the remaining risk has shifted almost entirely from "the code does the wrong thing" to "there is no production configuration yet": no prod profile, no datasource, no migrations, no transport enforcement.
 
 ---
 
@@ -73,14 +75,7 @@ All four remaining High findings (TM-01, TM-05, TM-06, TM-07) are deployment-con
 
 ## 4. Open findings — High
 
-### TM-01 · Elevation of privilege · H2 console rules are not profile-gated
-
-`SecurityConfig` unconditionally grants `permitAll` to `/h2-console/**`, exempts that path from CSRF, and weakens `frameOptions` to `sameOrigin` **for the whole application**. The inline comments argue this is safe because the servlet only exists when `spring.h2.console.enabled=true`. The servlet claim is true; the conclusion is not. The rules themselves ship in every profile, the H2 jar sits on the runtime classpath of every build, and the datasource credentials are `sa` with a blank password. Anyone who can reach the port on a dev or demo instance gets unauthenticated full SQL read/write — dump every password hash, insert themselves an `ADMIN` row, or drop the schema. The global frame-options relaxation also weakens clickjacking protection on the real API in exchange for nothing.
-
-- **Evidence:** `config/SecurityConfig.java:104, 108-110, 130`; `application.yml:41-50`
-- **Fix:** move these rules into a `@Profile("dev")` `SecurityFilterChain` bean; scope `frameOptions().sameOrigin()` to `/h2-console/**` only; set `spring.h2.console.settings.web-allow-others=false`; move the `h2` dependency to `<scope>test</scope>` once a real datasource exists.
-
-> **TM-02 and TM-04 were the other two High findings in this section. Both are now fixed, test-covered, and verified failing-first — see §12.**
+> **Four findings have left this section.** TM-01, TM-02, TM-04 and TM-07 were all High and are all now fixed, test-covered and verified failing-first — see §12. The two below are what remain, and both are deployment configuration rather than application logic.
 
 ### TM-05 · Information disclosure · No transport security is enforced anywhere
 
@@ -96,15 +91,6 @@ The filter chain has no `requiresChannel()` and no HTTPS redirect; HSTS is emitt
 - **Evidence:** `config/CorsConfig.java:29, 37-42`
 - **Fix:** validate origins at startup — reject `*`, reject empty, require `https://` outside dev — and fail fast rather than booting permissive. Add an integration test asserting a disallowed `Origin` is refused.
 
-### TM-07 · Spoofing · The dev profile ships a fixed, publicly documented admin password
-
-The dev profile defaults the bootstrap admin to `admin` / `password1234`. The same credentials appear in `README.md` and are rendered in the SPA's dev login form. This matters more than "it's only dev" suggests: the dev profile is the profile every backend test runs under, and it is the *only* profile with a working datasource, so it is the profile anyone actually starts the app with. Any dev or demo instance reachable beyond localhost is a trivial full-admin takeover.
-
-Credit where due: the base profile binds `app.admin.username`/`password` with **no defaults**, so startup fails rather than seeding a guessable account. The control is right; the dev override undermines it.
-
-- **Evidence:** `application.yml:58-61`; `README.md:82`; `frontend/src/LoginForm.tsx:45, 66`
-- **Fix:** require `APP_ADMIN_USERNAME`/`APP_ADMIN_PASSWORD` even in dev (via `.env.example`, or generate a random password and log it once at startup), force a password change on first admin login, and bind the dev server to `127.0.0.1`.
-
 ---
 
 ## 5. Open findings — Medium
@@ -117,7 +103,7 @@ Credit where due: the base profile binds `app.admin.username`/`password` with **
 | TM-11 | D | Rate limiting matches only `POST /api/auth/login`. Registration and both reset endpoints are unthrottled and each runs a BCrypt hash. | `auth/IpThrottleFilter.java:44-45` | Apply a shared rate-limit filter to every unauthenticated write endpoint. |
 | TM-12 | D | No request-size, multipart or Tomcat thread/connection limits. Boot caps no JSON body by default, so an unauthenticated caller can force buffering and parsing of an arbitrarily large payload. | `application.yml` (absent) | Set `server.tomcat.max-http-form-post-size`/`max-swallow-size`, cap threads, and add `@Size` to every string field in the request DTOs. |
 | TM-13 | T | No CSP, `Referrer-Policy` or `Permissions-Policy`; the CSRF token is deliberately script-readable, so any XSS foothold defeats CSRF wholesale. No XSS sink exists today, so this is defence-in-depth. | `config/SecurityConfig.java:85, 108-110` | Add a restrictive CSP and `Referrer-Policy: no-referrer` via the headers DSL. |
-| TM-14 | E | `hasRole("ADMIN")` on one URL prefix is the only authorization check; `@EnableMethodSecurity` is absent and the controller deliberately does not re-check. Any future admin handler outside `/api/admin/**` is unguarded. | `config/SecurityConfig.java:122-132` | Enable method security and annotate the admin **service** so authorization travels with the capability, not the URL. |
+
 | TM-15 | R | Raw `username` is logged with no validation on login, and `RegistrationRequest` has `@Size` but no `@Pattern`, so CRLF and control characters reach the log — forged audit entries and broken parsers. | `auth/LoginFailureHandler.java:64, 77`; `RegistrationRequest.java:13-24` | Add `@Pattern` to username, strip CR/LF and cap length before logging, emit JSON logs. |
 | TM-16 | S | `server.servlet.session.timeout` is never set, so idle expiry is an implicit 30-minute container default, and there is no absolute lifetime — a stolen cookie stays valid as long as it keeps being used. | `application.yml` (absent) | Set the timeout explicitly and enforce an absolute maximum session age. |
 | TM-17 | D | The only admin guard is "not yourself". Two admins can eliminate each other down to one, and a disabled `ADMIN` row still satisfies the bootstrap check — so recovery means direct DB edits, exactly what Story 12 exists to prevent. | `admin/AdminUserManagementService.java:43, 57, 71, 88-92`; `user/AdminBootstrapRunner.java:42-57` | Reject any mutation leaving zero **enabled** admins; seed on "no enabled admin" rather than "no admin". |
@@ -138,6 +124,7 @@ Credit where due: the base profile binds `app.admin.username`/`password` with **
 
 | ID | STRIDE / LINDDUN | Finding | Evidence |
 | --- | --- | --- | --- |
+| TM-14 | E | **Downgraded from Medium** by the config-owned RBAC matrix: authorization is now fine-grained authorities against explicit method+path guards in YAML, terminating in `denyAll()`, so forgetting to guard a new endpoint yields a 403 rather than silent exposure. Residual: enforcement is still URL-layer only — no `@EnableMethodSecurity`, so a service method reached from a scheduled job or listener carries no authorization of its own. | `config/SecurityConfig.java`; `application.yml` `app.security` |
 | TM-19b | I | No TLS or credential-handling pattern exists for the Postgres/MySQL migration the PRD anticipates; nothing on the wire today because H2 is in-process. | `application.yml:38-42` |
 | TM-20 | I | `new BCryptPasswordEncoder()` takes the implicit default strength 10 with no configuration hook; `PasswordPolicy` sets a 12-char minimum and no maximum, so BCrypt silently truncates past 72 bytes. | `SecurityConfig.java:49-51`; `PasswordPolicy.java:13-17` |
 | TM-21 | T | `CsrfTokenRequestAttributeHandler` is wired instead of the `Xor` variant, giving up per-response token masking against BREACH. Needs response compression plus a network position to exploit. | `SecurityConfig.java:86, 99` |
@@ -184,6 +171,8 @@ Worth recording explicitly, because a threat model that only lists problems misr
 - Expiry and reuse rejection are both test-covered (`PasswordResetTest`).
 
 **Authorization**
+- Deny-by-default: the filter chain is built from a YAML guard matrix and terminates in `denyAll()`, so an endpoint that is neither whitelisted nor explicitly guarded is unreachable by everyone, including authenticated admins (`SecurityConfigTest.unmappedPathIsDeniedByDefaultEvenWhenAuthenticated`).
+- Role hierarchy resolved at authentication time, so `ROLE_ADMIN` reaches `ROLE_USER`'s fine-grained authorities without duplicating them in config (`SecurityConfigTest`, `RoleHierarchyConfigTest`, `AppUserDetailsServiceTest`).
 - Role comes from the authenticated principal; the acting admin id comes from `@AuthenticationPrincipal`, never from the request body.
 - Self-action guards on all three admin mutations, each test-covered.
 - Disable, demote and delete all revoke the target's live sessions as of the TM-04 fix (§12), so a narrowed privilege takes effect immediately rather than at next login (`AdminSessionRevocationTest`).
@@ -224,7 +213,7 @@ Against the non-functional requirements in [`prd/assessment-prd.md:112-123`](../
 | Enumeration resistance on login and password reset | **Met** | Timing side-channel (TM-23); registration is out of the requirement's scope but enumerable (TM-22) |
 | Transport — HTTPS behind any real deployment | **Partial** | Documented as an accepted gap, but nothing enforces it and there is no prod profile (TM-05) |
 | Audit logging — structured lines for all named events, never passwords | **Partial** | All events logged, no passwords, and no reset token since the TM-02 fix; still unstructured and uncorrelated (TM-27) |
-| Least privilege — role checks server-side, never trusted from the client | **Met** | Single point of enforcement, no method-level backstop (TM-14) |
+| Least privilege — role checks server-side, never trusted from the client | **Met** | Config-owned guard matrix with a deny-by-default terminal rule; no method-level backstop (TM-14, now Low) |
 | Account lockout after N failures *within a window* | **Partial** | Lockout works; there is no window (TM-08) |
 | IP throttling independent of account lockout | **Partial** | Works in a direct-connection topology only (TM-09) |
 
@@ -238,8 +227,8 @@ Sequenced by risk reduction per unit of effort, not by severity alone. Owners an
 | --- | --- | --- | --- | --- |
 | ~~1~~ | ~~TM-02~~ | **Done** (§12). Stop writing a live account-takeover secret to the log. | Samuel Wong | 2026-09-23 |
 | ~~2~~ | ~~TM-04~~ | **Done** (§12). The revocation mechanism already existed; wired into the admin path. | Samuel Wong | 2026-09-23 |
-| 3 | TM-01, TM-07 | Profile-gate the dev-only rules and remove the fixed admin password. Makes the profile people actually run safe to expose. **Next up.** | _TBD_ | _TBD_ |
-| 4 | TM-05, TM-06, TM-13, TM-16, TM-03 | Deployment posture: transport enforcement, CORS validation, security headers (which also completes TM-03), session timeout, and the token-in-fragment change. Mostly configuration. | _TBD_ | _TBD_ |
+| ~~3~~ | ~~TM-01, TM-07~~ | **Done** (§12). Profile-gated the dev-only rules and removed the fixed admin password. | Samuel Wong | 2026-09-24 |
+| 4 | TM-05, TM-06, TM-13, TM-16, TM-03 | Deployment posture: transport enforcement, CORS validation, security headers (which also completes TM-03), session timeout, and the token-in-fragment change. Mostly configuration. **Next up** — and it contains both remaining High findings. | _TBD_ | _TBD_ |
 | 5 | TM-08, TM-09, TM-10, TM-11, TM-12, TM-18b | Make the anti-automation controls actually hold in a real topology, and stop them being DoS vectors themselves. | _TBD_ | _TBD_ |
 | 6 | TM-38 + the other four testing gaps | Lock in the controls that are correct today so they stay correct. | _TBD_ | _TBD_ |
 | 7 | TM-14, TM-15, TM-17, TM-18, TM-19, TM-39 | Defence in depth, log integrity, last-admin protection, and a real datasource with migrations. | _TBD_ | _TBD_ |
@@ -302,3 +291,32 @@ Covered by `AdminSessionRevocationTest` (4 tests), **verified failing-first**: w
 | Open total | 40 | 38 |
 | Mitigated | 20 | 22 |
 | Tests | 34 (1 failing) | 41 (all green) |
+
+### 2026-09-24 — TM-01 and TM-07 closed; TM-14 reassessed
+
+**Context that changed underneath this model.** Two commits landed between the previous entry and this one, written outside this remediation effort: `9020940` replaced the hardcoded authorization rules with a configuration-owned RBAC matrix (fine-grained authorities bound from `app.security` in YAML, a role hierarchy, and a terminal `denyAll()` instead of `authenticated()`), and `e128438` added `RoleMutationGuard` as a single checkpoint for the sanctioned role-mutation path. Baseline moved from 41 tests to 59, all green.
+
+That work required reassessing **TM-14**, which is why it is now **Low** rather than Medium. The original finding was that a single URL matcher stood between a `USER` and every admin capability, so a future admin-capable handler mounted outside `/api/admin/**` would be unguarded. Deny-by-default inverts precisely that failure mode: an endpoint nobody remembered to guard is now unreachable by everyone rather than quietly open to any authenticated user. What remains is narrower — enforcement is still URL-layer only, so a service method reached from a scheduled job or a message listener carries no authorization of its own.
+
+**TM-01 and TM-07 shared one shape**, which is why they were fixed together: a concession made for local development was granted by a rule that was not gated on the same switch as the thing needing it.
+
+For **TM-01**, the H2 console's three concessions — unauthenticated access, CSRF exemption, and `frameOptions=sameOrigin` — all moved onto a `@Profile("dev")` chain in `H2ConsoleSecurityConfig` matching `/h2-console/**` only, and the path came out of the whitelist. Outside dev it now matches neither the whitelist nor a url-guard and hits `denyAll()`. The API chain reverts to `frameOptions: DENY`, so clickjacking protection is no longer traded away application-wide for a dev tool.
+
+The failing-first check was unusually informative here. With the old configuration restored, `/h2-console/` returned **404, not 401** — meaning the request sailed through the security chain and only failed because the servlet happened to be unregistered. That is exactly the difference the finding was about: the console was protected by accident of packaging rather than by policy.
+
+For **TM-07**, dev now defaults the admin password to blank and `AdminBootstrapRunner` generates a random 24-byte password per boot, logged once at `WARN`. Clone-and-run still works with no setup, but there is no published credential and the value rotates every restart. The README and the dev login panel no longer print a password — the panel prefills the username only. The generate path is structurally confined to dev: the base profile's placeholder has no default, so an unset password outside dev fails startup rather than generating anything, preserving the original fail-fast control.
+
+**One residual accepted deliberately:** the generated password is written to the log, which is the category of problem TM-02 was about. The distinction is that this is a per-boot, rotating, dev-only bootstrap credential with no other delivery channel, where TM-02 was a user's account-takeover token logged in every profile including production. Recorded here rather than left implicit.
+
+**Tests added:** `H2ConsoleNotExposedOutsideDevTest` (3) — the only class in the suite that boots without the dev profile, since that is the condition under test; `AdminBootstrapPasswordGenerationTest` (3), targeting the real risk in the change, which is hashing the empty string and shipping an account with a blank password; and `SecurityPropertiesTest.whitelistDoesNotExposeTheH2Console`, guarding the YAML entry directly because it looks harmless sitting next to the others.
+
+**After:** 66 tests across 17 classes, all green, `mvn test` exit code 0; frontend `tsc -b` clean.
+
+| | Session start | After §12 entry 1 | Now |
+| --- | --- | --- | --- |
+| Open High | 8 | 4 | **2** |
+| Open total | 40 | 38 | **36** |
+| Mitigated | 20 | 22 | **24** |
+| Tests | 34 (1 failing) | 41 | **66** |
+
+Both remaining High findings are TM-05 (nothing enforces HTTPS) and TM-06 (CORS allow-list is unvalidated environment input) — step 4 in §10.

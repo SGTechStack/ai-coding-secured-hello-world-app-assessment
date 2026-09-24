@@ -30,15 +30,18 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
     private final IpLoginThrottle ipLoginThrottle;
+    private final ClientIpResolver clientIpResolver;
 
     public LoginSuccessHandler(
             UserRepository userRepository,
             ObjectMapper objectMapper,
-            IpLoginThrottle ipLoginThrottle
+            IpLoginThrottle ipLoginThrottle,
+            ClientIpResolver clientIpResolver
     ) {
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.ipLoginThrottle = ipLoginThrottle;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -53,9 +56,12 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         User user = userRepository.findByUsernameIgnoreCase(username).orElseThrow();
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
+        // Clear the streak marker too, so a stale timestamp can't make the next
+        // failure look like a continuation of a streak that has been resolved.
+        user.setLastFailedLoginAt(null);
         userRepository.save(user);
 
-        ipLoginThrottle.recordSuccess(request.getRemoteAddr());
+        ipLoginThrottle.recordSuccess(clientIpResolver.resolve(request));
 
         log.info("Login succeeded username={}", username);
 

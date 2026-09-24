@@ -2,6 +2,7 @@ package com.sgtechstack.helloworldauthapp.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sgtechstack.helloworldauthapp.auth.AbsoluteSessionTimeoutFilter;
+import com.sgtechstack.helloworldauthapp.auth.ClientIpResolver;
 import com.sgtechstack.helloworldauthapp.auth.IpLoginThrottle;
 import com.sgtechstack.helloworldauthapp.auth.IpThrottleFilter;
 import com.sgtechstack.helloworldauthapp.auth.LoginFailureHandler;
@@ -189,6 +190,7 @@ public class SecurityConfig {
             LogoutSuccessResponseHandler logoutSuccessHandler,
             RestAuthenticationEntryPoint authenticationEntryPoint,
             IpLoginThrottle ipLoginThrottle,
+            ClientIpResolver clientIpResolver,
             ObjectMapper objectMapper,
             SessionRegistry sessionRegistry,
             RestSessionExpiredStrategy sessionExpiredStrategy,
@@ -204,7 +206,7 @@ public class SecurityConfig {
                 // a throttled IP is rejected before an authentication attempt
                 // is even made.
                 .addFilterBefore(
-                        new IpThrottleFilter(ipLoginThrottle, objectMapper),
+                        new IpThrottleFilter(ipLoginThrottle, objectMapper, clientIpResolver),
                         UsernamePasswordAuthenticationFilter.class
                 )
                 // No CSRF exemptions. The H2 console needs one (it posts plain

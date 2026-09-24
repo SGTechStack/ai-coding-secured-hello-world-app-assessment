@@ -41,17 +41,20 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
     private final ObjectMapper objectMapper;
     private final LockoutPolicy lockoutPolicy;
     private final IpLoginThrottle ipLoginThrottle;
+    private final ClientIpResolver clientIpResolver;
 
     public LoginFailureHandler(
             UserRepository userRepository,
             ObjectMapper objectMapper,
             LockoutPolicy lockoutPolicy,
-            IpLoginThrottle ipLoginThrottle
+            IpLoginThrottle ipLoginThrottle,
+            ClientIpResolver clientIpResolver
     ) {
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.lockoutPolicy = lockoutPolicy;
         this.ipLoginThrottle = ipLoginThrottle;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -72,7 +75,7 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
             userRepository.findByUsernameIgnoreCase(username).ifPresent(this::recordAccountFailure);
         }
 
-        ipLoginThrottle.recordFailure(request.getRemoteAddr());
+        ipLoginThrottle.recordFailure(clientIpResolver.resolve(request));
 
         log.info("Login failed username={} accountLocked={}", username, alreadyLocked);
 
@@ -82,11 +85,20 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
     }
 
     private void recordAccountFailure(User user) {
-        int attempts = user.getFailedLoginAttempts() + 1;
+        Instant now = Instant.now();
+
+        // Only failures inside the window accumulate. An older failure starts a
+        // fresh streak instead of adding to a stale one, so the counter cannot
+        // act as a lifetime tally that eventually locks an account whose owner
+        // simply mistyped a password a few times over several months.
+        boolean continuesStreak = lockoutPolicy.continuesStreak(user.getLastFailedLoginAt(), now);
+        int attempts = continuesStreak ? user.getFailedLoginAttempts() + 1 : 1;
+
         user.setFailedLoginAttempts(attempts);
+        user.setLastFailedLoginAt(now);
 
         if (lockoutPolicy.shouldLock(attempts)) {
-            Instant lockedUntil = Instant.now().plus(LockoutPolicy.LOCKOUT_DURATION);
+            Instant lockedUntil = now.plus(LockoutPolicy.LOCKOUT_DURATION);
             user.setLockedUntil(lockedUntil);
             log.info("Account locked username={} lockedUntil={}", user.getUsername(), lockedUntil);
         }

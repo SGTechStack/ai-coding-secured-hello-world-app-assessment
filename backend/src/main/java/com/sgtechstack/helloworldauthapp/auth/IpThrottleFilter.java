@@ -28,10 +28,16 @@ public class IpThrottleFilter extends OncePerRequestFilter {
 
     private final IpLoginThrottle ipLoginThrottle;
     private final ObjectMapper objectMapper;
+    private final ClientIpResolver clientIpResolver;
 
-    public IpThrottleFilter(IpLoginThrottle ipLoginThrottle, ObjectMapper objectMapper) {
+    public IpThrottleFilter(
+            IpLoginThrottle ipLoginThrottle,
+            ObjectMapper objectMapper,
+            ClientIpResolver clientIpResolver
+    ) {
         this.ipLoginThrottle = ipLoginThrottle;
         this.objectMapper = objectMapper;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -43,8 +49,10 @@ public class IpThrottleFilter extends OncePerRequestFilter {
         boolean isLoginAttempt = HttpMethod.POST.matches(request.getMethod())
                 && LOGIN_PATH.equals(request.getRequestURI());
 
-        if (isLoginAttempt && ipLoginThrottle.isThrottled(request.getRemoteAddr())) {
-            log.info("Login throttled ip={}", request.getRemoteAddr());
+        String clientIp = isLoginAttempt ? clientIpResolver.resolve(request) : null;
+
+        if (isLoginAttempt && ipLoginThrottle.isThrottled(clientIp)) {
+            log.info("Login throttled ip={}", clientIp);
             response.setStatus(429); // 429 Too Many Requests; not a named HttpServletResponse.SC_* constant
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write(objectMapper.writeValueAsString(ErrorResponse.of(THROTTLED_MESSAGE)));

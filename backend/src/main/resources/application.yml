@@ -3,6 +3,10 @@ spring:
     name: hello-world-auth-app
 
 server:
+  # This governs the framework's own view of the request. The throttle's view
+  # is configured separately via app.security.trusted-proxy-hops; both default
+  # to "assume no proxy" for the same reason.
+  #
   # Honouring X-Forwarded-* is required behind a TLS-terminating proxy, or
   # the app cannot tell whether the original request was secure and
   # requiresHttps/HSTS/Secure-cookies all misfire. It is left OFF by default
@@ -44,6 +48,15 @@ app:
     username: ${APP_ADMIN_USERNAME}
     password: ${APP_ADMIN_PASSWORD}
   security:
+    # How many proxies sit between the internet and this application, used to
+    # work out which address to throttle. 0 means "directly reachable", and
+    # X-Forwarded-For is then ignored entirely because nothing can vouch for it
+    # — a caller could otherwise rotate a fake value per request and never be
+    # throttled. Set this to the real hop count behind a proxy, or every client
+    # collapses into one throttle bucket and the tenth failed login from anyone
+    # locks out everyone. Both failure modes are real; the topology has to be
+    # declared rather than guessed.
+    trusted-proxy-hops: ${APP_TRUSTED_PROXY_HOPS:0}
     # Transport security. When true the filter chain refuses plaintext
     # (requiresChannel -> requiresSecure) and CORS origins must be https.
     # Defaults to true so a deployment is secure unless it deliberately opts

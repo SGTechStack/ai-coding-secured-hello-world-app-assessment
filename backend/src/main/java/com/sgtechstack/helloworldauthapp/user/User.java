@@ -46,6 +46,14 @@ public class User {
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
+    /**
+     * When the most recent failed login happened, so the failure counter can
+     * decay. Without this the counter is a lifetime tally and five failures
+     * years apart still lock the account.
+     */
+    @Column(name = "last_failed_login_at")
+    private Instant lastFailedLoginAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -113,6 +121,14 @@ public class User {
 
     public void setLockedUntil(Instant lockedUntil) {
         this.lockedUntil = lockedUntil;
+    }
+
+    public Instant getLastFailedLoginAt() {
+        return lastFailedLoginAt;
+    }
+
+    public void setLastFailedLoginAt(Instant lastFailedLoginAt) {
+        this.lastFailedLoginAt = lastFailedLoginAt;
     }
 
     public Instant getCreatedAt() {

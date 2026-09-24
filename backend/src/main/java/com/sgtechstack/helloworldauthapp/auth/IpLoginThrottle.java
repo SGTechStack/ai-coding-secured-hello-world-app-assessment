@@ -1,9 +1,12 @@
 package com.sgtechstack.helloworldauthapp.auth;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,8 +27,17 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class IpLoginThrottle {
 
+    private static final Logger log = LoggerFactory.getLogger(IpLoginThrottle.class);
+
     public static final int MAX_FAILED_ATTEMPTS_PER_IP = 10;
     public static final Duration WINDOW = Duration.ofMinutes(15);
+
+    /**
+     * Ceiling on how many source addresses are tracked at once. Reached only
+     * under a flood of distinct addresses, which is precisely when the map must
+     * not be allowed to keep growing.
+     */
+    public static final int MAX_TRACKED_ADDRESSES = 10_000;
 
     private record Attempts(int count, Instant windowStart) {
     }
@@ -59,6 +71,45 @@ public class IpLoginThrottle {
             }
             return new Attempts(existing.count() + 1, existing.windowStart());
         });
+
+        evictIfOversized();
+    }
+
+    /**
+     * Keeps the map bounded.
+     *
+     * <p>Entries were previously removed only on a successful login from the
+     * same address, so an attacker failing one login each from many distinct
+     * addresses grew the map without limit — turning the control meant to blunt
+     * brute force into a memory-exhaustion vector of its own.
+     *
+     * <p>Expired windows are swept first, which is free in the sense that they
+     * carry no live state. If that is not enough, the oldest windows are
+     * dropped. That trade is deliberate: forgetting throttle state for the
+     * least-recently-seen addresses is recoverable, whereas exhausting the heap
+     * takes the whole application down.
+     */
+    private void evictIfOversized() {
+        if (attemptsByIp.size() <= MAX_TRACKED_ADDRESSES) {
+            return;
+        }
+
+        attemptsByIp.entrySet().removeIf(entry -> windowExpired(entry.getValue()));
+
+        int excess = attemptsByIp.size() - MAX_TRACKED_ADDRESSES;
+        if (excess <= 0) {
+            return;
+        }
+
+        log.warn("Throttle map above {} entries after sweeping expired windows; dropping {} oldest",
+                MAX_TRACKED_ADDRESSES, excess);
+
+        attemptsByIp.entrySet().stream()
+                .sorted(Comparator.comparing(entry -> entry.getValue().windowStart()))
+                .limit(excess)
+                .map(Map.Entry::getKey)
+                .toList()
+                .forEach(attemptsByIp::remove);
     }
 
     /**
@@ -72,5 +123,14 @@ public class IpLoginThrottle {
 
     private boolean windowExpired(Attempts attempts) {
         return Instant.now().isAfter(attempts.windowStart().plus(WINDOW));
+    }
+
+    /**
+     * How many source addresses are currently tracked. Exposed so the eviction
+     * bound can be asserted, since unbounded growth is otherwise only visible
+     * as heap exhaustion.
+     */
+    int trackedAddressCount() {
+        return attemptsByIp.size();
     }
 }

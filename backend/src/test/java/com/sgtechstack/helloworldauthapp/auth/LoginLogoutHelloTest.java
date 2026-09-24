@@ -15,6 +15,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -50,7 +52,13 @@ class LoginLogoutHelloTest {
         tokenRepository.deleteAll();
         userRepository.deleteAll();
         User user = new User(USERNAME, "loginuser@example.com", passwordEncoder.encode(PASSWORD), Role.USER, true);
+        // Three failures that happened just now. The timestamp matters: the
+        // counter only accumulates for failures inside LockoutPolicy's window,
+        // so a count with no accompanying timestamp would represent a state the
+        // application can no longer produce, and the next failure would
+        // correctly start a fresh streak at 1 rather than continuing to 4.
         user.setFailedLoginAttempts(3);
+        user.setLastFailedLoginAt(Instant.now());
         userRepository.save(user);
     }
 

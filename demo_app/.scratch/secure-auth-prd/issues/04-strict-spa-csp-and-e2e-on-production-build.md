@@ -4,13 +4,22 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The CSP is defined once in the frontend build config, with `connect-src` built from the API base URL: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' <API origin>; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'`.
-- [ ] `vite preview` sends it together with `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, `Permissions-Policy: camera=(), geolocation=(), microphone=()` and `X-Frame-Options: DENY`. The README documents these as the headers a production static host must send.
-- [ ] `index.html` has no inline script. The theme pre-paint script is a static same-origin file loaded with a blocking `<script src>` in `<head>`, and dark mode still doesn't flash. `<meta name="referrer" content="no-referrer">` is added.
-- [ ] Any directive relaxed because a dependency breaks it (only `style-src` or Trusted Types, never `script-src`) is justified in the README and in this ticket's Comments.
-- [ ] Playwright's frontend `webServer` builds and then runs `vite preview` on `FRONTEND_PORT` (default `3000`).
-- [ ] A shared e2e fixture fails any test on a `securitypolicyviolation` event or a CSP console error, and every spec uses it.
-- [ ] An e2e check asserts that the served document carries the CSP header.
-- [ ] The existing Stories 1–3 pass under the CSP. `npm run check` is green.
+- [x] The CSP is defined once in the frontend build config, with `connect-src` built from the API base URL: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' <API origin>; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script'`.
+- [x] `vite preview` sends it together with `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, `Permissions-Policy: camera=(), geolocation=(), microphone=()` and `X-Frame-Options: DENY`. The README documents these as the headers a production static host must send.
+- [x] `index.html` has no inline script. The theme pre-paint script is a static same-origin file loaded with a blocking `<script src>` in `<head>`, and dark mode still doesn't flash. `<meta name="referrer" content="no-referrer">` is added.
+- [x] Any directive relaxed because a dependency breaks it (only `style-src` or Trusted Types, never `script-src`) is justified in the README and in this ticket's Comments.
+- [x] Playwright's frontend `webServer` builds and then runs `vite preview` on `FRONTEND_PORT` (default `3000`).
+- [x] A shared e2e fixture fails any test on a `securitypolicyviolation` event or a CSP console error, and every spec uses it.
+- [x] An e2e check asserts that the served document carries the CSP header.
+- [x] The existing Stories 1–3 pass under the CSP. `npm run check` is green.
+
+## Comments
+
+- **No relaxation.** The full policy holds as written: the Story 1–3 build (React 19, TanStack Router/Query, Radix Label/Slot, lucide, Tailwind v4 CSS file) raises no `style-src` or Trusted Types violation. React `style={{}}` props are CSSOM and allowed; a runtime `<style>` element or `style="..."` attribute is not. Heads-up for ticket 12: Radix `AlertDialog` pulls in `react-remove-scroll` → `react-style-singleton`, which injects a `<style>` element and will trip `style-src 'self'` (the fixture fails the test). Either relax only `style-src` to `'self' 'unsafe-inline'` in `spaSecurityHeaders` (`vite.config.ts`) and justify it in the README ("Serving the production build") and in ticket 12's Comments, or avoid the scroll lock. Never touch `script-src`.
+- **Where the policy lives.** `spaSecurityHeaders(apiOrigin)` in `frontend/vite.config.ts`, applied as `preview.headers`. `connect-src` is the origin of `apiBaseUrl(VITE_API_BASE_URL)`. `apiBaseUrl` lives in `src/api/base-url.ts` and is shared with `api/client.ts`, so the client and the CSP can't disagree on the default. `vite.config.ts` is now a function of the mode (`loadEnv`, which also sees `VITE_*` from the environment), so `vitest.config.ts` calls it before `mergeConfig`. `preview` also uses `FRONTEND_PORT`/`strictPort`.
+- **Theme script.** `public/theme-init.js` (copied verbatim to `dist/`) is a classic blocking script in `<head>`. It wraps `localStorage` in `try` and otherwise does what the inline script did. `ThemeProvider` still owns later changes. An e2e test aborts the app bundle and checks that a saved `dark` still gets the class, which proves the script runs on its own before the app.
+- **Fixture.** `e2e/fixtures.ts` exports `test`/`expect` and overrides `context`: `exposeBinding` + `addInitScript` report every `securitypolicyviolation` event, and `context.on("console")` catches CSP/Trusted Types console errors. Both are injected over CDP, so the CSP doesn't block them. It covers every page of the context. It asserts `cspViolations` is empty at teardown. Every spec, and `support.ts`, imports from `./fixtures`, never from `@playwright/test` (type-only imports excepted). New specs (Stories 4–7) must do the same. A test that causes a violation on purpose uses `test.use({ failOnCspViolation: false })` and asserts on the `cspViolations` fixture. A throwaway spec injecting a `<style>` confirmed the fixture fails the test (both event and console entries).
+- **Header check.** `e2e/spa-hardening.spec.ts` asserts the exact CSP (with `connect-src` from `BACKEND_PORT`) and the four other headers on the `/login` document, plus the referrer `<meta>`. It also shows that `innerHTML` markup is refused by Trusted Types and that an inline `<script>`, even through a TT policy, is blocked by `script-src`.
+- **E2E server.** The frontend `webServer` is `npm run build && npm run preview -- --port ${FRONTEND_PORT} --strictPort` with `VITE_API_BASE_URL` in env (build time) and a 120 s timeout. With `reuseExistingServer: !CI`, a stale `vite dev` already on the port would be reused and carries no CSP: validate with `CI=1`. Suite: 22 passed with `CI=1 BACKEND_PORT=18084 FRONTEND_PORT=13004` and with `CI=1` on the default ports.

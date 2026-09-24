@@ -10,10 +10,10 @@
  * - turns every failure into an ApiError with a `kind` the UI can switch on.
  */
 
+import { apiBaseUrl } from "./base-url";
+
 /** The API's origin, without a trailing slash. */
-export const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
-).replace(/\/+$/, "");
+export const API_BASE_URL = apiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 /**
  * - `unauthorized`: 401, the request lacked valid credentials or a session.

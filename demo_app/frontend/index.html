@@ -3,16 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
     <title>Simple Login</title>
-    <script>
-      // Apply the saved theme before first paint so dark mode never flashes light.
-      const theme = localStorage.getItem("ui-theme") ?? "system";
-      const dark =
-        theme === "dark" ||
-        (theme === "system" &&
-          matchMedia("(prefers-color-scheme: dark)").matches);
-      document.documentElement.classList.toggle("dark", dark);
-    </script>
+    <!-- Blocking, so the theme is applied before first paint (no inline script under the CSP). -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

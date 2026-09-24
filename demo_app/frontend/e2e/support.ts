@@ -1,4 +1,5 @@
-import { expect, type Page, type Route } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
+import { expect } from "./fixtures";
 
 /** The demo account the backend seeds in its dev profile. */
 export const JOHN = { username: "johndoe", password: "Password123!" };

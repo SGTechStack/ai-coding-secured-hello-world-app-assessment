@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { logInAsJohn, loginForm } from "./support";
 
 test.describe("Story 2: Session Persistence & Protected Route Access", () => {

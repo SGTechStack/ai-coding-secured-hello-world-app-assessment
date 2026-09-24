@@ -4,6 +4,7 @@ import { expect, type Page } from "@playwright/test";
 export const JOHN = { username: "johndoe", password: "Password123!" };
 
 export const LOGIN_API = "**/api/v1/auth/login";
+export const LOGOUT_API = "**/api/v1/auth/logout";
 export const ME_PATH = "/api/v1/auth/me";
 
 export const INVALID_CREDENTIALS = "Invalid username or password";
@@ -19,6 +20,11 @@ export function loginForm(page: Page) {
     submit: page.getByRole("button", { name: /^Log(ging)? in/ }),
     banner: page.getByRole("alert"),
   };
+}
+
+/** The navbar's Log out button. Its name changes to "Logging out..." while in flight. */
+export function logoutButton(page: Page) {
+  return page.getByRole("button", { name: /^Log(ging)? out/ });
 }
 
 /** Signs in as John through the UI and waits for the landing page. */

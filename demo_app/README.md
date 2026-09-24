@@ -63,8 +63,9 @@ formatting.
 ## End-to-end acceptance suite
 
 A Playwright suite in `frontend/e2e/` runs the real SPA against the real API. It has one test per
-Gherkin scenario in the spec: Story 1, Scenarios 1–8, and Story 2, Scenarios 1–4. The tests sign in with the seeded
-`johndoe` account. Server failures (login 5xx or network errors) are simulated with
+Gherkin scenario in the spec: Story 1, Scenarios 1–8, and Story 2, Scenarios 1–4. Story 3 (Logout),
+Scenarios 1–6, comes from the logout spec's acceptance scenarios. The tests sign in with the seeded
+`johndoe` account. Server failures (login and logout 5xx or network errors) are simulated with
 Playwright request interception. Playwright's `webServer` starts the backend in the `dev` profile
 (`mvn spring-boot:run -Dspring-boot.run.profiles=dev`, port 8080) and the Vite dev server (port 5173) and stops them when the run
 ends.

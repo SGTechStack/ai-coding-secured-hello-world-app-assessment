@@ -21,6 +21,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -72,6 +73,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  *   <li>Login and registration are throttled per client IP ({@link IpThrottle}, limits in {@link
  *       ThrottleProperties}); a throttled request answers {@code 429} with {@code Retry-After},
  *       which CORS exposes to the SPA.
+ *   <li>Admin: everything under {@code /api/v1/admin/**} needs {@code ROLE_ADMIN} ({@code 403}
+ *       for a {@code USER}, {@code 401} anonymous). Method security ({@code @PreAuthorize}) is on
+ *       too, so the admin service enforces the role again; {@code ApiExceptionHandler} hands its
+ *       denials back to Spring Security, so they also end as {@code 401}/{@code 403}.
  *   <li>Session fixation: login replaces the session with a new one ({@code newSession}).
  *   <li>Logout is Spring Security's logout filter on {@code POST /api/v1/auth/logout}. It runs
  *       after the CSRF check and before authorization, so it needs a valid CSRF token but no
@@ -87,6 +92,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @EnableConfigurationProperties(CorsProperties.class)
 class SecurityConfig {
 
@@ -119,6 +125,8 @@ class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/error")
                     .permitAll()
+                    .requestMatchers("/api/v1/admin/**")
+                    .hasRole("ADMIN")
                     .anyRequest()
                     .authenticated())
         .csrf(

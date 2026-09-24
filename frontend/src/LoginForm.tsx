@@ -7,6 +7,16 @@ interface LoginFormProps {
   initialUsername?: string;
 }
 
+/**
+ * Must match the `dev` profile defaults in `application.yml`
+ * (`app.admin.username` / `app.admin.password`). Nothing enforces that at build
+ * time, so if the dev default changes, change it here too — a panel that shows a
+ * stale credential is worse than one that shows none, because it sends people
+ * looking for a problem that is not there.
+ */
+const DEMO_ADMIN_USERNAME = "admin";
+const DEMO_ADMIN_PASSWORD = "password1234";
+
 type SubmitState =
   | { kind: "idle" }
   | { kind: "submitting" }
@@ -40,12 +50,21 @@ export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
 
   const isSubmitting = state.kind === "submitting";
 
-  // Username only. The dev admin password is generated per backend boot and
-  // printed to the backend log, so there is no longer a fixed value to prefill
-  // — which is the point: a password this panel could hardcode would be a
-  // password an attacker could read here too.
-  function fillDemoAdminUsername() {
-    setUsername("admin");
+  /**
+   * The dev admin credential, fixed by product decision (ADR 0008).
+   *
+   * Displaying it here adds no exposure worth avoiding: the same value is in
+   * `application.yml` and the README, so withholding it from this panel would be
+   * inconvenience rather than protection. What it does cost is recorded honestly —
+   * this is the TM-07 credential, so any instance running the dev profile on a
+   * reachable address is a one-guess admin takeover unless it overrides
+   * `APP_ADMIN_PASSWORD`.
+   *
+   * Gated on `import.meta.env.DEV`, so a production build never contains it.
+   */
+  function fillDemoAdminCredentials() {
+    setUsername(DEMO_ADMIN_USERNAME);
+    setPassword(DEMO_ADMIN_PASSWORD);
   }
 
   return (
@@ -60,18 +79,18 @@ export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
             <div className="demo-credentials-row">
               <dt>Username</dt>
               <dd>
-                <code>admin</code>
+                <code>{DEMO_ADMIN_USERNAME}</code>
               </dd>
             </div>
             <div className="demo-credentials-row">
               <dt>Password</dt>
               <dd>
-                generated per backend restart — copy it from the backend console
+                <code>{DEMO_ADMIN_PASSWORD}</code>
               </dd>
             </div>
           </dl>
-          <button type="button" className="btn-link demo-credentials-fill" onClick={fillDemoAdminUsername}>
-            Fill in demo username
+          <button type="button" className="btn-link demo-credentials-fill" onClick={fillDemoAdminCredentials}>
+            Fill in demo credentials
           </button>
         </div>
       )}

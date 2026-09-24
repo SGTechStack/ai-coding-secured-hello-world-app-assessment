@@ -2,7 +2,7 @@ import { defaultScheduler, notifyManager } from "@tanstack/react-query";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { csrfToken, demoUser } from "../test/handlers";
+import { api, csrfResponse, csrfToken, demoUser } from "../test/handlers";
 import { renderApp } from "../test/renderApp";
 import { server } from "../test/server";
 
@@ -21,7 +21,7 @@ describe("/login", () => {
   it("logs in with valid credentials and navigates to /", async () => {
     const sent: { body: unknown; csrf: string | null }[] = [];
     server.use(
-      http.post("/api/v1/auth/login", async ({ request }) => {
+      http.post(api("/api/v1/auth/login"), async ({ request }) => {
         sent.push({
           body: await request.json(),
           csrf: request.headers.get("X-XSRF-TOKEN"),
@@ -44,19 +44,16 @@ describe("/login", () => {
     ]);
   });
 
-  describe("when the login is rejected with a 4xx other than 401", () => {
+  describe("when the login is rejected with a 403", () => {
     /** Counts CSRF primes and answers each login with the next status in turn. */
     function respondToLoginWith(...statuses: number[]) {
       const counts = { primes: 0, logins: 0 };
       server.use(
-        http.get("/api/v1/auth/csrf", () => {
+        http.get(api("/api/v1/auth/csrf"), () => {
           counts.primes += 1;
-          return new HttpResponse(null, {
-            status: 204,
-            headers: { "Set-Cookie": `XSRF-TOKEN=${csrfToken}; Path=/` },
-          });
+          return csrfResponse();
         }),
-        http.post("/api/v1/auth/login", () => {
+        http.post(api("/api/v1/auth/login"), () => {
           const status = statuses[counts.logins] ?? 200;
           counts.logins += 1;
           return status === 200
@@ -151,7 +148,7 @@ describe("/login submission feedback", () => {
   }
 
   function respondToLogin(response: () => Response) {
-    server.use(http.post("/api/v1/auth/login", response));
+    server.use(http.post(api("/api/v1/auth/login"), response));
   }
 
   function expectSubmitting() {
@@ -202,7 +199,7 @@ describe("/login submission feedback", () => {
     let respond: () => void = () => {};
     const settled = new Promise<void>((resolve) => (respond = resolve));
     server.use(
-      http.post("/api/v1/auth/login", async () => {
+      http.post(api("/api/v1/auth/login"), async () => {
         await settled;
         return HttpResponse.json({ message: "boom" }, { status: 500 });
       }),

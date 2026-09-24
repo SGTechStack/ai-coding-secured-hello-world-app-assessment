@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { delay, http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it } from "vitest";
-import { demoUser } from "./test/handlers";
+import { api, demoUser } from "./test/handlers";
 import { renderApp } from "./test/renderApp";
 import { server } from "./test/server";
 
@@ -40,7 +40,7 @@ describe("route guards", () => {
     });
 
     it("treats a network failure from /me as no session", async () => {
-      server.use(http.get("/api/v1/auth/me", () => HttpResponse.error()));
+      server.use(http.get(api("/api/v1/auth/me"), () => HttpResponse.error()));
       const { router } = renderApp("/");
 
       expect(await screen.findByLabelText("Username")).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe("route guards", () => {
 
     it("treats a server error from /me as no session", async () => {
       server.use(
-        http.get("/api/v1/auth/me", () =>
+        http.get(api("/api/v1/auth/me"), () =>
           HttpResponse.json({ message: "Boom" }, { status: 500 }),
         ),
       );
@@ -61,7 +61,7 @@ describe("route guards", () => {
 
     it("stays on / when /me reports a session", async () => {
       server.use(
-        http.get("/api/v1/auth/me", () => HttpResponse.json(demoUser)),
+        http.get(api("/api/v1/auth/me"), () => HttpResponse.json(demoUser)),
       );
       const { router } = renderApp("/");
 
@@ -75,7 +75,7 @@ describe("route guards", () => {
   describe("/login (requires no session)", () => {
     it("redirects to / when /me reports a session, without rendering the form", async () => {
       server.use(
-        http.get("/api/v1/auth/me", () => HttpResponse.json(demoUser)),
+        http.get(api("/api/v1/auth/me"), () => HttpResponse.json(demoUser)),
       );
       const formSeen = watchForText(/Log in|Username|Password/);
       const { router } = renderApp("/login");
@@ -90,7 +90,7 @@ describe("route guards", () => {
     it("renders nothing while the session check is still in flight", async () => {
       let meRequested = false;
       server.use(
-        http.get("/api/v1/auth/me", async () => {
+        http.get(api("/api/v1/auth/me"), async () => {
           meRequested = true;
           await delay("infinite");
           return HttpResponse.json(demoUser);
@@ -104,7 +104,7 @@ describe("route guards", () => {
     });
 
     it("shows the login form when the session check fails", async () => {
-      server.use(http.get("/api/v1/auth/me", () => HttpResponse.error()));
+      server.use(http.get(api("/api/v1/auth/me"), () => HttpResponse.error()));
       const { router } = renderApp("/login");
 
       expect(await screen.findByLabelText("Username")).toBeInTheDocument();

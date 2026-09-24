@@ -1,13 +1,15 @@
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { demoUser } from "../test/handlers";
+import { api, demoUser } from "../test/handlers";
 import { renderApp } from "../test/renderApp";
 import { server } from "../test/server";
 
 describe("/ (landing page)", () => {
   it("greets a user with a live session by first name on a fresh load", async () => {
-    server.use(http.get("/api/v1/auth/me", () => HttpResponse.json(demoUser)));
+    server.use(
+      http.get(api("/api/v1/auth/me"), () => HttpResponse.json(demoUser)),
+    );
     const { router } = renderApp("/");
 
     expect(
@@ -18,7 +20,7 @@ describe("/ (landing page)", () => {
 
   it("greets by whatever first name the session reports", async () => {
     server.use(
-      http.get("/api/v1/auth/me", () =>
+      http.get(api("/api/v1/auth/me"), () =>
         HttpResponse.json({ username: "janedoe", firstName: "Jane" }),
       ),
     );
@@ -32,7 +34,7 @@ describe("/ (landing page)", () => {
   it("greets the user right after login from the cached profile, without asking /me", async () => {
     let meRequests = 0;
     server.use(
-      http.get("/api/v1/auth/me", () => {
+      http.get(api("/api/v1/auth/me"), () => {
         meRequests += 1;
         return HttpResponse.json({ message: "Unauthorized" }, { status: 401 });
       }),

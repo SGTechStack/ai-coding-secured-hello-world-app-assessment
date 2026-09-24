@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { csrfResponse, csrfToken, demoUser } from "../test/handlers";
+import { api, csrfResponse, csrfToken, demoUser } from "../test/handlers";
 import { renderApp } from "../test/renderApp";
 import { server } from "../test/server";
 
@@ -23,18 +23,18 @@ function fakeSession({
   const logoutRequests: Request[] = [];
   const counts = { primes: 0, logouts: 0 };
   server.use(
-    http.get("/api/v1/auth/me", () =>
+    http.get(api("/api/v1/auth/me"), () =>
       signedIn ? HttpResponse.json(demoUser) : unauthorized(),
     ),
-    http.get("/api/v1/auth/csrf", () => {
+    http.get(api("/api/v1/auth/csrf"), () => {
       counts.primes += 1;
       return csrfResponse();
     }),
-    http.post("/api/v1/auth/login", () => {
+    http.post(api("/api/v1/auth/login"), () => {
       signedIn = true;
       return HttpResponse.json(demoUser);
     }),
-    http.post("/api/v1/auth/logout", async ({ request }) => {
+    http.post(api("/api/v1/auth/logout"), async ({ request }) => {
       logoutRequests.push(request.clone());
       const reply = logoutReplies[counts.logouts] ?? 204;
       counts.logouts += 1;
@@ -58,7 +58,9 @@ async function signedInOnLanding() {
 
 describe("navbar Log out", () => {
   it("is shown to a signed-in user", async () => {
-    server.use(http.get("/api/v1/auth/me", () => HttpResponse.json(demoUser)));
+    server.use(
+      http.get(api("/api/v1/auth/me"), () => HttpResponse.json(demoUser)),
+    );
     await signedInOnLanding();
 
     expect(screen.getByRole("button", { name: "Log out" })).toBeEnabled();
@@ -119,7 +121,7 @@ describe("navbar Log out", () => {
 
     let meRequests = 0;
     server.use(
-      http.get("/api/v1/auth/me", () => {
+      http.get(api("/api/v1/auth/me"), () => {
         meRequests += 1;
         return unauthorized();
       }),
@@ -139,7 +141,7 @@ describe("navbar Log out", () => {
     await user.click(screen.getByRole("button", { name: "Log out" }));
 
     server.use(
-      http.post("/api/v1/auth/login", () =>
+      http.post(api("/api/v1/auth/login"), () =>
         HttpResponse.json({ username: "janedoe", firstName: "Jane" }),
       ),
     );
@@ -200,7 +202,7 @@ describe("navbar Log out, pending and failure", () => {
 
     expect(await screen.findByLabelText("Username")).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/login");
-    // One prime before the first POST (no cookie yet), one for the retry.
+    // One prime before the first POST (no token yet), one for the retry.
     expect(counts).toEqual({ primes: 2, logouts: 2 });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });

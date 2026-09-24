@@ -1,39 +1,71 @@
 /**
- * The single fetch wrapper for the backend API. It
- * - sends the session cookie (same-origin; the Vite dev server proxies /api),
- * - attaches the CSRF token (XSRF-TOKEN cookie -> X-XSRF-TOKEN header) to state-changing
- *   requests, priming the cookie first if the server has not issued one yet,
+ * The single fetch wrapper for the backend API, which runs on its own origin. It
+ * - prefixes every path with the API base URL (`VITE_API_BASE_URL`, set at build time),
+ * - sends the session cookie cross-origin (`credentials: "include"`; the API's CORS allow-list
+ *   must name this app's origin),
+ * - attaches the CSRF token as the X-XSRF-TOKEN header on state-changing requests. The token is
+ *   taken from the `/csrf` response body (the API's cookie is not readable from this origin) and
+ *   held in memory only, never in web storage,
  * - sends a JSON body only when given one, and resolves an empty `204` to `undefined`,
  * - turns every failure into an ApiError with a `kind` the UI can switch on.
  */
 
+/** The API's origin, without a trailing slash. */
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080"
+).replace(/\/+$/, "");
+
 /**
  * - `unauthorized`: 401, the request lacked valid credentials or a session.
- * - `rejected`: any other 4xx, e.g. a 403 for a missing or stale CSRF token.
+ * - `throttled`: 429, too many attempts; the user should wait.
+ * - `rejected`: any other 4xx, e.g. a 403 for a missing or stale CSRF token, a 400 or a 409.
  * - `unavailable`: a 5xx, or the server could not be reached at all.
  */
-export type ApiErrorKind = "unauthorized" | "rejected" | "unavailable";
+export type ApiErrorKind =
+  "unauthorized" | "throttled" | "rejected" | "unavailable";
+
+/** One problem with one request field, as the API reports it. */
+export type FieldError = { field: string; message: string };
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly status: number | undefined;
+  /** The API's machine-readable error code (e.g. `INVALID_CREDENTIALS`), when it sent one. */
+  readonly code: string | undefined;
+  /** Per-field problems from the API; empty when there are none. */
+  readonly fieldErrors: readonly FieldError[];
 
-  constructor(kind: ApiErrorKind, message: string, status?: number) {
+  constructor(
+    kind: ApiErrorKind,
+    message: string,
+    {
+      status,
+      code,
+      fieldErrors = [],
+    }: { status?: number; code?: string; fieldErrors?: FieldError[] } = {},
+  ) {
     super(message);
     this.name = "ApiError";
     this.kind = kind;
     this.status = status;
+    this.code = code;
+    this.fieldErrors = fieldErrors;
   }
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
 };
 
-const CSRF_COOKIE = "XSRF-TOKEN";
 const CSRF_HEADER = "X-XSRF-TOKEN";
-const CSRF_PRIME_PATH = "/api/v1/auth/csrf";
+const CSRF_PATH = "/api/v1/auth/csrf";
+
+/**
+ * The CSRF token, in memory only. A pending fetch is shared, so concurrent state-changing
+ * requests prime it once.
+ */
+let csrfToken: Promise<string> | undefined;
 
 export async function apiRequest<T>(
   path: string,
@@ -41,10 +73,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const headers = new Headers({ Accept: "application/json" });
   if (body !== undefined) headers.set("Content-Type", "application/json");
-  if (method !== "GET") {
-    const token = await csrfToken();
-    if (token) headers.set(CSRF_HEADER, token);
-  }
+  if (method !== "GET") headers.set(CSRF_HEADER, await currentCsrfToken());
 
   const response = await send(path, {
     method,
@@ -56,63 +85,84 @@ export async function apiRequest<T>(
   return (await response.json()) as T;
 }
 
-async function csrfToken(): Promise<string | undefined> {
-  const existing = readCookie(CSRF_COOKIE);
-  if (existing) return existing;
-  // Any GET under /api/v1/auth makes the server set the cookie.
-  await send(CSRF_PRIME_PATH, { method: "GET" });
-  return readCookie(CSRF_COOKIE);
+/**
+ * Forgets the CSRF token, so the next state-changing request fetches a fresh one. Call it
+ * whenever the server rotates the token: after login, logout, or a password-reset confirm.
+ */
+export function dropCsrfToken(): void {
+  csrfToken = undefined;
+}
+
+function currentCsrfToken(): Promise<string> {
+  if (!csrfToken) {
+    const pending = fetchCsrfToken();
+    csrfToken = pending;
+    // A failed fetch must not stick: the next request tries again.
+    pending.catch(() => {
+      if (csrfToken === pending) csrfToken = undefined;
+    });
+  }
+  return csrfToken;
+}
+
+async function fetchCsrfToken(): Promise<string> {
+  const response = await send(CSRF_PATH, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  const body: unknown = await response.json().catch(() => undefined);
+  if (isRecord(body) && typeof body.token === "string") return body.token;
+  throw new ApiError("unavailable", "The server sent no CSRF token", {
+    status: response.status,
+  });
 }
 
 async function send(path: string, init: RequestInit): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(path, { ...init, credentials: "same-origin" });
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      credentials: "include",
+    });
   } catch {
     throw new ApiError("unavailable", "Network request failed");
   }
   if (response.ok) return response;
-
-  throw new ApiError(
-    errorKind(response.status),
-    await errorMessage(response),
-    response.status,
-  );
+  throw await toApiError(response);
 }
 
 function errorKind(status: number): ApiErrorKind {
   if (status === 401) return "unauthorized";
+  if (status === 429) return "throttled";
   if (status >= 400 && status < 500) return "rejected";
   return "unavailable";
 }
 
-/** Drops the current CSRF token and has the server issue a fresh one. */
-export async function refreshCsrfToken(): Promise<void> {
-  document.cookie = `${CSRF_COOKIE}=; Max-Age=0; Path=/`;
-  await send(CSRF_PRIME_PATH, { method: "GET" });
+async function toApiError(response: Response): Promise<ApiError> {
+  // Not JSON (e.g. a proxy error page) leaves the body undefined and the message generic.
+  const body: unknown = await response.json().catch(() => undefined);
+  const record = isRecord(body) ? body : {};
+  const message =
+    typeof record.message === "string"
+      ? record.message
+      : `Request failed with status ${response.status}`;
+  return new ApiError(errorKind(response.status), message, {
+    status: response.status,
+    code: typeof record.code === "string" ? record.code : undefined,
+    fieldErrors: Array.isArray(record.fieldErrors)
+      ? record.fieldErrors.filter(isFieldError)
+      : [],
+  });
 }
 
-async function errorMessage(response: Response): Promise<string> {
-  try {
-    const body: unknown = await response.json();
-    if (
-      body &&
-      typeof body === "object" &&
-      "message" in body &&
-      typeof body.message === "string"
-    ) {
-      return body.message;
-    }
-  } catch {
-    // Not JSON (e.g. a proxy error page); fall through to the generic message.
-  }
-  return `Request failed with status ${response.status}`;
+function isFieldError(value: unknown): value is FieldError {
+  return (
+    isRecord(value) &&
+    typeof value.field === "string" &&
+    typeof value.message === "string"
+  );
 }
 
-function readCookie(name: string): string | undefined {
-  const prefix = `${name}=`;
-  const cookie = document.cookie.split("; ").find((c) => c.startsWith(prefix));
-  return cookie === undefined
-    ? undefined
-    : decodeURIComponent(cookie.slice(prefix.length));
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

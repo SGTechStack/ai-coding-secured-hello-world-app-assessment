@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
 
 /** The demo account the backend seeds in its dev profile. */
 export const JOHN = { username: "johndoe", password: "Password123!" };
@@ -6,6 +6,17 @@ export const JOHN = { username: "johndoe", password: "Password123!" };
 export const LOGIN_API = "**/api/v1/auth/login";
 export const LOGOUT_API = "**/api/v1/auth/logout";
 export const ME_PATH = "/api/v1/auth/me";
+
+/**
+ * CORS headers for a faked API reply. The API is cross-origin, so without them the browser would
+ * hide the reply from the SPA and the test would only exercise a network failure.
+ */
+export function corsHeaders(route: Route): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": route.request().headers()["origin"] ?? "",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 export const INVALID_CREDENTIALS = "Invalid username or password";
 export const UNAVAILABLE =

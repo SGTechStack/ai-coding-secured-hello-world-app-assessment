@@ -1,7 +1,7 @@
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it } from "vitest";
-import { demoUser } from "../test/handlers";
+import { api, demoUser } from "../test/handlers";
 import { renderApp } from "../test/renderApp";
 import { server } from "../test/server";
 
@@ -16,7 +16,7 @@ describe("/login submit-deferred validation", () => {
   beforeEach(() => {
     loginRequests = 0;
     server.use(
-      http.post("/api/v1/auth/login", () => {
+      http.post(api("/api/v1/auth/login"), () => {
         loginRequests += 1;
         return HttpResponse.json(demoUser);
       }),

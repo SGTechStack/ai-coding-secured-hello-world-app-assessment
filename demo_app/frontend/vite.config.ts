@@ -3,9 +3,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// The dev server proxies /api to Spring Boot so the browser sees a single origin:
-// the session and XSRF-TOKEN cookies work without CORS. BACKEND_PORT overrides the target port.
-const backendPort = process.env.BACKEND_PORT ?? "8080";
+// The SPA runs on its own origin and calls the API cross-origin (VITE_API_BASE_URL, default
+// http://localhost:8080), so there is no /api proxy. The API's CORS allow-list must name this
+// origin. FRONTEND_PORT overrides the dev server port.
+const frontendPort = Number(process.env.FRONTEND_PORT ?? "3000");
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -13,8 +14,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   server: {
-    proxy: {
-      "/api": `http://localhost:${backendPort}`,
-    },
+    port: frontendPort,
+    strictPort: true,
   },
 });

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
+  corsHeaders,
   JOHN,
   LOGOUT_API,
   ME_PATH,
@@ -111,6 +112,7 @@ test.describe("Story 3: Logout", () => {
       await page.route(LOGOUT_API, (route) =>
         route.fulfill({
           status: 500,
+          headers: corsHeaders(route),
           contentType: "application/json",
           body: JSON.stringify({ message: "Internal Server Error" }),
         }),

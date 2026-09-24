@@ -18,8 +18,8 @@ cd backend
 mvn spring-boot:run
 ```
 
-In a second terminal, start the frontend (port 5173; `/api` is proxied to port 8080, or to
-`BACKEND_PORT` when set):
+In a second terminal, start the frontend (port 3000). The SPA calls the API directly on its own
+origin, `http://localhost:8080`, with credentials; there is no dev proxy:
 
 ```sh
 cd frontend
@@ -27,15 +27,33 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173/login> and sign in with the demo account:
+Open <http://localhost:3000/login> and sign in with the demo account:
 username `johndoe`, password `Password123!`.
+
+| Setting                    | Default                 | Where                                                                    |
+| -------------------------- | ----------------------- | ------------------------------------------------------------------------ |
+| Frontend port              | `3000`                  | `FRONTEND_PORT` when starting `npm run dev`                              |
+| Backend port               | `8080`                  | `SERVER_PORT` (Spring Boot)                                              |
+| API base URL               | `http://localhost:8080` | `VITE_API_BASE_URL`, read at build time (`npm run dev`/`npm run build`)  |
+| CORS allowed origins (API) | `http://localhost:3000` | `APP_CORS_ALLOWED_ORIGINS` (`app.cors.allowed-origins`), comma-separated |
+
+When you move either port, keep the other side in step, e.g.
+`SERVER_PORT=18080 APP_CORS_ALLOWED_ORIGINS=http://localhost:13000 mvn spring-boot:run` and
+`FRONTEND_PORT=13000 VITE_API_BASE_URL=http://localhost:18080 npm run dev`.
+
+The API only answers cross-origin requests from the exact origins in `app.cors.allowed-origins`
+(no wildcards or `null`). The `dev` and `test` profiles default it to `http://localhost:3000`;
+production has no default, and the API refuses to start without it. The allow-list is also what
+keeps the CSRF token returned by `GET /api/v1/auth/csrf` away from other sites. The SPA and the API
+must share a registrable domain (e.g. `app.example.com` and `api.example.com`), because the
+session cookie is `SameSite=Strict`.
 
 The database is in memory, so it is recreated on every backend restart.
 
 Outside the `dev` profile the demo account is not seeded and the session cookie is `Secure`
 (`HttpOnly`, `SameSite=Strict`), so it only works over HTTPS. The `prod` profile also redirects plain
 HTTP to HTTPS: `mvn spring-boot:run -Dspring-boot.run.profiles=prod`, or
-`SPRING_PROFILES_ACTIVE=prod java -jar target/demo_app-0.0.1-SNAPSHOT.jar`.
+`SPRING_PROFILES_ACTIVE=prod APP_CORS_ALLOWED_ORIGINS=https://app.example.com java -jar target/demo_app-0.0.1-SNAPSHOT.jar`.
 
 ## Tests and quality gates
 
@@ -89,8 +107,8 @@ Gherkin scenario in the spec: Story 1, Scenarios 1–8, and Story 2, Scenarios 1
 Scenarios 1–6, comes from the logout spec's acceptance scenarios. The tests sign in with the seeded
 `johndoe` account. Server failures (login and logout 5xx or network errors) are simulated with
 Playwright request interception. Playwright's `webServer` starts the backend in the `dev` profile
-(`mvn spring-boot:run -Dspring-boot.run.profiles=dev`, port 8080) and the Vite dev server (port 5173) and stops them when the run
-ends.
+(`mvn spring-boot:run -Dspring-boot.run.profiles=dev`, port 8080) and the Vite dev server (port
+3000) and stops them when the run ends. The SPA calls the API cross-origin, as in production.
 
 ```sh
 cd frontend
@@ -101,17 +119,18 @@ npm run e2e
 Both ports can be overridden with environment variables, for example to run the suite beside dev
 servers already on the defaults:
 
-| Variable        | Default | Used by                                                                              |
-| --------------- | ------- | ------------------------------------------------------------------------------------ |
-| `BACKEND_PORT`  | `8080`  | Playwright (passed to Spring Boot as `SERVER_PORT`) and the Vite `/api` proxy target |
-| `FRONTEND_PORT` | `5173`  | Playwright (Vite dev server port and `baseURL`)                                      |
+| Variable        | Default | Used by                                                                                                       |
+| --------------- | ------- | ------------------------------------------------------------------------------------------------------------- |
+| `BACKEND_PORT`  | `8080`  | Playwright: Spring Boot's `SERVER_PORT`, and the SPA's `VITE_API_BASE_URL`                                    |
+| `FRONTEND_PORT` | `3000`  | Playwright: the Vite dev server port, `baseURL`, and the API's `APP_CORS_ALLOWED_ORIGINS`; also `npm run dev` |
 
 ```sh
-BACKEND_PORT=18080 FRONTEND_PORT=15173 npm run e2e
+BACKEND_PORT=18080 FRONTEND_PORT=13000 npm run e2e
 ```
 
-On a developer machine, servers already listening on those ports are reused. With `CI` set, the
-suite always starts its own servers. Use `npx playwright test --ui` to debug. On failure, traces go to
+On a developer machine, servers already listening on those ports are reused, with whatever CORS
+origin and API URL they were started with. With `CI` set, the suite always starts its own servers.
+Use `npx playwright test --ui` to debug. On failure, traces go to
 `frontend/test-results/`; open one with `npx playwright show-trace <path>`. The suite is separate
 from `npm run check` (Vitest only picks up `src/**/*.test.{ts,tsx}`), but `tsc` and Prettier also
 check the specs.

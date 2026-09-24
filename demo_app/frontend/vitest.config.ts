@@ -1,9 +1,9 @@
 import { defineConfig, mergeConfig } from "vitest/config";
 import viteConfig from "./vite.config.ts";
 
-export default mergeConfig(
-  viteConfig,
-  defineConfig({
+// vite.config.ts exports a function of the mode (it reads VITE_* for the CSP), so call it first.
+export default defineConfig((configEnv) =>
+  mergeConfig(viteConfig(configEnv), {
     test: {
       environment: "jsdom",
       // Playwright specs in e2e/ run with `npm run e2e`, not Vitest.

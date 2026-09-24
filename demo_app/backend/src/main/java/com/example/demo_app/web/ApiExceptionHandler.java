@@ -68,6 +68,13 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         .body(body);
   }
 
+  /** A refusal a controller or service raised on purpose, with its own code and field errors. */
+  @ExceptionHandler(ApiException.class)
+  ResponseEntity<ApiError> apiException(ApiException ex, HttpServletRequest request) {
+    return json(
+        ApiError.of(ex.status(), ex.code(), ex.getMessage(), request, ex.fieldErrors()));
+  }
+
   /**
    * Left to Spring Security, which answers {@code 401} or {@code 403} depending on whether the
    * caller is authenticated. Rethrowing from a handler makes Spring MVC propagate the original
@@ -85,19 +92,24 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     return json(ApiError.forStatus(HttpStatus.INTERNAL_SERVER_ERROR, request.getRequestURI()));
   }
 
-  /** A blank or missing login field. The UI never sends one, so this is defence in depth. */
+  /**
+   * A request body that fails its Bean Validation constraints: {@code 400 VALIDATION_FAILED}
+   * naming each invalid field. (Login keeps its own message; see {@code AuthController}.)
+   */
   @Override
   protected ResponseEntity<Object> handleMethodArgumentNotValid(
       MethodArgumentNotValidException ex,
       HttpHeaders headers,
       HttpStatusCode status,
       WebRequest request) {
+    ApiException refusal = ApiException.validationFailed(ex.getBindingResult());
     ApiError body =
         ApiError.of(
-            HttpStatus.BAD_REQUEST,
-            "VALIDATION_FAILED",
-            "Username and password are required",
-            servletRequest(request));
+            refusal.status(),
+            refusal.code(),
+            refusal.getMessage(),
+            servletRequest(request),
+            refusal.fieldErrors());
     return handleExceptionInternal(ex, body, headers, status, request);
   }
 

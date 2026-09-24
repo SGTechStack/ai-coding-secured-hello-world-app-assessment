@@ -47,3 +47,7 @@ app:
         # Failed logins only: successes never count.
         max-attempts: 20
         window: 15m
+      registration:
+        # Every request counts, whatever its outcome: this also caps username/email probing.
+        max-attempts: 10
+        window: 15m

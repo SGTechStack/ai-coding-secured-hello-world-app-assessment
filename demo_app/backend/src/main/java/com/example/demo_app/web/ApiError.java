@@ -48,6 +48,17 @@ public record ApiError(
     return of(status, code, message, request.getRequestURI());
   }
 
+  /** An error with per-field problems, e.g. {@code 400 VALIDATION_FAILED}. */
+  public static ApiError of(
+      HttpStatus status,
+      String code,
+      String message,
+      HttpServletRequest request,
+      List<FieldError> fieldErrors) {
+    return new ApiError(
+        status.value(), code, message, Instant.now(), request.getRequestURI(), fieldErrors);
+  }
+
   static ApiError of(HttpStatusCode status, String code, String message, String path) {
     return new ApiError(status.value(), code, message, Instant.now(), path, List.of());
   }

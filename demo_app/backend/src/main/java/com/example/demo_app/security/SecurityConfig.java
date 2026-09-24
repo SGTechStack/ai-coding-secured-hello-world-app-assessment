@@ -67,7 +67,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  *   <li>Failures render as JSON via {@link JsonSecurityErrorHandler}; nothing redirects.
  *   <li>Request bodies over 16 KB are rejected ({@link RequestBodyLimitFilter}) before the CSRF
  *       check, inside the chain so the rejection still carries the security headers.
- *   <li>Login is throttled per client IP ({@link IpThrottle}, limits in {@link
+ *   <li>Registration ({@code POST /api/v1/auth/register}) is anonymous but, like login, needs the
+ *       CSRF token; it never creates a session.
+ *   <li>Login and registration are throttled per client IP ({@link IpThrottle}, limits in {@link
  *       ThrottleProperties}); a throttled request answers {@code 429} with {@code Retry-After},
  *       which CORS exposes to the SPA.
  *   <li>Session fixation: login replaces the session with a new one ({@code newSession}).
@@ -110,6 +112,8 @@ class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/register")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf")
                     .permitAll()

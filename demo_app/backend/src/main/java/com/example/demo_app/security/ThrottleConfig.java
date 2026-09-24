@@ -18,4 +18,10 @@ class ThrottleConfig {
   IpThrottle loginThrottle(ThrottleProperties properties, Clock clock) {
     return new IpThrottle(properties.login(), properties.maxTrackedIps(), clock);
   }
+
+  /** Every registration request per IP; {@code RegistrationController} acquires it first. */
+  @Bean
+  IpThrottle registrationThrottle(ThrottleProperties properties, Clock clock) {
+    return new IpThrottle(properties.registration(), properties.maxTrackedIps(), clock);
+  }
 }

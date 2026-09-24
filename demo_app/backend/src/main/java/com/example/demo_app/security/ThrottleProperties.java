@@ -12,15 +12,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param maxTrackedIps how many client addresses each throttle remembers before forgetting the
  *     oldest, which bounds its memory
  * @param login failed logins allowed per IP per window
+ * @param registration registration requests (of any outcome) allowed per IP per window
  */
 @ConfigurationProperties("app.security.throttle")
-public record ThrottleProperties(int maxTrackedIps, Limit login) {
+public record ThrottleProperties(int maxTrackedIps, Limit login, Limit registration) {
 
   public ThrottleProperties {
     if (maxTrackedIps < 1) {
       throw new IllegalArgumentException("app.security.throttle.max-tracked-ips must be positive");
     }
     requirePresent(login, "login");
+    requirePresent(registration, "registration");
   }
 
   private static void requirePresent(Limit limit, String name) {

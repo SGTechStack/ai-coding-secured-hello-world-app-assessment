@@ -3,6 +3,7 @@ package com.sgtechstack.helloworldauthapp.passwordreset;
 import com.sgtechstack.helloworldauthapp.auth.PasswordPolicy;
 import com.sgtechstack.helloworldauthapp.auth.SessionRevoker;
 import com.sgtechstack.helloworldauthapp.auth.WeakPasswordException;
+import com.sgtechstack.helloworldauthapp.logging.UserPseudonym;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
 import org.slf4j.Logger;
@@ -18,6 +19,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -43,6 +45,7 @@ public class PasswordResetService {
     private final PasswordPolicy passwordPolicy;
     private final EmailService emailService;
     private final SessionRevoker sessionRevoker;
+    private final UserPseudonym pseudonym;
     private final String frontendBaseUrl;
 
     public PasswordResetService(
@@ -52,6 +55,7 @@ public class PasswordResetService {
             PasswordPolicy passwordPolicy,
             EmailService emailService,
             SessionRevoker sessionRevoker,
+            UserPseudonym pseudonym,
             @Value("${app.frontend.base-url}") String frontendBaseUrl
     ) {
         this.userRepository = userRepository;
@@ -60,6 +64,7 @@ public class PasswordResetService {
         this.passwordPolicy = passwordPolicy;
         this.emailService = emailService;
         this.sessionRevoker = sessionRevoker;
+        this.pseudonym = pseudonym;
         this.frontendBaseUrl = frontendBaseUrl;
     }
 
@@ -78,6 +83,18 @@ public class PasswordResetService {
             return;
         }
 
+        // Issuing a new token retires every outstanding one, so at most one
+        // live path into an account exists at any moment.
+        //
+        // Without this, each request added a token and none of the previous ones
+        // stopped working, so N requests meant N concurrent 30-minute windows.
+        // That matters in the case the reset flow is most often used in anger:
+        // a user who suspects their mail was read clicks "forgot password"
+        // again, reasonably believing the earlier link is now void. It was not.
+        // Every link ever issued in the last half hour still granted a takeover,
+        // including whichever one the attacker had.
+        int invalidated = invalidateOutstandingTokensFor(user.get());
+
         String plaintextToken = generateToken();
         String tokenHash = hash(plaintextToken);
         Instant expiresAt = Instant.now().plus(TOKEN_EXPIRY);
@@ -94,7 +111,23 @@ public class PasswordResetService {
         String resetLink = frontendBaseUrl + "/#token=" + plaintextToken;
         emailService.sendPasswordResetEmail(user.get().getEmail(), resetLink);
 
-        log.info("Password reset token issued username={} expiresAt={}", user.get().getUsername(), expiresAt);
+        log.info("Password reset token issued userRef={} expiresAt={} invalidatedOutstanding={}",
+                pseudonym.of(user.get().getUsername()), expiresAt, invalidated);
+    }
+
+    /**
+     * Marks every unconsumed token for this user as used, returning how many.
+     *
+     * <p>Marked used rather than deleted, so a caller who follows a superseded
+     * link gets "this reset token has already been used" — which is true, and
+     * tells them what happened — instead of "invalid token", which reads like a
+     * bug. The rows are removed later by {@link ExpiredTokenPurge}.
+     */
+    private int invalidateOutstandingTokensFor(User user) {
+        List<PasswordResetToken> outstanding = tokenRepository.findAllByUserAndUsedAtIsNull(user);
+        outstanding.forEach(PasswordResetToken::markUsed);
+        tokenRepository.saveAll(outstanding);
+        return outstanding.size();
     }
 
     /**
@@ -133,8 +166,8 @@ public class PasswordResetService {
 
         int revokedSessions = sessionRevoker.revokeAllSessionsFor(user.getId());
 
-        log.info("Password reset completed username={} revokedSessions={}",
-                user.getUsername(), revokedSessions);
+        log.info("Password reset completed userRef={} revokedSessions={}",
+                pseudonym.of(user.getUsername()), revokedSessions);
     }
 
     private static String generateToken() {

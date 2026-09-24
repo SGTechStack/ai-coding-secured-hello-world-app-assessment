@@ -27,7 +27,7 @@ Closes `.scratch/secure-auth-prd/issues/12-admin-account-actions-end-to-end.md`
 - [x] 05 Account schema, roles, `/me` role and `/hello`
 - [x] 06 Per-IP throttling on login
 - [x] 07 Registration, end to end
-- [ ] 08 Account lockout
+- [x] 08 Account lockout
 - [ ] 09 Password reset, end to end
 - [x] 10 Admin bootstrap
 - [ ] 11 Admin user list, end to end

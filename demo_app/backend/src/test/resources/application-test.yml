@@ -1,0 +1,4 @@
+# Integration tests: the schema plus the demo account. Cookie flags stay at their secure defaults.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed

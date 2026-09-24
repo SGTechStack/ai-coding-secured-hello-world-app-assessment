@@ -1,0 +1,4 @@
+# Production: SecurityConfig redirects plain HTTP to HTTPS when this profile is active. Trust the
+# proxy's X-Forwarded-* headers so a TLS-terminating proxy does not cause a redirect loop.
+server:
+  forward-headers-strategy: native

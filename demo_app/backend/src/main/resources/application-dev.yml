@@ -1,0 +1,12 @@
+# Local development over plain HTTP (`mvn spring-boot:run` selects this profile).
+spring:
+  flyway:
+    # Adds the demo account (johndoe) on top of the schema migrations.
+    locations: classpath:db/migration,classpath:db/seed
+
+server:
+  servlet:
+    session:
+      cookie:
+        # http://localhost cannot carry a Secure cookie reliably across browsers.
+        secure: false

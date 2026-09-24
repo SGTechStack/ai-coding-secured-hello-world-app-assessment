@@ -1,4 +1,5 @@
-import { expect, test, type Page, type Response } from "@playwright/test";
+import type { Page, Response } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import {
   corsHeaders,
   INVALID_CREDENTIALS,

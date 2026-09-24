@@ -8,9 +8,10 @@ const FRONTEND_PORT = process.env.FRONTEND_PORT ?? "3000";
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`;
 
-// End-to-end acceptance suite: the real SPA (Vite dev server) calling the real Spring Boot API
-// (dev profile, seeded in-memory database) cross-origin, as in production. `npm run e2e` starts
-// both servers.
+// End-to-end acceptance suite: the SPA's production build, served by `vite preview` with the
+// production CSP and security headers, calling the real Spring Boot API (dev profile, seeded
+// in-memory database) cross-origin, as in production. `npm run e2e` starts both servers. Every
+// spec uses the fixture in e2e/fixtures.ts, which fails a test on any CSP violation.
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -36,8 +37,10 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
-      command: `npm run dev -- --port ${FRONTEND_PORT} --strictPort`,
+      // VITE_API_BASE_URL is baked in at build time, and the CSP's connect-src is built from it.
+      command: `npm run build && npm run preview -- --port ${FRONTEND_PORT} --strictPort`,
       env: { VITE_API_BASE_URL: BACKEND_URL },
+      timeout: 120_000,
       url: `${FRONTEND_URL}/login`,
       reuseExistingServer: !CI,
     },

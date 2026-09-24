@@ -47,17 +47,19 @@ Open the model in [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon/r
 
 | Status | High | Medium | Low | Total |
 | --- | --- | --- | --- | --- |
-| **Open** | 2 | 19 | 15 | **36** |
-| **Mitigated** | 18 | 5 | 1 | **24** |
+| **Open** | — | 16 | 16 | **32** |
+| **Mitigated** | 20 | 7 | 1 | **28** |
 | **Not applicable** | 1 | — | — | **1** |
 
 The headline: this is a genuinely well-built security baseline, and the open findings are concentrated rather than scattered. The authentication core — password storage, session handling, CSRF, enumeration resistance, reset-token cryptography, admin self-action guards — is correct and largely test-covered.
 
-The original model found three clusters of weakness, and all three have now been closed (§12): **secret handling on the reset path** (the live token was written to the log), **revocation consistency** (password reset killed sessions, disable and demote did not), and **dev-only concessions shipping in every profile** (the H2 console's rules, the fixed admin password).
+All four original clusters of weakness are now closed (§12): **secret handling on the reset path** (the live token was written to the log and carried in a query string), **revocation consistency** (password reset killed sessions, disable and demote did not), **dev-only concessions shipping in every profile** (the H2 console's rules, the fixed admin password), and **deployment posture** (nothing enforced HTTPS, the CORS allow-list was unvalidated input, no security headers, no session lifetime cap).
 
-Two High findings remain, both pure deployment configuration: **TM-05** (nothing enforces HTTPS) and **TM-06** (the CORS allow-list is unvalidated environment input). Neither is an application-logic defect. Separately, authorization was substantially strengthened by work that landed outside this model's original scope — a configuration-owned RBAC matrix with a deny-by-default terminal rule — which is why TM-14 dropped from Medium to Low.
+Authorization was separately strengthened by work outside this model's original scope — a configuration-owned RBAC matrix terminating in `denyAll()` — which is why TM-14 dropped from Medium to Low.
 
-The honest summary is that the remaining risk has shifted almost entirely from "the code does the wrong thing" to "there is no production configuration yet": no prod profile, no datasource, no migrations, no transport enforcement.
+**No High findings remain.** That deserves a caveat rather than a victory lap: it means nothing in this model is currently rated High, not that the system is deployable. The largest outstanding item is TM-19 — there is still **no production configuration at all**: no non-dev datasource, no migrations, H2 only. It sits at Medium because it is absent work rather than a defect, but it is the reason two of the fixes just made (TM-05, TM-06) protect a deployment that does not yet exist.
+
+What remains is mostly anti-automation hardening that only bites under attack (TM-08 through TM-12, TM-18b), operational maturity (structured logs, audit trail, dependency scanning), and privacy groundwork that needs a compliance decision first.
 
 ---
 
@@ -75,21 +77,11 @@ The honest summary is that the remaining risk has shifted almost entirely from "
 
 ## 4. Open findings — High
 
-> **Four findings have left this section.** TM-01, TM-02, TM-04 and TM-07 were all High and are all now fixed, test-covered and verified failing-first — see §12. The two below are what remain, and both are deployment configuration rather than application logic.
+**None. All six High findings are closed.**
 
-### TM-05 · Information disclosure · No transport security is enforced anywhere
+TM-01, TM-02, TM-04, TM-05, TM-06 and TM-07 have each been fixed, test-covered, and — where the behaviour was observable — verified failing-first against the original code. §12 records what changed and what evidence was taken.
 
-The filter chain has no `requiresChannel()` and no HTTPS redirect; HSTS is emitted only by Spring Security's default when a request *already* arrived over HTTPS; the dev profile overrides the session cookie to `secure: false`. Local dev over HTTP is an accepted, documented PRD gap — but nothing in the code or config stops the same build from serving plaintext outside dev, and in that case the session cookie, submitted passwords and reset tokens all cross the network in the clear. There is also no `forward-headers-strategy`, so behind a TLS-terminating proxy the application cannot tell whether the original request was secure.
-
-- **Evidence:** `config/SecurityConfig.java:108-110`; `application.yml:5-15, 52-56`
-- **Fix:** outside dev, add `requiresChannel().anyRequest().requiresSecure()` and an explicit HSTS policy (long `max-age`, `includeSubDomains`); set `server.forward-headers-strategy=framework`; keep `secure: false` confined to the dev profile as it already is.
-
-### TM-06 · Elevation of privilege · CORS allow-list is environment-driven with no validation
-
-`allowedOrigins` comes from `APP_CORS_ALLOWED_ORIGINS`, `allowCredentials` is `true`, and `allowedHeaders` is `*`. The strict origin list is the load-bearing control here: set that variable to an attacker-reachable origin — or widen it during debugging and forget — and any page on that origin can make credentialed calls with the victim's `SESSION` cookie and read the responses, which also hands them the CSRF token echo path. Nothing validates the value at startup.
-
-- **Evidence:** `config/CorsConfig.java:29, 37-42`
-- **Fix:** validate origins at startup — reject `*`, reject empty, require `https://` outside dev — and fail fast rather than booting permissive. Add an integration test asserting a disallowed `Origin` is refused.
+This is worth stating carefully rather than triumphantly. It means no finding in this model is currently rated High; it does not mean the system is ready to deploy. The largest outstanding item, TM-19, is that **no production configuration exists at all** — no non-dev datasource, no migrations, H2 only — and that is rated Medium because it is an absence of deployment work rather than a defect in the code. Two of the High fixes just made (TM-05, TM-06) protect a deployment that does not yet exist.
 
 ---
 
@@ -102,14 +94,11 @@ The filter chain has no `requiresChannel()` and no HTTPS redirect; HSTS is emitt
 | TM-10 | D | Throttle map has no TTL sweep or size cap; entries clear only on a successful login from the same address, so distributed failures grow the heap without bound. | `auth/IpLoginThrottle.java:27-33, 40-70` | Replace with a bounded expiring cache (Caffeine `expireAfterWrite` + `maximumSize`). |
 | TM-11 | D | Rate limiting matches only `POST /api/auth/login`. Registration and both reset endpoints are unthrottled and each runs a BCrypt hash. | `auth/IpThrottleFilter.java:44-45` | Apply a shared rate-limit filter to every unauthenticated write endpoint. |
 | TM-12 | D | No request-size, multipart or Tomcat thread/connection limits. Boot caps no JSON body by default, so an unauthenticated caller can force buffering and parsing of an arbitrarily large payload. | `application.yml` (absent) | Set `server.tomcat.max-http-form-post-size`/`max-swallow-size`, cap threads, and add `@Size` to every string field in the request DTOs. |
-| TM-13 | T | No CSP, `Referrer-Policy` or `Permissions-Policy`; the CSRF token is deliberately script-readable, so any XSS foothold defeats CSRF wholesale. No XSS sink exists today, so this is defence-in-depth. | `config/SecurityConfig.java:85, 108-110` | Add a restrictive CSP and `Referrer-Policy: no-referrer` via the headers DSL. |
 
 | TM-15 | R | Raw `username` is logged with no validation on login, and `RegistrationRequest` has `@Size` but no `@Pattern`, so CRLF and control characters reach the log — forged audit entries and broken parsers. | `auth/LoginFailureHandler.java:64, 77`; `RegistrationRequest.java:13-24` | Add `@Pattern` to username, strip CR/LF and cap length before logging, emit JSON logs. |
-| TM-16 | S | `server.servlet.session.timeout` is never set, so idle expiry is an implicit 30-minute container default, and there is no absolute lifetime — a stolen cookie stays valid as long as it keeps being used. | `application.yml` (absent) | Set the timeout explicitly and enforce an absolute maximum session age. |
 | TM-17 | D | The only admin guard is "not yourself". Two admins can eliminate each other down to one, and a disabled `ADMIN` row still satisfies the bootstrap check — so recovery means direct DB edits, exactly what Story 12 exists to prevent. | `admin/AdminUserManagementService.java:43, 57, 71, 88-92`; `user/AdminBootstrapRunner.java:42-57` | Reject any mutation leaving zero **enabled** admins; seed on "no enabled admin" rather than "no admin". |
 | TM-18 | T | Issuing a new reset token does not invalidate outstanding ones, so several live paths into an account can coexist; expired and used rows are never purged. | `passwordreset/PasswordResetService.java:83-86` | Invalidate outstanding tokens on issue; add a scheduled purge past expiry. |
 | TM-18b | D | Reset requests are unthrottled: unlimited token rows per user and, once real mail is wired, an inbox-flooding vector that trains users to expect reset mails. | `auth/IpThrottleFilter.java:44-45` | Rate-limit per IP and per target email; refuse a new token while an unexpired one exists. |
-| TM-03 | I | The reset token is delivered as a query parameter. **Partially mitigated:** `App.tsx` erases it from the address bar via `history.replaceState`, and the app loads no external subresources, so history, bookmark and third-party `Referer` vectors are closed. Residual: `replaceState` runs after the request was already sent, so the token still reaches the frontend host's access logs and any URL-logging intermediary. | `PasswordResetService.java:90`; mitigating code `frontend/src/App.tsx:18-20, 39-42` | Deliver the token in the URL fragment — never sent to a server, so it closes the access-log vector `replaceState` cannot reach. Add `Referrer-Policy: no-referrer`. |
 | TM-19 | T | The only datasource is dev H2: `sa` with a blank password, `ddl-auto: update`, no migrations, no prod profile. The app as committed cannot start outside dev. | `application.yml:35-50` | Add a prod profile with an external datasource, env/secret-manager credentials, `ddl-auto: validate`, and Flyway migrations. |
 | TM-34 | LINDDUN (Disclosure) | `GET /api/admin/users` returns every user's full email to any admin in one call, with no minimisation, purpose limitation or read logging — the PRD says email exists solely for password reset. | `admin/UserSummaryResponse.java` | Drop email from the default listing or mask it; expose it only via a purpose-logged per-user lookup. |
 | TM-30 | LINDDUN (Unawareness) | Registration collects and indefinitely stores an email address with no privacy notice, no stated purpose or retention, and no recorded lawful basis. | no notice anywhere in the repo | Add a notice at the point of collection; record the lawful basis as an ADR. |
@@ -124,6 +113,7 @@ The filter chain has no `requiresChannel()` and no HTTPS redirect; HSTS is emitt
 
 | ID | STRIDE / LINDDUN | Finding | Evidence |
 | --- | --- | --- | --- |
+| TM-13 | T | **Downgraded from Medium.** The API now sends CSP, `Referrer-Policy: no-referrer`, `Permissions-Policy` and retains `X-Frame-Options: DENY`. Residual: those govern this service's JSON responses, not the SPA — which is a different origin and needs a CSP from whatever serves it. The XSS-defeats-CSRF chain lives on the frontend origin, and there is still no XSS sink there. | `config/SecurityConfig.java` headers DSL; no CSP at the SPA host |
 | TM-14 | E | **Downgraded from Medium** by the config-owned RBAC matrix: authorization is now fine-grained authorities against explicit method+path guards in YAML, terminating in `denyAll()`, so forgetting to guard a new endpoint yields a 403 rather than silent exposure. Residual: enforcement is still URL-layer only — no `@EnableMethodSecurity`, so a service method reached from a scheduled job or listener carries no authorization of its own. | `config/SecurityConfig.java`; `application.yml` `app.security` |
 | TM-19b | I | No TLS or credential-handling pattern exists for the Postgres/MySQL migration the PRD anticipates; nothing on the wire today because H2 is in-process. | `application.yml:38-42` |
 | TM-20 | I | `new BCryptPasswordEncoder()` takes the implicit default strength 10 with no configuration hook; `PasswordPolicy` sets a 12-char minimum and no maximum, so BCrypt silently truncates past 72 bytes. | `SecurityConfig.java:49-51`; `PasswordPolicy.java:13-17` |
@@ -207,11 +197,11 @@ Against the non-functional requirements in [`prd/assessment-prd.md:112-123`](../
 | Requirement | Status | Note |
 | --- | --- | --- |
 | Password storage — BCrypt, no custom hashing | **Met** | Strength implicit (TM-20) |
-| Session security — HttpOnly / Secure / SameSite, fixation protection, invalidation on logout and reset | **Met** | No timeout configured (TM-16) |
+| Session security — HttpOnly / Secure / SameSite, fixation protection, invalidation on logout and reset | **Met** | Explicit 30m idle timeout plus an 8h absolute lifetime cap; revocation also covers admin disable/demote/delete |
 | CSRF enabled for all state-changing endpoints | **Met** | Untested (TM-38); no BREACH masking (TM-21) |
 | CORS — explicit allow-list with credentials | **Met** | Unvalidated at startup (TM-06) |
 | Enumeration resistance on login and password reset | **Met** | Timing side-channel (TM-23); registration is out of the requirement's scope but enumerable (TM-22) |
-| Transport — HTTPS behind any real deployment | **Partial** | Documented as an accepted gap, but nothing enforces it and there is no prod profile (TM-05) |
+| Transport — HTTPS behind any real deployment | **Met** | `requiresSecure` + HSTS, gated on `app.security.require-https` (false only in dev). `forward-headers-strategy` left off by default and documented, since enabling it on a directly-reachable app allows header forgery |
 | Audit logging — structured lines for all named events, never passwords | **Partial** | All events logged, no passwords, and no reset token since the TM-02 fix; still unstructured and uncorrelated (TM-27) |
 | Least privilege — role checks server-side, never trusted from the client | **Met** | Config-owned guard matrix with a deny-by-default terminal rule; no method-level backstop (TM-14, now Low) |
 | Account lockout after N failures *within a window* | **Partial** | Lockout works; there is no window (TM-08) |
@@ -228,8 +218,8 @@ Sequenced by risk reduction per unit of effort, not by severity alone. Owners an
 | ~~1~~ | ~~TM-02~~ | **Done** (§12). Stop writing a live account-takeover secret to the log. | Samuel Wong | 2026-09-23 |
 | ~~2~~ | ~~TM-04~~ | **Done** (§12). The revocation mechanism already existed; wired into the admin path. | Samuel Wong | 2026-09-23 |
 | ~~3~~ | ~~TM-01, TM-07~~ | **Done** (§12). Profile-gated the dev-only rules and removed the fixed admin password. | Samuel Wong | 2026-09-24 |
-| 4 | TM-05, TM-06, TM-13, TM-16, TM-03 | Deployment posture: transport enforcement, CORS validation, security headers (which also completes TM-03), session timeout, and the token-in-fragment change. Mostly configuration. **Next up** — and it contains both remaining High findings. | _TBD_ | _TBD_ |
-| 5 | TM-08, TM-09, TM-10, TM-11, TM-12, TM-18b | Make the anti-automation controls actually hold in a real topology, and stop them being DoS vectors themselves. | _TBD_ | _TBD_ |
+| ~~4~~ | ~~TM-05, TM-06, TM-16, TM-03~~ | **Done** (§12). Transport enforcement, CORS validation, security headers, session lifetime caps, token-in-fragment. TM-13 partly done and downgraded to Low: the SPA's own CSP needs a frontend host that does not exist yet. | Samuel Wong | 2026-09-24 |
+| 5 | TM-08, TM-09, TM-10, TM-11, TM-12, TM-18b | Make the anti-automation controls actually hold in a real topology, and stop them being DoS vectors themselves. **Next up**, and the largest remaining cluster. | _TBD_ | _TBD_ |
 | 6 | TM-38 + the other four testing gaps | Lock in the controls that are correct today so they stay correct. | _TBD_ | _TBD_ |
 | 7 | TM-14, TM-15, TM-17, TM-18, TM-19, TM-39 | Defence in depth, log integrity, last-admin protection, and a real datasource with migrations. | _TBD_ | _TBD_ |
 | 8 | TM-30, TM-31, TM-34, TM-36 | Privacy: notice, retention, data minimisation in the admin listing. Needs a compliance-regime decision first. | _TBD_ | _TBD_ |
@@ -320,3 +310,43 @@ For **TM-07**, dev now defaults the admin password to blank and `AdminBootstrapR
 | Tests | 34 (1 failing) | 41 | **66** |
 
 Both remaining High findings are TM-05 (nothing enforces HTTPS) and TM-06 (CORS allow-list is unvalidated environment input) — step 4 in §10.
+
+### 2026-09-24 (later) — TM-05, TM-06, TM-16, TM-03 closed; TM-13 partly closed
+
+The deployment-posture cluster, and with it the last two High findings.
+
+**TM-05 — transport.** `app.security.require-https` (default true, false only in dev) now drives `requiresChannel().anyRequest().requiresSecure()` plus an explicit HSTS policy. Plaintext is refused rather than merely discouraged.
+
+`server.forward-headers-strategy` was the interesting decision. Honouring `X-Forwarded-*` is *required* behind a TLS-terminating proxy — without it the app cannot tell what scheme the client used, and `requiresSecure`, HSTS and `Secure` cookies all misfire. But enabling it while the app is directly reachable lets any client forge `X-Forwarded-Proto: https` and defeat exactly those controls. So the property is present and documented with the trade-off stated, but left at `none`. Turning it on is a deployment decision that depends on a topology this repo does not yet have; switching it on by default would have been a fix that introduced its own hole.
+
+**TM-06 — CORS.** `CorsConfig` now refuses to start on an empty list, a blank entry, any wildcard, a non-absolute origin, or a plaintext origin when HTTPS is required. Failing to boot is proportionate: with `allowCredentials: true`, any origin on this list can make authenticated requests with a visitor's session and read the responses, so it is the load-bearing control for the whole cookie-auth design. A warning in a log nobody reads would not do.
+
+**TM-16 — session lifetime, in two halves.** The idle timeout is now explicit at 30m, replacing an implicit container default nobody had chosen. The substantive half is `AbsoluteSessionTimeoutFilter`, capping total lifetime at 8h regardless of activity — an idle timeout alone renews a periodically-used session forever, so a stolen cookie stayed valid for as long as the attacker kept exercising it. There was previously no point at which a session simply ended. On expiry the filter clears the context and lets the request continue as anonymous, so clients get the normal 401 shape and whitelisted routes keep working.
+
+**TM-03 — reset token in the fragment.** Now `/#token=…` rather than `?token=…`. This is what the client-side strip could not achieve: `replaceState` removed the token from the address bar, but only *after* the request carrying it had been sent and logged wherever the SPA is served from. A fragment is never transmitted at all. The strip is retained as defence in depth.
+
+**TM-13 — partly closed, downgraded to Low.** The API now sends CSP, `Referrer-Policy: no-referrer` and `Permissions-Policy`. But those govern this service's own JSON responses, and the finding was about the SPA: it is served from a different origin, so a CSP from the backend does not constrain the pages where script actually runs. Closing it properly needs a CSP from whatever serves the SPA — deployment configuration that does not exist yet (TM-19). Marked Low rather than closed, because claiming otherwise would misrepresent it. The exploitable precondition is still absent anyway: there is no XSS sink in the frontend.
+
+**Verification.** 87 tests across 20 classes, all green, `mvn test` exit 0; frontend `tsc -b` clean. New: `CorsOriginValidationTest` (9), `SecurityHeadersTest` (6), `HttpsEnforcementTest` (3), `AbsoluteSessionTimeoutTest` (2), and a `PasswordResetTest` case pinning the fragment form so a regression to the query string is caught.
+
+Also confirmed against the running application rather than only in tests — the live `/api/health` response carries all four new headers, and `Strict-Transport-Security` is correctly withheld over plaintext:
+
+```
+Content-Security-Policy   default-src 'none'; frame-ancestors 'none'; base-uri 'none'
+Referrer-Policy           no-referrer
+X-Frame-Options           DENY
+X-Content-Type-Options    nosniff
+Permissions-Policy        geolocation=(), camera=(), microphone=(), payment=(), usb=()
+Strict-Transport-Security (absent)
+```
+
+Two existing non-dev tests needed adjusting: `H2ConsoleNotExposedOutsideDevTest` now sets `require-https=false`, because inheriting the new default would have redirected every request to HTTPS and rejected the default `http://localhost` CORS origin at startup — neither of which is what that class is testing.
+
+| | Session start | After entry 1 | After entry 2 | Now |
+| --- | --- | --- | --- | --- |
+| Open High | 8 | 4 | 2 | **0** |
+| Open total | 40 | 38 | 36 | **32** |
+| Mitigated | 20 | 22 | 24 | **28** |
+| Tests | 34 (1 failing) | 41 | 66 | **87** |
+
+Next is step 5 in §10: the anti-automation cluster (TM-08 lockout decay, TM-09 proxy-blind throttling, TM-10 unbounded throttle map, TM-11/TM-18b unthrottled endpoints, TM-12 request limits). Six findings, all Medium, and the largest remaining group.

@@ -39,6 +39,11 @@ logging:
 
 app:
   security:
+    lockout:
+      # Consecutive failed logins that lock an account, and how long the lock lasts. Failures while
+      # locked don't count or extend it; a successful login resets the count.
+      max-failures: 5
+      duration: 15m
     throttle:
       # Per-IP limits, in memory on this instance only. Each throttle forgets its oldest address
       # beyond this many, so a flood of addresses can't exhaust memory.

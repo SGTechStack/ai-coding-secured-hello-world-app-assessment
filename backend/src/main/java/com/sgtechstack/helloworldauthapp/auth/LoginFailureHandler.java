@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.logging.UserPseudonym;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,19 +43,22 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
     private final LockoutPolicy lockoutPolicy;
     private final IpLoginThrottle ipLoginThrottle;
     private final ClientIpResolver clientIpResolver;
+    private final UserPseudonym pseudonym;
 
     public LoginFailureHandler(
             UserRepository userRepository,
             ObjectMapper objectMapper,
             LockoutPolicy lockoutPolicy,
             IpLoginThrottle ipLoginThrottle,
-            ClientIpResolver clientIpResolver
+            ClientIpResolver clientIpResolver,
+            UserPseudonym pseudonym
     ) {
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.lockoutPolicy = lockoutPolicy;
         this.ipLoginThrottle = ipLoginThrottle;
         this.clientIpResolver = clientIpResolver;
+        this.pseudonym = pseudonym;
     }
 
     @Override
@@ -77,7 +81,21 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
 
         ipLoginThrottle.recordFailure(clientIpResolver.resolve(request));
 
-        log.info("Login failed username={} accountLocked={}", username, alreadyLocked);
+        // The submitted username reaches the log as a keyed reference, not
+        // verbatim. Two separate problems are being avoided.
+        //
+        // Forging: this value is fully attacker-controlled and never validated
+        // — an unknown username is a normal thing to log, and rejecting one by
+        // format here would reveal what format the system accepts. A newline in
+        // it would let the caller author their own log records. The reference is
+        // hex, so no input can escape the field, and LogSafe covers the
+        // non-reference form below.
+        //
+        // Linkability: a genuine username here ties a person to their login
+        // times and failure patterns, permanently, in the least-governed store
+        // in the deployment. A reference still answers "same account as that
+        // other line", which is what a brute-force investigation needs.
+        log.info("Login failed userRef={} accountLocked={}", pseudonym.of(username), alreadyLocked);
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -100,7 +118,7 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
         if (lockoutPolicy.shouldLock(attempts)) {
             Instant lockedUntil = now.plus(LockoutPolicy.LOCKOUT_DURATION);
             user.setLockedUntil(lockedUntil);
-            log.info("Account locked username={} lockedUntil={}", user.getUsername(), lockedUntil);
+            log.info("Account locked userRef={} lockedUntil={}", pseudonym.of(user.getUsername()), lockedUntil);
         }
 
         userRepository.save(user);

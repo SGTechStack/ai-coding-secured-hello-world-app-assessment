@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.logging.UserPseudonym;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
@@ -31,17 +32,20 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final ObjectMapper objectMapper;
     private final IpLoginThrottle ipLoginThrottle;
     private final ClientIpResolver clientIpResolver;
+    private final UserPseudonym pseudonym;
 
     public LoginSuccessHandler(
             UserRepository userRepository,
             ObjectMapper objectMapper,
             IpLoginThrottle ipLoginThrottle,
-            ClientIpResolver clientIpResolver
+            ClientIpResolver clientIpResolver,
+            UserPseudonym pseudonym
     ) {
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
         this.ipLoginThrottle = ipLoginThrottle;
         this.clientIpResolver = clientIpResolver;
+        this.pseudonym = pseudonym;
     }
 
     @Override
@@ -63,7 +67,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
 
         ipLoginThrottle.recordSuccess(clientIpResolver.resolve(request));
 
-        log.info("Login succeeded username={}", username);
+        log.info("Login succeeded userRef={}", pseudonym.of(username));
 
         Role role = user.getRole();
         response.setStatus(HttpServletResponse.SC_OK);

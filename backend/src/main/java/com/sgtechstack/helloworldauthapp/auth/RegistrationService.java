@@ -1,5 +1,6 @@
 package com.sgtechstack.helloworldauthapp.auth;
 
+import com.sgtechstack.helloworldauthapp.logging.UserPseudonym;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
@@ -17,15 +18,18 @@ public class RegistrationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
+    private final UserPseudonym pseudonym;
 
     public RegistrationService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            PasswordPolicy passwordPolicy
+            PasswordPolicy passwordPolicy,
+            UserPseudonym pseudonym
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.passwordPolicy = passwordPolicy;
+        this.pseudonym = pseudonym;
     }
 
     /**
@@ -55,7 +59,7 @@ public class RegistrationService {
         User user = new User(request.username(), request.email(), passwordHash, Role.USER, true);
         User saved = userRepository.save(user);
 
-        log.info("Registered new account username={} role={}", saved.getUsername(), saved.getRole());
+        log.info("Registered new account userRef={} role={}", pseudonym.of(saved.getUsername()), saved.getRole());
 
         return saved;
     }

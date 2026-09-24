@@ -142,6 +142,22 @@ public class UserAccount {
     clearLockout();
   }
 
+  /**
+   * Disables or re-enables the account (an admin action). A disabled account can't log in; ending
+   * its live sessions is the caller's job.
+   */
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
+
+  /**
+   * Gives the account {@code role} (an admin action). Sessions keep the authorities they logged in
+   * with, so the caller also ends them.
+   */
+  public void setRole(Role role) {
+    this.role = role;
+  }
+
   public Long getId() {
     return id;
   }

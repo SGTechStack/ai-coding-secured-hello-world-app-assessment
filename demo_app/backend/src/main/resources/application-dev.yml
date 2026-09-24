@@ -10,3 +10,9 @@ server:
       cookie:
         # http://localhost cannot carry a Secure cookie reliably across browsers.
         secure: false
+
+logging:
+  structured:
+    format:
+      # Human-readable console for local runs; every other profile logs ECS JSON.
+      console: ""

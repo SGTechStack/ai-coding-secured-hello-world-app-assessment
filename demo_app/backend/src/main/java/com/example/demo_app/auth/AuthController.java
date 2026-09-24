@@ -1,5 +1,7 @@
 package com.example.demo_app.auth;
 
+import com.example.demo_app.audit.AuditEvent;
+import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.user.AccountUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,14 +33,17 @@ class AuthController {
   private final AuthenticationManager authenticationManager;
   private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
   private final SecurityContextRepository securityContextRepository;
+  private final AuditLog auditLog;
 
   AuthController(
       AuthenticationManager authenticationManager,
       SessionAuthenticationStrategy sessionAuthenticationStrategy,
-      SecurityContextRepository securityContextRepository) {
+      SecurityContextRepository securityContextRepository,
+      AuditLog auditLog) {
     this.authenticationManager = authenticationManager;
     this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
     this.securityContextRepository = securityContextRepository;
+    this.auditLog = auditLog;
   }
 
   /** Lets the SPA obtain the {@code XSRF-TOKEN} cookie before its first state-changing call. */
@@ -58,7 +64,8 @@ class AuthController {
   /**
    * Authenticates and binds the result to the {@code HttpSession}. Failures propagate as {@code
    * AuthenticationException} and a blank field is rejected before authentication; the global
-   * {@code ApiExceptionHandler} renders both.
+   * {@code ApiExceptionHandler} renders both. Each attempt that reaches authentication is audited
+   * as {@code LOGIN_SUCCESS} or {@code LOGIN_FAILURE}, with the submitted username as the actor.
    */
   @PostMapping(
       value = "/login",
@@ -68,15 +75,23 @@ class AuthController {
       @Valid @RequestBody LoginRequest body,
       HttpServletRequest request,
       HttpServletResponse response) {
-    Authentication authentication =
-        authenticationManager.authenticate(
-            UsernamePasswordAuthenticationToken.unauthenticated(body.username(), body.password()));
+    Authentication authentication;
+    try {
+      authentication =
+          authenticationManager.authenticate(
+              UsernamePasswordAuthenticationToken.unauthenticated(
+                  body.username(), body.password()));
+    } catch (AuthenticationException e) {
+      auditLog.record(AuditEvent.LOGIN_FAILURE, body.username(), request);
+      throw e;
+    }
 
     sessionAuthenticationStrategy.onAuthentication(authentication, request, response);
     SecurityContext context = contextHolder.createEmptyContext();
     context.setAuthentication(authentication);
     contextHolder.setContext(context);
     securityContextRepository.saveContext(context, request, response);
+    auditLog.record(AuditEvent.LOGIN_SUCCESS, authentication.getName(), request);
 
     return UserProfile.of((AccountUserDetails) authentication.getPrincipal());
   }

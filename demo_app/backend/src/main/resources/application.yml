@@ -21,3 +21,9 @@ server:
         same-site: strict
         # Only the dev profile turns this off, for plain-HTTP localhost.
         secure: true
+
+logging:
+  structured:
+    format:
+      # ECS JSON console lines: machine-parseable and escaped. Only the dev profile turns this off.
+      console: ecs

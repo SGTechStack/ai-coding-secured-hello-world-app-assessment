@@ -30,6 +30,55 @@ app:
     # out of the box.
     username: ${APP_ADMIN_USERNAME}
     password: ${APP_ADMIN_PASSWORD}
+  security:
+    # Configuration-owned RBAC (see
+    # App-Standards/Appfw-User-Standards/Shared_Recipes/Common_Role-Based_Access_Control_Configuration.md).
+    # This is the single source of truth for which role holds which
+    # fine-grained authority, and which HTTP method+path each authority
+    # guards. SecurityConfig's filter chain is built entirely from this
+    # block; changing access to an endpoint means editing this file, not
+    # Java.
+    #
+    # role-mappings: which authorities a role is entitled to. USER's
+    # authorities are also reachable by ADMIN via the role-hierarchy
+    # below, so ADMIN does not need HELLO_READ repeated here.
+    role-mappings:
+      ADMIN: [ADMIN_USER_READ, ADMIN_USER_WRITE]
+      USER: [HELLO_READ]
+    # ROLE_ADMIN inherits every authority reachable by ROLE_USER, so an
+    # admin can reach USER-guarded endpoints without USER's authorities
+    # being duplicated into ADMIN's role-mapping above.
+    role-hierarchy: "ROLE_ADMIN > ROLE_USER"
+    # Authority -> the HTTP method+path pairs it guards. Every guarded
+    # route must appear here exactly once; anything not covered by this
+    # map or the whitelist below is denied by default.
+    url-guards:
+      HELLO_READ:
+        - method: GET
+          path: /api/hello
+      ADMIN_USER_READ:
+        - method: GET
+          path: /api/admin/users
+      ADMIN_USER_WRITE:
+        - method: PATCH
+          path: /api/admin/users/*/enabled
+        - method: PATCH
+          path: /api/admin/users/*/role
+        - method: DELETE
+          path: /api/admin/users/*
+    # Routes reachable without authentication. Kept as small as possible:
+    # only what a client needs before it has a session (registration,
+    # login, the CSRF token endpoint, health, password reset) plus the
+    # dev-only H2 console.
+    whitelist:
+      - /api/auth/register
+      - /api/health
+      - /api/csrf
+      - /api/auth/login
+      - /api/auth/logout
+      - /api/auth/password-reset/request
+      - /api/auth/password-reset/confirm
+      - /h2-console/**
 
 ---
 spring:

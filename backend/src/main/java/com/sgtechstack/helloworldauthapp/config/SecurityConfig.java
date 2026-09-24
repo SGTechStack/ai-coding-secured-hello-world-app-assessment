@@ -9,13 +9,20 @@ import com.sgtechstack.helloworldauthapp.auth.LogoutSuccessResponseHandler;
 import com.sgtechstack.helloworldauthapp.auth.RestAccessDeniedHandler;
 import com.sgtechstack.helloworldauthapp.auth.RestAuthenticationEntryPoint;
 import com.sgtechstack.helloworldauthapp.auth.RestSessionExpiredStrategy;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyAuthoritiesMapper;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -40,9 +47,62 @@ import org.springframework.web.cors.CorsConfigurationSource;
  * Session-fixation protection is Spring Security's default: the session ID
  * is rotated on successful authentication (ChangeSessionIdAuthenticationStrategy),
  * so no explicit override is configured below.
+ *
+ * <h2>Configuration-owned authorization</h2>
+ *
+ * The {@code authorizeHttpRequests} rules in {@link #filterChain} are not
+ * literals in this class. They are built at startup from {@code
+ * app.security} in {@code application.yml} (bound onto {@link
+ * SecurityProperties}), following the "Configuration-Owned RBAC" pattern
+ * in
+ * {@code App-Standards/Appfw-User-Standards/Shared_Recipes/Common_Role-Based_Access_Control_Configuration.md}:
+ * a role-to-authority mapping, a role hierarchy, and a URL guard matrix all
+ * live in YAML, so changing which endpoints require which authority is a
+ * config change reviewable in a PR diff, not a Java change. The chain ends
+ * in {@code denyAll()} rather than {@code authenticated()} — deny-by-default,
+ * per the standard — so an endpoint that is neither whitelisted nor covered
+ * by a {@code url-guards} entry is unreachable by anyone, including an
+ * authenticated user.
+ *
+ * Reachability across the role hierarchy needs two cooperating pieces, not
+ * one:
+ * <ul>
+ *   <li>{@link #roleHierarchy} plus the {@link RoleHierarchyAuthoritiesMapper}
+ *       attached in {@link #authenticationProvider} expand a {@code
+ *       ROLE_<x>} authority to every {@code ROLE_<y>} reachable below it in
+ *       the hierarchy string.</li>
+ *   <li>That expansion alone does not reach fine-grained authorities like
+ *       {@code HELLO_READ} — {@code RoleHierarchyAuthoritiesMapper} only
+ *       expands {@code ROLE_*} strings to other {@code ROLE_*} strings.
+ *       Granting a senior role every fine-grained authority mapped to a
+ *       junior role is therefore resolved once, in {@code
+ *       AppUserDetailsService}, which walks the same {@link RoleHierarchy}
+ *       to union every reachable role's {@code role-mappings} entry before
+ *       building the principal's authority set.</li>
+ * </ul>
+ *
+ * Two deliberate deviations from the standard's reference implementation,
+ * both scoped to this app's size and shape:
+ * <ul>
+ *   <li>No {@code ImmutableSecurityHandler}: that pattern blocks role
+ *       mutation via a {@code @RepositoryEventHandler} hook on a Spring
+ *       Data REST resource, and this app never exposes {@code
+ *       UserRepository} that way. {@code
+ *       com.sgtechstack.helloworldauthapp.admin.RoleMutationGuard} plays
+ *       the equivalent role instead: a single, independently testable
+ *       checkpoint that the one sanctioned role-mutation path
+ *       ({@code AdminUserManagementService#changeRole}) routes through.</li>
+ *   <li>{@code role-mappings} in YAML is the source of truth for which
+ *       fine-grained authorities a role holds, but it is not fed directly
+ *       into {@code hasRole(...)} calls here — enforcement is entirely
+ *       {@code hasAuthority(...)} against {@code url-guards}, with {@code
+ *       role-mappings} consumed by {@code AppUserDetailsService} at
+ *       authentication time to build each principal's authority set.</li>
+ * </ul>
  */
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(SecurityProperties.class)
 public class SecurityConfig {
 
     @Bean
@@ -68,6 +128,43 @@ public class SecurityConfig {
         return new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());
     }
 
+    /**
+     * Built from {@code app.security.role-hierarchy} rather than a literal
+     * Java constant, per the configuration-owned RBAC model (see
+     * {@link SecurityProperties}). Today this only expresses
+     * {@code ROLE_ADMIN > ROLE_USER}, but a future senior role (e.g.
+     * {@code MANAGER}) slots in by editing YAML, not this class.
+     */
+    @Bean
+    public RoleHierarchy roleHierarchy(SecurityProperties securityProperties) {
+        return RoleHierarchyImpl.fromHierarchy(securityProperties.roleHierarchy());
+    }
+
+    /**
+     * Explicit {@code DaoAuthenticationProvider}, rather than relying on
+     * Spring Boot's implicit auto-configuration from the {@code
+     * UserDetailsService}/{@code PasswordEncoder} beans, so a {@link
+     * RoleHierarchyAuthoritiesMapper} can be attached. Without this, {@code
+     * Authentication.getAuthorities()} would only ever contain the single
+     * literal {@code ROLE_<x>} authority {@link UserPrincipal} assigns; with
+     * it, an authenticated {@code ROLE_ADMIN} principal's authorities are
+     * expanded at login to include every authority reachable via {@link
+     * #roleHierarchy}, e.g. {@code ROLE_USER}. This is what lets {@code
+     * hasAuthority}/{@code hasRole} checks in the filter chain honour the
+     * hierarchy without re-deriving it per request.
+     */
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder,
+            RoleHierarchy roleHierarchy
+    ) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        provider.setAuthoritiesMapper(new RoleHierarchyAuthoritiesMapper(roleHierarchy));
+        return provider;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(
             HttpSecurity http,
@@ -80,7 +177,8 @@ public class SecurityConfig {
             ObjectMapper objectMapper,
             SessionRegistry sessionRegistry,
             RestSessionExpiredStrategy sessionExpiredStrategy,
-            RestAccessDeniedHandler accessDeniedHandler
+            RestAccessDeniedHandler accessDeniedHandler,
+            SecurityProperties securityProperties
     ) throws Exception {
         CookieCsrfTokenRepository csrfTokenRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         CsrfTokenRequestAttributeHandler csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
@@ -119,18 +217,26 @@ public class SecurityConfig {
                         .sessionRegistry(sessionRegistry)
                         .expiredSessionStrategy(sessionExpiredStrategy)
                 )
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(
-                                "/api/auth/register", "/api/health", "/api/csrf", "/api/auth/login",
-                                "/api/auth/password-reset/request", "/api/auth/password-reset/confirm"
-                        )
-                        .permitAll()
-                        // Only reachable when spring.h2.console.enabled=true (dev
-                        // profile); the servlet itself doesn't exist otherwise.
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
+                // Configuration-owned URL guard matrix: every rule below comes
+                // from app.security in application.yml (see
+                // SecurityProperties), not a literal in this class. Adding or
+                // changing which endpoints require which authority is a YAML
+                // change. The chain ends in denyAll() (zero-trust), not
+                // authenticated(): an endpoint that is neither whitelisted nor
+                // covered by a url-guard entry is unreachable by anyone,
+                // including an authenticated user, rather than defaulting to
+                // "any logged-in user may call it".
+                .authorizeHttpRequests(authorize -> {
+                    securityProperties.whitelist()
+                            .forEach(pattern -> authorize.requestMatchers(pattern).permitAll());
+
+                    securityProperties.urlGuards().forEach((authority, guards) ->
+                            guards.forEach(guard -> authorize
+                                    .requestMatchers(HttpMethod.valueOf(guard.method()), guard.path())
+                                    .hasAuthority(authority)));
+
+                    authorize.anyRequest().denyAll();
+                })
                 .formLogin(form -> form
                         .loginProcessingUrl("/api/auth/login")
                         .usernameParameter("username")

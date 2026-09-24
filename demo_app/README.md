@@ -27,8 +27,13 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000/login> and sign in with the demo account:
-username `johndoe`, password `Password123!`.
+Open <http://localhost:3000/login> and sign in with the demo account or the bootstrap admin.
+Both are dev-only credentials: only the `dev` and `test` profiles create them.
+
+| Account   | Password              | Role    | Where it comes from                                   |
+| --------- | --------------------- | ------- | ----------------------------------------------------- |
+| `johndoe` | `Password123!`        | `USER`  | Flyway seed, `dev` and `test` only                    |
+| `admin`   | `Dev-Admin-Passw0rd!` | `ADMIN` | Admin bootstrap from `app.admin.*`, `dev`/`test` only |
 
 | Setting                    | Default                 | Where                                                                                               |
 | -------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------- |
@@ -53,6 +58,13 @@ answers `429` with `Retry-After` until the window ends. The limits are under
 `app.security.throttle.*` (e.g. `APP_SECURITY_THROTTLE_LOGIN_MAX_ATTEMPTS`). The counters are in
 memory on one instance. The client IP is the connection's address; behind a proxy, the `prod`
 profile trusts `X-Forwarded-For` only through Tomcat's trusted-proxy handling.
+
+At startup, if no `ADMIN` account exists, the API creates one from `app.admin.username`,
+`app.admin.email` and `app.admin.password` (`APP_ADMIN_USERNAME`, `APP_ADMIN_EMAIL`,
+`APP_ADMIN_PASSWORD`), with the same password policy and hashing as registration, and logs an
+`ADMIN_BOOTSTRAPPED` audit line. Once an admin exists these are ignored, so a restart never adds a
+second one. Only `dev` and `test` have default values. Anywhere else, the API refuses to start
+while there is no admin and the three values are missing or the password fails the policy.
 
 The database is in memory, so it is recreated on every backend restart.
 

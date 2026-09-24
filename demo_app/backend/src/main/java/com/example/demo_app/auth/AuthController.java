@@ -4,6 +4,8 @@ import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.security.IpThrottle;
 import com.example.demo_app.user.AccountUserDetails;
+import com.example.demo_app.user.LoginAttempts;
+import com.example.demo_app.user.UserAccount;
 import com.example.demo_app.web.ApiError;
 import com.example.demo_app.web.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -43,18 +46,21 @@ class AuthController {
   private final SecurityContextRepository securityContextRepository;
   private final AuditLog auditLog;
   private final IpThrottle loginThrottle;
+  private final LoginAttempts loginAttempts;
 
   AuthController(
       AuthenticationManager authenticationManager,
       SessionAuthenticationStrategy sessionAuthenticationStrategy,
       SecurityContextRepository securityContextRepository,
       AuditLog auditLog,
-      @Qualifier("loginThrottle") IpThrottle loginThrottle) {
+      @Qualifier("loginThrottle") IpThrottle loginThrottle,
+      LoginAttempts loginAttempts) {
     this.authenticationManager = authenticationManager;
     this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
     this.securityContextRepository = securityContextRepository;
     this.auditLog = auditLog;
     this.loginThrottle = loginThrottle;
+    this.loginAttempts = loginAttempts;
   }
 
   /**
@@ -85,6 +91,11 @@ class AuthController {
    * <p>An IP with too many recent failures gets {@code 429} ({@code LOGIN_THROTTLED}) before the
    * credentials are looked at, so even correct ones are refused and no account state changes. Only
    * failures count, so a network of legitimate users isn't throttled by its own successful logins.
+   *
+   * <p>A wrong password counts towards the account's lockout ({@link LoginAttempts}); the failure
+   * that sets the lock is audited as {@code ACCOUNT_LOCKED}. A correct password for a locked or
+   * disabled account is rejected with the same {@code 401} but doesn't count. A success resets the
+   * count before the session is created.
    */
   @PostMapping(
       value = "/login",
@@ -110,9 +121,14 @@ class AuthController {
     } catch (AuthenticationException e) {
       loginThrottle.recordAttempt(request);
       auditLog.record(AuditEvent.LOGIN_FAILURE, body.username(), request);
+      if (e instanceof BadCredentialsException && loginAttempts.recordFailure(body.username())) {
+        auditLog.record(
+            AuditEvent.ACCOUNT_LOCKED, UserAccount.normaliseUsername(body.username()), request);
+      }
       throw e;
     }
 
+    loginAttempts.recordSuccess(authentication.getName());
     sessionAuthenticationStrategy.onAuthentication(authentication, request, response);
     SecurityContext context = contextHolder.createEmptyContext();
     context.setAuthentication(authentication);

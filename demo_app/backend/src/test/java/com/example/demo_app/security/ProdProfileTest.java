@@ -28,7 +28,11 @@ import org.springframework.test.web.servlet.MockMvc;
       // Production has no default allow-list (see CorsStartupTest).
       "app.cors.allowed-origins=https://app.example.com",
       // Nor a frontend URL for reset links.
-      "app.frontend-url=https://app.example.com"
+      "app.frontend-url=https://app.example.com",
+      // Production has no default bootstrap admin (see AdminBootstrapStartupTest).
+      "app.admin.username=prod-admin",
+      "app.admin.email=prod-admin@example.com",
+      "app.admin.password=Prod-Profile-Test-Admin-1"
     })
 @AutoConfigureMockMvc
 @ActiveProfiles("prod")

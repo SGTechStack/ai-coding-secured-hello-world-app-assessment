@@ -23,3 +23,10 @@ app:
     allowed-origins: http://localhost:3000
   # The Vite dev server; reset links point here.
   frontend-url: http://localhost:3000
+  admin:
+    # Dev-only bootstrap admin, created at startup while no ADMIN exists. Never use these values
+    # anywhere else: other profiles have no default and read APP_ADMIN_USERNAME, APP_ADMIN_EMAIL
+    # and APP_ADMIN_PASSWORD.
+    username: admin
+    email: admin@example.com
+    password: Dev-Admin-Passw0rd!

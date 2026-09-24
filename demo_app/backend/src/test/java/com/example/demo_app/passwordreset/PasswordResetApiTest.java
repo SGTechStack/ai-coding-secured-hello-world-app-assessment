@@ -19,7 +19,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.demo_app.MutableClock;
 import com.example.demo_app.TestClockConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -213,20 +212,21 @@ class PasswordResetApiTest {
   @Test
   void theResetClearsTheLockout() throws Exception {
     String name = newUser();
-    jdbc.update(
-        "UPDATE user_account SET failed_login_attempts = 5, locked_until = ? WHERE username = ?",
-        Timestamp.from(TestClockConfig.START.plus(Duration.ofMinutes(15))),
-        name);
+    String ip = uniqueIp();
+    for (int i = 0; i < 5; i++) {
+      mvc.perform(loginRequest(mvc, credentialsJson(name, "wrong passphrase")).with(fromIp(ip)))
+          .andExpect(status().isUnauthorized());
+    }
+    // Locked: even the right password is refused.
+    expectLoginFails(name, OLD_PASSWORD);
 
     confirm(requestTokenFor(name), NEW_PASSWORD).andExpect(status().isNoContent());
 
-    // Ticket 08's lockout isn't merged here, so the cleared fields are read directly.
-    Map<String, Object> row =
-        jdbc.queryForMap(
-            "SELECT failed_login_attempts, locked_until FROM user_account WHERE username = ?",
-            name);
-    assertThat(row.get("FAILED_LOGIN_ATTEMPTS")).isEqualTo(0);
-    assertThat(row.get("LOCKED_UNTIL")).isNull();
+    // No waiting out the 15 minutes, and the count starts from zero again.
+    logIn(mvc, name, NEW_PASSWORD);
+    for (int i = 0; i < 4; i++) {
+      expectLoginFails(name, "wrong passphrase");
+    }
     logIn(mvc, name, NEW_PASSWORD);
   }
 

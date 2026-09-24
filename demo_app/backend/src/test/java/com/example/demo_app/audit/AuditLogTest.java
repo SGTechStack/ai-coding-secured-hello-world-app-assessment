@@ -87,6 +87,19 @@ class AuditLogTest {
     assertThat(appender.list.getFirst().getFormattedMessage()).contains("actor={} ");
   }
 
+  @Test
+  void anEventWithoutARequestIsBySystemFromSystem() {
+    auditLog.recordSystem(AuditEvent.ADMIN_BOOTSTRAPPED, Map.of("target", "ops\radmin"));
+
+    assertThat(pairs())
+        .containsExactly(
+            Map.entry("event", "ADMIN_BOOTSTRAPPED"),
+            Map.entry("actor", "system"),
+            Map.entry("ip", "system"),
+            Map.entry("outcome", "success"),
+            Map.entry("target", "ops_admin"));
+  }
+
   private Map<String, Object> pairs() {
     Map<String, Object> pairs = new LinkedHashMap<>();
     for (KeyValuePair pair : appender.list.getFirst().getKeyValuePairs()) {

@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 
@@ -15,6 +16,10 @@ import java.util.Locale;
  * A registered user. The password is a BCrypt hash. The username and email are stored normalised
  * (lowercase), so lookups on them are case-insensitive through {@link #normaliseUsername} and
  * {@link #normaliseEmail}.
+ *
+ * <p>Lockout is a state machine on {@code failed_login_attempts} and {@code locked_until}, changed
+ * only through {@link #registerFailedLogin}, {@link #registerSuccessfulLogin} and {@link
+ * #clearLockout}; {@link LoginAttempts} persists the login transitions.
  */
 @Entity
 @Table(name = "user_account")
@@ -86,13 +91,55 @@ public class UserAccount {
   }
 
   /**
-   * Sets a new password after a successful reset, and clears any lockout, so the user can log in
+   * Whether a lock is in force at {@code instant}. A lock ends on its own at {@code locked_until}.
+   */
+  public boolean isLockedAt(Instant instant) {
+    return lockedUntil != null && instant.isBefore(lockedUntil);
+  }
+
+  /**
+   * Counts a wrong password at {@code now}; the {@code maxFailures}-th consecutive one locks the
+   * account until {@code now + lockDuration}. While locked, nothing changes, so an attacker can't
+   * extend the lock. After a lock has expired, counting starts again from zero.
+   *
+   * @return whether this failure set the lock
+   */
+  boolean registerFailedLogin(Instant now, int maxFailures, Duration lockDuration) {
+    if (isLockedAt(now)) {
+      return false;
+    }
+    if (lockedUntil != null) {
+      clearLockout();
+    }
+    failedLoginAttempts++;
+    if (failedLoginAttempts < maxFailures) {
+      return false;
+    }
+    lockedUntil = now.plus(lockDuration);
+    return true;
+  }
+
+  /** A successful login: old typos no longer bring the account closer to a lock. */
+  void registerSuccessfulLogin() {
+    clearLockout();
+  }
+
+  /**
+   * Resets the failure count and lifts any lock, e.g. after a password reset. The caller persists
+   * the change (the entity is managed inside its transaction).
+   */
+  public void clearLockout() {
+    failedLoginAttempts = 0;
+    lockedUntil = null;
+  }
+
+  /**
+   * Sets a new password after a successful reset, and lifts any lockout, so the user can log in
    * with it straight away.
    */
   public void resetPassword(String newPasswordHash) {
     this.passwordHash = newPasswordHash;
-    this.failedLoginAttempts = 0;
-    this.lockedUntil = null;
+    clearLockout();
   }
 
   public Long getId() {

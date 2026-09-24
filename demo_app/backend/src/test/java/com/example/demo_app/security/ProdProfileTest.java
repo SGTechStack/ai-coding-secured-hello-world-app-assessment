@@ -1,5 +1,6 @@
 package com.example.demo_app.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -11,12 +12,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
- * The {@code prod} profile: plain HTTP is redirected to HTTPS, and the demo user is not seeded.
+ * The {@code prod} profile: plain HTTP is redirected to HTTPS, the demo user is not seeded, and the
+ * console logs ECS JSON.
  * Uses its own in-memory database so the seed applied by other test contexts cannot leak in.
  */
 @SpringBootTest(
@@ -26,6 +29,13 @@ import org.springframework.test.web.servlet.MockMvc;
 class ProdProfileTest {
 
   @Autowired private MockMvc mvc;
+
+  @Autowired private Environment environment;
+
+  @Test
+  void consoleLoggingIsEcsJson() {
+    assertThat(environment.getProperty("logging.structured.format.console")).isEqualTo("ecs");
+  }
 
   @Test
   void plainHttpIsRedirectedToHttps() throws Exception {

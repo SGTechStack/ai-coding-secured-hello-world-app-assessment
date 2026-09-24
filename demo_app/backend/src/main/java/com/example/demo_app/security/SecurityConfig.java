@@ -1,5 +1,7 @@
 package com.example.demo_app.security;
 
+import com.example.demo_app.audit.AuditEvent;
+import com.example.demo_app.audit.AuditLog;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
 import java.util.Objects;
@@ -51,7 +53,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  *   <li>Logout is Spring Security's logout filter on {@code POST /api/v1/auth/logout}. It runs
  *       after the CSRF check and before authorization, so it needs a valid CSRF token but no
  *       session. It invalidates the session, expires {@code JSESSIONID}, clears the CSRF cookie
- *       (the built-in CSRF logout handler) and answers an empty {@code 204}.
+ *       (the built-in CSRF logout handler), audits {@code LOGOUT} (actor {@code anonymous} without
+ *       a session) and answers an empty {@code 204}.
  *   <li>Headers: a restrictive Content-Security-Policy (the API serves JSON only),
  *       Referrer-Policy and Permissions-Policy, on top of Spring Security's defaults.
  *   <li>The {@code prod} profile redirects plain HTTP to HTTPS; local dev and the e2e suite run
@@ -72,7 +75,8 @@ class SecurityConfig {
       SecurityContextRepository securityContextRepository,
       JsonSecurityErrorHandler errorHandler,
       ServerProperties serverProperties,
-      Environment environment)
+      Environment environment,
+      AuditLog auditLog)
       throws Exception {
     if (environment.acceptsProfiles(Profiles.of("prod"))) {
       // Replaces the deprecated requiresChannel().anyRequest().requiresSecure().
@@ -114,6 +118,12 @@ class SecurityConfig {
                     .logoutRequestMatcher(
                         PathPatternRequestMatcher.withDefaults()
                             .matcher(HttpMethod.POST, "/api/v1/auth/logout"))
+                    .addLogoutHandler(
+                        (request, response, authentication) ->
+                            auditLog.record(
+                                AuditEvent.LOGOUT,
+                                authentication == null ? null : authentication.getName(),
+                                request))
                     .addLogoutHandler(
                         new CookieClearingLogoutHandler(
                             expiredSessionCookie(

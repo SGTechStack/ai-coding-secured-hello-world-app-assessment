@@ -50,6 +50,25 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   }
 
   /**
+   * A throttled client. {@code Retry-After} says when to try again; the SPA can read it across
+   * origins because the CORS configuration exposes it.
+   */
+  @ExceptionHandler(TooManyRequestsException.class)
+  ResponseEntity<ApiError> tooManyRequests(
+      TooManyRequestsException ex, HttpServletRequest request) {
+    ApiError body =
+        ApiError.of(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "TOO_MANY_REQUESTS",
+            "Too many attempts. Please try again later.",
+            request);
+    return ResponseEntity.status(body.status())
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(HttpHeaders.RETRY_AFTER, Long.toString(ex.retryAfter().toSeconds()))
+        .body(body);
+  }
+
+  /**
    * Left to Spring Security, which answers {@code 401} or {@code 403} depending on whether the
    * caller is authenticated. Rethrowing from a handler makes Spring MVC propagate the original
    * exception, so the catch-all below never turns an access denial into a {@code 500}.

@@ -36,3 +36,14 @@ logging:
     format:
       # ECS JSON console lines: machine-parseable and escaped. Only the dev profile turns this off.
       console: ecs
+
+app:
+  security:
+    throttle:
+      # Per-IP limits, in memory on this instance only. Each throttle forgets its oldest address
+      # beyond this many, so a flood of addresses can't exhaust memory.
+      max-tracked-ips: 100000
+      login:
+        # Failed logins only: successes never count.
+        max-attempts: 20
+        window: 15m

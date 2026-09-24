@@ -239,6 +239,29 @@ describe("/login submission feedback", () => {
     expectReEnabled();
   });
 
+  it("shows the throttle message on a 429, not the invalid-credentials one", async () => {
+    respondToLogin(() =>
+      HttpResponse.json(
+        {
+          status: 429,
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many attempts. Please try again later.",
+        },
+        { status: 429, headers: { "Retry-After": "900" } },
+      ),
+    );
+    await renderFilledLogin();
+
+    await submit();
+    await advance(400);
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /^Too many attempts\. Please try again later\.$/,
+    );
+    expectReEnabled();
+  });
+
   it.each([
     ["a 5xx response", () => new HttpResponse(null, { status: 503 })],
     ["a network failure", () => HttpResponse.error()],

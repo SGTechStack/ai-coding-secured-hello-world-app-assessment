@@ -2,10 +2,13 @@ package com.example.demo_app.auth;
 
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
+import com.example.demo_app.security.IpThrottle;
 import com.example.demo_app.user.AccountUserDetails;
+import com.example.demo_app.web.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,16 +37,19 @@ class AuthController {
   private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
   private final SecurityContextRepository securityContextRepository;
   private final AuditLog auditLog;
+  private final IpThrottle loginThrottle;
 
   AuthController(
       AuthenticationManager authenticationManager,
       SessionAuthenticationStrategy sessionAuthenticationStrategy,
       SecurityContextRepository securityContextRepository,
-      AuditLog auditLog) {
+      AuditLog auditLog,
+      @Qualifier("loginThrottle") IpThrottle loginThrottle) {
     this.authenticationManager = authenticationManager;
     this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
     this.securityContextRepository = securityContextRepository;
     this.auditLog = auditLog;
+    this.loginThrottle = loginThrottle;
   }
 
   /**
@@ -70,6 +76,10 @@ class AuthController {
    * AuthenticationException} and a blank field is rejected before authentication; the global
    * {@code ApiExceptionHandler} renders both. Each attempt that reaches authentication is audited
    * as {@code LOGIN_SUCCESS} or {@code LOGIN_FAILURE}, with the submitted username as the actor.
+   *
+   * <p>An IP with too many recent failures gets {@code 429} ({@code LOGIN_THROTTLED}) before the
+   * credentials are looked at, so even correct ones are refused and no account state changes. Only
+   * failures count, so a network of legitimate users isn't throttled by its own successful logins.
    */
   @PostMapping(
       value = "/login",
@@ -79,6 +89,13 @@ class AuthController {
       @Valid @RequestBody LoginRequest body,
       HttpServletRequest request,
       HttpServletResponse response) {
+    try {
+      loginThrottle.check(request);
+    } catch (TooManyRequestsException e) {
+      auditLog.record(AuditEvent.LOGIN_THROTTLED, body.username(), request);
+      throw e;
+    }
+
     Authentication authentication;
     try {
       authentication =
@@ -86,6 +103,7 @@ class AuthController {
               UsernamePasswordAuthenticationToken.unauthenticated(
                   body.username(), body.password()));
     } catch (AuthenticationException e) {
+      loginThrottle.recordAttempt(request);
       auditLog.record(AuditEvent.LOGIN_FAILURE, body.username(), request);
       throw e;
     }

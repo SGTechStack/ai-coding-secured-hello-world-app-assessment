@@ -17,6 +17,8 @@ import { ApiError } from "../api/client";
 /** The loading state is shown for at least this long so it never flickers. */
 const MIN_SUBMITTING_MS = 400;
 
+const UNAVAILABLE = "Unable to connect to the server. Please try again later.";
+
 type FieldName = keyof Credentials;
 type FieldErrors = Partial<Record<FieldName, string>>;
 
@@ -125,13 +127,20 @@ export function LoginPage() {
 }
 
 /**
- * Never says which credential was wrong: a 401 gets one generic message. Anything else that still
- * fails (after the CSRF retry for other 4xx), a 5xx or a network error, is "can't connect".
+ * Never says which credential was wrong: a 401 gets one generic message. A 429 means this network
+ * is throttled, not that the password is wrong. Anything else that still fails (after the CSRF
+ * retry on a 403), a 5xx or a network error, is "can't connect".
  */
 function bannerMessage(error: Error): string {
-  return error instanceof ApiError && error.kind === "unauthorized"
-    ? "Invalid username or password"
-    : "Unable to connect to the server. Please try again later.";
+  if (!(error instanceof ApiError)) return UNAVAILABLE;
+  switch (error.kind) {
+    case "unauthorized":
+      return "Invalid username or password";
+    case "throttled":
+      return "Too many attempts. Please try again later.";
+    default:
+      return UNAVAILABLE;
+  }
 }
 
 /** Settles like `promise`, but no sooner than `ms` after this call. */

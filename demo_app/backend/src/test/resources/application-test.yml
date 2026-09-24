@@ -6,3 +6,8 @@ spring:
 app:
   cors:
     allowed-origins: http://localhost:3000
+  admin:
+    # The dev bootstrap admin (see application-dev.yml); SpaAuthFlow.logInAsAdmin uses it.
+    username: admin
+    email: admin@example.com
+    password: Dev-Admin-Passw0rd!

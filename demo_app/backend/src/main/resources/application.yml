@@ -51,3 +51,6 @@ app:
         # Every request counts, whatever its outcome: this also caps username/email probing.
         max-attempts: 10
         window: 15m
+  # The bootstrap admin (app.admin.username, app.admin.email, app.admin.password) has no default
+  # here or in prod: set APP_ADMIN_USERNAME, APP_ADMIN_EMAIL and APP_ADMIN_PASSWORD. While no ADMIN
+  # exists, startup fails without them (see AdminBootstrap).

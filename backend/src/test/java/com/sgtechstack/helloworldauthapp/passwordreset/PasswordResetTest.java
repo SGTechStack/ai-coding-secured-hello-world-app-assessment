@@ -87,6 +87,24 @@ class PasswordResetTest {
     }
 
     @Test
+    void resetLinkCarriesTheTokenInTheFragmentNotTheQueryString() throws Exception {
+        // A fragment is never transmitted to any server, so the token cannot
+        // reach the frontend host's access logs or a proxy's. A query parameter
+        // could be stripped by the SPA after the fact — and was — but only
+        // after the request carrying it had already been logged.
+        mockMvc.perform(post("/api/auth/password-reset/request")
+                        .with(csrf()).contentType(APPLICATION_JSON).content(requestBody(EMAIL)))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<String> linkCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendPasswordResetEmail(eq(EMAIL), linkCaptor.capture());
+
+        assertThat(linkCaptor.getValue())
+                .contains("/#token=")
+                .doesNotContain("?token=");
+    }
+
+    @Test
     void requestForRegisteredEmailIssuesASingleUseTokenHashOnly() throws Exception {
         mockMvc.perform(post("/api/auth/password-reset/request")
                         .with(csrf()).contentType(APPLICATION_JSON).content(requestBody(EMAIL)))

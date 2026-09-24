@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.auth.AbsoluteSessionTimeoutFilter;
 import com.sgtechstack.helloworldauthapp.auth.IpLoginThrottle;
 import com.sgtechstack.helloworldauthapp.auth.IpThrottleFilter;
 import com.sgtechstack.helloworldauthapp.auth.LoginFailureHandler;
@@ -27,9 +28,12 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -211,12 +215,42 @@ public class SecurityConfig {
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(csrfRequestHandler)
                 )
-                // Frame-options is left at Spring Security's DENY default. It
-                // was previously relaxed to sameOrigin application-wide so the
-                // H2 console could render itself in an iframe — which weakened
-                // clickjacking protection on every API response to benefit a
-                // dev-only tool. That relaxation now lives on the H2 console's
-                // own chain.
+                // Caps total session lifetime. Placed before the authorization
+                // filter so the security context is already loaded: the filter
+                // invalidates an over-age session and clears the context, and
+                // the request then falls through to the normal 401 path rather
+                // than being answered specially here.
+                .addFilterBefore(
+                        new AbsoluteSessionTimeoutFilter(securityProperties.sessionAbsoluteTimeout()),
+                        AuthorizationFilter.class
+                )
+                // Frame-options stays at Spring Security's DENY default: the
+                // sameOrigin relaxation the H2 console needs now lives on the
+                // console's own chain instead of weakening every API response.
+                .headers(headers -> headers
+                        // This service returns JSON and serves no subresources
+                        // of its own, so it can forbid everything. This does
+                        // not protect the SPA, which is another origin's
+                        // responsibility.
+                        .contentSecurityPolicy(csp -> csp
+                                .policyDirectives(securityProperties.contentSecurityPolicy()))
+                        // Keeps URLs — including any that carry a token — out
+                        // of the Referer header on outbound navigation.
+                        .referrerPolicy(referrer -> referrer
+                                .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                        // Only emitted on requests that already arrived over
+                        // HTTPS, so this is inert until TLS is terminated in
+                        // front of the app.
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(securityProperties.hstsMaxAge().toSeconds()))
+                        // Written directly rather than through the DSL so the
+                        // header name is pinned regardless of Spring Security's
+                        // evolving permissions-policy API.
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Permissions-Policy",
+                                "geolocation=(), camera=(), microphone=(), payment=(), usb=()"))
+                )
                 // Session-fixation protection: Spring Security's default session
                 // management already rotates the session ID on authentication
                 // (changeSessionId()). maximumSessions/sessionRegistry here is for
@@ -266,6 +300,15 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler)
                 );
+
+        if (securityProperties.requireHttps()) {
+            // Refuse plaintext outright rather than trusting that a proxy
+            // always terminates TLS. Applied conditionally because local dev
+            // runs over HTTP by documented agreement with the PRD — and note
+            // this only works behind a proxy if server.forward-headers-strategy
+            // is set, or the app cannot tell what scheme the client used.
+            http.requiresChannel(channel -> channel.anyRequest().requiresSecure());
+        }
 
         return http.build();
     }

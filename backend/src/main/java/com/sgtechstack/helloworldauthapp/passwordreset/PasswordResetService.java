@@ -84,7 +84,14 @@ public class PasswordResetService {
 
         tokenRepository.save(new PasswordResetToken(user.get(), tokenHash, expiresAt));
 
-        String resetLink = frontendBaseUrl + "/?token=" + plaintextToken;
+        // Fragment, not query string. A browser never transmits the fragment
+        // to any server, so the token stays out of the frontend host's access
+        // logs, out of proxy logs, and out of the Referer header. The SPA reads
+        // it from location.hash and clears it immediately. A query parameter
+        // could be stripped client-side after the fact — and was — but by then
+        // the request carrying it had already been logged wherever the SPA is
+        // served from.
+        String resetLink = frontendBaseUrl + "/#token=" + plaintextToken;
         emailService.sendPasswordResetEmail(user.get().getEmail(), resetLink);
 
         log.info("Password reset token issued username={} expiresAt={}", user.get().getUsername(), expiresAt);

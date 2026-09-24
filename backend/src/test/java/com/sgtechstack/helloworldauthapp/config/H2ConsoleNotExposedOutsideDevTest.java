@@ -29,6 +29,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * there must fail startup).
  */
 @SpringBootTest(properties = {
+        // This class is about profile gating, not transport. Leaving
+        // require-https at its default would redirect every request to https
+        // and also reject the default http://localhost CORS origin at startup,
+        // both of which are covered by HttpsEnforcementTest and
+        // CorsOriginValidationTest instead.
+        "app.security.require-https=false",
         "spring.datasource.url=jdbc:h2:mem:h2-console-gating-test;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",

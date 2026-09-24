@@ -3,8 +3,20 @@ spring:
     name: hello-world-auth-app
 
 server:
+  # Honouring X-Forwarded-* is required behind a TLS-terminating proxy, or
+  # the app cannot tell whether the original request was secure and
+  # requiresHttps/HSTS/Secure-cookies all misfire. It is left OFF by default
+  # on purpose: if the app is reachable directly, a client can forge
+  # X-Forwarded-Proto: https and defeat exactly those controls. Set this to
+  # `framework` only when every route to the app passes through a proxy you
+  # trust to overwrite the header.
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
   servlet:
     session:
+      # Idle timeout. Was previously unset, which meant an implicit 30-minute
+      # container default that nobody had chosen. Paired with
+      # app.security.session-absolute-timeout, which caps total lifetime.
+      timeout: 30m
       cookie:
         name: SESSION
         http-only: true
@@ -32,6 +44,25 @@ app:
     username: ${APP_ADMIN_USERNAME}
     password: ${APP_ADMIN_PASSWORD}
   security:
+    # Transport security. When true the filter chain refuses plaintext
+    # (requiresChannel -> requiresSecure) and CORS origins must be https.
+    # Defaults to true so a deployment is secure unless it deliberately opts
+    # out; the dev profile below sets it false, because local dev runs over
+    # HTTP by documented agreement with the PRD.
+    require-https: ${APP_REQUIRE_HTTPS:true}
+    # HSTS max-age. Spring Security only emits the header on requests that
+    # already arrived over HTTPS, so this is inert until TLS terminates in
+    # front of the app.
+    hsts-max-age: 365d
+    # Hard ceiling on session lifetime, independent of idle timeout. Without
+    # it a session kept warm by periodic activity lives forever, so a stolen
+    # cookie stays valid for as long as the attacker keeps using it.
+    session-absolute-timeout: 8h
+    # This service answers with JSON and serves no scripts, styles or images
+    # of its own, so the correct policy for its own responses is to permit
+    # nothing. Note this does NOT protect the SPA: that is served from a
+    # different origin and needs its own CSP at its own host.
+    content-security-policy: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
     # Configuration-owned RBAC (see
     # App-Standards/Appfw-User-Standards/Shared_Recipes/Common_Role-Based_Access_Control_Configuration.md).
     # This is the single source of truth for which role holds which
@@ -111,6 +142,11 @@ server:
         secure: false
 
 app:
+  security:
+    # Local dev runs over plain HTTP, an accepted and documented gap. This is
+    # the only place that opts out of transport security, and it also relaxes
+    # the CORS origin check to permit the http://localhost frontend.
+    require-https: false
   admin:
     # The username is not a secret, so a stable dev default is fine.
     username: ${APP_ADMIN_USERNAME:admin}

@@ -15,7 +15,10 @@ type View = "login" | "register" | "forgot-password" | "reset-password";
  * render — and always before the effect below erases it.
  */
 function readTokenFromUrl(): string | null {
-  return new URLSearchParams(window.location.search).get("token");
+  // The fragment, not the query string: the browser never sends it to a
+  // server, so the token cannot reach this host's access logs the way a
+  // query parameter did before it could be stripped.
+  return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token");
 }
 
 function App() {
@@ -26,17 +29,20 @@ function App() {
 
   /**
    * Treat the reset token as one-shot: now that it lives in React state, take
-   * it out of the address bar. This keeps it out of browser history entries and
-   * out of the `Referer` header on any outbound navigation, and stops a page
-   * refresh from dropping the user back into the reset flow holding a token
-   * that has already been consumed.
+   * it out of the address bar. This keeps it out of browser history entries,
+   * and stops a page refresh from dropping the user back into the reset flow
+   * holding a token that has already been consumed.
+   *
+   * The token now arrives in the fragment, which the browser never transmits,
+   * so this is defence in depth rather than the primary control it was when
+   * the token came through the query string.
    *
    * This belongs in an effect rather than the render body: mutating browser
    * history is a side effect, and the render phase can be re-entered or
    * abandoned by the scheduler.
    */
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has("token")) {
+    if (new URLSearchParams(window.location.hash.replace(/^#/, "")).has("token")) {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);

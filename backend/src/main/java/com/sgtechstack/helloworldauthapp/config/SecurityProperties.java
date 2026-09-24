@@ -2,6 +2,7 @@ package com.sgtechstack.helloworldauthapp.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -29,13 +30,34 @@ import java.util.Map;
  *                       or it is unreachable under the filter chain's
  *                       {@code denyAll()} default.
  * @param whitelist     path patterns reachable without authentication.
+ * @param requireHttps  when true, the filter chain refuses plaintext and
+ *                       CORS origins must use {@code https}. Defaults to
+ *                       true so that opting out is a deliberate, visible
+ *                       act; only the dev profile does so.
+ * @param hstsMaxAge    {@code Strict-Transport-Security} max-age. Inert
+ *                       until TLS terminates in front of the app, since
+ *                       Spring Security only emits the header on requests
+ *                       that already arrived over HTTPS.
+ * @param sessionAbsoluteTimeout hard ceiling on session lifetime,
+ *                       independent of idle timeout. Without it a session
+ *                       kept warm by periodic activity never expires, so a
+ *                       stolen cookie stays valid indefinitely.
+ * @param contentSecurityPolicy policy for this service's own responses.
+ *                       This service answers with JSON and serves no
+ *                       scripts, styles or images, so it can permit
+ *                       nothing. It does <em>not</em> protect the SPA,
+ *                       which is served from another origin entirely.
  */
 @ConfigurationProperties(prefix = "app.security")
 public record SecurityProperties(
         Map<String, List<String>> roleMappings,
         String roleHierarchy,
         Map<String, List<UrlGuard>> urlGuards,
-        List<String> whitelist
+        List<String> whitelist,
+        boolean requireHttps,
+        Duration hstsMaxAge,
+        Duration sessionAbsoluteTimeout,
+        String contentSecurityPolicy
 ) {
 
     /**

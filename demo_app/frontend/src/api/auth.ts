@@ -69,6 +69,38 @@ export function register(registration: Registration): Promise<UserProfile> {
 }
 
 /**
+ * Asks for a reset link for `email`. The API answers an empty `202` whether or not the email has
+ * an account, so the caller learns nothing either way. A 403 (a stale CSRF token) is retried once.
+ */
+export function requestPasswordReset(email: string): Promise<void> {
+  return withCsrfRetry(() =>
+    apiRequest<void>("/api/v1/auth/password-reset/request", {
+      method: "POST",
+      body: { email },
+    }),
+  );
+}
+
+/**
+ * Sets `newPassword` with the token from a reset link. The API signs the user out everywhere, so
+ * the CSRF token is dropped on success, as after logout. A `400` is either `INVALID_RESET_TOKEN`
+ * (the link is used, expired or unknown) or `VALIDATION_FAILED` naming `newPassword`; the link
+ * stays usable after the latter.
+ */
+export async function confirmPasswordReset(
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  await withCsrfRetry(() =>
+    apiRequest<void>("/api/v1/auth/password-reset/confirm", {
+      method: "POST",
+      body: { token, newPassword },
+    }),
+  );
+  dropCsrfToken();
+}
+
+/**
  * Runs `request`; on a `403` (a missing or stale CSRF token), drops the token and runs it once
  * more, which fetches a fresh one. Any other error, e.g. a `400`, `409` or `429`, is not retried:
  * resending would not change the answer.

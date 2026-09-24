@@ -72,6 +72,15 @@ export const handlers = [
       { status: 201 },
     );
   }),
+  // Reset request: always an empty 202. Confirm: an empty 204.
+  http.post(
+    api("/api/v1/auth/password-reset/request"),
+    () => new HttpResponse(null, { status: 202 }),
+  ),
+  http.post(
+    api("/api/v1/auth/password-reset/confirm"),
+    () => new HttpResponse(null, { status: 204 }),
+  ),
   http.post(
     api("/api/v1/auth/logout"),
     () => new HttpResponse(null, { status: 204 }),

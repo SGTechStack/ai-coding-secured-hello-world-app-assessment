@@ -6,7 +6,7 @@
  * - attaches the CSRF token as the X-XSRF-TOKEN header on state-changing requests. The token is
  *   taken from the `/csrf` response body (the API's cookie is not readable from this origin) and
  *   held in memory only, never in web storage,
- * - sends a JSON body only when given one, and resolves an empty `204` to `undefined`,
+ * - sends a JSON body only when given one, and resolves an empty `202`/`204` to `undefined`,
  * - turns every failure into an ApiError with a `kind` the UI can switch on.
  */
 
@@ -80,8 +80,9 @@ export async function apiRequest<T>(
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  // 204 No Content has no body to parse (e.g. logout); callers type that as `void`.
-  if (response.status === 204) return undefined as T;
+  // 204 No Content (e.g. logout) and the API's 202 Accepted (reset request) have no body to
+  // parse; callers type them as `void`.
+  if (response.status === 204 || response.status === 202) return undefined as T;
   return (await response.json()) as T;
 }
 

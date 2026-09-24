@@ -132,6 +132,14 @@ export function LoginPage() {
             )}
           </Button>
         </form>
+        <p className="text-center text-sm">
+          <Link
+            to="/forgot-password"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Forgot password?
+          </Link>
+        </p>
         <p className="text-center text-sm text-muted-foreground">
           New here?{" "}
           <Link

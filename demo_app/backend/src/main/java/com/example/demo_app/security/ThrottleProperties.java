@@ -13,9 +13,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     oldest, which bounds its memory
  * @param login failed logins allowed per IP per window
  * @param registration registration requests (of any outcome) allowed per IP per window
+ * @param passwordResetRequest password reset requests (of any outcome) allowed per IP per window
  */
 @ConfigurationProperties("app.security.throttle")
-public record ThrottleProperties(int maxTrackedIps, Limit login, Limit registration) {
+public record ThrottleProperties(
+    int maxTrackedIps, Limit login, Limit registration, Limit passwordResetRequest) {
 
   public ThrottleProperties {
     if (maxTrackedIps < 1) {
@@ -23,6 +25,7 @@ public record ThrottleProperties(int maxTrackedIps, Limit login, Limit registrat
     }
     requirePresent(login, "login");
     requirePresent(registration, "registration");
+    requirePresent(passwordResetRequest, "password-reset-request");
   }
 
   private static void requirePresent(Limit limit, String name) {

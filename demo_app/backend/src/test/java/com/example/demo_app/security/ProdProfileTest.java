@@ -27,6 +27,8 @@ import org.springframework.test.web.servlet.MockMvc;
       "spring.datasource.url=jdbc:h2:mem:prod-profile-test;DB_CLOSE_DELAY=-1",
       // Production has no default allow-list (see CorsStartupTest).
       "app.cors.allowed-origins=https://app.example.com",
+      // Nor a frontend URL for reset links.
+      "app.frontend-url=https://app.example.com",
       // Production has no default bootstrap admin (see AdminBootstrapStartupTest).
       "app.admin.username=prod-admin",
       "app.admin.email=prod-admin@example.com",

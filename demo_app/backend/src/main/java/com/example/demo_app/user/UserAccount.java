@@ -133,6 +133,15 @@ public class UserAccount {
     lockedUntil = null;
   }
 
+  /**
+   * Sets a new password after a successful reset, and lifts any lockout, so the user can log in
+   * with it straight away.
+   */
+  public void resetPassword(String newPasswordHash) {
+    this.passwordHash = newPasswordHash;
+    clearLockout();
+  }
+
   public Long getId() {
     return id;
   }

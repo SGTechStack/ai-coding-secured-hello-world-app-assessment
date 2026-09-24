@@ -1,4 +1,5 @@
 import type { Page, Route, TestInfo } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 import { expect } from "./fixtures";
 
 /** The demo account the backend seeds in its dev profile. */
@@ -182,4 +183,55 @@ export async function logInThroughUi(
   await expect(
     page.getByRole("heading", { name: `Hello, ${firstName}!` }),
   ).toBeVisible();
+}
+
+export const RESET_REQUESTED =
+  "If an account exists for that email, we've sent a reset link.";
+export const PASSWORD_UPDATED_NOTICE = "Password updated. Please log in.";
+export const INVALID_RESET_LINK = "This reset link is invalid or has expired.";
+
+/**
+ * The newest reset link the backend "emailed" to `email`. The stub email service logs it, and the
+ * e2e backend also writes its log to `E2E_BACKEND_LOG` (see playwright.config.ts); a backend
+ * reused from elsewhere (`reuseExistingServer`) must have been started the same way. Polls until
+ * the line appears.
+ */
+export async function resetLinkFor(email: string): Promise<string> {
+  const logFile = process.env.E2E_BACKEND_LOG;
+  if (!logFile) throw new Error("E2E_BACKEND_LOG is not set");
+  const marker = `Password reset email to ${email}: `;
+  let link: string | undefined;
+  await expect
+    .poll(
+      async () => {
+        const log = await readFile(logFile, "utf8").catch(() => "");
+        const line = log
+          .split("\n")
+          .filter((l) => l.includes(marker))
+          .at(-1);
+        link = line?.slice(line.indexOf(marker) + marker.length).trim();
+        return link;
+      },
+      { message: `a reset link for ${email} in ${logFile}` },
+    )
+    .toMatch(/\/reset-password#token=[\w-]+$/);
+  return link!;
+}
+
+/** Asks for a reset link for `email` through the UI and waits for the generic message. */
+export async function requestResetThroughUi(page: Page, email: string) {
+  await page.goto("/forgot-password");
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: /^Send(ing)? (reset )?link/ }).click();
+  await expect(page.getByRole("status")).toHaveText(RESET_REQUESTED);
+}
+
+/** Sets `password` on the reset page the browser is on. */
+export async function submitNewPassword(page: Page, password: string) {
+  await expect(
+    page.getByRole("heading", { name: "Set a new password" }),
+  ).toBeVisible();
+  await page.getByLabel("New password", { exact: true }).fill(password);
+  await page.getByLabel("Confirm new password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: /^Updat(e|ing) password/ }).click();
 }

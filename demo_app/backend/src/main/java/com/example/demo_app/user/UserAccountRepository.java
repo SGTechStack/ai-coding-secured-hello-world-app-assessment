@@ -15,6 +15,7 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
   Optional<UserAccount> findByUsername(String username);
 
+  Optional<UserAccount> findByEmail(String email);
   /**
    * The account, row-locked until the transaction ends, so concurrent failed logins can't lose
    * each other's count.

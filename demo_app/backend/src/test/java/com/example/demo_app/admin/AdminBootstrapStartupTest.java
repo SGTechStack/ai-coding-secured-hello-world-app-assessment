@@ -136,7 +136,8 @@ class AdminBootstrapStartupTest {
       "--server.port=0",
       // Command-line args, not builder properties, so they win over application.yml.
       "--spring.datasource.url=" + database + ";DB_CLOSE_DELAY=-1",
-      "--app.cors.allowed-origins=https://app.example.com"
+      "--app.cors.allowed-origins=https://app.example.com",
+      "--app.frontend-url=https://app.example.com"
     };
     return new SpringApplicationBuilder(DemoAppApplication.class)
         .profiles(profile)

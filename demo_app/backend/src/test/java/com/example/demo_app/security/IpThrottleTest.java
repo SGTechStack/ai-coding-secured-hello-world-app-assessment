@@ -140,12 +140,15 @@ class IpThrottleTest {
     assertThatThrownBy(() -> new ThrottleProperties.Limit(1, null))
         .isInstanceOf(IllegalArgumentException.class);
     ThrottleProperties.Limit limit = new ThrottleProperties.Limit(1, WINDOW);
-    assertThatThrownBy(() -> new ThrottleProperties(0, limit, limit))
+    assertThatThrownBy(() -> new ThrottleProperties(0, limit, limit, limit))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> new ThrottleProperties(1, null, limit))
+    assertThatThrownBy(() -> new ThrottleProperties(1, null, limit, limit))
         .isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(() -> new ThrottleProperties(1, limit, null))
+    assertThatThrownBy(() -> new ThrottleProperties(1, limit, null, limit))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("app.security.throttle.registration");
+    assertThatThrownBy(() -> new ThrottleProperties(1, limit, limit, null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("app.security.throttle.password-reset-request");
   }
 }

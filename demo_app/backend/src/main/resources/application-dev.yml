@@ -21,6 +21,8 @@ app:
   cors:
     # The Vite dev server. Production has no default: set APP_CORS_ALLOWED_ORIGINS.
     allowed-origins: http://localhost:3000
+  # The Vite dev server; reset links point here.
+  frontend-url: http://localhost:3000
   admin:
     # Dev-only bootstrap admin, created at startup while no ADMIN exists. Never use these values
     # anywhere else: other profiles have no default and read APP_ADMIN_USERNAME, APP_ADMIN_EMAIL

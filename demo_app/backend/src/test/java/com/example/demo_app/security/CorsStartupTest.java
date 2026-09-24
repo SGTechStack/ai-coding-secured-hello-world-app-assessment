@@ -20,6 +20,7 @@ class CorsStartupTest {
             () ->
                 app.run(
                     "--server.port=0",
+                    "--app.frontend-url=https://app.example.com",
                     "--spring.datasource.url=jdbc:h2:mem:cors-startup-test;DB_CLOSE_DELAY=-1"))
         .rootCause()
         .hasMessageContaining("app.cors.allowed-origins must list at least one origin");

@@ -46,19 +46,20 @@ public final class SpaAuthFlow {
   private SpaAuthFlow() {}
 
   /** A freshly issued {@code XSRF-TOKEN} cookie. */
-  static Cookie freshCsrfCookie(MockMvc mvc) throws Exception {
+  public static Cookie freshCsrfCookie(MockMvc mvc) throws Exception {
     return mvc.perform(get("/api/v1/auth/csrf")).andReturn().getResponse().getCookie("XSRF-TOKEN");
   }
 
   /** {@code request} carrying a fresh CSRF cookie and the matching header, as the SPA sends. */
-  static MockHttpServletRequestBuilder withCsrf(MockMvc mvc, MockHttpServletRequestBuilder request)
-      throws Exception {
+  public static MockHttpServletRequestBuilder withCsrf(
+      MockMvc mvc, MockHttpServletRequestBuilder request) throws Exception {
     Cookie xsrf = freshCsrfCookie(mvc);
     return request.cookie(xsrf).header("X-XSRF-TOKEN", xsrf.getValue());
   }
 
   /** A CSRF-protected JSON login POST with {@code body}. */
-  static MockHttpServletRequestBuilder loginRequest(MockMvc mvc, String body) throws Exception {
+  public static MockHttpServletRequestBuilder loginRequest(MockMvc mvc, String body)
+      throws Exception {
     return withCsrf(mvc, post("/api/v1/auth/login"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(body);

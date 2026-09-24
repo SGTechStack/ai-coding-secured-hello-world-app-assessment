@@ -21,16 +21,21 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
+import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -42,6 +47,8 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.session.ConcurrentSessionFilter;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -72,7 +79,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  *   <li>Login and registration are throttled per client IP ({@link IpThrottle}, limits in {@link
  *       ThrottleProperties}); a throttled request answers {@code 429} with {@code Retry-After},
  *       which CORS exposes to the SPA.
+ *   <li>Password reset ({@code POST /api/v1/auth/password-reset/request} and {@code .../confirm})
+ *       is anonymous and CSRF-protected; the request is throttled per IP.
  *   <li>Session fixation: login replaces the session with a new one ({@code newSession}).
+ *   <li>Sessions: every login registers its session in the in-memory {@link SessionRegistry}
+ *       (unlimited sessions per user), so {@link SessionExpiry} can sign a user out everywhere. An
+ *       expired session's next request is invalidated, its cookie expired, and answered with the
+ *       JSON {@code 401}; it is not audited as a {@code LOGOUT}.
  *   <li>Logout is Spring Security's logout filter on {@code POST /api/v1/auth/logout}. It runs
  *       after the CSRF check and before authorization, so it needs a valid CSRF token but no
  *       session. It invalidates the session, expires {@code JSESSIONID}, clears the CSRF cookie
@@ -102,8 +115,11 @@ class SecurityConfig {
       ServerProperties serverProperties,
       ObjectMapper objectMapper,
       Environment environment,
-      AuditLog auditLog)
+      AuditLog auditLog,
+      SessionRegistry sessionRegistry)
       throws Exception {
+    Cookie expiredSessionCookie =
+        expiredSessionCookie(serverProperties.getServlet().getSession().getCookie());
     if (environment.acceptsProfiles(Profiles.of("prod"))) {
       // Replaces the deprecated requiresChannel().anyRequest().requiresSecure().
       http.redirectToHttps(Customizer.withDefaults());
@@ -114,6 +130,11 @@ class SecurityConfig {
                 auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/register")
+                    .permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/v1/auth/password-reset/request",
+                        "/api/v1/auth/password-reset/confirm")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf")
                     .permitAll()
@@ -129,7 +150,19 @@ class SecurityConfig {
         .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
         .securityContext(context -> context.securityContextRepository(securityContextRepository))
         // AuthController applies the sessionAuthenticationStrategy bean below, which matches this.
-        .sessionManagement(session -> session.sessionFixation().newSession())
+        .sessionManagement(
+            session ->
+                session
+                    .sessionFixation()
+                    .newSession()
+                    .sessionConcurrency(
+                        concurrency ->
+                            concurrency
+                                .maximumSessions(-1)
+                                .sessionRegistry(sessionRegistry)
+                                .expiredSessionStrategy(errorHandler))
+                    .withObjectPostProcessor(
+                        endExpiredSessionsWithoutAudit(expiredSessionCookie)))
         .headers(
             headers ->
                 headers
@@ -154,13 +187,28 @@ class SecurityConfig {
                                 AuditEvent.LOGOUT,
                                 authentication == null ? null : authentication.getName(),
                                 request))
-                    .addLogoutHandler(
-                        new CookieClearingLogoutHandler(
-                            expiredSessionCookie(
-                                serverProperties.getServlet().getSession().getCookie())))
+                    .addLogoutHandler(new CookieClearingLogoutHandler(expiredSessionCookie))
                     .logoutSuccessHandler(
                         new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
         .build();
+  }
+
+  /**
+   * By default an expired session is ended with the logout filter's handlers, which would audit it
+   * as a {@code LOGOUT}. It isn't one: the session is simply invalidated and its cookie expired.
+   */
+  private static ObjectPostProcessor<ConcurrentSessionFilter> endExpiredSessionsWithoutAudit(
+      Cookie expiredSessionCookie) {
+    return new ObjectPostProcessor<>() {
+      @Override
+      public <O extends ConcurrentSessionFilter> O postProcess(O filter) {
+        filter.setLogoutHandlers(
+            List.of(
+                new SecurityContextLogoutHandler(),
+                new CookieClearingLogoutHandler(expiredSessionCookie)));
+        return filter;
+      }
+    };
   }
 
   /**
@@ -212,15 +260,35 @@ class SecurityConfig {
 
   /**
    * On login, replaces any existing session with a new one (fixation protection; only Spring
-   * Security's own attributes are carried over) and rotates the CSRF token.
+   * Security's own attributes are carried over), registers the new session in the {@link
+   * SessionRegistry} and rotates the CSRF token. {@code sessionManagement()} only configures the
+   * filter chain's own strategy, which REST login never runs, so registration must be here too.
    */
   @Bean
   SessionAuthenticationStrategy sessionAuthenticationStrategy(
-      CsrfTokenRepository csrfTokenRepository) {
+      CsrfTokenRepository csrfTokenRepository, SessionRegistry sessionRegistry) {
     SessionFixationProtectionStrategy newSession = new SessionFixationProtectionStrategy();
     newSession.setMigrateSessionAttributes(false);
     return new CompositeSessionAuthenticationStrategy(
-        List.of(newSession, new CsrfAuthenticationStrategy(csrfTokenRepository)));
+        List.of(
+            newSession,
+            new RegisterSessionAuthenticationStrategy(sessionRegistry),
+            new CsrfAuthenticationStrategy(csrfTokenRepository)));
+  }
+
+  /** Every live session by principal, in memory on this instance (no Spring Session). */
+  @Bean
+  SessionRegistry sessionRegistry() {
+    return new SessionRegistryImpl();
+  }
+
+  /**
+   * Forwards the container's session lifecycle events to the {@link SessionRegistry}, so an ended
+   * session (logout, timeout, a changed id) leaves it. Boot registers it as a servlet listener.
+   */
+  @Bean
+  HttpSessionEventPublisher httpSessionEventPublisher() {
+    return new HttpSessionEventPublisher();
   }
 
   /**

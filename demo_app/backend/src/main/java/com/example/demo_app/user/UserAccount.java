@@ -85,6 +85,16 @@ public class UserAccount {
     return email.strip().toLowerCase(Locale.ROOT);
   }
 
+  /**
+   * Sets a new password after a successful reset, and clears any lockout, so the user can log in
+   * with it straight away.
+   */
+  public void resetPassword(String newPasswordHash) {
+    this.passwordHash = newPasswordHash;
+    this.failedLoginAttempts = 0;
+    this.lockedUntil = null;
+  }
+
   public Long getId() {
     return id;
   }

@@ -51,3 +51,12 @@ app:
         # Every request counts, whatever its outcome: this also caps username/email probing.
         max-attempts: 10
         window: 15m
+      password-reset-request:
+        # Every request counts, whatever its outcome: nobody can flood an inbox or probe at scale.
+        max-attempts: 10
+        window: 15m
+    password-reset:
+      # How long a reset link works. Only the newest unused link of an account works at all.
+      token-ttl: 30m
+  # app.frontend-url: the SPA's origin, which reset links point to. Only dev and test have a
+  # default; anywhere else set APP_FRONTEND_URL, or startup fails.

@@ -24,4 +24,10 @@ class ThrottleConfig {
   IpThrottle registrationThrottle(ThrottleProperties properties, Clock clock) {
     return new IpThrottle(properties.registration(), properties.maxTrackedIps(), clock);
   }
+
+  /** Every password reset request per IP; {@code PasswordResetController} acquires it first. */
+  @Bean
+  IpThrottle passwordResetRequestThrottle(ThrottleProperties properties, Clock clock) {
+    return new IpThrottle(properties.passwordResetRequest(), properties.maxTrackedIps(), clock);
+  }
 }

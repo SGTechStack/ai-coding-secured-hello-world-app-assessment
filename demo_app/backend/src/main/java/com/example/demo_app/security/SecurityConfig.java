@@ -1,11 +1,15 @@
 package com.example.demo_app.security;
 
+import jakarta.servlet.http.Cookie;
 import java.util.List;
+import java.util.Objects;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -17,6 +21,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy;
@@ -28,6 +34,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 /**
  * Session-based JSON API security.
@@ -41,6 +48,10 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
  *       raw cookie value, not a BREACH-masked one.
  *   <li>Failures render as JSON via {@link JsonSecurityErrorHandler}; nothing redirects.
  *   <li>Session fixation: login replaces the session with a new one ({@code newSession}).
+ *   <li>Logout is Spring Security's logout filter on {@code POST /api/v1/auth/logout}. It runs
+ *       after the CSRF check and before authorization, so it needs a valid CSRF token but no
+ *       session. It invalidates the session, expires {@code JSESSIONID}, clears the CSRF cookie
+ *       (the built-in CSRF logout handler) and answers an empty {@code 204}.
  *   <li>Headers: a restrictive Content-Security-Policy (the API serves JSON only),
  *       Referrer-Policy and Permissions-Policy, on top of Spring Security's defaults.
  *   <li>The {@code prod} profile redirects plain HTTP to HTTPS; local dev and the e2e suite run
@@ -60,6 +71,7 @@ class SecurityConfig {
       CsrfTokenRepository csrfTokenRepository,
       SecurityContextRepository securityContextRepository,
       JsonSecurityErrorHandler errorHandler,
+      ServerProperties serverProperties,
       Environment environment)
       throws Exception {
     if (environment.acceptsProfiles(Profiles.of("prod"))) {
@@ -96,7 +108,40 @@ class SecurityConfig {
         .requestCache(AbstractHttpConfigurer::disable)
         .formLogin(AbstractHttpConfigurer::disable)
         .httpBasic(AbstractHttpConfigurer::disable)
+        .logout(
+            logout ->
+                logout
+                    .logoutRequestMatcher(
+                        PathPatternRequestMatcher.withDefaults()
+                            .matcher(HttpMethod.POST, "/api/v1/auth/logout"))
+                    .addLogoutHandler(
+                        new CookieClearingLogoutHandler(
+                            expiredSessionCookie(
+                                serverProperties.getServlet().getSession().getCookie())))
+                    .logoutSuccessHandler(
+                        new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
         .build();
+  }
+
+  /**
+   * A {@code Max-Age=0} copy of the session cookie as configured under {@code
+   * server.servlet.session.cookie} (including its domain, if one is set), so the browser replaces
+   * the cookie it holds. Spring Security's {@code deleteCookies} would drop {@code HttpOnly} and
+   * take {@code Secure} from the request.
+   */
+  static Cookie expiredSessionCookie(org.springframework.boot.web.server.Cookie config) {
+    Cookie cookie = new Cookie(Objects.requireNonNullElse(config.getName(), "JSESSIONID"), null);
+    cookie.setPath(Objects.requireNonNullElse(config.getPath(), "/"));
+    if (config.getDomain() != null) {
+      cookie.setDomain(config.getDomain());
+    }
+    cookie.setMaxAge(0);
+    cookie.setHttpOnly(!Boolean.FALSE.equals(config.getHttpOnly()));
+    cookie.setSecure(Boolean.TRUE.equals(config.getSecure()));
+    if (config.getSameSite() != null) {
+      cookie.setAttribute("SameSite", config.getSameSite().attributeValue());
+    }
+    return cookie;
   }
 
   @Bean

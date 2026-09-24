@@ -1,0 +1,18 @@
+# Dev profile — local development defaults (zero-setup in-memory H2).
+# Prod profile with Secure cookies / env-driven CORS / fail-fast admin creds
+# arrives with the hardening ticket.
+spring:
+  h2:
+    console:
+      enabled: true
+
+app:
+  admin:
+    # Documented dev-only seed credentials — on first boot an `admin`
+    # account is created (BCrypt-hashed like any account) so the admin
+    # panel is reachable locally with zero setup. Override via the
+    # APP_ADMIN_* env vars. Never ship these defaults to a real
+    # deployment; the prod profile requires the env vars with no fallback.
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:admin-local-dev-password}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}

@@ -1,0 +1,79 @@
+# Prod profile (ticket 14) — the hardened deployment posture. Every
+# security-relevant difference from dev is explicit here:
+#
+#   * Session cookie Secure=true — the browser only returns it over HTTPS.
+#     A real deployment must terminate TLS in front of the app (documented
+#     assumption in the README; local dev stays HTTP).
+#   * H2 console off — no dev tooling surface.
+#   * CORS origins come from APP_CORS_ALLOWED_ORIGINS (comma-separated
+#     allow-list) — the blank default leaves no origins, and the SPA can't
+#     call the API until the operator supplies one.
+#   * Admin seed creds are REQUIRED: APP_ADMIN_USERNAME/APP_ADMIN_PASSWORD
+#     are enforced by ProdAdminCredentialsValidator — the binder tolerates
+#     unresolvable placeholders (it would bind the literal "${...}" text),
+#     so fail-fast has to live in a startup check, not in "no default"
+#     syntax. Missing creds refuse to boot rather than leaving no way into
+#     /api/admin/**.
+#   * The dev-only /h2-console/** filter chain is @Profile("dev"), so prod
+#     keeps DENY framing and CSRF-on everywhere.
+#   * Reset-link logging off (security-review F-02): the stubbed
+#     EmailService's link line carries the plaintext token — a live bearer
+#     credential — so prod suppresses it; the log keeps a token-free
+#     "reset requested for <email>" line instead.
+#   * forward-headers-strategy=framework — TLS terminates at the proxy
+#     (README deployment assumption), so request.isSecure() and
+#     getRemoteAddr() must reflect the client, not the proxy: keeps the
+#     XSRF cookie's Secure flag, lets HSTS emit, and keys the IP throttle
+#     on the real client IP instead of collapsing every caller into the
+#     proxy's bucket. ONLY correct behind a proxy that strips and sets
+#     X-Forwarded-* — on a directly-exposed app this would make the
+#     throttle XFF-evadable.
+#   * Session cookie SameSite=Strict — this is an API-only backend; nothing
+#     legitimate reaches it via a cross-site top-level navigation, so the
+#     stronger value costs nothing over Lax.
+spring:
+  # No embedded fallback. Use jdbc:postgresql://... or jdbc:mysql://... .
+  # The JDBC driver and Hibernate dialect are inferred from the URL.
+  datasource:
+    embedded-database-connection: none
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  session:
+    jdbc:
+      initialize-schema: never
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: strict
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  password-reset:
+    log-reset-link: false
+    # No localhost fallback — the day a real EmailService replaces the stub,
+    # an unset value must not silently emit reset links pointing at
+    # localhost:3000.
+    link-base-url: ${APP_RESET_LINK_BASE_URL:}
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}

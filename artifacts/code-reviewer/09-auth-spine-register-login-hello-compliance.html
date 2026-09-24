@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 09-auth-spine-register-login-hello</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall: Pass</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear: Warn &middot; 0C/0H/4M/6L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep: Pass &middot; 0 findings</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">spring-security: Warn &middot; 0C/0H/2M/8L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">spring-web: Warn &middot; 0C/0H/1M/4L</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">09-auth-spine-register-login-hello</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Issue #09 — auth spine: register &rarr; login &rarr; hello (session auth, CSRF, Spring Security 7 manual-login pattern). Four checks executed; findings aggregated per the code-reviewer severity mapping.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2">Check</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Findings</th>
+              <th class="px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-medium">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">4 Medium &middot; 6 Low &middot; 5 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Well-reasoned spine — correct Security 7 manual-login mechanics and CSRF ordering workaround — but test-seam machinery lives in prod config, two error channels split across controller/advice, a non-atomic register path, and a frontend duplication cluster should be fixed before tickets 10–14 build on it.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0</td>
+              <td class="px-4 py-3 text-slate-600">0 P0/P1 in changed code across 553 rules (~490 targets). One P2 (missing SRI) is in a prior generated report artifact — pre-existing, unrelated.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-security</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">2 Medium &middot; 8 Low</td>
+              <td class="px-4 py-3 text-slate-600">Dev bypass correctly profile-gated; CSRF/CORS/BCrypt/fixation all correct. WARN driven by two systemic gaps: no production profile exists so base config is effectively prod-insecure, and lockout columns/event wiring are in place but no listener increments them — login is unthrottled until ticket 11.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-web</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">1 Medium &middot; 4 Low</td>
+              <td class="px-4 py-3 text-slate-600">DTOs over entities, uniform problem+json, real-CSRF MockMvc tests. One named rule violation (controller-local try/catch mapping 401) plus a check-then-act race that can emit a non-problem+json 500.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. Zero Critical or High findings across all four checks — gate verdict is <span class="font-semibold text-emerald-700">PASS</span>.</p>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide pt-2">Highest-Severity Findings Present (Medium)</h3>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li><span class="font-mono text-xs">backend/src/main/resources/application.yml</span> + <span class="font-mono text-xs">SecurityConfig.java:55-86</span> — no production posture exists: base config ships <span class="font-mono text-xs">cookie.secure: false</span>, no HTTPS channel enforcement, hardcoded localhost CORS, H2 <span class="font-mono text-xs">create-drop</span>, and nothing fails fast outside dev (spring-security).</li>
+            <li><span class="font-mono text-xs">backend/.../auth/AuthController.java:77-92</span> — <span class="font-mono text-xs">login()</span> catches <span class="font-mono text-xs">AuthenticationException</span> and hand-builds the 401 <span class="font-mono text-xs">ProblemDetail</span>, forcing <span class="font-mono text-xs">ResponseEntity&lt;?&gt;</span> and splitting error shaping across two layers; move to <span class="font-mono text-xs">ApiExceptionHandler</span> (thermo-nuclear F3, spring-web).</li>
+            <li><span class="font-mono text-xs">backend/.../user/UserService.java:32-46</span> — check-then-insert registration: concurrent same-username signups race past the exists checks and the loser gets a <span class="font-mono text-xs">DataIntegrityViolationException</span> &rarr; bare 500 instead of the ratified 409; add a handler mapping it to 409 (thermo-nuclear F4, spring-web).</li>
+            <li><span class="font-mono text-xs">backend/.../config/SecurityConfig.java:188-216</span> — <span class="font-mono text-xs">sessionCookieCustomizer</span> is ~40 lines of test-seam machinery in prod config hand-replicating Boot's cookie property mapping; move to test configuration (thermo-nuclear F1).</li>
+            <li><span class="font-mono text-xs">backend/.../auth/AuthController.java:118-127</span> — ad-hoc anonymous check on <span class="font-mono text-xs">/api/auth/me</span> duplicates what the filter chain owns; an <span class="font-mono text-xs">.authenticated()</span> matcher before the permit-all prefix deletes the branch (thermo-nuclear F2).</li>
+            <li><span class="font-mono text-xs">backend/.../user/AppUserDetailsService.java:36-37</span> — lockout machinery wired (<span class="font-mono text-xs">lockedUntil</span> gate live, events published) but no listener increments <span class="font-mono text-xs">failed_login_attempts</span>; <span class="font-mono text-xs">/api/auth/login</span> is unthrottled until ticket 11 (spring-security).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear — maintainability, structure, code smells</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">188-216</td>
+              <td class="px-4 py-3"><code>sessionCookieCustomizer</code> exists only for the MockMvc (non-embedded) path — test-seam machinery in prod config, hand-replicating Boot's own property mapping; move to <code>@TestConfiguration</code> or a dedicated session/cookie config class.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">118-127</td>
+              <td class="px-4 py-3">Ad-hoc anonymous check on <code>/api/auth/me</code> duplicates a rule the filter chain owns — add <code>.requestMatchers("/api/auth/me").authenticated()</code> before the <code>/api/auth/**</code> permitAll and delete the triple-conditional.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">77-92</td>
+              <td class="px-4 py-3">Two error channels: <code>login()</code> hand-builds <code>ProblemDetail</code> (forcing <code>ResponseEntity&lt;?&gt;</code>) while registration errors flow through <code>ApiExceptionHandler</code>; move the 401 mapping into the advice.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/user/UserService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">32-46</td>
+              <td class="px-4 py-3">Check-then-insert is non-atomic vs the DB unique constraints — a concurrent duplicate gets <code>DataIntegrityViolationException</code> &rarr; 500 instead of 409; catch it in <code>ApiExceptionHandler</code> &rarr; 409.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java</td>
+              <td class="px-4 py-3 font-mono text-xs">23-42</td>
+              <td class="px-4 py-3">Three copy-pasted <code>@ExceptionHandler</code> methods differing only in (exception, status, title); give <code>RegistrationException</code> a status/title and collapse to one handler (low-moderate).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">133-142</td>
+              <td class="px-4 py-3"><code>roleOf</code>'s <code>.orElse("USER")</code> silently fabricates a role when no <code>ROLE_*</code> authority exists — masks a broken invariant in a security contract; <code>orElseThrow</code> or document the fallback (low-moderate).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">222-226</td>
+              <td class="px-4 py-3"><code>Clock</code> bean (user-domain/test seam for <code>AppUserDetailsService</code>) misplaced in the densest file; move to an <code>AppConfig</code>/<code>TimeConfig</code> (low-moderate).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/pages/{RegisterPage,LoginPage}.tsx, App.tsx, HelloPage.tsx</td>
+              <td class="px-4 py-3 font-mono text-xs">22, 53-62, 30</td>
+              <td class="px-4 py-3">Duplication cluster: <code>PASSWORD_MIN_LENGTH</code> hardcodes server config; identical <code>role="alert"</code> blocks and ~60% shared card scaffold → extract <code>FormError</code>/<code>AuthCard</code>; identical "Restoring session…" JSX in both guards; <code>user?.</code> papers over a <code>RequireAuth</code> non-null invariant (low-moderate).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/AuthFlowTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">252-260</td>
+              <td class="px-4 py-3"><code>seedUser</code> hand-replicates <code>UserService.register</code>'s six-field invariant recipe (and uses <code>Instant.now()</code> instead of the <code>Clock</code> bean); call <code>userService.register(...)</code> instead.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/user/User.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Required-field invariants (<code>createdAt</code>, <code>enabled</code>, <code>role</code>) enforced by convention — two construction sites already exist; a <code>static register(...)</code> factory or <code>@PrePersist</code> puts the invariant in the entity.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/lib/api.ts, backend/.../AuthFlowTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">115</td>
+              <td class="px-4 py-3"><code>login()</code> awaits <code>bootstrapCsrf()</code> before <code>response.json()</code> (harmless ordering); fully-qualified <code>ResultActions</code>/<code>JsonPath</code> inline instead of imports.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/components/ui/{button,card}.tsx, auth/auth-context.tsx</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Dead surface in vendored shadcn boilerplate (<code>buttonVariants</code>, unused <code>card-action</code> styles); a failed CSRF bootstrap/<code>getMe()</code> collapses to <code>user=null</code>, so an API outage presents as logged-out.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/RegisterRequest.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">No <code>@Size</code> bound on <code>password</code> — BCrypt on unbounded input is a minor resource-abuse vector; a <code>max</code> bound closes it cheaply (hardening-ticket territory).</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep — static analysis (p/security-audit + p/default + p/java + p/typescript/react/secrets/jwt)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings in changed code — 0 P0/P1 across 553 rules (~490 targets). One P2 (missing SRI on the issue-08 report artifact) is pre-existing and unrelated to this diff.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-security — security config, profile gating, CORS/CSRF, session auth</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml + config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">55-86</td>
+              <td class="px-4 py-3">No production posture exists — base config is the effective prod config: <code>cookie.secure: false</code>, no <code>requiresChannel().requiresSecure()</code>, hardcoded localhost CORS, H2 <code>create-drop</code>, and no startup guard. Add a <code>prod</code> profile YAML + HTTPS enforcement (or explicit fail-fast) per the skill's guard rule.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../user/AppUserDetailsService.java + config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">36-37, 135-143</td>
+              <td class="px-4 py-3">Brute-force lockout structurally wired but inert — <code>isAccountNonLocked()</code> gate live and auth events published, yet no listener increments <code>failed_login_attempts</code>/sets <code>locked_until</code>; <code>/api/auth/login</code> is live and unthrottled until ticket 11.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>SameSite=lax</code> on the session cookie vs rubric's <code>Strict</code> — justified for the two-origin same-site dev topology; record the rationale in the prod profile.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">110-120</td>
+              <td class="px-4 py-3">CORS origin hardcoded to <code>http://localhost:3000</code> rather than profile-specific YAML — fails closed, but externalize to <code>app.cors.allowed-origins</code> when the prod profile lands.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">No CSP, Referrer-Policy, or Permissions-Policy headers (rubric flags these for production configs); X-Frame-Options/nosniff/HSTS defaults correctly untouched in the main chain.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">No <code>HttpSessionEventPublisher</code> bean — session created/destroyed events won't publish for the session-audit ticket; also confirm the authorization-denied event publisher when audit logging lands.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">No session timeout configured — Spring Session JDBC 30-min inactivity default applies; enforce inactivity + absolute timeouts in hardening.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/pom.xml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>spring-boot-h2console</code> is compile-scope — artifact ships in every build; console only registers under dev YAML and the permissive chain is <code>@Profile("dev")</code>, so defense-in-depth not a leak. Consider scoping it out of the prod artifact.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>XSRF-TOKEN</code> cookie carries no <code>SameSite</code> attribute (browser-default Lax applies); if prod is genuinely cross-site, set <code>SameSite=None; Secure</code> via <code>setCookieCustomizer</code>.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../auth/ApiExceptionHandler.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Registration 409s distinguish duplicate-username vs duplicate-email — inherent enumeration surface on a public register endpoint; standard tradeoff, noted only.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-web — controllers, REST conventions, web layer</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">76-91</td>
+              <td class="px-4 py-3">Controller-local try/catch maps <code>AuthenticationException</code> to the 401 body — error-mapping belongs in <code>@RestControllerAdvice</code>; the catch forces <code>ResponseEntity&lt;?&gt;</code> and splits error shaping across two places. Enumeration resistance is fully preserved by an advice handler.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/user/UserService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">34-50</td>
+              <td class="px-4 py-3">Check-then-act uniqueness race can emit a non-problem+json 500 — <code>DataIntegrityViolationException</code> is unhandled; add a 409 handler (and <code>@Transactional</code> once lockout counters mutate rows in ticket 11).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">66, 75</td>
+              <td class="px-4 py-3">No explicit <code>consumes</code>/<code>produces</code> media types on <code>/register</code> and <code>/login</code> — non-JSON payloads get a generic framework 415/400 rather than a declared contract.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/RegisterRequest.java</td>
+              <td class="px-4 py-3 font-mono text-xs">7-10</td>
+              <td class="px-4 py-3">DTO fields unbounded (<code>@NotBlank</code> only) — BCrypt silently truncates passwords beyond 72 bytes and oversized fields reach the DB layer; add <code>@Size(max=…)</code> bounds.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/HelloController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">17-19</td>
+              <td class="px-4 py-3">Untyped <code>Map.of("message", …)</code> return; a <code>record HelloResponse(String message)</code> matches the DTO discipline used elsewhere in this diff.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../auth/AuthController.java, AuthFlowTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">125</td>
+              <td class="px-4 py-3"><code>/me</code> 401 returns an empty body (deliberate, consistent with <code>HttpStatusEntryPoint</code>) — SPA contract is mixed status-only/problem+json; no API versioning yet; <code>@SpringBootTest</code> over <code>@WebMvcTest</code> is justified by the real CSRF/session seam; <code>roleOf</code> silent <code>"USER"</code> default noted.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

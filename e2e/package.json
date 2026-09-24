@@ -1,0 +1,17 @@
+{
+  "name": "hello-auth-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Playwright + Allure 3 E2E harness for the Hello World Auth app",
+  "scripts": {
+    "test": "playwright test",
+    "smoke": "playwright test foundation.smoke"
+  },
+  "devDependencies": {
+    "@playwright/mcp": "0.0.81",
+    "@playwright/test": "1.63.0",
+    "allure": "3.17.0",
+    "allure-playwright": "3.12.2"
+  }
+}

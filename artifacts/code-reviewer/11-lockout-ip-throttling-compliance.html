@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 11-lockout-ip-throttling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall: Pass</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear: Warn &middot; 0C/0H/3M/1L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep: Pass &middot; 0 findings</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">spring-security: Warn &middot; 0C/0H/1M/2L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-web: Pass &middot; 0C/0H/0M/3L</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">11-lockout-ip-throttling</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Issue #11 — lockout + IP throttling (service-level <span class="font-mono text-xs">LoginService</span> ordering, Caffeine <span class="font-mono text-xs">IpThrottleService</span>, 429 <span class="font-mono text-xs">LoginThrottledException</span>). Four checks executed against the uncommitted working tree vs HEAD <span class="font-mono text-xs">2101136</span>; findings aggregated per the code-reviewer severity mapping.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2">Check</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Findings</th>
+              <th class="px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-medium">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">2 Medium &middot; 1 Low-Medium &middot; 1 Low &middot; 3 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Correct layering — ordered defense lives in one service, thin controller, exception-carried 429 dispatch, strong tests (29/29 verified green). WARN driven by the same security invariant implemented twice in two layers: the sliding-window failure-streak algorithm and the <code>locked_until</code> predicate each live in two places, plus a non-atomic read of a mutated Caffeine bucket.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0 findings (0 P0/P1/P2)</td>
+              <td class="px-4 py-3 text-slate-600">0 results across <code>p/security-audit</code> + <code>p/default</code> (199 rules, 21 files, ~100% parsed). All ticket-11 files scanned; no secrets, injection, weak crypto, or unsafe patterns.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-security</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">1 Medium &middot; 2 Low &middot; 4 Info</td>
+              <td class="px-4 py-3 text-slate-600">Two-layer defense verified correct end-to-end (ordering, <code>getRemoteAddr()</code> keying, 429 vs generic-401 collapse, <code>locked_until</code> semantics, tunables; 46/46 tests green). Medium: the <code>ip-throttle &lt; lockout</code> anti-DoS invariant is comment-enforced only — <span class="font-semibold">decided/deferred</span>: docs-only for ticket 11, startup fail-fast validation deferred to ticket 14 per <code>docs/agents/reviewer-decisions.md</code>.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-web</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">3 Low &middot; 3 Info</td>
+              <td class="px-4 py-3 text-slate-600">Thin-controller delegation, correct 429 <code>@RestControllerAdvice</code> mapping, justified <code>@SpringBootTest</code> + MockMvc strategy (ACs are cross-layer). Lows: 429 handler omits <code>title</code>, documented lost-update race on counters, residual controller try-catch (deliberate enumeration-resistance contract).</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. Zero Critical or High findings across all four checks — gate verdict is <span class="font-semibold text-emerald-700">PASS</span>.</p>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide pt-2">Highest-Severity Findings Present (Medium)</h3>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li><span class="font-mono text-xs">backend/.../config/AppProperties.java:76-99</span> + <span class="font-mono text-xs">application.yml:45-47</span> — anti-DoS invariant (<code>ip-throttle.max-failures &lt; lockout.max-failures</code>) enforced only by comments; a config override silently re-enables single-IP account lockout. <span class="font-semibold">Decided:</span> docs-only now; startup fail-fast guard deferred to ticket 14 (<code>docs/agents/reviewer-decisions.md</code>) — not blocking (spring-security).</li>
+            <li><span class="font-mono text-xs">backend/.../auth/LoginService.java:121-134</span> + <span class="font-mono text-xs">auth/IpThrottleService.java:85-103</span> — the sliding-window failure-streak state machine is implemented twice (DB columns vs cache value); extract a shared immutable <code>FailureStreak</code> so the two layers' window semantics are provably identical (thermo-nuclear M1).</li>
+            <li><span class="font-mono text-xs">backend/.../auth/LoginService.java:110-113</span> + <span class="font-mono text-xs">auth/AppUserDetailsService.java:35-36</span> — <code>locked_until.isAfter(now)</code> predicate duplicated between the primary check and the provider backstop; consolidate into <code>User.isLockedAt(Instant)</code> (thermo-nuclear M2).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear — maintainability, structure, code smells</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java + auth/IpThrottleService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">121-134, 85-103</td>
+              <td class="px-4 py-3">The sliding-window failure-streak algorithm is implemented twice — same <code>(count, lastFailureAt)</code> state machine persisted as <code>failed_login_attempts</code>/<code>last_failed_at</code> columns in the account layer and as a Caffeine cache value in the IP layer. Edge semantics agree only by coincidence; drift silently breaks lockout or anti-DoS. Extract an immutable <code>FailureStreak</code> value type shared by both layers.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java + auth/AppUserDetailsService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">110-113, 35-36</td>
+              <td class="px-4 py-3">The <code>locked_until != null &amp;&amp; locked_until.isAfter(now)</code> predicate is implemented twice — primary check and documented provider backstop. A backstop only backstops if it evaluates the identical predicate; consolidate into <code>User.isLockedAt(Instant)</code>.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Low-Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">51-64</td>
+              <td class="px-4 py-3"><code>FailureBucket</code> is mutated atomically inside <code>compute</code> but read via <code>getIfPresent</code> on non-volatile fields — no happens-before edge for post-publication writes, so a concurrent burst can transiently read a stale/partial bucket. An immutable <code>FailureStreak</code> replaced wholesale in <code>compute</code> fixes it for free; otherwise mark the fields <code>volatile</code>.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">78, 103</td>
+              <td class="px-4 py-3"><code>remoteAddr != null</code> policy scattered at two guard sites. Push the null contract into <code>IpThrottleService</code> (<code>isThrottled(null)</code> → false, <code>recordFailure(null)</code> → no-op) so <code>login()</code> is branchless — pick one home.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">44-47, 72-78</td>
+              <td class="px-4 py-3">Tunables read inconsistently: <code>window()</code>/<code>maxFailures()</code> re-read from <code>AppProperties</code> per call while <code>maximumSize</code>/<code>expireAfterAccess</code> are bound once in the constructor. <code>AppProperties</code> is not refreshable — bind all four at construction.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">68-70</td>
+              <td class="px-4 py-3"><code>clear()</code> is test-only API on a production bean (exists so <code>@SpringBootTest</code> suites can reset the context-scoped singleton). Keep with the comment, or narrow honestly with a <code>// visible for testing</code> marker.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">84</td>
+              <td class="px-4 py-3">Double user lookup per login (<code>findByUsername</code>, then <code>loadUserByUsername</code> inside <code>authenticate</code>). Accepted cost — the second fetch is what makes the provider-level lock check a real backstop; noted for completeness.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep — static analysis (p/security-audit + p/default)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings — 0 results across 199 applicable rules (21 files scanned, ~100% parsed). All ticket-11 production files covered; test files excluded by .semgrepignore defaults.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-security — two-layer defense ordering, throttle keying, 429 mapping, lockout semantics</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium <span class="text-slate-400">(decided/deferred)</span></td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/AppProperties.java + resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">76-99, 45-47</td>
+              <td class="px-4 py-3">Anti-DoS invariant <code>ip-throttle.max-failures &lt; lockout.max-failures</code> — the literal mechanism behind "one IP cannot lock an account" — is comment-enforced only; an operator override silently re-enables single-source lockout. <span class="font-semibold">Decided per <code>docs/agents/reviewer-decisions.md</code>:</span> docs-only for ticket 11; startup fail-fast validation (cross-field check + <code>@Min(1)</code>/<code>@Positive</code> on thresholds) deferred to ticket 14 hardening. Not blocking.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">29-32</td>
+              <td class="px-4 py-3"><code>getRemoteAddr()</code> is only as trustworthy as the deployment: <code>forward-headers-strategy</code> without a stripping proxy makes the throttle XFF-evadable; a trusted LB without the strategy collapses all clients into one shared bucket (site-wide self-DoS at shipped defaults). Not a code defect — deserves a runbook/deployment-doc line.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginThrottledException.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Throttled attempts are invisible to the auth-event audit trail — thrown before <code>authenticate</code>, so no <code>AuthenticationFailureEvent</code> fires. Acceptable for this ticket; file as ticket-14 input (domain event or structured log on throttle).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Locked-account attempts bypass IP-throttle accounting — deliberate ("counts nowhere") and correct for not re-arming the lock; a spray against an already-locked account is unthrottled but cheap (no BCrypt).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Timing oracle: locked-account rejection skips BCrypt while bad-creds/unknown-user paths run it — lock status is timing-enumerable despite identical 401 bodies. Inherent to pre-credential lock checks; spec accepts.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Stale-entity edge: a user row deleted between <code>findByUsername</code> and <code>loadUserByUsername</code> would let <code>recordFailure</code> save a detached entity. Theoretical under the documented single-writer assumption.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Lost-update race on <code>failed_login_attempts</code> under concurrent failures — explicitly documented and accepted for demo scope.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-web — endpoint semantics, status codes, MockMvc coverage, exception mapping</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java</td>
+              <td class="px-4 py-3 font-mono text-xs">50-53</td>
+              <td class="px-4 py-3">429 handler doesn't <code>setTitle(...)</code> — the three sibling handlers do, so the 429 body is the only one without a <code>title</code> field. Consistency only; status/detail correct.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">100-107, 40-44</td>
+              <td class="px-4 py-3">Non-transactional read-modify-write on <code>failed_login_attempts</code>/<code>last_failed_at</code> can lose a count under concurrent failures — explicitly documented as an accepted demo limitation; consider atomic <code>@Modifying</code> increment or optimistic-lock retry if multi-writer ever matters.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">83-91</td>
+              <td class="px-4 py-3">Residual <code>try-catch</code> around the service call returning a generic 401 — deliberate enumeration-resistance contract (one message for every <code>AuthenticationException</code> incl. <code>LockedException</code>). Acceptable as-is; moving to advice would be equally fine.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">72-73</td>
+              <td class="px-4 py-3"><code>@PostMapping("/login")</code> has no explicit <code>consumes</code>/<code>produces</code> and returns <code>ResponseEntity&lt;?&gt;</code> — pre-existing style consistent with <code>/register</code>; not introduced by this change.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/LockoutAndThrottleApiTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">42-48</td>
+              <td class="px-4 py-3"><code>@SpringBootTest</code> with per-class <code>properties</code> creates a distinct context-cache key — intentional and necessary (different thresholds); not a violation since the ACs require the full stack.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/LockoutAndThrottleApiTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">281</td>
+              <td class="px-4 py-3"><code>seedUser</code> uses <code>Instant.now()</code> (system clock) for <code>createdAt</code> while the test world runs on <code>MutableClock</code> — harmless; <code>createdAt</code> is never asserted.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

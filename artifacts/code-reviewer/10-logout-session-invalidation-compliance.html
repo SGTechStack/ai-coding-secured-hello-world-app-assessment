@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 10-logout-session-invalidation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall: Pass</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear: Warn &middot; 0C/0H/2M/1L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep: Pass &middot; 0 findings</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-security: Pass &middot; 0C/0H/0M/2L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-web: Pass &middot; 0C/0H/0M/3L</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">10-logout-session-invalidation</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Issue #10 — logout + session invalidation (filter-chain logout, <span class="font-mono text-xs">SPRING_SESSION</span> row deletion, cookie clearing, SPA signOut). Four checks executed; findings aggregated per the code-reviewer severity mapping.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2">Check</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Findings</th>
+              <th class="px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-medium">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">1 Medium &middot; 1 Low-Medium &middot; 1 Low &middot; 1 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Correct layering — logout in the filter chain, not a controller; frontend mirrors the <code>login()</code> pattern. WARN driven by <code>LogoutTests</code> copy-pasting ~40% of its body from <code>AuthFlowTests</code> (extract a shared HTTP-seam base before tickets 11–13 regrow it) and two self-admittedly-redundant logout-handler lines that only add duplicate <code>Set-Cookie</code> noise.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0 in-diff (2 P2 pre-existing, unrelated)</td>
+              <td class="px-4 py-3 text-slate-600">0 P0/P1 across 383 rules / 259 files. Both P2s are missing-SRI warnings on prior generated report artifacts — not product code and untouched by this diff.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-security</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">2 Low &middot; 3 Info</td>
+              <td class="px-4 py-3 text-slate-600">Logout DSL verified correct end-to-end: POST-only under CSRF, true server-side <code>SPRING_SESSION</code> invalidation, cookie clearing, 200 success handler, idempotent anonymous logout. Lows: duplicate <code>CsrfLogoutHandler</code> (idempotent) and hardcoded <code>SESSION</code> cookie name.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-web</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">3 Low &middot; 3 Info</td>
+              <td class="px-4 py-3 text-slate-600">Correct endpoint semantics (200/401/403 mapping); <code>@SpringBootTest</code> + real-CSRF MockMvc justified over <code>@WebMvcTest</code> since logout has no controller. Lows: redundant <code>CsrfLogoutHandler</code>, no logout-replay idempotency test, <code>SPRING_SESSION</code> rows not cleaned between tests.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. Zero Critical or High findings across all four checks — gate verdict is <span class="font-semibold text-emerald-700">PASS</span>.</p>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide pt-2">Highest-Severity Findings Present (Medium)</h3>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li><span class="font-mono text-xs">backend/src/test/java/com/example/helloauth/LogoutTests.java</span> — ~80 of 200 lines are HTTP-seam fixture (autowired beans, <code>cleanUsers</code>, <code>seedUser</code>, <code>csrfToken</code>, <code>login</code>) copy-pasted from <code>AuthFlowTests</code>, plus a third spelling of "POST JSON with CSRF"; extract a shared <code>AuthHttpTestSupport</code> base before tickets 11–13 re-grow the same fixture (thermo-nuclear F1).</li>
+            <li><span class="font-mono text-xs">backend/.../config/SecurityConfig.java:94-103</span> — two self-admittedly-redundant lines: explicit <code>addLogoutHandler(new CsrfLogoutHandler(...))</code> duplicates the handler <code>CsrfConfigurer</code> auto-registers, and <code>deleteCookies("SESSION")</code> duplicates Spring Session's own invalidation expiry — guaranteed duplicate clearing <code>Set-Cookie</code> headers (thermo-nuclear F2, also spring-security L1, spring-web).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear — maintainability, structure, code smells</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/LogoutTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">40-58, 139-172</td>
+              <td class="px-4 py-3">Copy-pastes the entire HTTP-seam fixture from <code>AuthFlowTests</code>: identical four autowired beans, <code>VALID_PASSWORD</code>, <code>cleanUsers</code>, verbatim <code>seedUser</code>/<code>csrfToken</code>, and a <code>login</code> rewritten as a third spelling of the same "POST JSON with CSRF" flow. Extract an <code>AuthHttpTestSupport</code> base — two copies is the moment to extract, not three or four (tickets 11–13 all need this fixture).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Low-Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">94-103</td>
+              <td class="px-4 py-3">Two lines whose only effect is duplicate clearing <code>Set-Cookie</code> noise: <code>CsrfConfigurer</code> already adds a <code>CsrfLogoutHandler</code>, and Spring Session already expires <code>SESSION</code> on invalidation — both lines ship with "yes, I know it's a duplicate" comments. Delete both; tests already pin the real behavior.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/auth/auth-context.tsx, frontend/src/pages/HelloPage.tsx</td>
+              <td class="px-4 py-3 font-mono text-xs">80-91, 44-49</td>
+              <td class="px-4 py-3"><code>signOut</code> rethrows <code>apiLogout()</code>'s exception into <code>onSignOut</code>, which has no <code>catch</code> — a failed logout produces an unhandled promise rejection (state still clears, redirect still happens; purely noise). Swallow inside <code>signOut</code> or <code>try/finally</code> the caller.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/LogoutTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">308-316</td>
+              <td class="px-4 py-3"><code>sessionRowCount</code>'s <code>count == null ? 0</code> fallback is dead code — <code>queryForObject("SELECT COUNT(*) ...")</code> never returns null; unbox directly or assert on the value.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep — static analysis (p/security-audit + p/default)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings in changed code — 0 P0/P1 across 383 rules (259 files). Two P2 missing-SRI warnings are on prior generated report artifacts — pre-existing and unrelated to this diff.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-security — logout DSL, CSRF-on-logout, session invalidation, cookie clearing</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">99</td>
+              <td class="px-4 py-3">Duplicate <code>CsrfLogoutHandler</code> (cosmetic): <code>LogoutConfigurer</code> auto-registers one whenever CSRF is enabled, so the explicit add produces two handlers and two <code>XSRF-TOKEN</code> clearing headers — idempotent, no security impact. Remove for cleanliness or keep as documented intent.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">102</td>
+              <td class="px-4 py-3">Hardcoded cookie name in <code>deleteCookies("SESSION")</code> (maintainability): matches today's <code>DefaultCookieSerializer</code> default, but silently stops clearing if <code>server.servlet.session.cookie.name</code> is ever set. Derive from <code>ServerProperties</code> or cross-reference the tunable in a comment.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Context-path edge: <code>CookieClearingLogoutHandler</code> clears at <code>request.getContextPath()</code>; consistent at root today and moves together under a non-root deployment.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/auth/auth-context.tsx</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">A failed logout leaves the server session alive until natural expiry (local state still clears in <code>finally</code>) — documented, acceptable tradeoff; consider telemetry if logout failures matter for audit.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml, config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Pre-existing, out of diff scope: <code>cookie.secure: false</code> and hardcoded localhost CORS are dev-appropriate, deferred to hardening ticket 14; <code>HttpSessionEventPublisher</code>/<code>SpringAuthorizationEventPublisher</code> beans absent — revisit with ticket 11+ audit listeners.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-web — endpoint semantics, status codes, MockMvc coverage, CORS</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">96-99</td>
+              <td class="px-4 py-3">Redundant <code>CsrfLogoutHandler</code>: configurer auto-adds one when CSRF is enabled; duplicate token clear is harmless and already commented as deliberate — remove, or keep as version-drift armor.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/LogoutTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">78-90</td>
+              <td class="px-4 py-3">No logout-replay idempotency test: <code>replayedPreLogoutCookieIsRejected</code> covers GET <code>/me</code> + <code>/hello</code>, but not a second <code>POST /api/auth/logout</code> carrying the dead session cookie + fresh CSRF token — implied by <code>anonymousLogoutIsIdempotent</code>, but an explicit 200 assertion would close the loop.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/LogoutTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">50-53</td>
+              <td class="px-4 py-3"><code>SPRING_SESSION</code> rows can leak between tests: <code>logoutRequiresCsrfToken</code> deliberately leaves a live session row while <code>@BeforeEach</code> only cleans <code>userRepository</code>. Safe today (assertions filter by <code>SESSION_ID</code>), but add <code>DELETE FROM SPRING_SESSION</code> to <code>cleanUsers()</code> to harden isolation against future whole-table assertions.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Verb-named <code>/api/auth/logout</code> deviates from noun-based REST conventions, but action endpoints (<code>login</code>, <code>register</code>, <code>logout</code>, <code>csrf</code>) are the codebase's established auth-spine convention — acceptable.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../SecurityConfig.java + LogoutTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">69-71</td>
+              <td class="px-4 py-3">Cookie-path edge handled correctly: clearing at empty-context-path <code>/</code> matches the emitted <code>Path=/</code>; test asserts <code>anyMatch</code> on raw <code>Set-Cookie</code> headers, correctly validating the client-visible outcome regardless of which handler emitted it.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/auth/auth-context.tsx</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>signingOut</code> flag is never reset on failure — cosmetic; the route guard unmounts the page anyway.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

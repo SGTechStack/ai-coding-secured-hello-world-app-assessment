@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - property:
+      name: instantType
+      value: timestamp(6) with time zone
+      dbms: h2,postgresql
+  - property:
+      name: instantType
+      value: datetime(6)
+      dbms: mysql
+  - include:
+      file: 001-application.yaml
+      relativeToChangelogFile: true
+  - changeSet:
+      id: 002-spring-session-h2
+      author: hello-auth
+      dbms: h2
+      changes:
+        - sqlFile:
+            path: 001-session-h2.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: 002-spring-session-mysql
+      author: hello-auth
+      dbms: mysql
+      changes:
+        - sqlFile:
+            path: 001-session-mysql.sql
+            relativeToChangelogFile: true
+  - changeSet:
+      id: 002-spring-session-postgresql
+      author: hello-auth
+      dbms: postgresql
+      changes:
+        - sqlFile:
+            path: 001-session-postgresql.sql
+            relativeToChangelogFile: true

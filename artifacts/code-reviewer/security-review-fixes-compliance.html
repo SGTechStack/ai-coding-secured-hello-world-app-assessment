@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — security-review-fixes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: Warn</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear: Warn &middot; 0C/0H/1M/4L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep: Pass &middot; 0 P0/P1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">spring-security: Warn &middot; 0C/0H/1M/1L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">spring-web: Warn &middot; 0C/0H/1M/2L</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">security-review-fixes</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Uncommitted working tree vs HEAD — the webapp security-review remediation batch: F-01 defense-in-depth headers block (<span class="font-mono text-xs">SecurityConfig</span> CSP/Referrer-Policy/Permissions-Policy), F-02 <span class="font-mono text-xs">log-reset-link</span> prod suppression, F-04 separate anonymous per-IP request budget (<span class="font-mono text-xs">IpThrottleService</span> <span class="font-mono text-xs">SlidingWindowBucket</span> restructure + controller gates), F-06 XSRF cookie <span class="font-mono text-xs">SameSite=Lax</span>, F-08 explicit <span class="font-mono text-xs">spring.session.timeout: 30m</span>, plus request-record <span class="font-mono text-xs">@Size</span> ceilings and test coverage (~594 insertions, 22 files). Four checks executed; findings aggregated per the code-reviewer severity mapping.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2">Check</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Findings</th>
+              <th class="px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-medium">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">1 M &middot; 4 L &middot; 3 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Remediations verified correct and well-tested; the <code>SlidingWindowBucket</code> service restructure is genuinely clean. Medium: <code>password-reset/confirm</code> sits outside the anonymous-mutation bucket it documents — a token-guessing surface, though gated by a 256-bit token and generic 400s (advisory scope observation, not in the agreed fix plan). Lows: the 8-line throttle gate is copy-pasted into two controllers instead of living in <code>IpThrottleService</code>; <code>LoginThrottledException</code> naming now misdescribes non-login use; non-atomic check-then-record (accepted convention); <code>log-reset-link</code> defaults <code>true</code> outside prod.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0 P0/P1 &middot; 1 pre-existing test-only warning</td>
+              <td class="px-4 py-3 text-slate-600"><code>p/security-audit</code> + <code>p/owasp-top-ten</code> + <code>r/java.lang.security</code> (133 applicable rules on all 22 changed files, ~100% parsed, 0 errors). Zero findings on the added lines — no injection sinks, no hardcoded secrets, no weakened cookie/CSRF/session flags, no secret logging. The single warning (<code>cookie.setHttpOnly(false)</code> in <code>SecurityConfigWiringTests.java:239</code>) is pre-existing at HEAD and an intentional test fixture proving the binding applies in the false direction.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-security</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">1 M &middot; 1 L &middot; 2 Info</td>
+              <td class="px-4 py-3 text-slate-600">M-1: <code>server.forward-headers-strategy</code> is assumed by comments and the documented prod model but configured nowhere — under a TLS-terminating proxy it would strip <code>Secure</code> from the XSRF cookie, suppress HSTS, and collapse per-IP throttle buckets onto the proxy IP. <span class="font-semibold">Pre-existing deployment-config gap, not introduced by this diff</span> — intentionally left to ops (README "Deployment assumptions"; tracked as manual ops item F-07 in the webapp security report). Everything scoped is verified good: headers block, SameSite=Lax customizer, deterministic session-cookie serializer, logout chain.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-web</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">1 M &middot; 2 L</td>
+              <td class="px-4 py-3 text-slate-600">Advisory findings only — same three points as thermo-nuclear at the web layer: the duplicated anonymous-throttle gate (Low), unthrottled <code>/confirm</code> (Medium advisory — token-protected, generic 400s, out of the agreed fix scope), and <code>LoginThrottledException</code> naming (Low). The 429 propagation path, enumeration-resistant wording, and <code>@Valid</code>/<code>@Size</code> ceilings are all verified correct.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. Zero Critical or High findings across all four checks — gate verdict is <span class="font-semibold text-emerald-700">PASS</span>; the Medium/Low findings below are non-blocking follow-ups.</p>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide pt-2">Highest-Severity Findings Present (Medium)</h3>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li><span class="font-mono text-xs">backend/src/main/resources/application*.yml</span> — <code>server.forward-headers-strategy</code> never configured though comments/prod model assume it; a real deployment-facing gap already tracked as manual ops item F-07 and documented in README "Deployment assumptions" — not introduced by this diff (spring-security M-1).</li>
+            <li><span class="font-mono text-xs">backend/.../PasswordResetController.java:60-65</span> — <code>/api/auth/password-reset/confirm</code> draws from no throttle bucket; the token-guessing surface. Mitigated by 256-bit tokens + generic 400s; legitimate hardening follow-up outside the agreed fix plan (thermo-nuclear 2, spring-web advisory).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear — maintainability, structure, code smells</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">60-65</td>
+              <td class="px-4 py-3"><code>IpThrottleService</code>'s javadoc describes the anon bucket as "a blanket budget for the unauthenticated mutation endpoints," but <code>confirm</code> — an unauthenticated mutation and the token-guessing surface (SHA-256 + token-row lookup per hit; BCrypt + session mint on a live token) — is ungated while <code>/request</code> is throttled. Doc overclaims or the bucket undercovers; rate-limiting is a legitimate hardening follow-up outside the agreed fix plan (token is 256-bit, failures return generic 400s).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java + passwordreset/PasswordResetController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">75-82 / 48-55</td>
+              <td class="px-4 py-3">The anonymous-throttle gate (null-check → <code>isAnonThrottled</code> → throw <code>LoginThrottledException</code> → <code>recordAnonRequest</code>) is copy-pasted verbatim with a near-identical comment. Correctness-sensitive protocol duplicated across controllers — extract a <code>checkAnonThrottle(ip)</code> on <code>IpThrottleService</code> so each call site collapses to one line.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginThrottledException.java + ApiExceptionHandler.java</td>
+              <td class="px-4 py-3 font-mono text-xs">— / 86-90</td>
+              <td class="px-4 py-3"><code>LoginThrottledException</code> is now thrown for non-login throttling from the <code>passwordreset</code> package; handler <code>ApiExceptionHandler.loginThrottled</code> compounds the misdescription. Rename to <code>IpThrottledException</code>/<code>TooManyRequestsException</code> — cheap while the code is already being touched.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">92-104</td>
+              <td class="px-4 py-3"><code>isAnonThrottled</code> + <code>recordAnonRequest</code> is a check-then-act pair across two <code>asMap()</code> ops — concurrent requests from one IP can both pass before either records (modest overage). Matches the login path's documented convention and the no-write-on-429 semantics; flagged so the overage is a known property, not an accident.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">76</td>
+              <td class="px-4 py-3"><code>app.password-reset.log-reset-link</code> defaults <code>true</code> and is flipped <code>false</code> only in <code>application-prod.yml:38</code>. Fail-safe shape would default <code>false</code> with dev opting in — if prod ever runs without its profile yml, plaintext bearer tokens go to logs. Prod binding is test-pinned (<code>ProdProfileTests</code>).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/{Login,Register}Request.java + passwordreset records</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>@Size</code> ceilings (64/128/254) repeated as literals across four records; a small constants holder keeps them defined once (annotation values are compile-time constants anyway).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/AuthFlowTests.java + config/SecurityConfigWiringTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">SameSite=Lax asserted at two layers (MockMvc integration vs. direct repository call) — slightly redundant but defensible: wiring vs. behavior coverage.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/AuthFlowTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>LockoutAndThrottleApiTests</code> extracted <code>registerJson(...)</code>; <code>AuthFlowTests</code> still builds the same JSON with <code>+</code> concatenation inline. Test-only inconsistency.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep — static analysis (p/security-audit + p/owasp-top-ten + r/java.lang.security)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/config/SecurityConfigWiringTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">239</td>
+              <td class="px-4 py-3"><code>java.lang.security.audit.cookie-missing-httponly</code> — <span class="font-semibold">pre-existing at HEAD (line 214), not introduced by this diff</span>. Test fixture deliberately sets <code>httpOnly=false</code> to prove the session-cookie customizer applies the configured value in the false direction (adjacent comment explains). Intentional, test-only, no runtime impact.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">all 22 changed files</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Zero findings on added lines — no injection sinks, credential/secret hardcoding, weakened cookie/CSRF/session flags, or secret logging in the new code. 133 applicable rules, ~100% parsed, 0 scan errors. (<code>--baseline-commit</code> was unusable on this Windows/MSYS setup; the 22 changed files were scanned as explicit targets and each finding checked against the diff hunks.)</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-security — security config, headers, cookie flags, proxy model</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml / application-prod.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">M-1:</span> <code>server.forward-headers-strategy</code> is assumed by comments (<code>SecurityConfig</code> csrfTokenRepository javadoc ~221-224; <code>IpThrottleService.java:46-49</code>) and the documented prod model but configured nowhere. Under a TLS-terminating proxy: XSRF cookie loses <code>Secure</code>, HSTS never emits, and per-IP throttle buckets collapse onto the proxy IP. <span class="font-semibold">Pre-existing gap, not introduced by this diff</span> — intentionally a deployment decision (README "Deployment assumptions"; ops item F-07 in the webapp security report).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">76</td>
+              <td class="px-4 py-3"><code>log-reset-link: true</code> is the base default; prod flips it <code>false</code> (<code>application-prod.yml:38</code>) and tests pin the prod binding. Inverting the default would be the fail-safe shape.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">20</td>
+              <td class="px-4 py-3"><code>spring.session.timeout: 30m</code> now pinned explicitly (F-08) — matches the framework default; verified good, listed for completeness.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">88-94</td>
+              <td class="px-4 py-3">HSTS relies on the default writer (emitted only for <code>isSecure()</code> requests) — correct under the documented proxy model; same root cause as M-1. The new CSP/Referrer-Policy/Permissions-Policy block is correct for a JSON-only API.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-web — controller layer, throttling, exception mapping, validation</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">60-65</td>
+              <td class="px-4 py-3"><code>POST /api/auth/password-reset/confirm</code> is unthrottled — the token-guessing surface (hash + lookup per hit, BCrypt + session mint on a live token) while <code>/request</code> draws from the anon budget. Mitigated: 256-bit tokens, generic 400s. Legitimate hardening follow-up, not in the agreed security-fix plan — advisory scope observation.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/AuthController.java + passwordreset/PasswordResetController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">75-82 / 48-55</td>
+              <td class="px-4 py-3">Duplicated anonymous-throttle gate across two controllers (~8 lines + near-identical comment). Belongs in <code>IpThrottleService.checkAnonThrottle(ip)</code>; extraction also makes gating <code>/confirm</code> a one-liner.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/auth/LoginThrottledException.java + ApiExceptionHandler.java</td>
+              <td class="px-4 py-3 font-mono text-xs">— / 86-90</td>
+              <td class="px-4 py-3">Exception now crosses the login boundary (thrown for password-reset throttling, imported from <code>auth</code> into <code>passwordreset</code>); the <code>loginThrottled</code> handler name compounds it. Rename folds in cheaply with the gate extraction.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

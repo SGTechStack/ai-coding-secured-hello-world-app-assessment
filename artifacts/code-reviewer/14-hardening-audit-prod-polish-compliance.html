@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 14-hardening-audit-prod-polish</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall: Pass</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear: Pass &middot; 0C/0H/0M/0L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep: Pass &middot; 0 P0/P1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-security: Pass &middot; 0C/0H/0M/3L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-web: Pass &middot; 0C/0H/0M/4L</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">14-hardening-audit-prod-polish</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Issue #14 — hardening: audit logs, prod profile, polish (new <span class="font-mono text-xs">audit/</span> package: <span class="font-mono text-xs">AuditLogger</span> + <span class="font-mono text-xs">AuditAuthenticationEvents</span> emitting credential-free JSON via a dedicated <span class="font-mono text-xs">logback-spring.xml</span> Logstash channel; <span class="font-mono text-xs">application-prod.yml</span> with Secure cookies, H2 console off, fail-closed env-driven CORS, and <span class="font-mono text-xs">ProdAdminCredentialsValidator</span> fail-fast; <span class="font-mono text-xs">SecurityTunablesValidator</span> throttle&lt;lockout invariant; reset-token housekeeping — one live token, atomic <span class="font-mono text-xs">consumeIfUnused</span>, scheduled <span class="font-mono text-xs">PasswordResetTokenJanitor</span>; shared <span class="font-mono text-xs">ApiTestSupport</span> test refactor; frontend <span class="font-mono text-xs">BrandMark</span>/theme polish). Four checks executed against the uncommitted working tree vs HEAD <span class="font-mono text-xs">a6998f7</span>; thermo-nuclear was re-run after a correction pass that resolved its initial CHANGES REQUESTED (three blockers, all verified fixed). Findings aggregated per the code-reviewer severity mapping.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2">Check</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Findings</th>
+              <th class="px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-medium">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0 C/H/M/L &middot; 4 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Post-fix re-check APPROVE (<code>mvn -o test</code>: 153 tests green). All three prior blockers verified fixed: audit emission inside <code>@Transactional</code> now defers to <code>TransactionSynchronization.afterCommit</code> (proven with a real <code>DataSourceTransactionManager</code> over H2 — rollback writes nothing), test-fixture duplication extracted to shared <code>ApiTestSupport</code> (10 suites extend it; ~577 deleted / ~323 added), and <code>cleanup-interval</code> is single-sourced in <code>application.yml</code> with the dead binding replaced by an explanatory NOTE. Full-diff sweep clean — atomic consume closes the TOCTOU at the DB layer, validators correctly separated, no spaghetti growth, no boundary leaks. Residuals are cosmetic nits only.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0 P0/P1 &middot; 1 documented false positive &middot; 6 P2 out of scope</td>
+              <td class="px-4 py-3 text-slate-600"><code>p/security-audit</code> + <code>p/default</code> (362–383 rules, 298 tracked targets plus explicit scan of all 36 in-scope paths including untracked files; ~100% parsed, 0 errors). New audit/prod-profile/janitor code has zero findings — no hardcoded secrets, no credential/token logging, no injection hits. The single in-scope warning (<code>cookie.setHttpOnly(false)</code> in a wiring test) is a confirmed false positive — the false leg deliberately exercises the binding; prod pins <code>http-only: true</code>. The 6 P2s are SRI <code>integrity</code> warnings on prior generated compliance-report artifacts, not application code.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-security</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">3 Low &middot; 3 Info</td>
+              <td class="px-4 py-3 text-slate-600">Every scoped control verified in code and by a fresh test run (27/27 green across the five ticket-14 suites). Audit logging covers every required event with no credential material — reasons mapped to a stable closed vocabulary, never exception text; the secrets-absence invariant is pinned by <code>noAuditLineContainsPasswordOrTokenMaterial</code>. Prod profile is correct and fail-closed (Secure cookie, H2 off, blank-default CORS &rarr; empty list, missing admin creds fail boot before the seeder). Tunables invariant enforced in all profiles; all three token-housekeeping parts sound and test-pinned. Lows: validator checks presence not strength, no explicit security-headers block, stale persistence-context nit.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-web</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">4 Low &middot; 3 Info &middot; 2 Nit</td>
+              <td class="px-4 py-3 text-slate-600">No web-layer contract changed; what the diff adds is correct at the right seams — <code>@Transactional</code> request/confirm with atomic claim + sibling invalidation, proxied <code>@Scheduled</code> janitor with injected <code>Clock</code>, constructor-throw validators ordering correctly before <code>AdminSeeder</code>, env-driven CORS fail-closed, stateless audit plumbing. Test approach verified (ListAppender wiring assertions, repository-seam atomic-claim proof, real <code>Set-Cookie</code> Secure flag, command-line-args precedence for missing-creds boot failure). Lows: <code>clearAutomatically</code>/expiry-predicate hardening on the claim query, fail-closed CORS untested, ordering-only tunables check.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. Zero Critical or High findings across all four checks — gate verdict is <span class="font-semibold text-emerald-700">PASS</span>.</p>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide pt-2">Highest-Severity Findings Present (Low)</h3>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li><span class="font-mono text-xs">backend/.../PasswordResetTokenRepository.java:27-34</span> — the <code>@Modifying</code> claim/invalidation queries lack <code>clearAutomatically = true</code> and the claim WHERE clause doesn't re-check <code>expiresAt</code>; both safe today but cheap defense-in-depth (spring-web 1–2, spring-security 5).</li>
+            <li><span class="font-mono text-xs">backend/.../ProdAdminCredentialsValidator.java</span> — checks presence, not strength: a non-blank but weak <code>APP_ADMIN_PASSWORD</code> boots fine (seeder only warns below <code>password-min-length</code>); admin email also unchecked (spring-security rec 2, spring-web 4).</li>
+            <li><span class="font-mono text-xs">backend/.../ProdProfileTests.java</span> — nothing asserts the fail-closed CORS claim: every prod test supplies origins, so unset <code>APP_CORS_ALLOWED_ORIGINS</code> &rarr; zero allowed origins is unverified (spring-web 3).</li>
+            <li><span class="font-mono text-xs">backend/.../SecurityTunablesValidator.java</span> — ordering-only check; a negative or zero <code>max-failures</code> passes the <code>&lt;</code> test — validate positive bounds while fail-fast is cheap (spring-web 5).</li>
+            <li><span class="font-mono text-xs">backend/.../SecurityConfig.java</span> — no explicit CSP/Referrer-Policy/Permissions-Policy; consistent with the documented TLS-terminating-proxy model but worth a prod headers block if the app ever faces browsers directly (spring-security rec 4).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear — maintainability, structure, code smells (post-fix re-check)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/PasswordResetTokenJanitor.java</td>
+              <td class="px-4 py-3 font-mono text-xs">39-40</td>
+              <td class="px-4 py-3"><code>@Scheduled</code> embeds a <code>:PT1H</code> placeholder default duplicated across <code>fixedDelayString</code>/<code>initialDelayString</code> — reachable only if the yml key is deleted entirely; standard idiom, but dropping the default would make <code>application.yml</code> the literal single source.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/pages/*.tsx (six page components)</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">The <code>bg-linear-to-b from-primary/10 via-background to-background</code> main-class string is repeated identically across six pages — a shared page-shell constant/component would dedup it. Cosmetic; matches the pre-existing repetition pattern.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/audit/AuditLogger.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>fields.put("event", event)</code> appends <code>event</code> last in JSON field order — cosmetic.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/audit/AuditLoggerTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Re-implements the ListAppender/marker idiom that <code>EmailServiceTests</code> already uses (javadoc acknowledges it); if a third suite needs it, extract a logback test helper.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep — static analysis (p/security-audit + p/default)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/config/SecurityConfigWiringTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">210</td>
+              <td class="px-4 py-3"><code>java.lang.security.audit.cookie-missing-httponly</code> — <span class="font-semibold">confirmed false positive.</span> Test fixture deliberately sets <code>httpOnly=false</code> to prove the customizer applies the configured value (serializer default is <code>true</code>, so only the false leg exercises the binding; justification in comment at line 208). Production config pins <code>http-only: true</code> in <code>application.yml:28</code>. No code change required.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">artifacts/code-reviewer/{08,09,10,11,12,13}-*.html</td>
+              <td class="px-4 py-3 font-mono text-xs">6</td>
+              <td class="px-4 py-3">6 &times; <code>html.security.audit.missing-integrity</code> (WARNING) — <code>&lt;script&gt;</code>/<code>&lt;link&gt;</code> tags missing SRI <code>integrity</code> attributes on pre-existing compliance-report artifacts. Out of ticket-14 scope; not modified by this task. (All other in-scope code — audit package, prod profile, janitor, validators, new tests — zero findings.)</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-security — audit channel safety, prod profile, startup validators, token housekeeping</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/ProdAdminCredentialsValidator.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 2:</span> Checks presence, not strength — a non-blank but weak <code>APP_ADMIN_PASSWORD</code> boots fine; <code>AdminSeeder</code> only warns when it's under <code>app.password-min-length</code>. Enforcing the length rule inside the prod validator would make the fail-fast complete.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 4:</span> No explicit CSP/Referrer-Policy/Permissions-Policy; HSTS relies on the default (emitted only for HTTPS requests — correct under the documented TLS-terminating proxy + <code>forward-headers</code> assumption). Worth an explicit prod headers block if the app ever faces browsers directly.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/PasswordResetTokenRepository.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 5:</span> The <code>@Modifying</code> bulk updates leave the fetched <code>PasswordResetToken</code> entity stale (<code>used_at</code> still null in memory). Harmless today — only <code>getUser()</code> is read afterward — but <code>clearAutomatically = true</code> would be defensive.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 1:</span> Secure posture is opt-in — base config keeps <code>secure=false</code> and a localhost CORS default; hardening requires <code>SPRING_PROFILES_ACTIVE=prod</code>. Acceptable for this demo; secure-by-default (prod values in base, dev overrides in <code>application-dev.yml</code>) would invert the risk.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application-prod.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 3:</span> Prod still runs in-memory H2 + <code>ddl-auto: create-drop</code> (base datasource unchanged) — sessions/users vanish on restart. Inherent demo limitation; fine for the assessment.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 6:</span> <code>SpringAuthorizationEventPublisher</code>/<code>HttpSessionEventPublisher</code> are not wired — authorization/session-lifecycle audit isn't in the ticket's event list, so this is a note, not a gap.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-web — transactionality, scheduling, validators, CORS wiring, test strategy</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/PasswordResetTokenRepository.java</td>
+              <td class="px-4 py-3 font-mono text-xs">27-34</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 1:</span> <code>consumeIfUnused</code>/<code>invalidateOutstandingForUser</code> are <code>@Modifying</code> without <code>clearAutomatically</code> — safe today only because <code>resetToken</code> is never mutated after the bulk updates; a future edit that dirties the loaded entity would silently re-write <code>used_at</code>. Add <code>clearAutomatically = true</code> or an explicit comment pinning the invariant.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/PasswordResetTokenRepository.java</td>
+              <td class="px-4 py-3 font-mono text-xs">27-34</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 2:</span> <code>consumeIfUnused</code> doesn't re-check expiry in the WHERE clause — a token expiring between the read check and the claim could still be consumed (sub-second window, 15-min TTL). <code>and t.expiresAt &gt; :now</code> is cheap defense-in-depth.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/ProdProfileTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 3:</span> Prod fail-closed CORS untested — every prod test supplies origins; nothing asserts that unset <code>APP_CORS_ALLOWED_ORIGINS</code> yields zero allowed origins. Low risk (binder &rarr; empty list) but an inexpensive gap to close.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/SecurityTunablesValidator.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 5:</span> Checks ordering only — a negative or zero <code>max-failures</code> passes the <code>&lt;</code> test. Consider validating positive bounds too while fail-fast is cheap.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/audit/AuditLogger.java</td>
+              <td class="px-4 py-3 font-mono text-xs">129-142</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 6 (superseded):</span> Noted audit emission preceding commit inside the transaction — the subsequent correction pass moved emission to a <code>TransactionSynchronization.afterCommit</code> callback (immediate write only when no tx synchronization is active), verified by the thermo-nuclear re-check and real-transaction tests (<code>AuditLoggerTests</code>: inside-tx nothing written, afterCommit one line, <code>setRollbackOnly</code> zero lines).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/PasswordResetService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">78</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 8:</span> <code>password_reset_requested</code> logs the raw caller-supplied email at INFO — JSON encoding prevents injection and the choice is documented; noted for completeness (PII).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/PasswordResetService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">76-90</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 9:</span> Two racing <code>requestReset</code> calls can briefly leave two live tokens (both invalidations land before either insert). Acknowledged in test comments and closed on confirm; acceptable documented residual.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/ProdAdminCredentialsValidator.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 4:</span> Javadoc slightly overstates the mechanism — with <code>:</code> blank defaults the binder yields <code>""</code> (blank &rarr; throw), so literal <code>${…}</code> binding can't actually occur on this path. Behavior is correct; also doesn't check the admin email, only username/password — presumably deliberate.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/StartupConfigValidationTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Obs 7:</span> A CI environment exporting real <code>APP_ADMIN_USERNAME</code>/<code>APP_ADMIN_PASSWORD</code> would defeat the missing-creds test; if validation unexpectedly passed, the port-0 context would leak until JVM exit. Minor flake surface only.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

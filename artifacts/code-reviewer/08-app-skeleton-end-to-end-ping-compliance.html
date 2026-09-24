@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 08-app-skeleton-end-to-end-ping</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall: Pass</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear: Warn &middot; 0C/0H/1M/4L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep: Pass &middot; 0 findings</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">spring-security: Warn &middot; 0C/0H/3M/4L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-web: Pass &middot; 0C/0H/0M/5L</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">08-app-skeleton-end-to-end-ping</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Issue #08 — end-to-end ping skeleton (Spring Boot 4 backend + React/Vite frontend). Four checks executed; findings aggregated per the code-reviewer severity mapping.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2">Check</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Findings</th>
+              <th class="px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-medium">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">1 Medium &middot; 4 Low &middot; 3 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Correct layering and security wiring; dev-grade config defaults (H2 + create-drop in base profile) should move to the dev profile before they become expensive.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0</td>
+              <td class="px-4 py-3 text-slate-600">0 findings across 23 targets (383 rules run, ~100% parse). No secrets, injection, or unsafe-pattern matches.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-security</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span></td>
+              <td class="px-4 py-3">3 Medium &middot; 4 Low</td>
+              <td class="px-4 py-3 text-slate-600">Dev bypass correctly profile-gated and path-scoped; permit-all chain, hardcoded CORS, and shared-config H2 defaults are interim gaps tracked to ticket 09 / hardening.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-web</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">5 Low</td>
+              <td class="px-4 py-3 text-slate-600">Stateless controller, correct annotations, CORS scoped, tests at the right seam; only optional best-practice observations.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. Zero Critical or High findings across all four checks — gate verdict is <span class="font-semibold text-emerald-700">PASS</span>.</p>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide pt-2">Highest-Severity Findings Present (Medium)</h3>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li><span class="font-mono text-xs">backend/src/main/resources/application.yml:4-11</span> — H2 datasource + <span class="font-mono text-xs">ddl-auto: create-drop</span> in the base profile; a future non-dev profile that adds a datasource but forgets <span class="font-mono text-xs">ddl-auto</span> boots with destructive schema management (thermo-nuclear, spring-security).</li>
+            <li><span class="font-mono text-xs">backend/.../config/SecurityConfig.java:35</span> — <span class="font-mono text-xs">anyRequest().permitAll()</span> default chain; acceptable only while the surface is one GET plus health — must be replaced by the ticket-09 auth chain (spring-security).</li>
+            <li><span class="font-mono text-xs">backend/.../config/SecurityConfig.java:62</span> — CORS origin <span class="font-mono text-xs">http://localhost:3000</span> hardcoded in Java for all profiles; bind via <span class="font-mono text-xs">@ConfigurationProperties</span> so the hardening ticket is YAML-only (spring-security, thermo-nuclear).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear — maintainability, structure, code smells</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">4-11</td>
+              <td class="px-4 py-3">H2 datasource + <code>ddl-auto: create-drop</code> live in the base profile — silent-fallback boundary; move to <code>application-dev.yml</code> (fail-fast or <code>validate</code> in base).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">62</td>
+              <td class="px-4 py-3">CORS allow-list hardcoded (<code>List.of("http://localhost:3000")</code>), not externalized — bind <code>app.cors.allowed-origins</code> so hardening is YAML-only.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/lib/api.ts</td>
+              <td class="px-4 py-3 font-mono text-xs">12-17</td>
+              <td class="px-4 py-3"><code>readCookie</code> truncates values containing <code>=</code> (base64 padding); one-line fix on the seam ticket 09's CSRF flow depends on.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/lib/api.ts</td>
+              <td class="px-4 py-3 font-mono text-xs">28-32</td>
+              <td class="px-4 py-3"><code>apiFetch</code> spread order lets callers silently override <code>credentials: 'include'</code>; either reorder or fix the doc comment's guarantee.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/HelloController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">14-17</td>
+              <td class="px-4 py-3">Ad-hoc <code>Map.of("message", ...)</code> instead of a typed <code>record HelloResponse(String message)</code> matching the frontend contract.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/package.json, frontend/src/lib/utils.ts</td>
+              <td class="px-4 py-3 font-mono text-xs">13-19</td>
+              <td class="px-4 py-3">Scaffolded deps (<code>lucide-react</code>, <code>cva</code>, <code>tailwind-merge</code>, <code>clsx</code>) and <code>cn()</code> installed but unused; shadcn wired with no <code>components/ui</code> dir.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>spring.jpa.open-in-view</code> left at default (OSIV warning each boot); set <code>false</code> now.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/README.md</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Stale stock Vite template README; should describe the two-origin dev setup.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep — static analysis (p/security-audit + p/default)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings — 0 P0/P1/P2 across 23 scanned targets (383 rules, ~100% parse)</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-security — security config, profile gating, CORS/CSRF</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Warn</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">35</td>
+              <td class="px-4 py-3"><code>anyRequest().permitAll()</code> default chain — anything added before ticket 09 ships unauthenticated; acceptable only while surface is one GET + health.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">62</td>
+              <td class="px-4 py-3">CORS allowed origin hardcoded, applies to every profile, not env-driven; bind via <code>@ConfigurationProperties</code> per profile.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-amber-600">Medium</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/resources/application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">4-11</td>
+              <td class="px-4 py-3">Dev-grade datasource defaults (H2 mem, <code>sa</code>/blank password, <code>create-drop</code>) carried into all profiles; move to <code>application-dev.yml</code>.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">No explicit CSP, Referrer-Policy, or Permissions-Policy headers; add in the hardening ticket.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java + application.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">No session-management block or cookie flags (<code>secure</code>, <code>same-site</code>); required once session cookies become the auth mechanism in ticket 09.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Defense in depth: if H2 console were force-enabled outside dev, permit-all chain still permits <code>GET /h2-console/**</code>; add explicit deny matcher with ticket-09 chain.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">No <code>requiresChannel().requiresSecure()</code> and no authorization/session event publishers; required when auth audit logging arrives.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-web — controllers, REST conventions, web layer</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/{ApiSmokeTests,H2ConsoleDevProfileTests,HelloAuthApplicationTests}.java</td>
+              <td class="px-4 py-3 font-mono text-xs">19/21/6</td>
+              <td class="px-4 py-3"><code>@SpringBootTest</code> used where <code>@WebMvcTest</code> is the skill default — defensible (actuator + second filter chain need full context); documented trade-off.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">Context-cache fragmentation across test classes (differing annotations force ≥2 context loads); consolidate via shared base class as suite grows.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../HelloController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">14</td>
+              <td class="px-4 py-3">No explicit <code>produces = MediaType.APPLICATION_JSON_VALUE</code> on <code>GET /api/hello</code>; optional tightening of the contract.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../HelloController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">15-16</td>
+              <td class="px-4 py-3"><code>Map.of(...)</code> instead of named DTO — contract invisible to generated docs/clients; a <code>record HelloResponse(String message)</code> costs little.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/.../config/SecurityConfig.java</td>
+              <td class="px-4 py-3 font-mono text-xs">62-64</td>
+              <td class="px-4 py-3">CORS allow-list broader than current surface (PUT/PATCH/DELETE advertised, only GET exists) and origin hardcoded; acknowledged forward-looking config.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

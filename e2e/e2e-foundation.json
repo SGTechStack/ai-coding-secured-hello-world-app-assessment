@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "protected_files": [
+    {
+      "path": "playwright.config.ts",
+      "sha256": "f05100e56daa0228316e6f2c07fd27d9b5405aa8aba8e82347937c7a34df5deb"
+    },
+    {
+      "path": "package.json",
+      "sha256": "3d431251827886a375a979aadda6299409904eca6ddb0474037ad24a66a92067"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "ecad75452ee7ec3dfeed1af76c4a0dc9e421c8e574dd57b694c0e921507635b5"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "27fa7c55ee24d5aa6bc2a77855e3802d3b83c978d3ebe2c4bd265c26ee68b6f0"
+    },
+    {
+      "path": "README.md",
+      "sha256": "b8a57c60acbff7b54a9f99a7ada6cee6a2a9201db6a0bb04fb375adf54a36005"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "299cf7458155d370bde812104b66a50e322bcb1afc39a0a4810550d2aa02f111"
+    },
+    {
+      "path": "fixtures/auth.ts",
+      "sha256": "a24ead56ee8aa9e018aeb65bc318824e69c67f5a10d7a6c9c26d54b3727b40a2"
+    },
+    {
+      "path": "scripts/lifecycle.ps1",
+      "sha256": "7b6e9d4488293f4b428f35ba45b8fa5fd066e4480a3dae36280f62299da61b8e"
+    },
+    {
+      "path": "tests/foundation.smoke.spec.ts",
+      "sha256": "436ce3746c849215fd30be98ae921dd473539d869570607c0f6e174773b515be"
+    }
+  ]
+}

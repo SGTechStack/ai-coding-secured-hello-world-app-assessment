@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 13-admin-module-bootstrap-seeding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall: Pass</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear: Pass &middot; 0C/0H/0M/1L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep: Pass &middot; 0 findings</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-security: Pass &middot; 0C/0H/0M/2L</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">spring-web: Pass &middot; 0C/0H/0M/2L</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">13-admin-module-bootstrap-seeding</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Issue #13 — admin module + bootstrap seeding (new <span class="font-mono text-xs">admin/</span> package: <span class="font-mono text-xs">AdminController</span>/<span class="font-mono text-xs">AdminService</span>/<span class="font-mono text-xs">AdminSeeder</span> + record DTOs under <span class="font-mono text-xs">/api/admin/users</span>, privilege-reduction-only session invalidation via the new shared <span class="font-mono text-xs">session/SessionInvalidationService</span>, env-var-driven BCrypt seeder with idempotence/collision/blank guards, <span class="font-mono text-xs">AdminPage</span> + <span class="font-mono text-xs">RequireAdmin</span> SPA guard). Four checks executed against the uncommitted working tree vs HEAD <span class="font-mono text-xs">554813b</span>; findings aggregated per the code-reviewer severity mapping.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2">Check</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Findings</th>
+              <th class="px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-medium">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">1 Low &middot; 3 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Post-fix re-check: both prior CHANGES REQUESTED items verified resolved — session purge extracted to the single canonical <code>session/SessionInvalidationService.invalidateAllFor</code> (consumed by <code>AdminService</code> ×3 and <code>PasswordResetService</code>), and <code>RequireAdmin</code> composes <code>RequireAuth</code> via a shared <code>SessionRestoring</code> shell with no duplicated loading markup. Guard logic centralized in <code>requireOtherAccount</code>, privilege-reduction-only invalidation uniformly applied and documented, explicit type boundaries (<code>@NotNull Boolean</code>, <code>Role</code> enum), atomic delete ordering, correctly ordered seeder guards. Lows/Nits: <code>api.ts</code> response-unwrap boilerplate (~10 copies), a cosmetic javadoc wrap, defensive <code>user?.role</code> in <code>AdminOnly</code>, <code>seedAdminIfAbsent</code> public as a test seam. All polish, no debt.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">0 findings in changed code (0 P0/P1); 5 P2 in pre-existing artifacts</td>
+              <td class="px-4 py-3 text-slate-600">0 results across <code>p/security-audit</code> + <code>p/default</code> (383 rules, 296 targets, ~100% parsed) plus a targeted scan of the two new test classes (165 rules, 2 targets). All ticket-13 files covered; dev seed credentials are documented dev-profile-only defaults behind env overrides (base <code>application.yml</code> is blank &rarr; fail-closed), seeder BCrypt-hashes, DTO never exposes <code>passwordHash</code>. The 5 P2s are SRI <code>integrity</code> warnings on prior generated compliance-report HTML — not application code.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-security</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">2 Low &middot; 4 Info</td>
+              <td class="px-4 py-3 text-slate-600">Every scoped control verified in code and by test run (20/20 green): <code>/api/admin/**</code> <code>hasRole("ADMIN")</code> predates the diff (unchanged, ordered before <code>anyRequest().authenticated()</code>), self-action rejection centralized in <code>requireOtherAccount</code> on all three mutations, session invalidation on disable/demote/delete via the shared service (proven by replayed-cookie &rarr; 401), env-var creds + BCrypt + role-keyed idempotence + collision/blank guards in the seeder, dev defaults unreachable outside <code>dev</code>, CSRF enforced, no hashes in the list DTO. Lows: seeder check-then-act boot race; blank <code>APP_ADMIN_EMAIL</code> edge. Info only: <code>@PreAuthorize</code> defense-in-depth, audit-trail gap already deferred to ticket 14.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-medium">spring-web</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span></td>
+              <td class="px-4 py-3">2 Low &middot; 3 Info &middot; 1 Nit</td>
+              <td class="px-4 py-3 text-slate-600">Stateless controller on plural-noun <code>/api/admin/users</code> with correct verb semantics (GET&rarr;200, PATCH&rarr;200 DTO, DELETE&rarr;204), record DTOs only at the boundary, <code>@Valid</code>/<code>@NotNull</code> bodies, centralized RFC 7807 advice (<code>SelfAction</code>&rarr;400, <code>UserNotFound</code>&rarr;404, bad enum&rarr;400 via binding), <code>@Transactional</code> mutations sharing the JDBC tx with session deletes, justified <code>@SpringBootTest</code>+MockMvc through the real filter chain. Lows: <code>listUsers</code> lacks <code>readOnly</code> tx and materializes the whole table (pagination candidate); seeder TOCTOU + unvalidated email. Info: explicit media types, flat <code>/api/</code> versioning decision, two-context test cost. Nit: <code>run(null)</code> in seeding tests.</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. Zero Critical or High findings across all four checks — gate verdict is <span class="font-semibold text-emerald-700">PASS</span>.</p>
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide pt-2">Highest-Severity Findings Present (Low)</h3>
+          <ul class="list-disc list-inside text-sm text-slate-600 space-y-1">
+            <li><span class="font-mono text-xs">frontend/src/lib/api.ts</span> — the <code>if (!response.ok) throw new ApiError(...)</code> + <code>response.json()</code> unwrap is now repeated ~10 times; the four admin calls added four more copies. A <code>unwrapJson&lt;T&gt;(response)</code> helper would collapse each endpoint to one line (thermo-nuclear).</li>
+            <li><span class="font-mono text-xs">backend/.../admin/AdminService.java:46-50</span> — <code>listUsers</code> has no <code>@Transactional(readOnly = true)</code> and <code>findAll(Sort)</code> materializes the entire <code>users</code> table; <code>Pageable</code>/<code>Page&lt;AdminUserResponse&gt;</code> is the classic fit before user counts grow (spring-web 3.1).</li>
+            <li><span class="font-mono text-xs">backend/.../admin/AdminSeeder.java:53-105</span> — <code>existsByRole</code>/<code>existsByUsername</code>/<code>existsByEmail</code> + <code>save</code> is check-then-act; two instances cold-booting a shared empty DB both pass and the loser dies on the unique constraint. Wrapping <code>save</code> in <code>try/catch (DataIntegrityViolationException)</code> &rarr; warn-and-stand-down matches the seeder's own collision philosophy (spring-security rec 4, spring-web 3.4).</li>
+            <li><span class="font-mono text-xs">backend/.../admin/AdminSeeder.java</span> + <span class="font-mono text-xs">application-dev.yml</span> — an explicitly empty <code>APP_ADMIN_EMAIL=</code> binds <code>""</code> (the placeholder default only applies when unset) and seeds a blank-email account; add a symmetric <code>isBlank(email)</code> stand-down guard (spring-security rec 5, spring-web 3.4).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear — maintainability, structure, code smells</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/lib/api.ts</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3">The <code>if (!response.ok) throw new ApiError(status, await problemDetail(res))</code> + <code>response.json()</code> unwrap is now repeated ~10 times; the four admin calls added four more copies. A <code>unwrapJson&lt;T&gt;(response)</code> helper would collapse each endpoint to one line and delete ~15 lines. The diff follows the file's established convention, so this is a missed small simplification — worth doing before the next endpoint batch makes the pattern heavier.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">19-22</td>
+              <td class="px-4 py-3">Javadoc line-wrap splits a sentence mid-phrase ("more privilege than / the account now has"). Cosmetic.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/App.tsx</td>
+              <td class="px-4 py-3 font-mono text-xs">47</td>
+              <td class="px-4 py-3"><code>AdminOnly</code> reads <code>user?.role</code> where <code>RequireAuth</code> already guarantees a non-null user — harmless defensiveness; threading the principal down would couple the components for no real gain.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><code>seedAdminIfAbsent</code> is <code>public</code> solely as a test seam (<code>AdminSeedingTests</code> drives it directly). Acceptable; package-private would suffice if the test moved packages.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep — static analysis (p/security-audit + p/default)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings — 0 results across 383 applicable rules (296 targets, ~100% parsed) plus an explicit scan of the two new test classes (165 rules, 2 targets). All ticket-13 production and test files covered; the only P2s are 5 <code>html.security.audit.missing-integrity</code> warnings on prior generated compliance-report artifacts (pre-existing, not application code). Raw JSON retained alongside the check report.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-security — admin gating, self-action guards, session invalidation, seeder credential safety</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java</td>
+              <td class="px-4 py-3 font-mono text-xs">53-105</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 4:</span> <code>existsByRole</code>/<code>existsByUsername</code>/<code>existsByEmail</code> are non-atomic pre-checks — two instances cold-booting against a shared empty DB could both pass and one would die on the unique constraint. Standard bootstrap caveat; a <code>try/catch (DataIntegrityViolationException)</code> around <code>save</code> would match the seeder's warn-and-stand-down philosophy.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java + application-dev.yml</td>
+              <td class="px-4 py-3 font-mono text-xs">60-66, 14</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 5:</span> <code>APP_ADMIN_EMAIL=""</code> edge — an explicitly empty env var yields a blank (non-null) email on the seeded row: passes the schema but produces a malformed-looking account. Add <code>isBlank(email)</code> to the stand-down check.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 2:</span> Controller relies solely on the <code>/api/admin/**</code> URL rule — no <code>@PreAuthorize</code>/<code>@EnableMethodSecurity</code>. A future endpoint mapped outside that prefix would only require authentication, not ADMIN. Consider a class-level <code>@PreAuthorize("hasRole('ADMIN')")</code> as a second gate.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 1:</span> Seeder is property-gated, not profile-gated — intentionally the production bootstrap path, and it cannot activate without explicit credentials (blank in every non-dev profile &rarr; fail-closed). Ticket 14's <code>application-prod.yml</code> should bind the env vars with no fallback so misconfiguration fails fast.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 3:</span> No authorization audit trail — no <code>SpringAuthorizationEventPublisher</code>/<code>AuthorizationDeniedEvent</code> bean, and successful admin mutations (disable/demote/delete) emit no audit log. Issue 13 notes already defer audit logging to ticket 14 — recorded so it isn't lost.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">frontend/src/App.tsx + pages/AdminPage.tsx</td>
+              <td class="px-4 py-3 font-mono text-xs">47</td>
+              <td class="px-4 py-3"><span class="font-semibold">Rec 6:</span> <code>RequireAdmin</code> is correctly documented UX-only; the API's 403 is authoritative. <code>AdminPage</code> renders user data via JSX escaping (no <code>dangerouslySetInnerHTML</code>), disables the acting admin's own row client-side, and <code>apiFetch</code> attaches <code>X-XSRF-TOKEN</code> + <code>credentials: 'include'</code> to all mutations. No issues.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">spring-web — endpoint semantics, DTO boundary, exception mapping, test strategy</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Pass</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">
+              <th class="px-4 py-2 text-left">Severity</th>
+              <th class="px-4 py-2 text-left">File</th>
+              <th class="px-4 py-2 text-left">Line</th>
+              <th class="px-4 py-2 text-left">Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminService.java</td>
+              <td class="px-4 py-3 font-mono text-xs">46-50</td>
+              <td class="px-4 py-3"><span class="font-semibold">3.1:</span> <code>listUsers</code> has no <code>@Transactional</code> — works today (each repo call gets its own tx) but <code>readOnly = true</code> is the idiomatic marker (MANUAL flush, no dirty-checking). More importantly, <code>findAll(Sort.by("id"))</code> materializes the entire <code>users</code> table — <code>Pageable</code>/<code>Page&lt;AdminUserResponse&gt;</code> before counts grow (contract change; coordinate with <code>AdminPage.tsx</code>/<code>api.ts</code>).</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-500">Low</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java</td>
+              <td class="px-4 py-3 font-mono text-xs">53-105</td>
+              <td class="px-4 py-3"><span class="font-semibold">3.4:</span> TOCTOU between the exists-checks and <code>save</code> (concurrent boots both pass; loser dies on the unique constraint — wrap in <code>try/catch (DataIntegrityViolationException)</code>), and <code>app.admin.email</code> has no blank/format guard so <code>APP_ADMIN_EMAIL=</code> seeds an empty-email account. <code>seedAdminIfAbsent()</code> is also not <code>@Transactional</code> — fine at one write, wrap if the seed grows.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">22-24</td>
+              <td class="px-4 py-3"><span class="font-semibold">3.2:</span> No explicit <code>consumes</code>/<code>produces</code> — a <code>PATCH</code> with <code>Content-Type: text/plain</code> relies on the generic <code>HttpMediaTypeNotSupported</code> &rarr; 415 path. Class-level <code>produces = APPLICATION_JSON_VALUE</code> plus <code>consumes</code> on the PATCH mappings tightens the contract; same shape as the existing controllers.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/main/java/com/example/helloauth/admin/AdminController.java</td>
+              <td class="px-4 py-3 font-mono text-xs">—</td>
+              <td class="px-4 py-3"><span class="font-semibold">3.3:</span> No API versioning segment (e.g. <code>/api/v1/admin/users</code>) — the codebase consistently uses a flat <code>/api/</code> prefix, so this is a project-wide ratification rather than a ticket-13 defect. Flagged for awareness only.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Info</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/{AdminApiTests,AdminSeedingTests}.java</td>
+              <td class="px-4 py-3 font-mono text-xs">38-40, 29-34</td>
+              <td class="px-4 py-3"><span class="font-semibold">3.5:</span> <code>@SpringBootTest</code> + <code>@AutoConfigureMockMvc</code> over <code>@WebMvcTest</code> is a defensible, documented deviation (ticket-05 strategy) — the tests' value is the real filter chain. Caveats: <code>AdminSeedingTests</code>' <code>properties = {...}</code> forces a second heavyweight ApplicationContext, and its <code>@Order(1)</code> must observe the startup seed before <code>@AfterEach deleteAll()</code> — order-fragile by construction.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 text-slate-400">Nit</td>
+              <td class="px-4 py-3 font-mono text-xs">backend/src/test/java/com/example/helloauth/AdminSeedingTests.java</td>
+              <td class="px-4 py-3 font-mono text-xs">80-81</td>
+              <td class="px-4 py-3"><span class="font-semibold">3.6:</span> <code>adminSeeder.run(null)</code> works only because <code>run</code> ignores its argument — prefer <code>seedAdminIfAbsent()</code> (already used elsewhere in the same file) or <code>new DefaultApplicationArguments()</code> so the test doesn't depend on the parameter being unused.</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

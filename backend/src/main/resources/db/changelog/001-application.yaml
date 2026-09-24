@@ -1,0 +1,98 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-application
+      author: hello-auth
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: username
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_users_username
+              - column:
+                  name: email
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_users_email
+              - column:
+                  name: password_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: enabled
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: failed_login_attempts
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_failed_at
+                  type: ${instantType}
+              - column:
+                  name: locked_until
+                  type: ${instantType}
+              - column:
+                  name: created_at
+                  type: ${instantType}
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: password_reset_tokens
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_reset_token_user
+                    references: users(id)
+              - column:
+                  name: token_hash
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_reset_token_hash
+              - column:
+                  name: expires_at
+                  type: ${instantType}
+                  constraints:
+                    nullable: false
+              - column:
+                  name: used_at
+                  type: ${instantType}
+        - createIndex:
+            tableName: password_reset_tokens
+            indexName: ix_reset_token_user
+            columns:
+              - column:
+                  name: user_id

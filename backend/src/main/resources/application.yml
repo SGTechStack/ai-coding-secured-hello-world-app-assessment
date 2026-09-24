@@ -1,0 +1,95 @@
+spring:
+  application:
+    name: hello-auth
+  datasource:
+    url: jdbc:h2:mem:helloauth
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  sql:
+    init:
+      mode: never
+  session:
+    # Spring Session JDBC over H2 — the ratified store (ticket 02). Sessions
+    # persist in SPRING_SESSION, enabling true invalidation and per-user
+    # session enumeration (findByPrincipalName) for later tickets.
+    store-type: jdbc
+    # Pinned idle timeout (security-review F-08): 30m is also the framework
+    # default — set explicitly so the value survives default changes and the
+    # session-lifetime contract is visible in config, not implied.
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        # Set explicitly — a Boot 4.1 regression can otherwise leave SameSite
+        # unset instead of Lax (spring-boot#48830). secure=true only in the
+        # prod profile (hardening ticket).
+        same-site: lax
+        secure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# Externalized security tunables (ticket 06 decision).
+app:
+  password-min-length: 12
+  # Two-layer brute-force defense (ticket 11). ip-throttle.max-failures stays
+  # below lockout.max-failures so a single source IP can never record enough
+  # failures to lock an account — the literal anti-DoS guarantee.
+  lockout:
+    max-failures: 5
+    window: 10m
+    cooldown: 15m
+  ip-throttle:
+    max-failures: 4
+    # anon-max-requests (security-review F-04): per-IP budget for the
+    # unauthenticated mutations (register, password-reset/request) — a
+    # second, independent bucket counting every hit, sharing the window
+    # and max-entries below.
+    anon-max-requests: 20
+    window: 10m
+    max-entries: 10000
+  # Single-use reset tokens (ticket 12): 32-byte SecureRandom, only the
+  # SHA-256 hash is stored, lifetime inside the spec's 15–30 min bound. The
+  # stubbed EmailService logs link-base-url?token=<token> — no SMTP exists.
+  # cleanup-interval (ticket 14): cadence of the scheduled purge that deletes
+  # consumed/expired token rows. log-reset-link (security-review F-02): the
+  # link line carries the plaintext token — a live bearer credential — so
+  # the prod profile sets it false and the stub logs a token-free
+  # suppressed-delivery line instead.
+  password-reset:
+    token-ttl: 15m
+    link-base-url: http://localhost:3000/reset-password
+    cleanup-interval: 1h
+    log-reset-link: true
+  # Initial-admin bootstrap (ticket 13). Credentials come from the
+  # APP_ADMIN_* env vars; blank means "not configured" and nothing is
+  # seeded. The dev profile ships documented defaults; the prod profile
+  # (ticket 14) requires the env vars outright so a missing config fails
+  # fast rather than leaving no way into /api/admin/**.
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}
+  # CORS allow-list for the credentialed SPA origin(s) (ticket 14). The
+  # dev/local default is the Vite origin; the prod profile binds
+  # APP_CORS_ALLOWED_ORIGINS (comma-separated) with a blank default —
+  # an unset list permits no origins (fail-closed).
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}

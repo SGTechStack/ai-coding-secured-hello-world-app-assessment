@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Outlet, useNavigate } from "@tanstack/react-router";
-import { LockKeyhole } from "lucide-react";
+import { Link, Outlet, useNavigate } from "@tanstack/react-router";
+import { LockKeyhole, UsersRound } from "lucide-react";
 import { logout, meQueryOptions } from "../api/auth";
 import { ErrorAlert } from "./ErrorAlert";
 import { LogoutButton } from "./LogoutButton";
 import { ModeToggle } from "./mode-toggle";
+import { Button } from "@/components/ui/button";
 
 /**
- * Every page: a slim header with the brand on the left and, on the right, Log out (only while a
- * session profile is cached) next to the theme toggle; content centred below. A failed logout
+ * Every page: a slim header with the brand on the left and, on the right, Admin (only when the
+ * cached profile is an admin's) and Log out (only while a session profile is cached) next to the
+ * theme toggle; content centred below. A failed logout
  * leaves the user where they are, with an alert directly below the header until they try again.
  */
 export function AppShell() {
@@ -35,6 +37,14 @@ export function AppShell() {
           Simple Login
         </div>
         <div className="flex items-center gap-2">
+          {me?.role === "ADMIN" && (
+            <Button variant="ghost" asChild>
+              <Link to="/admin/users">
+                <UsersRound aria-hidden />
+                Admin
+              </Link>
+            </Button>
+          )}
           {me && (
             <LogoutButton
               onClick={() => logoutMutation.mutate()}

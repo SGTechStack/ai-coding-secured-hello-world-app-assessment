@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { meQueryOptions, type UserProfile } from "./api/auth";
 import { AppShell } from "./components/AppShell";
+import { AdminUsersPage } from "./routes/AdminUsersPage";
 import { LandingPage } from "./routes/LandingPage";
 import { LoginPage } from "./routes/LoginPage";
 import { RegisterPage } from "./routes/RegisterPage";
@@ -65,10 +66,26 @@ const registerRoute = createRoute({
   component: RegisterPage,
 });
 
+/**
+ * Only for admins: no session goes to `/login`, and a signed-in non-admin to the landing page, so
+ * neither ever sees a broken admin screen. The API enforces the role on its own.
+ */
+const adminUsersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/users",
+  beforeLoad: async ({ context }) => {
+    const session = await currentSession(context);
+    if (!session) throw redirect({ to: "/login" });
+    if (session.role !== "ADMIN") throw redirect({ to: "/" });
+  },
+  component: AdminUsersPage,
+});
+
 const routeTree = rootRoute.addChildren([
   landingRoute,
   loginRoute,
   registerRoute,
+  adminUsersRoute,
 ]);
 
 export function createAppRouter({

@@ -1,4 +1,5 @@
 import { http, HttpResponse } from "msw";
+import type { AdminUser } from "../api/admin";
 import type { UserProfile } from "../api/auth";
 import { API_BASE_URL } from "../api/client";
 
@@ -8,6 +9,35 @@ export const demoUser: UserProfile = {
   role: "USER",
 };
 export const csrfToken = "test-xsrf-token";
+
+/** The bootstrap admin's profile, as `/me` reports it. */
+export const adminProfile: UserProfile = {
+  username: "admin",
+  firstName: "Admin",
+  role: "ADMIN",
+};
+
+/** The admin user list the default handler returns, oldest first. */
+export const adminUsers: AdminUser[] = [
+  {
+    id: 1,
+    username: "johndoe",
+    email: "johndoe@example.com",
+    firstName: "John",
+    role: "USER",
+    enabled: true,
+    createdAt: "2026-01-15T09:30:00Z",
+  },
+  {
+    id: 2,
+    username: "admin",
+    email: "admin@example.com",
+    firstName: "Admin",
+    role: "ADMIN",
+    enabled: true,
+    createdAt: "2026-01-16T10:00:00Z",
+  },
+];
 
 /**
  * The absolute URL of an API path. The API is cross-origin (jsdom runs on localhost:3000), so
@@ -46,6 +76,7 @@ export const handlers = [
     api("/api/v1/auth/logout"),
     () => new HttpResponse(null, { status: 204 }),
   ),
+  http.get(api("/api/v1/admin/users"), () => HttpResponse.json(adminUsers)),
   // Anonymous by default; tests with a live session override this with demoUser.
   http.get(api("/api/v1/auth/me"), () =>
     HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),

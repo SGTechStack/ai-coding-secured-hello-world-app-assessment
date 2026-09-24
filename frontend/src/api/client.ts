@@ -232,14 +232,39 @@ export async function confirmPasswordReset(token: string, newPassword: string): 
   return body.message;
 }
 
+/**
+ * Note `maskedEmail`, not `email`. The listing endpoint no longer returns full
+ * addresses: one request used to hand over every registered address in the
+ * system, which is the entire personal-data holding, to any admin, as the
+ * default payload of the user-management screen.
+ *
+ * The masked form (`s****@example.com`) keeps the one legitimate use — telling
+ * two similarly-named accounts apart before acting irreversibly on the wrong
+ * one. The real address comes from {@link fetchUserEmail}, one account at a
+ * time, with a stated purpose.
+ */
 export interface AdminUserSummary {
   id: string;
   username: string;
-  email: string;
+  maskedEmail: string;
   role: UserRole;
   enabled: boolean;
   createdAt: string;
 }
+
+export interface UserEmailResponse {
+  id: string;
+  username: string;
+  email: string;
+  purpose: string;
+}
+
+/**
+ * Header carrying a re-entered password for an irreversible action. Kept in one
+ * place so both callers spell it identically; a typo here would read as a
+ * missing header and be refused, which is at least a safe failure.
+ */
+const CONFIRM_PASSWORD_HEADER = "X-Confirm-Password";
 
 /**
  * Lists all registered users. Admin-only: throws {@link ApiError} with a
@@ -301,14 +326,138 @@ export async function setUserRole(userId: string, role: UserRole): Promise<Admin
 }
 
 /**
- * Deletes another user's account. Throws {@link ApiError} (400) if the
- * target is the caller's own account.
+ * Reveals one user's full email address, for a stated purpose.
+ *
+ * The purpose is required by the server and recorded in an audit row. Passing a
+ * placeholder would satisfy the type and defeat the point, so the UI asks the
+ * operator for it rather than inventing one.
+ *
+ * Throws {@link ApiError} (400) if the purpose is blank.
  */
-export async function deleteUser(userId: string): Promise<void> {
+export async function fetchUserEmail(userId: string, purpose: string): Promise<UserEmailResponse> {
+  const query = new URLSearchParams({ purpose });
+
+  const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/email?${query}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.json() as Promise<UserEmailResponse>;
+}
+
+/**
+ * Deletes another user's account.
+ *
+ * Requires the acting admin's current password, sent in a header: a session
+ * proves somebody authenticated hours ago, not that this request came from them,
+ * and this action cannot be undone.
+ *
+ * Throws {@link ApiError} for a self-target (400), a missing or wrong
+ * confirmation (403), or an attempt to remove the last enabled admin (409).
+ */
+export async function deleteUser(userId: string, confirmationPassword: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
     method: "DELETE",
     credentials: "include",
-    headers: await csrfHeader(),
+    headers: {
+      ...(await csrfHeader()),
+      [CONFIRM_PASSWORD_HEADER]: confirmationPassword,
+    },
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+}
+
+export interface PrivacyNotice {
+  controller: string;
+  contact: string;
+  lawfulBasis: string;
+  dataCollected: string[];
+  retention: string[];
+  rights: string[];
+  lastUpdated: string;
+}
+
+/**
+ * Fetches the privacy notice. Unauthenticated, because the person deciding
+ * whether to hand over an email address has not registered yet.
+ */
+export async function fetchPrivacyNotice(signal?: AbortSignal): Promise<PrivacyNotice> {
+  const response = await fetch(`${API_BASE_URL}/api/privacy-notice`, {
+    method: "GET",
+    credentials: "include",
+    signal,
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.json() as Promise<PrivacyNotice>;
+}
+
+/**
+ * Downloads everything the backend holds about the signed-in account.
+ *
+ * Returns the parsed document so the caller can both show a summary and offer it
+ * as a file. The server also sets `Content-Disposition`, but a `fetch` ignores
+ * that — saving the file is the client's job here, done in
+ * {@link triggerAccountDataDownload}.
+ */
+export async function exportMyAccountData(): Promise<unknown> {
+  const response = await fetch(`${API_BASE_URL}/api/account/export`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    return parseErrorResponse(response);
+  }
+
+  return response.json() as Promise<unknown>;
+}
+
+/**
+ * Saves an exported document to the user's disk.
+ *
+ * The object URL is revoked immediately after the click. Without that the blob —
+ * a full copy of the user's personal data — stays resident in the tab for as long
+ * as the page is open.
+ */
+export function triggerAccountDataDownload(data: unknown, filename = "my-account-data.json"): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Erases the signed-in account and its data. Irreversible, so the password is
+ * required.
+ *
+ * Throws {@link ApiError} for a missing or wrong confirmation (403), or when the
+ * caller is the last enabled admin (409) — the system cannot be left with nobody
+ * able to administer it.
+ */
+export async function eraseMyAccount(confirmationPassword: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/account`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      ...(await csrfHeader()),
+      [CONFIRM_PASSWORD_HEADER]: confirmationPassword,
+    },
   });
 
   if (!response.ok) {

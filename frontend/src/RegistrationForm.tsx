@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, register, type RegistrationResponse } from "./api/client";
+import { PrivacyNoticeSummary } from "./PrivacyNoticeSummary";
 
 const MIN_PASSWORD_LENGTH = 12;
 
@@ -69,9 +70,19 @@ export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
           required
           minLength={3}
           maxLength={64}
+          // Mirrors the server's allow-list so the rejection arrives before the
+          // round trip. Convenience only — the server validates independently,
+          // because this attribute is trivially bypassed and the reason for the
+          // restriction (a username ends up in audit records, where a newline
+          // would let its owner forge log lines) is a server-side concern.
+          pattern="[A-Za-z0-9._\-]+"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          aria-describedby="username-hint"
         />
+        <p id="username-hint" className="field-hint">
+          Letters, digits, dots, underscores and hyphens.
+        </p>
       </div>
 
       <div className="field">
@@ -117,6 +128,14 @@ export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
           )}
         </div>
       )}
+
+      {/*
+        Above the submit button, not below it and not on a separate page. This is
+        the point of collection: the person deciding whether to hand over an email
+        address has to be able to read what it is for before they decide, not
+        after.
+      */}
+      <PrivacyNoticeSummary />
 
       <button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Registering…" : "Register"}

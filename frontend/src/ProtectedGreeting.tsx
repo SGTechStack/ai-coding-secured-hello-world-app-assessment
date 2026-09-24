@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchGreeting, isAbortError, logout, type UserRole } from "./api/client";
+import { AccountDataPanel } from "./AccountDataPanel";
 import { AdminUserList } from "./AdminUserList";
 
 interface ProtectedGreetingProps {
@@ -87,6 +88,19 @@ export function ProtectedGreeting({ username, role, onLoggedOut }: ProtectedGree
           <AdminUserList currentUsername={username} />
         </div>
       )}
+
+      {/*
+        Shown to every role, admins included: an admin is a data subject with the
+        same rights over their own account as anyone else, which is why
+        ACCOUNT_SELF_MANAGE is mapped to USER and reaches ADMIN through the role
+        hierarchy rather than being granted separately.
+
+        Erasure ends the session, so this reuses the same callback as logout —
+        the account is gone and there is nothing left to render.
+      */}
+      <div className="card">
+        <AccountDataPanel onErased={onLoggedOut} />
+      </div>
     </>
   );
 }

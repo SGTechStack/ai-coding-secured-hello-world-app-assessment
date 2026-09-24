@@ -28,6 +28,9 @@ public class AuditLog {
   /** The actor when nobody is signed in. */
   public static final String ANONYMOUS = "anonymous";
 
+  /** The actor, and the {@code ip}, of an event the application itself performs at startup. */
+  public static final String SYSTEM = "system";
+
   private static final Logger LOG = LoggerFactory.getLogger("AUDIT");
 
   private static final Pattern UNSAFE = Pattern.compile("[\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}]");
@@ -43,10 +46,22 @@ public class AuditLog {
    */
   public void record(
       AuditEvent event, String actor, HttpServletRequest request, Map<String, ?> fields) {
+    write(event, actor == null ? ANONYMOUS : actor, request.getRemoteAddr(), fields);
+  }
+
+  /**
+   * Records {@code event} performed by the application itself, outside any request (e.g. the
+   * admin bootstrap): {@code actor} and {@code ip} are both {@link #SYSTEM}.
+   */
+  public void recordSystem(AuditEvent event, Map<String, ?> fields) {
+    write(event, SYSTEM, SYSTEM, fields);
+  }
+
+  private void write(AuditEvent event, String actor, String ip, Map<String, ?> fields) {
     Map<String, String> pairs = new LinkedHashMap<>();
     pairs.put("event", event.name());
-    pairs.put("actor", actor == null ? ANONYMOUS : neutralise(actor));
-    pairs.put("ip", neutralise(request.getRemoteAddr()));
+    pairs.put("actor", neutralise(actor));
+    pairs.put("ip", neutralise(ip));
     pairs.put("outcome", event.outcome().name().toLowerCase(Locale.ROOT));
     fields.forEach((key, value) -> pairs.put(key, neutralise(String.valueOf(value))));
 

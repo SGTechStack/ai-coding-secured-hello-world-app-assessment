@@ -38,6 +38,14 @@ public final class SpaAuthFlow {
       {"username": "johndoe", "password": "Password123!"}
       """;
 
+  /**
+   * The bootstrap admin the {@code test} profile configures ({@code app.admin.*} in
+   * application-test.yml, the same values as {@code dev}); {@code AdminBootstrap} creates it.
+   */
+  public static final String ADMIN_USERNAME = "admin";
+
+  public static final String ADMIN_PASSWORD = "Dev-Admin-Passw0rd!";
+
   private static final ObjectMapper JSON = new ObjectMapper();
 
   /** Source of {@link #uniqueIp()} addresses. */
@@ -93,6 +101,11 @@ public final class SpaAuthFlow {
             .andReturn()
             .getRequest()
             .getSession(false);
+  }
+
+  /** Logs in as the bootstrap admin; returns the authenticated session. */
+  public static MockHttpSession logInAsAdmin(MockMvc mvc) throws Exception {
+    return logIn(mvc, ADMIN_USERNAME, ADMIN_PASSWORD);
   }
 
   /** Logs in as {@code username}; returns the authenticated session. */

@@ -12,6 +12,15 @@ spring:
 
 server:
   port: 8080
+  error:
+    # ApiErrorController renders /error as a generic ApiError; these keep Spring's defaults from
+    # ever adding detail should anything fall back to them.
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+    whitelabel:
+      enabled: false
   servlet:
     session:
       # Inactivity timeout, enforced server-side.

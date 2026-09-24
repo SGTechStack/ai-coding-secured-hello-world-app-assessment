@@ -2,13 +2,26 @@ spring:
   application:
     name: hello-world-auth-app
   flyway:
-    # Schema is owned by versioned migrations, not by Hibernate. Enabled by
-    # default so a deployment cannot accidentally run without them; the dev
-    # profile below turns it off, because dev uses an in-memory H2 that is
-    # recreated from the entity model on every boot and has no schema to
-    # migrate.
+    # Schema is owned by versioned migrations, not by Hibernate, in every profile
+    # including dev. Standardising on H2 everywhere is what makes that possible:
+    # the migrations are written in one dialect, so dev and the test suite build
+    # their schema from the same file a deployment does, and a mistake in it fails
+    # the build rather than waiting for a deployment to reveal it.
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: classpath:db/migration
+  jpa:
+    properties:
+      hibernate:
+        type:
+          # Map enums to varchar rather than H2's native ENUM type.
+          #
+          # Left to itself, Hibernate expects `ENUM ('ADMIN','USER')` on H2, which
+          # bakes the value list into the schema: adding a Role or an AuditAction
+          # constant would need a migration to alter the column, and the schema
+          # and the Java enum could disagree in a way `validate` would catch only
+          # for the column, not the values. varchar keeps the vocabulary in Java,
+          # where the enum already lives.
+          preferred_enum_jdbc_type: VARCHAR
 
 server:
   # This governs the framework's own view of the request. The throttle's view
@@ -288,21 +301,16 @@ spring:
     password:
   jpa:
     hibernate:
-      ddl-auto: update
+      # validate, not update, even in dev. Flyway builds the schema from the
+      # checked-in migration and Hibernate then checks the entity model against
+      # it, so "I added a field and forgot the migration" fails on the next boot
+      # or the next test run instead of surviving until a deployment.
+      #
+      # This is the concrete gain from dropping the second engine: the migration
+      # that runs in production is the migration dev and CI have been running all
+      # along.
+      ddl-auto: validate
     open-in-view: false
-  flyway:
-    # Off in dev. The dev datasource is an in-memory H2 that is created from the
-    # entity model on every boot and discarded on shutdown, so there is no
-    # schema with a history to migrate. The migrations are written for the
-    # production engine; running them against H2 would mean either constraining
-    # them to the intersection of two SQL dialects or maintaining two sets.
-    #
-    # The cost is that dev does not exercise the migrations, so a migration can
-    # be wrong in a way dev cannot reveal. That is the reason
-    # FlywayMigrationTest asserts the checked-in migration matches the entity
-    # model, and the reason a real staging environment on the production engine
-    # remains outstanding work.
-    enabled: false
   h2:
     console:
       enabled: true
@@ -322,18 +330,27 @@ app:
   admin:
     # The username is not a secret, so a stable dev default is fine.
     username: ${APP_ADMIN_USERNAME:admin}
-    # Empty default, not a fixed password. AdminBootstrapRunner treats blank
-    # as "generate a random one for this boot and log it once", so `mvn
-    # spring-boot:run -Dspring-boot.run.profiles=dev` still works with no
-    # setup, but there is no published credential to try against a dev or
-    # demo instance that happens to be reachable. Set APP_ADMIN_PASSWORD to
-    # pin it to something stable across restarts.
+    # A fixed, known dev password, by explicit product decision: a predictable
+    # credential is wanted for local work and demos.
     #
-    # This blank-default trick is confined to dev on purpose: the base
-    # profile's placeholder has no default at all, so the generate path is
-    # structurally unreachable outside dev — an unset password there fails
-    # startup instead.
-    password: ${APP_ADMIN_PASSWORD:}
+    # Be clear about what this costs. This is the credential the threat model
+    # recorded as TM-07, a High finding: it was published in the README and
+    # prefilled in the login form, so any reachable dev or demo instance was a
+    # one-guess admin takeover. Reinstating it reopens that finding for any
+    # instance running this profile, and the threat model says so rather than
+    # continuing to claim it is closed.
+    #
+    # Two things keep the blast radius to dev:
+    #
+    #   - The base profile's placeholder still has no default at all, so outside
+    #     dev an unset APP_ADMIN_PASSWORD fails startup. A deployment cannot
+    #     inherit this value by forgetting to set one.
+    #   - AdminBootstrapRunner still generates a random password when the
+    #     configured one is blank, so `APP_ADMIN_PASSWORD=` remains available to
+    #     anyone who wants the safer behaviour for a reachable dev instance.
+    #
+    # Anything running this profile on a reachable address should override it.
+    password: ${APP_ADMIN_PASSWORD:password1234}
 
 ---
 # Production profile.
@@ -344,6 +361,21 @@ app:
 # which meant several controls hardened earlier — HTTPS enforcement, CORS origin
 # validation, Secure cookies — were protecting a deployment that did not exist.
 #
+# H2 in this profile too, by explicit product decision: one engine everywhere.
+#
+# The gain is real and is not just simplicity. One dialect means the migrations
+# that run here are the migrations dev and the test suite have been running all
+# along, so "the migration has never been executed against the real engine" — the
+# main residual on TM-19 — is closed rather than documented.
+#
+# The cost is equally real and belongs on the record. H2 is an embedded database.
+# It has no separate server process to tune or fail over, no concurrent-writer
+# story beyond a single JVM, no online backup, no replication, and a file format
+# that is not guaranteed stable across major versions. Sizing, availability and
+# point-in-time recovery are all outside what it offers. See
+# docs/adr/0004-h2-everywhere.md, which records this as accepted rather than
+# unnoticed.
+#
 # Nothing here has a usable default. Every value is an unresolvable placeholder
 # unless the environment supplies it, so a deployment that forgets one fails to
 # start rather than silently falling back to something weaker. That is the same
@@ -353,28 +385,40 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    # JDBC URL for the external database. No default: an absent URL must stop
-    # startup, not fall back to an in-memory database that accepts writes and
-    # loses them on restart — the failure mode where everything looks healthy and
-    # nothing is persisted.
+    # A file-based H2 database. No default, deliberately: an absent URL must stop
+    # startup rather than fall back to `mem:`, which would accept writes and lose
+    # them on restart — the failure mode where everything looks healthy and
+    # nothing is persisted. That risk is sharper here than it was with an external
+    # engine, because the wrong value is one word away from being valid.
     #
-    # TLS to the database belongs in this URL, and the parameters are
-    # engine-specific. For PostgreSQL:
-    #   ...?sslmode=verify-full&sslrootcert=/etc/ssl/certs/db-ca.crt
-    # verify-full rather than require: `require` encrypts without checking who is
-    # on the other end, so it stops passive sniffing and not an active
-    # man-in-the-middle, which is the threat that matters for credentials in
-    # transit.
+    # Expected form, and why each part is there:
+    #
+    #   jdbc:h2:file:/var/lib/hello-world-auth-app/db;DB_CLOSE_ON_EXIT=FALSE
+    #
+    #   file:              persistent, not `mem:`.
+    #   DB_CLOSE_ON_EXIT   left FALSE so the shutdown hook does not race Spring's
+    #                      own orderly close.
+    #
+    # Do NOT add AUTO_SERVER=TRUE to get a second instance connected. It would
+    # work, and it would also expose an unauthenticated H2 TCP listener on the
+    # host. Multi-instance is already unsupported for other reasons
+    # (docs/adr/0003).
+    #
+    # There is no TLS setting to configure and that is not a control: the database
+    # is in-process, so there is no connection to protect. The corresponding risk
+    # moves to the filesystem instead — the database file holds every password
+    # hash and email address in plaintext-at-rest, so it needs restrictive file
+    # permissions and disk encryption, neither of which this file can enforce.
     url: ${APP_DB_URL}
     username: ${APP_DB_USERNAME}
-    # Supplied by the platform's secret mechanism — a mounted file, an injected
-    # environment variable from a secret manager, or an IAM-derived token. Never
-    # committed, and deliberately not defaulted.
+    # Still required, still never defaulted. An embedded H2 file with a blank
+    # password is readable by any process that can open it, which is precisely
+    # what the dev datasource does and precisely what must not ship.
     password: ${APP_DB_PASSWORD}
     hikari:
-      # Bounded pool. The Tomcat thread ceiling is 100; a pool larger than the
-      # database can serve just moves queuing from the application to the
-      # database, where it is harder to see.
+      # Bounded pool. H2 is embedded, so connections are cheap, but the write path
+      # serialises regardless — a large pool would only queue inside the engine
+      # where it is harder to see than queuing in Hikari.
       maximum-pool-size: ${APP_DB_POOL_MAX:10}
       minimum-idle: ${APP_DB_POOL_MIN_IDLE:2}
       connection-timeout: 10s

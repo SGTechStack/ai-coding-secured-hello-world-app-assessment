@@ -90,14 +90,29 @@ class ProductionProfileTest {
 
     @Test
     void noCredentialIsCommittedInTheProductionProfile() {
-        String rendered = String.valueOf(prodDocument);
-
         // Guards against the specific accident of pasting a working value in to
         // test something and leaving it. Placeholders contain ${...}; a literal
         // would not.
-        assertThat(rendered).doesNotContain("sa\"").doesNotContain("postgres:postgres");
-        assertThat(nested(prodDocument, "spring", "datasource").get("password").toString())
-                .startsWith("${");
+        Map<String, Object> datasource = nested(prodDocument, "spring", "datasource");
+
+        assertThat(datasource.get("password").toString()).startsWith("${");
+        assertThat(datasource.get("username").toString()).startsWith("${");
+        // The dev datasource's blank-password `sa` must not appear here. An
+        // embedded H2 file with no password is readable by any process that can
+        // open the file.
+        assertThat(datasource.get("username").toString()).isNotEqualTo("sa");
+    }
+
+    @Test
+    void theProductionDatabaseIsPersistentNotInMemory() {
+        // With one engine everywhere, the difference between a real deployment and
+        // a throwaway one is a single word in the URL. `mem:` would accept every
+        // write and lose them on restart, which is the failure mode where
+        // everything looks healthy and nothing is persisted - so the URL must come
+        // from the environment and never be defaulted.
+        assertThat(String.valueOf(nested(prodDocument, "spring", "datasource").get("url")))
+                .isEqualTo("${APP_DB_URL}")
+                .doesNotContain("mem:");
     }
 
     @Test
@@ -112,23 +127,66 @@ class ProductionProfileTest {
     }
 
     @Test
-    void devIsTheOnlyProfileThatUsesDdlAutoUpdate() {
+    void noProfileUsesDdlAutoUpdateAnyMore() {
+        // Dev used to, because it built its schema from the entity model and never
+        // ran the migrations. Standardising on one engine removed the reason: dev
+        // now migrates like everything else and validates the result, so a field
+        // added without a migration fails on the next test run instead of
+        // surviving to a deployment.
         assertThat(nested(devDocument, "spring", "jpa", "hibernate").get("ddl-auto"))
-                .isEqualTo("update");
-        // The base document must not set it at all, so nothing inherits `update`
-        // by accident.
-        assertThat(nested(baseDocument, "spring", "jpa")).isEmpty();
+                .isEqualTo("validate");
+        assertThat(nested(prodDocument, "spring", "jpa", "hibernate").get("ddl-auto"))
+                .isEqualTo("validate");
+        assertThat(nested(baseDocument, "spring", "jpa", "hibernate")).isEmpty();
     }
 
     @Test
-    void migrationsAreEnabledInProductionAndDisabledOnlyInDev() {
+    void migrationsRunInEveryProfile() {
         assertThat(nested(prodDocument, "spring", "flyway").get("enabled")).isEqualTo(true);
-        assertThat(nested(devDocument, "spring", "flyway").get("enabled")).isEqualTo(false);
 
         // Base enables them, so the default for any new profile is "migrations
-        // run" rather than "Hibernate improvises a schema".
+        // run" rather than "Hibernate improvises a schema", and dev no longer
+        // opts out.
         assertThat(String.valueOf(nested(baseDocument, "spring", "flyway").get("enabled")))
                 .isEqualTo("${SPRING_FLYWAY_ENABLED:true}");
+        assertThat(nested(devDocument, "spring", "flyway"))
+                .as("dev must not disable migrations; running them is what exercises them")
+                .isEmpty();
+    }
+
+    @Test
+    void enumsAreMappedToVarcharSoTheSchemaDoesNotPinTheValueList() {
+        // Left to itself, Hibernate expects H2's native ENUM ('ADMIN','USER')
+        // column type, which bakes the vocabulary into the schema: adding a Role
+        // or AuditAction constant would need a migration to alter the column. The
+        // migration is written with varchar, so this property is what keeps
+        // `validate` agreeing with it.
+        assertThat(nested(baseDocument, "spring", "jpa", "properties", "hibernate", "type")
+                .get("preferred_enum_jdbc_type"))
+                .isEqualTo("VARCHAR");
+    }
+
+    @Test
+    void theDevAdminPasswordIsTheAgreedFixedValue() {
+        // A product decision, and a deliberate reopening of TM-07: this exact
+        // credential was a High finding, because it was published and prefilled.
+        // Pinned here so the decision is visible in one place rather than being
+        // rediscovered from a log line.
+        assertThat(String.valueOf(nested(devDocument, "app", "admin").get("password")))
+                .isEqualTo("${APP_ADMIN_PASSWORD:password1234}");
+    }
+
+    @Test
+    void theFixedAdminPasswordCannotLeakOutsideDev() {
+        // The guard rail that keeps the decision above scoped. The base profile's
+        // placeholder has no default at all, so a deployment that forgets
+        // APP_ADMIN_PASSWORD fails to start instead of quietly seeding an admin
+        // account whose password is published in this repository.
+        assertThat(String.valueOf(nested(baseDocument, "app", "admin").get("password")))
+                .isEqualTo("${APP_ADMIN_PASSWORD}")
+                .doesNotContain("password1234");
+        assertThat(String.valueOf(nested(baseDocument, "app", "admin").get("username")))
+                .isEqualTo("${APP_ADMIN_USERNAME}");
     }
 
     @Test

@@ -44,10 +44,14 @@
         </dependency>
 
         <!--
-            Schema ownership moves from Hibernate's ddl-auto to versioned
-            migrations. The production profile runs these with
+            Schema ownership sits with versioned migrations rather than
+            Hibernate's ddl-auto. Every profile runs them, and every profile
+            outside dev's throwaway database pairs them with
             `ddl-auto: validate`, so the schema is whatever the checked-in
             migrations say and a mismatch with the entity model fails startup.
+
+            flyway-core alone is enough: unlike most engines, which Flyway 10+
+            moved into separate modules, H2 support ships in core.
         -->
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -55,25 +59,13 @@
         </dependency>
 
         <!--
-            Flyway 10+ ships engine support in separate modules; core alone
-            cannot migrate PostgreSQL. Named explicitly rather than pulled in by
-            accident, so the target engine is a visible dependency decision.
+            The only database, in every profile. Not `runtime` scope any more:
+            H2SchemaDialectTest compiles against H2's JDBC exception type to
+            prove the case-insensitive uniqueness constraint actually fires.
         -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
         </dependency>
 
         <dependency>

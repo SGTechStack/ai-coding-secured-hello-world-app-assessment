@@ -31,12 +31,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        // Off because this class supplies an H2 datasource, and the migrations
-        // are written for PostgreSQL. The base profile enables Flyway so that a
-        // real deployment cannot run without migrations; a non-dev test on H2 has
-        // to opt back out.
-        "spring.flyway.enabled=false",
+        // Flyway builds the schema and Hibernate validates against it, as a
+        // deployment does. The previous ddl-auto=create-drop plus flyway=false
+        // existed only because the migrations were PostgreSQL-only; with one
+        // engine everywhere, the non-dev path exercises the real migration too.
+        "spring.jpa.hibernate.ddl-auto=validate",
         "spring.jpa.open-in-view=false",
         "app.admin.username=https-test-admin",
         "app.admin.password=https-test-admin-password-1234",

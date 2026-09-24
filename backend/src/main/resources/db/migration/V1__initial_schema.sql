@@ -1,20 +1,26 @@
--- Baseline schema for the production profile (PostgreSQL).
+-- Baseline schema. H2, in every profile.
 --
--- This is the schema of record. The production profile runs Flyway and sets
--- Hibernate to `validate`, so if the entity classes and this file ever disagree,
--- the application refuses to start. That is the intended relationship: the
--- schema is owned here, and Hibernate's job is to check rather than to change.
+-- This is the schema of record. Flyway runs it everywhere, and outside dev
+-- Hibernate is set to `validate`, so if the entity classes and this file ever
+-- disagree the application refuses to start. The schema is owned here; Hibernate's
+-- job is to check rather than to change.
+--
+-- Unlike the PostgreSQL version this replaced, these migrations *are* exercised:
+-- dev and the whole test suite build their schema from this file rather than from
+-- the entity model, so a mistake here fails the build instead of waiting for a
+-- deployment. That is the one clear gain from standardising on H2.
 --
 -- Column types are spelled out rather than left to a dialect default, because
 -- `validate` compares what the entities expect against what the database has.
--- `timestamp(6) with time zone` matches how Hibernate 6 maps `java.time.Instant`
--- on PostgreSQL; `varchar(255)` matches an unannotated String column.
+-- They were taken from Hibernate's own generated DDL for this entity model on
+-- H2, not guessed: `timestamp(6) with time zone` is how Hibernate 6 maps
+-- java.time.Instant here, and `varchar(255)` is an unannotated String.
 --
--- Not yet exercised against a real PostgreSQL instance — this repository has no
--- database to run it against, which is tracked as outstanding work. What is
--- checked automatically is that this file and the entity model name the same
--- tables and columns (see FlywayMigrationTest), which catches the realistic
--- failure: a field added to an entity and never migrated.
+-- Enums are varchar, which requires `hibernate.type.preferred_enum_jdbc_type:
+-- VARCHAR` in application.yml. Left to itself, Hibernate would expect H2's native
+-- `ENUM ('A','B')` column type, which bakes the value list into the schema and
+-- means adding an enum constant needs a migration to alter the column. varchar
+-- keeps the vocabulary in Java, where the enum already lives.
 
 CREATE TABLE users (
     id                     uuid                        NOT NULL,
@@ -27,23 +33,39 @@ CREATE TABLE users (
     locked_until           timestamp(6) with time zone,
     last_failed_login_at   timestamp(6) with time zone,
     created_at             timestamp(6) with time zone NOT NULL,
+    -- Generated, not written by the application, and deliberately absent from the
+    -- User entity. See the unique indexes below for why they exist at all.
+    --
+    -- Hibernate's schema validation checks that every column the entities expect
+    -- is present; it does not object to columns it has never heard of. So these
+    -- stay invisible to the domain model while still being enforced by the
+    -- database.
+    username_lower         varchar(255) GENERATED ALWAYS AS (LOWER(username)),
+    email_lower            varchar(255) GENERATED ALWAYS AS (LOWER(email)),
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uq_users_username UNIQUE (username),
     CONSTRAINT uq_users_email UNIQUE (email)
 );
 
--- Lookups are case-insensitive (findByUsernameIgnoreCase / findByEmailIgnoreCase),
--- so the unique constraints above do not cover them: 'Alice' and 'alice' are two
--- rows that both answer the same lookup, and which one wins is arbitrary.
--- Functional unique indexes close that, and also make the case-insensitive
--- lookups index-assisted instead of sequential scans.
-CREATE UNIQUE INDEX uq_users_username_lower ON users (lower(username));
-CREATE UNIQUE INDEX uq_users_email_lower ON users (lower(email));
+-- The repository looks accounts up case-insensitively
+-- (findByUsernameIgnoreCase / findByEmailIgnoreCase), so the constraints above do
+-- not cover the lookup: 'Alice' and 'alice' are two permitted rows that both
+-- answer it, and which one wins is arbitrary. Registration checks
+-- existsByUsernameIgnoreCase first, but that is a read followed by a write, so two
+-- concurrent registrations can both pass it.
+--
+-- PostgreSQL expresses this directly as a unique index on lower(username). H2
+-- rejects expression indexes, so the expression moves into a generated column and
+-- the index goes on that. Same guarantee, one more column.
+CREATE UNIQUE INDEX uq_users_username_lower ON users (username_lower);
+CREATE UNIQUE INDEX uq_users_email_lower ON users (email_lower);
 
--- Supports the last-enabled-admin count that guards every destructive admin
--- mutation. Partial, because the only question ever asked of it is how many
--- enabled admins exist.
-CREATE INDEX ix_users_enabled_admins ON users (role) WHERE enabled;
+-- Supports the enabled-admin count that guards every destructive admin mutation
+-- and the self-service erasure path. PostgreSQL would make this a partial index
+-- on (role) WHERE enabled, since that count is the only question ever asked of it;
+-- H2 has no partial indexes, so it covers both columns instead. Slightly larger,
+-- same lookups served.
+CREATE INDEX ix_users_role_enabled ON users (role, enabled);
 
 CREATE TABLE password_reset_tokens (
     id          uuid                        NOT NULL,
@@ -76,14 +98,16 @@ CREATE INDEX ix_password_reset_tokens_expires_at ON password_reset_tokens (expir
 --
 -- Append-only is enforced in the application by an immutable entity and a
 -- repository that exposes no delete. Enforcing it against someone holding
--- database credentials needs a grant this file cannot express, because the
--- migration runs as the owner:
+-- database credentials needs a grant this file cannot make, because the migration
+-- runs as the owner. H2 supports the necessary statements, so the shape is the
+-- same as it would be on any engine:
 --
---   REVOKE UPDATE, DELETE, TRUNCATE ON admin_audit_log FROM <application_role>;
---   GRANT INSERT, SELECT ON admin_audit_log TO <application_role>;
+--   CREATE USER app_user PASSWORD '...';
+--   GRANT INSERT, SELECT ON admin_audit_log TO app_user;
 --
--- That belongs in deployment provisioning, with the application connecting as a
--- role distinct from the migration owner. See
+-- H2 grants are additive rather than revocable per operation, so the application
+-- must connect as a role that was never granted UPDATE or DELETE on this table in
+-- the first place. That belongs in deployment provisioning. See
 -- docs/adr/0007-append-only-admin-audit-log.md.
 CREATE TABLE admin_audit_log (
     id           uuid                        NOT NULL,

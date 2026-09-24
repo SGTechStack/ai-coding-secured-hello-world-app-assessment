@@ -1,7 +1,13 @@
 import { screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { api, csrfResponse, csrfToken, demoUser } from "../test/handlers";
+import {
+  adminProfile,
+  api,
+  csrfResponse,
+  csrfToken,
+  demoUser,
+} from "../test/handlers";
 import { renderApp } from "../test/renderApp";
 import { server } from "../test/server";
 
@@ -245,4 +251,63 @@ describe("navbar Log out, pending and failure", () => {
       );
     },
   );
+});
+
+describe("navbar Admin link", () => {
+  it("is shown to an admin and opens the user list", async () => {
+    server.use(
+      http.get(api("/api/v1/auth/me"), () => HttpResponse.json(adminProfile)),
+    );
+    const { user, router } = renderApp("/");
+    await screen.findByRole("heading", { name: "Hello, Admin!" });
+
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+
+    expect(
+      await screen.findByRole("table", { name: "Users" }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/admin/users");
+  });
+
+  it("is not shown to a signed-in user who is not an admin", async () => {
+    server.use(
+      http.get(api("/api/v1/auth/me"), () => HttpResponse.json(demoUser)),
+    );
+    await signedInOnLanding();
+
+    expect(screen.getByRole("button", { name: "Log out" })).toBeEnabled();
+    expect(
+      screen.queryByRole("link", { name: "Admin" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("is not shown to an anonymous visitor", async () => {
+    renderApp("/login");
+
+    expect(await screen.findByLabelText("Username")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Admin" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("disappears after the admin logs out", async () => {
+    server.use(
+      http.get(api("/api/v1/auth/me"), () => HttpResponse.json(adminProfile)),
+    );
+    const { user, router } = renderApp("/admin/users");
+    await screen.findByRole("table", { name: "Users" });
+    server.use(
+      http.get(api("/api/v1/auth/me"), () =>
+        HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Log out" }));
+
+    expect(await screen.findByLabelText("Username")).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(
+      screen.queryByRole("link", { name: "Admin" }),
+    ).not.toBeInTheDocument();
+  });
 });

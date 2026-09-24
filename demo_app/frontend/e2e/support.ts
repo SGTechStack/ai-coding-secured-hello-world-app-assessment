@@ -4,7 +4,11 @@ import { expect } from "./fixtures";
 /** The demo account the backend seeds in its dev profile. */
 export const JOHN = { username: "johndoe", password: "Password123!" };
 
+/** The bootstrap admin the backend creates in its dev profile (`app.admin.*`). */
+export const ADMIN = { username: "admin", password: "Dev-Admin-Passw0rd!" };
+
 export const LOGIN_API = "**/api/v1/auth/login";
+export const ADMIN_USERS_PATH = "/api/v1/admin/users";
 export const REGISTER_PATH = "/api/v1/auth/register";
 export const LOGOUT_API = "**/api/v1/auth/logout";
 export const ME_PATH = "/api/v1/auth/me";
@@ -50,6 +54,33 @@ export async function logInAsJohn(page: Page) {
   await expect(
     page.getByRole("heading", { name: "Hello, John!" }),
   ).toBeVisible();
+}
+
+/** Signs in as the bootstrap admin through the UI and waits for the landing page. */
+export async function logInAsAdmin(page: Page) {
+  await page.goto("/login");
+  const form = loginForm(page);
+  await form.username.fill(ADMIN.username);
+  await form.password.fill(ADMIN.password);
+  await form.submit.click();
+  await expect(
+    page.getByRole("heading", { name: "Hello, Admin!" }),
+  ).toBeVisible();
+}
+
+/** The navbar's Admin link, shown only to admins. */
+export function adminLink(page: Page) {
+  return page.getByRole("link", { name: "Admin", exact: true });
+}
+
+/** The admin user list's row for `username` (its row header). */
+export function userRow(page: Page, username: string) {
+  return page
+    .getByRole("table", { name: "Users" })
+    .getByRole("row")
+    .filter({
+      has: page.getByRole("rowheader", { name: username, exact: true }),
+    });
 }
 
 /** The form is usable again: both inputs and the button are enabled. */

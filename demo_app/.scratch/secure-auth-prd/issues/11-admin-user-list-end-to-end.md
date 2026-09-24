@@ -4,13 +4,25 @@
 
 **Blocked by:** 04, 10
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] `GET /api/v1/admin/users` → `200` with a list of `{id, username, email, firstName, role, enabled, createdAt}` sorted by `createdAt`. It never includes the password hash, lockout fields or tokens.
-- [ ] `/api/v1/admin/**` requires `ROLE_ADMIN` in the filter chain, and the admin service enforces it at method level too. A `USER` gets `403 FORBIDDEN`. Anonymous gets `401`.
-- [ ] Admin query options for TanStack Query exist for the list.
-- [ ] The navbar shows "Admin" next to Log out only when the cached profile's role is `ADMIN`.
-- [ ] The `/admin/users` route redirects to `/login` without a session, and to `/` for a non-admin.
-- [ ] The page renders a semantic `<table>` with a caption and column headers. The controls on the admin's own row are disabled, with an explanation. A load failure shows `ErrorAlert`.
-- [ ] Frontend tests: the admin sees the table, the navbar link shows only for admins, a non-admin at `/admin/users` ends on `/`, and a `firstName` of `<img src=x onerror=alert(1)>` renders as literal text with no `img`.
-- [ ] e2e Story 7 scenarios 1, 5, 6 and 7 pass under the CSP fixture, signing in as the bootstrap admin.
+- [x] `GET /api/v1/admin/users` → `200` with a list of `{id, username, email, firstName, role, enabled, createdAt}` sorted by `createdAt`. It never includes the password hash, lockout fields or tokens.
+- [x] `/api/v1/admin/**` requires `ROLE_ADMIN` in the filter chain, and the admin service enforces it at method level too. A `USER` gets `403 FORBIDDEN`. Anonymous gets `401`.
+- [x] Admin query options for TanStack Query exist for the list.
+- [x] The navbar shows "Admin" next to Log out only when the cached profile's role is `ADMIN`.
+- [x] The `/admin/users` route redirects to `/login` without a session, and to `/` for a non-admin.
+- [x] The page renders a semantic `<table>` with a caption and column headers. The controls on the admin's own row are disabled, with an explanation. A load failure shows `ErrorAlert`.
+- [x] Frontend tests: the admin sees the table, the navbar link shows only for admins, a non-admin at `/admin/users` ends on `/`, and a `firstName` of `<img src=x onerror=alert(1)>` renders as literal text with no `img`.
+- [x] e2e Story 7 scenarios 1, 5, 6 and 7 pass under the CSP fixture, signing in as the bootstrap admin.
+
+## Comments
+
+- **Backend.** `admin.AdminUserController` (`GET /api/v1/admin/users`) → `admin.AdminUserService.listUsers()` → `UserAccountRepository.findAllByOrderByCreatedAtAscIdAsc()` (id breaks ties, so the order is stable). Rows are the `admin.AdminUserView` record, an allow-list copied field by field from the entity, so nothing added to `UserAccount` later leaks by default. Ticket 12's `PATCH` endpoints should return the same `AdminUserView`.
+- **Two layers of authorisation.** `SecurityConfig` has `requestMatchers("/api/v1/admin/**").hasRole("ADMIN")` (before `anyRequest().authenticated()`), so a `USER` gets `403 FORBIDDEN` even on unknown admin paths and anonymous gets `401`. `@EnableMethodSecurity` is now on `SecurityConfig`, and `AdminUserService` is annotated `@PreAuthorize("hasRole('ADMIN')")` at class level, so every method 12 adds there is covered too. `AdminUserServiceSecurityTest` calls the service directly with `@WithMockUser` (the HTTP seam can't reach it past the chain): `USER` → `AccessDeniedException`, no authentication → `AuthenticationCredentialsNotFoundException`. It carries `@AutoConfigureMockMvc` only to share the cached context.
+- **Backend tests.** `AdminUserListApiTest`: exact field set on every row, admin and johndoe rows, no BCrypt hash anywhere in the body, createdAt ordering (two fresh registrations), an HTML first name returned verbatim as JSON, `403` for `USER` (also on `/api/v1/admin/anything`), `401` anonymous. Assertions look for specific rows because the shared test DB also holds other classes' users. `mvn verify`: 175 tests, JaCoCo met.
+- **Frontend API.** `src/api/admin.ts`: `AdminUser` type, `listUsers()`, `adminUsersQueryOptions` (`queryKey ["admin","users"]`; 12's mutations invalidate that key). MSW: `handlers.ts` gained `adminProfile`, `adminUsers` (johndoe + admin) and a default `GET /api/v1/admin/users` handler.
+- **Route.** `/admin/users` guard in `router.tsx`: `currentSession` → none → `/login`; `role !== "ADMIN"` → `/`. The page never renders and the list is never requested for a non-admin.
+- **Navbar.** `AppShell` renders a ghost `Button asChild` wrapping `<Link to="/admin/users">` ("Admin", `UsersRound` icon) before Log out, only when the cached `me.role === "ADMIN"`. It disappears on logout because `queryClient.clear()` drops the profile.
+- **Page.** `routes/AdminUsersPage.tsx`: card with `h1` "Users", a semantic `<table>` with an `sr-only` `<caption>Users</caption>` (the visible heading already says it), `th scope="col"` headers (Username, Email, First name, Role, Status, Created, Actions) and the username as `th scope="row"` (so rows are findable by row header). Status is "Enabled"/"Disabled"; Created is `<time dateTime>` formatted with `Intl.DateTimeFormat(undefined, { dateStyle: "medium" })`. Everything is JSX text. Loading shows "Loading users..."; a failure (any error, incl. network) shows `ErrorAlert` "Unable to load users. Please try again later." instead of the table. The own row is matched by `username === me.username`.
+- **Own-row controls / heads-up for 12.** Only the admin's own row renders controls today (`OwnAccountActions`): "Disable"/"Enable", "Make user"/"Make admin", "Delete", all `disabled`, each with `aria-describedby` pointing at the visible note "You can't change your own account." Other rows' Actions cell is empty. Ticket 12 should generalise this into one row-actions component rendering the same three buttons on every row (enabled with handlers on other rows, same labels, disabled with the note on the own row) so the unit and e2e Scenario 5 assertions keep holding. The page tests and Scenario 5 assert the own row's button texts in that order.
+- **E2E.** `e2e/story-7-admin.spec.ts` (Scenarios 1, 5, 6, 7), importing from `./fixtures`. `support.ts` gained `ADMIN`, `ADMIN_USERS_PATH`, `logInAsAdmin(page)`, `adminLink(page)` and `userRow(page, username)` (row by its row header). Scenario 1 checks the exact columns, no hash in any cell, and the exact key set of every row in the `GET /admin/users` response. Scenario 7 registers a fresh user through the UI. No playwright config change was needed. Suite: 30 passed with `CI=1 BACKEND_PORT=18092 FRONTEND_PORT=13011`; Story 7 passed 3 repeats.

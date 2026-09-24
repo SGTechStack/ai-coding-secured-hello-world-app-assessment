@@ -29,7 +29,7 @@ Closes `.scratch/secure-auth-prd/issues/12-admin-account-actions-end-to-end.md`
 - [x] 07 Registration, end to end
 - [ ] 08 Account lockout
 - [ ] 09 Password reset, end to end
-- [ ] 10 Admin bootstrap
+- [x] 10 Admin bootstrap
 - [ ] 11 Admin user list, end to end
 - [ ] 12 Admin account actions, end to end
 - [ ] Code review fixes

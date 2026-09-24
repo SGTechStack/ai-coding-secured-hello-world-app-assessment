@@ -16,3 +16,8 @@ logging:
     format:
       # Human-readable console for local runs; every other profile logs ECS JSON.
       console: ""
+
+app:
+  cors:
+    # The Vite dev server. Production has no default: set APP_CORS_ALLOWED_ORIGINS.
+    allowed-origins: http://localhost:3000

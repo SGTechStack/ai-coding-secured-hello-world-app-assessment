@@ -23,7 +23,11 @@ import org.springframework.test.web.servlet.MockMvc;
  * applied by other test contexts cannot leak in.
  */
 @SpringBootTest(
-    properties = "spring.datasource.url=jdbc:h2:mem:prod-profile-test;DB_CLOSE_DELAY=-1")
+    properties = {
+      "spring.datasource.url=jdbc:h2:mem:prod-profile-test;DB_CLOSE_DELAY=-1",
+      // Production has no default allow-list (see CorsStartupTest).
+      "app.cors.allowed-origins=https://app.example.com"
+    })
 @AutoConfigureMockMvc
 @ActiveProfiles("prod")
 class ProdProfileTest {

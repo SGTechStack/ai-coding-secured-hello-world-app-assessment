@@ -5,9 +5,11 @@ import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.web.RequestBodyLimitFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -39,17 +41,28 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Session-based JSON API security.
  *
  * <ul>
+ *   <li>CORS: the SPA runs on its own origin and calls the API with credentials. Only the exact
+ *       origins in {@code app.cors.allowed-origins} ({@link CorsProperties}) get {@code
+ *       Access-Control-Allow-Origin}; a preflight from any other origin is refused with {@code
+ *       403}. <strong>This allow-list is what protects the CSRF token that {@code GET
+ *       /api/v1/auth/csrf} returns in its body</strong>: a page on a hostile origin can send that
+ *       request with the victim's cookies, and only the missing allow-origin header stops it
+ *       reading the token. Never add wildcards, patterns or {@code null} to the list.
  *   <li>Login is a REST endpoint ({@code AuthController}), not form login; it uses the {@link
  *       AuthenticationManager}, {@link SessionAuthenticationStrategy} and {@link
  *       SecurityContextRepository} beans defined here.
- *   <li>CSRF: cookie repository readable by JS ({@code XSRF-TOKEN} cookie echoed back as the
- *       {@code X-XSRF-TOKEN} header). The plain request handler is used because the SPA sends the
- *       raw cookie value, not a BREACH-masked one.
+ *   <li>CSRF: double-submit cookie ({@code XSRF-TOKEN}) checked against the {@code X-XSRF-TOKEN}
+ *       header. The SPA cannot read the API's cookie across origins, so it takes the raw token
+ *       from the {@code /csrf} response body and keeps it in memory. The plain request handler is
+ *       used because the SPA sends that raw value, not a BREACH-masked one.
  *   <li>Failures render as JSON via {@link JsonSecurityErrorHandler}; nothing redirects.
  *   <li>Request bodies over 16 KB are rejected ({@link RequestBodyLimitFilter}) before the CSRF
  *       check, inside the chain so the rejection still carries the security headers.
@@ -68,6 +81,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  */
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(CorsProperties.class)
 class SecurityConfig {
 
   static final String CONTENT_SECURITY_POLICY = "default-src 'self'; frame-ancestors 'none'";
@@ -88,7 +102,8 @@ class SecurityConfig {
       // Replaces the deprecated requiresChannel().anyRequest().requiresSecure().
       http.redirectToHttps(Customizer.withDefaults());
     }
-    return http.authorizeHttpRequests(
+    return http.cors(Customizer.withDefaults())
+        .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
@@ -159,6 +174,20 @@ class SecurityConfig {
       cookie.setAttribute("SameSite", config.getSameSite().attributeValue());
     }
     return cookie;
+  }
+
+  /** Exact-origin allow-list for the SPA; see the class comment for why it matters. */
+  @Bean
+  CorsConfigurationSource corsConfigurationSource(CorsProperties properties) {
+    CorsConfiguration cors = new CorsConfiguration();
+    cors.setAllowedOrigins(properties.allowedOrigins());
+    cors.setAllowCredentials(true);
+    cors.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE"));
+    cors.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN"));
+    cors.setMaxAge(Duration.ofHours(1));
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", cors);
+    return source;
   }
 
   @Bean

@@ -20,7 +20,7 @@ Closes `.scratch/secure-auth-prd/issues/12-admin-account-actions-end-to-end.md`
 
 ## Progress
 
-- [ ] 01 Hardened API errors, Clock seam and CSRF token in the body
+- [x] 01 Hardened API errors, Clock seam and CSRF token in the body
 - [x] 02 Audit log for login and logout
 - [ ] 03 Cross-origin topology
 - [ ] 04 Strict SPA CSP, with e2e on the production build

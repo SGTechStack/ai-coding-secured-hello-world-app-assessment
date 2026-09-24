@@ -23,10 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * Booting {@code prod} would be the stronger test and is not possible here: the
  * profile deliberately has no usable defaults, so its datasource placeholders are
- * unresolvable without an external database, and supplying an H2 one to make the
- * context start would test a configuration nobody deploys. This repository has no
- * PostgreSQL to point at, and pretending otherwise would produce a test that
- * passes while proving nothing.
+ * unresolvable without a supplied datasource, and supplying one that points at
+ * {@code mem:} to make the context start would test the exact configuration this
+ * profile exists to prevent.
  *
  * <p>So this reads the document as data and asserts the properties that matter.
  * That is weaker than a running context, and it is exactly strong enough for the
@@ -34,9 +33,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * get a deployment moving, and thereby turning "fails to start without
  * credentials" into "starts with whatever is lying around".
  *
- * <p>What this cannot check is whether the migration is valid PostgreSQL, or
- * whether {@code ddl-auto: validate} accepts it. That needs a real engine, and is
- * recorded as outstanding in the threat model rather than implied to be covered.
+ * <p>What this class cannot check — whether the migration is valid SQL and whether
+ * {@code ddl-auto: validate} accepts it — no longer needs checking here. Since H2
+ * is the only engine (ADR 0004), every {@code @SpringBootTest} in the suite builds
+ * its schema from that migration and validates the entity model against it, so the
+ * whole suite is the answer to that question.
  */
 class ProductionProfileTest {
 

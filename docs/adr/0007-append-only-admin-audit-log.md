@@ -26,10 +26,19 @@ Append-only is enforced at three levels, with one deliberately left to deploymen
    provisioning, with the application connecting as a role distinct from the
    migration owner:
 
+   On H2 (ADR 0004) the grant model is additive rather than per-operation
+   revocable, so the application must connect as a role that was never given more
+   than it needs, rather than one whose rights are taken away afterwards:
+
    ```sql
-   REVOKE UPDATE, DELETE, TRUNCATE ON admin_audit_log FROM <application_role>;
-   GRANT INSERT, SELECT ON admin_audit_log TO <application_role>;
+   CREATE USER app_user PASSWORD '...';
+   GRANT INSERT, SELECT ON admin_audit_log TO app_user;
    ```
+
+   Note this is weaker in one respect than the external-engine version: with an
+   embedded database the file itself is reachable by any process that can open it,
+   so a sufficiently privileged local process bypasses grants entirely. File
+   permissions and disk encryption carry that part.
 
 ## Why the transaction, specifically
 

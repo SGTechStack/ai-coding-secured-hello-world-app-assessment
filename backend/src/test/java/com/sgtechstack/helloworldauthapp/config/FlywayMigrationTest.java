@@ -24,20 +24,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Keeps the checked-in migration and the entity model in step.
  *
- * <h2>The gap this fills</h2>
+ * <h2>What this is for, now that the migration actually runs</h2>
  *
- * Dev runs on in-memory H2 with {@code ddl-auto: update}, so Hibernate invents the
- * schema and the migration is never executed. Production runs the migration with
- * {@code ddl-auto: validate}, so a disagreement is a startup failure. Nothing in
- * between exercises the migration, which means the realistic mistake — adding a
- * field to an entity, watching dev work perfectly, and never touching the SQL —
- * would be discovered at the worst possible moment.
+ * This class was written when dev built its schema from the entity model and the
+ * migration was never executed anywhere, which made it the only line of defence
+ * against the realistic mistake: adding a field to an entity, watching dev work
+ * perfectly, and never touching the SQL.
  *
- * <p>This test derives the expected tables and columns from the entity classes by
- * reflection and asserts the migration file mentions each one. It is a textual
- * check and makes no claim about types, constraints or whether PostgreSQL would
- * accept the file. Those need a real engine, which this repository does not have.
- * Within that limit it catches the thing that actually goes wrong.
+ * <p>Since H2 became the only engine (ADR 0004), Flyway runs in dev and in every
+ * {@code @SpringBootTest} here, with {@code ddl-auto: validate} checking the entity
+ * model against the result. So that mistake is now caught by the suite at large,
+ * and this class is no longer load-bearing.
+ *
+ * <p>It is kept because it still earns its place two ways. It fails faster and with
+ * a far clearer message than a Hibernate validation error — naming the missing
+ * column and the entity field it came from. And its remaining assertions are about
+ * properties {@code validate} does not check at all: that migrations are named so
+ * Flyway will actually pick them up, that the audit table has no foreign key to
+ * users, and that the case-insensitive uniqueness indexes exist.
  *
  * <p>Reflection rather than a hardcoded list on purpose: a hardcoded list is a
  * third place to forget to update, and would pass while being just as stale as the

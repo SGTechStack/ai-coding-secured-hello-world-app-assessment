@@ -96,8 +96,19 @@ Authorization is config-owned: `SecurityConfig` builds its rules entirely from
   not to be the target, so the two conditions contradict. Self-service erasure
   *can*, which is why `LastAdminGuard` shipped in the same change as that
   endpoint. Concurrency can too; that is unfixed and recorded.
-- **Flyway is off in dev**, so migrations are never exercised locally. See ADR
-  0004 and `FlywayMigrationTest`.
+- **H2 is the only database, in every profile**, and Flyway owns the schema
+  everywhere — including dev, which runs `ddl-auto: validate` like production. So
+  adding an entity field without a migration fails on the next test run. See ADR
+  0004, which also records what an embedded production database gives up.
+- **The migration carries two columns the entity model does not know about.**
+  `username_lower` and `email_lower` are `GENERATED ALWAYS AS (LOWER(...))`, with
+  unique indexes on them, because H2 rejects expression indexes and the
+  case-insensitive uniqueness they enforce is a real control. Hibernate's
+  validation does not object to columns it has never heard of. `H2SchemaDialectTest`
+  proves the constraint fires.
+- **The dev admin password is the fixed `password1234`**, by product decision, which
+  reopens TM-07. Outside dev there is no default and startup fails without one. See
+  ADR 0008.
 - **`spring-security-test`'s `csrf()` post-processor substitutes the CSRF token
   repository** for the whole shared test context, so MockMvc cannot observe the
   `XSRF-TOKEN` cookie once any test has used it. Cookie attributes are asserted

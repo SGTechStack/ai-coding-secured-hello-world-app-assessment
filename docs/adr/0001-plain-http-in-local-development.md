@@ -39,4 +39,6 @@ visible in a diff and cannot be inherited by accident.
 ## Related
 
 - Threat model TM-05, TM-19b
-- ADR 0004 (H2 in dev, PostgreSQL in production) — same shape of decision
+- ADR 0004 (H2 everywhere) — the persistence counterpart
+- ADR 0008 (fixed dev admin password) — the other dev-only concession, and the one
+  that reopens a High finding rather than accepting a Low one

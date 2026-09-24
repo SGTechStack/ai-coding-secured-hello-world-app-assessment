@@ -8,7 +8,7 @@
 | **Code reviewed** | Full `backend/` and `frontend/` source as committed, `pom.xml`, `package.json`, `application.yml`, all 6 backend test classes |
 | **Date** | 2026-09-23 |
 | **Owner** | Samuel Wong |
-| **Status** | Remediated to Low. All High and all Medium findings are closed and test-covered (see §12). 13 Low findings remain open; none has an assigned owner or target date. |
+| **Status** | One High reopened by product decision (TM-07, a fixed dev admin password — see §4 and ADR 0008). All Medium findings remain closed. 12 Low findings open; none has an assigned owner or target date. |
 
 Open the model in [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon/releases) (desktop) or a Docker instance, then use *Open existing threat model* and select the JSON file. To export a PDF report, use Threat Dragon's own *Report* view.
 
@@ -47,21 +47,27 @@ Open the model in [OWASP Threat Dragon](https://github.com/OWASP/threat-dragon/r
 
 | Status | High | Medium | Low | Total |
 | --- | --- | --- | --- | --- |
-| **Open** | — | — | 13 | **13** |
-| **Mitigated** | 20 | 23 | 4 | **47** |
+| **Open** | 1 | — | 12 | **13** |
+| **Mitigated** | 19 | 23 | 5 | **47** |
 | **Not applicable** | 1 | — | — | **1** |
 
-**Every High and every Medium finding is now closed.** Six clusters were worked through in sequence (§12): secret handling on the reset path, revocation consistency, dev-only concessions shipping in every profile, deployment posture, anti-automation, and finally the testing gaps, operational maturity and privacy groundwork that made up the Medium tier.
+**Every Medium finding is closed. One High is open again, by choice rather than by regression.**
 
-Read the headline carefully, because it is easy to over-claim. "No Medium findings remain" means nothing in this model is currently *rated* Medium. It does not mean the system is deployable, and three things in particular are worth separating from the rest:
+Six clusters were worked through in sequence (§12): secret handling on the reset path, revocation consistency, dev-only concessions shipping in every profile, deployment posture, anti-automation, and finally the testing gaps, operational maturity and privacy groundwork that made up the Medium tier. Two decisions then reversed part of that work, and this model records them rather than continuing to report the findings as closed:
 
-- **The production configuration exists but has never run.** TM-19 is closed: there is a `prod` profile with an external datasource, environment-supplied credentials, `ddl-auto: validate` and Flyway-owned migrations. No PostgreSQL instance exists in this repository, so the migration has never been executed against the engine it was written for. `FlywayMigrationTest` checks that the SQL and the entity model name the same tables and columns — which catches the realistic mistake — and cannot check that the SQL is valid PostgreSQL.
-- **Append-only is enforced in code, not in the database.** The audit table has no setters, no delete method on its repository, and no foreign key that could cascade it away. Restricting `UPDATE`/`DELETE` against the application's own database role is a grant the migration cannot make, because the migration runs as the owner. Anyone holding the application's credentials can still rewrite history.
-- **The privacy position is drafted, not reviewed.** The notice, lawful basis and retention periods are populated and tested for internal consistency. The PRD declares no compliance regime, so they are input to a review rather than its output. `docs/adr/0005` says so explicitly, because populated fields are easily mistaken for decisions somebody was accountable for.
+- **TM-07 is reopened.** The dev profile again defaults the admin password to the literal `password1234` — the same credential the original finding was about. Product decision, recorded in [ADR 0008](../adr/0008-fixed-dev-admin-password.md). §4 has the detail and the two controls that keep it out of production.
+- **TM-19 is restated, not reopened.** H2 is now the only engine in every profile ([ADR 0004](../adr/0004-h2-everywhere.md)). The fix stands, and one of its residuals is genuinely closed as a result, while a different class of risk takes its place. Detail below.
 
-One residual is worth stating as a genuine gap rather than absent work: the last-admin guard (TM-17) closes the sequential path to zero administrators and narrows the concurrent one to the window between reading the count and committing. Two admins removing each other at the same instant both read a count of two. Closing that needs a constraint the database enforces.
+Beyond those, the things worth separating from the headline:
 
-The 13 remaining Low findings are opportunistic: enumeration side channels the PRD accepts, a BCrypt strength that is implicit rather than configured, no dependency scanning, no method-level authorization backstop, and single-instance state. None of them is load-bearing on its own.
+- **The migrations are now actually executed.** This was the largest residual on TM-19 and it is closed rather than documented. With one dialect, Flyway runs in dev and in every `@SpringBootTest`, and dev moved from `ddl-auto: update` to `validate` — so adding an entity field without a migration fails on the next test run instead of surviving to a deployment. `FlywayMigrationTest` remains, but as a faster and clearer failure rather than the only line of defence.
+- **An embedded database is now the production store.** No separate server, no concurrent writers beyond one JVM, no online backup or point-in-time recovery, no guaranteed file-format stability across major H2 versions, and one file holding every password hash and email address whose only protections are filesystem permissions and disk encryption. None of this is a defect in the code; all of it is what an external engine was providing. The failure mode also moved closer: persistent versus discard-everything is now `file:` versus `mem:` in one environment variable, which `ProductionProfileTest` asserts against.
+- **Append-only is enforced in code, not in the database.** The audit table has no setters, no delete method on its repository, and no foreign key that could cascade it away. The grant that would enforce it against the application's own credentials is a deployment step the migration cannot perform, and an embedded database weakens it further: any process that can open the file bypasses grants entirely.
+- **The privacy position is drafted, not reviewed.** The notice, lawful basis and retention periods are populated and tested for internal consistency. The PRD declares no compliance regime, so they are input to a review rather than its output. [ADR 0005](../adr/0005-personal-data-lawful-basis-and-retention.md) says so explicitly, because populated fields are easily mistaken for decisions somebody was accountable for.
+
+One residual is a genuine gap rather than absent work: the last-admin guard (TM-17) closes the sequential path to zero administrators and narrows the concurrent one to the window between reading the count and committing. Two admins removing each other at the same instant both read a count of two. Closing that needs a constraint the database enforces.
+
+The 12 remaining Low findings are opportunistic: enumeration side channels the PRD accepts, a BCrypt strength that is implicit rather than configured, no dependency scanning, no method-level authorization backstop, and single-instance state — which H2 now makes a hard limit rather than merely an unaddressed one.
 
 ---
 
@@ -79,9 +85,24 @@ The 13 remaining Low findings are opportunistic: enumeration side channels the P
 
 ## 4. Open findings — High
 
-**None. All six High findings are closed.**
+**One, reopened deliberately.**
 
-TM-01, TM-02, TM-04, TM-05, TM-06 and TM-07 have each been fixed, test-covered, and — where the behaviour was observable — verified failing-first against the original code. §12 records what changed and what evidence was taken.
+TM-01, TM-02, TM-04, TM-05 and TM-06 remain fixed and test-covered, and — where the behaviour was observable — were verified failing-first against the original code. §12 records what changed and what evidence was taken.
+
+| ID | STRIDE | Finding | Evidence | Status |
+| --- | --- | --- | --- | --- |
+| TM-07 | S | The `dev` profile defaults `app.admin.password` to the literal `password1234`. Any instance running that profile on a reachable address is a one-guess takeover of an account that can disable, re-role and delete every other account — and the admin account is the one that can read any user's email address and delete any account. | `application.yml` dev document; `docs/adr/0008-fixed-dev-admin-password.md` | **Open — accepted by product decision.** Reopened 2026-09-24. |
+
+This is the same literal credential the original finding was about, so it is recorded as the same finding reopened rather than a new one. The original was worse in one respect: the password was also published in the README and prefilled into the login form, so it was discoverable without reading any configuration. The README still documents it, because a fixed credential nobody can find is not serving the purpose it was reinstated for.
+
+Two controls keep it out of production, and both are asserted by `ProductionProfileTest`:
+
+1. **The base profile has no default.** `${APP_ADMIN_PASSWORD}` with no fallback is unresolvable, so a non-dev deployment that forgets the variable fails to start rather than seeding an admin whose password is published in this repository.
+2. **The generate-on-blank path still exists.** Setting `APP_ADMIN_PASSWORD=` restores a random password per boot, logged once at `WARN`. That is the right setting for any dev instance reachable by anyone other than its owner, and `AdminBootstrapPasswordGenerationTest` still covers the branch.
+
+A third thing is often cited and should not be relied on: the login form no longer prefills the password. The value is in `application.yml`, in the README and in ADR 0008, so keeping it out of the DOM is tidiness rather than protection.
+
+**What would close this again:** removing the default, or restricting the dev profile to loopback. Neither is planned, so it stays open and visible rather than being quietly downgraded.
 
 ---
 
@@ -96,7 +117,7 @@ Recorded here rather than deleted, because the table of what was closed and what
 | TM-15 | R | Raw `username` logged with no validation, and `RegistrationRequest` had `@Size` but no `@Pattern` — so CRLF reached the log and the audit trail was writable by its own subject. | `@Pattern` allow-list on the username; `LogSafe` neutralises control characters and caps length at every call site; ECS-structured JSON in `prod`, where the encoder escapes newlines inside values. | Dev still logs plain text. |
 | TM-17 | D | The only guard was "not yourself", and a disabled `ADMIN` row satisfied the bootstrap check — so a system with no usable administrator looked bootstrapped. | `LastAdminGuard` refuses any mutation leaving zero **enabled** admins; `AdminBootstrapRunner` seeds on `existsByRoleAndEnabledTrue` and revives a disabled admin row. | Two admins removing each other concurrently both read a count of two. Needs a database constraint. |
 | TM-18 | T | A new reset token invalidated nothing, so N requests meant N live paths into an account; spent rows were never removed. | Issuing retires every outstanding token; `ExpiredTokenPurge` sweeps 7 days past expiry or use. | — |
-| TM-19 | T | The only datasource was dev H2 — `sa`, blank password, `ddl-auto: update`, no migrations. The app could not start outside dev. | `prod` profile: external datasource, environment-supplied credentials with no defaults, `ddl-auto: validate`, Flyway-owned schema. | The migration has never run against a real PostgreSQL. No such instance exists here. |
+| TM-19 | T | The only datasource was dev H2 — `sa`, blank password, `ddl-auto: update`, no migrations. The app could not start outside dev. | `prod` profile: persistent datasource, environment-supplied credentials with no defaults, `ddl-auto: validate`, Flyway-owned schema. **Restated 2026-09-24**: H2 everywhere (ADR 0004), which closed the "migration never executed" residual — it now runs in dev and every test — and moved dev to `validate`. | An embedded database is the production store: no separate server, no concurrent writers beyond one JVM, no online backup or PITR, no guaranteed file format across major versions, and one file holding every hash and address. `file:` versus `mem:` is now one variable away. |
 | TM-27 | R | Every required audit event was logged, as ad-hoc key=value text with no correlation id, no client IP and no retention. | ECS-structured JSON, per-request correlation id and resolved client address, 90-day bounded rotation; the audit table is now the authoritative record. | Structured output is `prod` only. |
 | TM-30 | LINDDUN (Unawareness) | An email address collected and stored indefinitely with no notice, purpose, retention or recorded basis. | Notice as configuration (`app.privacy`), served from `GET /api/privacy-notice`, rendered at the point of collection; basis in ADR 0005. | Periods are drafted against general expectations, not a declared regime. |
 | TM-31 | LINDDUN (Non-compliance) | No retention policy and no self-service erasure, export or rectification — deletion was admin-only. | Periods in `app.retention` and in the notice; the token sweep enforces its own; `GET /api/account/export` and `DELETE /api/account` (password re-entered). | Account retention is "until erased". Automated dormant-account deletion deliberately not implemented — the weakest part of the position. |
@@ -115,7 +136,6 @@ Recorded here rather than deleted, because the table of what was closed and what
 | --- | --- | --- | --- |
 | TM-13 | T | **Downgraded from Medium.** The API now sends CSP, `Referrer-Policy: no-referrer`, `Permissions-Policy` and retains `X-Frame-Options: DENY`. Residual: those govern this service's JSON responses, not the SPA — which is a different origin and needs a CSP from whatever serves it. The XSS-defeats-CSRF chain lives on the frontend origin, and there is still no XSS sink there. | `config/SecurityConfig.java` headers DSL; no CSP at the SPA host |
 | TM-14 | E | **Downgraded from Medium** by the config-owned RBAC matrix: authorization is now fine-grained authorities against explicit method+path guards in YAML, terminating in `denyAll()`, so forgetting to guard a new endpoint yields a 403 rather than silent exposure. Residual: enforcement is still URL-layer only — no `@EnableMethodSecurity`, so a service method reached from a scheduled job or listener carries no authorization of its own. | `config/SecurityConfig.java`; `application.yml` `app.security` |
-| TM-19b | I | **Narrowed by the TM-19 fix but still open.** Credential handling is now settled: the `prod` datasource takes username and password from unresolvable environment placeholders, so a deployment cannot boot with a default. TLS is documented rather than enforced — the parameters are engine-specific and live in the JDBC URL, so `application.yml` and ADR 0004 state the required form (`sslmode=verify-full` with a pinned root certificate for PostgreSQL, since `require` encrypts without verifying the peer) and nothing validates that a deployment used it. Still nothing on the wire in dev, where H2 is in-process. | `application.yml` (prod document); ADR 0004 |
 | TM-20 | I | `new BCryptPasswordEncoder()` takes the implicit default strength 10 with no configuration hook; `PasswordPolicy` sets a 12-char minimum and no maximum, so BCrypt silently truncates past 72 bytes. | `SecurityConfig.java:49-51`; `PasswordPolicy.java:13-17` |
 | TM-21 | T | `CsrfTokenRequestAttributeHandler` is wired instead of the `Xor` variant, giving up per-response token masking against BREACH. Needs response compression plus a network position to exploit. | `SecurityConfig.java:86, 99` |
 | TM-22 | I | Registration answers 409 with distinct messages for a taken username vs a taken email, so accounts are enumerable. In-spec per the PRD, which scopes enumeration resistance to login and reset only. | `auth/RegistrationService.java:45-52` |
@@ -123,7 +143,7 @@ Recorded here rather than deleted, because the table of what was closed and what
 | TM-24 | I | Three package-scoped advices cover auth, admin and reset; anything else (including `/api/hello`, `/api/health`, `/api/csrf`) falls through to Boot's `/error` in a shape the SPA cannot parse. One property change from being a leak. | the three `*ExceptionHandler` classes |
 | TM-25 | D | Sessions, `SessionRegistryImpl` and the throttle map are all JVM-local: a second instance breaks session continuity, "invalidate all sessions" and the throttle budget. Now recorded as an accepted constraint in `docs/adr/0003` rather than only in Javadoc — session *revocation* silently failing is the dangerous half, since it is the fix for TM-04. | `IpLoginThrottle.java:19-23`; ADR 0003 |
 | TM-26 | I | `VITE_API_BASE_URL ?? "http://localhost:8080"` — a production build without the variable ships a bundle pointing at the visitor's own machine. | `frontend/src/api/client.ts:1` |
-| TM-28 | T | No dependency-vulnerability scan, no SBOM, no `npm audit` step — no way to answer "are we affected" against a new CVE. Worth noting this got slightly larger: the TM-19 fix added Flyway and the PostgreSQL driver to the dependency set. | `backend/pom.xml`; `frontend/package.json` |
+| TM-28 | T | No dependency-vulnerability scan, no SBOM, no `npm audit` step — no way to answer "are we affected" against a new CVE. The dependency set moved twice: the TM-19 fix added Flyway, the PostgreSQL driver and its engine module, and the move to H2 then removed the last two. H2 itself is now load-bearing in production rather than a dev-only runtime dependency, which raises what a CVE in it would mean. | `backend/pom.xml`; `frontend/package.json` |
 | TM-32 | Identifiability | Account existence is externally probeable (TM-22), so a list of email addresses reveals which of those people use the system. Accepted in `docs/adr/0002`. | `RegistrationService.java:45-52` |
 | TM-33 | Detectability | Timing (TM-23) reveals the presence of a data subject's record without authenticating. | `PasswordResetService.java:75-94` |
 
@@ -134,11 +154,15 @@ Recorded here rather than deleted, because the table of what was closed and what
 Worth recording explicitly, because a threat model that only lists problems misrepresents the system. Each of these was confirmed by reading the implementation; where a test asserts it, the test is named.
 
 **Credentials and passwords**
-- BCrypt only, never plaintext or reversible encoding; the seeded admin password is hashed like any other (`AdminBootstrapRunnerTest`). **Caveat worth recording:** when this model was first written that test was failing, and had been since commit `e0730ee` — it asserted a hardcoded password literal that configuration had since moved away from. The product code was always correct; the assertion was not actually running green. Fixed in `7ff9624` by reading the expected value from `app.admin.password`.
+- BCrypt only, never plaintext or reversible encoding; the seeded admin password is hashed like any other (`AdminBootstrapRunnerTest`) — including the fixed dev password, which is stored hashed rather than compared literally. **Caveat worth recording:** when this model was first written that test was failing, and had been since commit `e0730ee` — it asserted a hardcoded password literal that configuration had since moved away from. The product code was always correct; the assertion was not actually running green. Fixed in `7ff9624` by reading the expected value from `app.admin.password`.
 - Passwords never appear in any log statement; exception handlers deliberately log messages without payloads.
 - Reset tokens never appear in any log statement either, as of the TM-02 fix (§12), enforced by `EmailServiceTest`.
 - Password hashes never leave the API: `/api/admin/users` returns a purpose-built projection, asserted explicitly by `AdminUserControllerTest`.
-- Admin credentials are mandatory with no defaults in the base profile — startup fails rather than seeding a guessable account.
+- Admin credentials are mandatory with no defaults in the base profile — startup fails rather than seeding a guessable account. This is now the *only* thing standing between the fixed dev password (TM-07) and a deployment, which is why `ProductionProfileTest` asserts both halves: that dev carries the agreed value, and that the base profile does not.
+
+**Schema and persistence**
+- The schema is built by Flyway in every profile and checked by `ddl-auto: validate`, so an entity field added without a migration fails on the next boot or test run rather than at deploy time. This became true when H2 became the only engine; before that, dev built its schema from the entity model and the migration was never executed.
+- Case-insensitive uniqueness on username and email is enforced by the database, not only by the application's pre-insert check. The application check is a read followed by a write and so cannot stop two concurrent registrations for `Alice` and `alice`; generated `*_lower` columns with unique indexes do. Asserted by `H2SchemaDialectTest`, which exists because H2 rejects the expression indexes the original PostgreSQL migration used and a silently-absent substitute would have been worse than no substitute.
 
 **Sessions**
 - Session fixation handled by Spring Security's default `changeSessionId()` rotation on authentication.
@@ -199,7 +223,7 @@ Two things learned in the process, both worth recording because they shape what 
 
 Remaining gaps, stated rather than implied:
 
-- **The Flyway migration is never executed.** Dev uses H2 with `ddl-auto: update` and Flyway off; the migration is written for PostgreSQL and there is no PostgreSQL here. `FlywayMigrationTest` derives the expected tables and columns from the entity classes by reflection and asserts the SQL names each one — which catches adding a field and forgetting the migration — and makes no claim about types, constraints or dialect validity.
+- ~~**The Flyway migration is never executed.**~~ **Closed 2026-09-24.** With H2 as the only engine, Flyway runs in dev and in every `@SpringBootTest`, and `ddl-auto: validate` checks the entity model against the result — so the migration a deployment would run is the one the suite has been running all along. `FlywayMigrationTest` survives as a faster, clearer failure and to assert the things `validate` does not check: migration file naming, the absence of a foreign key from the audit table to users, and the case-insensitive uniqueness indexes.
 - **The concurrent last-admin race is untested** because it is unfixed. See §5.
 - **The frontend still has no test framework** (`package.json` scripts are dev/build/preview/typecheck only). The new UI surface — the reveal-purpose and confirm-password challenges, the export and erasure controls — is covered only by `tsc -b` and by the backend tests behind it.
 
@@ -238,10 +262,10 @@ Sequenced by risk reduction per unit of effort, not by severity alone. Owners an
 | ~~6~~ | ~~TM-38 + the remaining three testing gaps~~ | **Done** (§12). Locked in the controls that were correct but unasserted. | Samuel Wong | 2026-09-24 |
 | ~~7~~ | ~~TM-15, TM-17, TM-18, TM-19, TM-27, TM-39~~ | **Done** (§12). Log integrity, last-admin protection, reset-token supersession and retention, a real datasource with migrations, and an append-only audit trail. TM-14 reassessed and left as Low: it is a method-level backstop, which is genuinely opportunistic once authorization is deny-by-default. | Samuel Wong | 2026-09-24 |
 | ~~8~~ | ~~TM-30, TM-31, TM-34, TM-35, TM-36, TM-37~~ | **Done** (§12). Notice at the point of collection, retention periods as configuration, data minimisation in the admin listing, pseudonymous identifiers in logs, and self-service access and erasure. The compliance-regime decision this was waiting on is still outstanding — the work was scoped against general expectations and ADR 0005 records that distinction rather than papering over it. | Samuel Wong | 2026-09-24 |
-| 9 | The concurrent last-admin race (§5, TM-17 residual) | The one residual that is a defect rather than absent work. Needs a database-enforced constraint. **Next up.** | _TBD_ | _TBD_ |
-| 10 | Exercise the migration against a real PostgreSQL; make the audit-table grant | Both are TM-19 and TM-39 residuals that this repository cannot close because it has no deployment. They gate believing either fix. | _TBD_ | _TBD_ |
+| 9 | The concurrent last-admin race (§5, TM-17 residual) | The one code defect left, as opposed to absent deployment work. Needs a database-enforced constraint. **Next up.** | _TBD_ | _TBD_ |
+| 10 | Make the audit-table grant; protect the database file | TM-39 and TM-19 residuals this repository cannot close because it has no deployment. The grant matters more now, not less: with an embedded database, any process that can open the file bypasses grants entirely, so file permissions and disk encryption carry the weight. | _TBD_ | _TBD_ |
 | 11 | Confirm the compliance regime, then re-scope the privacy position | ADR 0005's periods are drafted, not reviewed. | _TBD_ | _TBD_ |
-| 12 | Remaining 13 Low findings | Opportunistic. TM-28 (dependency scanning) is the one with the best return, and it grew slightly: the TM-19 fix added Flyway and the PostgreSQL driver. | _TBD_ | _TBD_ |
+| 12 | Remaining 12 Low findings | Opportunistic. TM-28 (dependency scanning) has the best return and matters more since the H2 move: H2 is now the production database rather than a dev-only runtime dependency, so a CVE in it is a production concern. | _TBD_ | _TBD_ |
 
 ---
 
@@ -272,10 +296,11 @@ Threat Dragon warns on schema mismatches but still loads the model, so a warning
 | [0001](../adr/0001-plain-http-in-local-development.md) | Plain HTTP in local development, and why `forward-headers-strategy` has no safe default |
 | [0002](../adr/0002-registration-reveals-whether-an-account-exists.md) | Registration reveals whether an account exists (TM-22, TM-32) |
 | [0003](../adr/0003-single-instance-session-and-throttle-state.md) | Session, revocation and throttle state are single-instance (TM-25) |
-| [0004](../adr/0004-h2-in-development-postgresql-in-production.md) | H2 in dev, PostgreSQL in production, Flyway owns the schema (TM-19) |
+| [0004](../adr/0004-h2-everywhere.md) | H2 everywhere, Flyway owns the schema (TM-19, TM-19b). Supersedes the earlier PostgreSQL-in-production decision |
 | [0005](../adr/0005-personal-data-lawful-basis-and-retention.md) | Lawful basis and retention for the personal data held (TM-30, TM-31) |
 | [0006](../adr/0006-pseudonymous-identifiers-in-logs.md) | Logs identify accounts by a keyed pseudonym (TM-35, TM-36) |
 | [0007](../adr/0007-append-only-admin-audit-log.md) | Irreversible actions recorded in an append-only table (TM-39) |
+| [0008](../adr/0008-fixed-dev-admin-password.md) | A fixed `password1234` admin password in dev, reopening TM-07 |
 
 `CONTEXT.md` carries the glossary. Two terms in it are worth knowing before reading this model: **enabled admin** (role `ADMIN` *and* `enabled` — counting `ADMIN` rows instead was the bug behind TM-17, in two separate places), and **user reference** (the keyed pseudonym in logs, distinct from the account UUID that appears in URLs).
 
@@ -557,3 +582,52 @@ Residual, and the weakest part of the position: **account retention is "until er
 | Tests | 34 (1 failing) | 41 | 66 | 87 | 120 | **245** |
 
 Next is step 9 in §10: the concurrent last-admin race, which is the only remaining open item that is a defect in the code rather than deployment work this repository cannot perform.
+
+### 2026-09-24 (later) — two decisions that reverse earlier hardening
+
+Not remediation. Two product decisions that undo part of it, recorded here because a threat model whose findings quietly stop matching the code is worse than no threat model.
+
+**Verification.** 253 tests across 45 classes, all green, `mvn test` exit 0.
+
+#### TM-07 reopened — a fixed `password1234` in dev
+
+The `dev` profile defaults `app.admin.password` to the literal `password1234` again. Not a similar credential: the same one the finding was about.
+
+Recorded as **the same finding reopened** rather than as a new one, because the mechanism is identical. It is narrower than the original in one respect — the login form no longer prefills the value — and that is close to worthless as mitigation, since the password is in `application.yml`, in the README and in ADR 0008. A fixed credential that nobody can find would not serve the purpose it was reinstated for, so there is no version of this that is both useful and hidden.
+
+Two things genuinely limit it, and both are asserted rather than asserted-in-prose:
+
+- The base profile still has no default, so a non-dev deployment that forgets `APP_ADMIN_PASSWORD` fails to start. `ProductionProfileTest.theFixedAdminPasswordCannotLeakOutsideDev` pins that, and its sibling pins the dev value — so the pair fails if either half drifts.
+- `APP_ADMIN_PASSWORD=` still yields a random password per boot, covered by `AdminBootstrapPasswordGenerationTest`.
+
+**One test was deleted rather than adjusted.** `AdminBootstrapPasswordGenerationTest` asserted that `password1234` could not be the seeded password — it existed specifically to stop this regression. Keeping it would have meant a test asserting the opposite of the specified behaviour, so it went, and its replacement asserts the *generated* branch still produces something long and unguessable. That is the honest handling, but it is worth naming: the guard rail that would have caught this change was removed as part of making the change.
+
+#### TM-19 restated, TM-19b closed — H2 everywhere
+
+PostgreSQL, its driver and `flyway-database-postgresql` are gone. H2 is the only engine in every profile; `prod` points at a file-based database with credentials still coming from unresolvable environment placeholders. H2 support ships inside `flyway-core`, so nothing replaced the engine module.
+
+**What got better, and it is not a consolation prize.** The largest residual on TM-19 was that the migrations were never executed: dev built its schema from the entity model with `ddl-auto: update` and had Flyway switched off, because the migration was PostgreSQL-only. A migration could therefore be wrong in a way no local run and no test could reveal. One dialect closes that — Flyway now runs in dev and in every `@SpringBootTest`, dev moved to `ddl-auto: validate`, and the two non-dev test classes dropped their Flyway opt-outs. Adding an entity field without a migration now fails on the next test run. `FlywayMigrationTest` stops being the only line of defence and becomes a faster, clearer failure plus a check on things `validate` ignores.
+
+**What got worse** is that an embedded database is now the production store: no separate server, no concurrent writers beyond one JVM, no online backup or point-in-time recovery, no guaranteed file format across major H2 versions, and one file holding every password hash and email address. This is not a code defect; it is the set of things an external engine was providing. It also makes the single-instance limitation in ADR 0003 a hard constraint rather than an unaddressed one — and the tempting workaround, `AUTO_SERVER=TRUE`, would open an unauthenticated H2 TCP listener, so the ADR says not to.
+
+The failure mode also moved closer to hand. Persistent versus silently-discard-everything is now `file:` versus `mem:` in one environment variable, so `ProductionProfileTest` asserts the URL comes from the environment and contains no `mem:`.
+
+**TM-19b closed by removal, which deserves the qualifier.** With the database in-process there is no connection to encrypt, so the transport finding has nothing left to describe. Closing a finding because the asset disappeared is not the same as mitigating it, and the successor risk — plaintext-at-rest in a file, protected only by permissions and disk encryption — is carried explicitly in TM-19's residual and in ADR 0004 rather than being allowed to fall through the gap.
+
+**Two dialect substitutions, one of which mattered.** H2 rejects both features the PostgreSQL migration used:
+
+- The unique index on `lower(username)` became a `GENERATED ALWAYS AS (LOWER(username))` column with an ordinary unique index on it. Same guarantee. This one was a real control — the application's `existsByUsernameIgnoreCase` check is a read followed by a write, so it cannot stop two concurrent registrations for `Alice` and `alice` — so `H2SchemaDialectTest` was written to prove the substitute actually fires. A replacement control that silently does nothing is worse than an absent one, because the model would still claim it.
+- The partial index on enabled admins became a plain two-column index. Performance only, nothing to assert.
+
+The generated columns are deliberately absent from the `User` entity; Hibernate's validation checks that expected columns exist and does not object to ones it has never heard of. Enums are pinned to `varchar` via `hibernate.type.preferred_enum_jdbc_type`, because Hibernate would otherwise expect H2's native `ENUM` type and bake the value list into the schema.
+
+| | Before these decisions | Now |
+| --- | --- | --- |
+| Open High | 0 | **1** |
+| Open Medium | 0 | **0** |
+| Open Low | 13 | **12** |
+| Open total | 13 | **13** |
+| Mitigated | 47 | **47** |
+| Tests | 245 | **253** |
+
+Next is still step 9 in §10: the concurrent last-admin race.

@@ -48,6 +48,12 @@ keeps the CSRF token returned by `GET /api/v1/auth/csrf` away from other sites. 
 must share a registrable domain (e.g. `app.example.com` and `api.example.com`), because the
 session cookie is `SameSite=Strict`.
 
+Login is throttled per client IP: after 20 failed logins from one address in 15 minutes, login
+answers `429` with `Retry-After` until the window ends. The limits are under
+`app.security.throttle.*` (e.g. `APP_SECURITY_THROTTLE_LOGIN_MAX_ATTEMPTS`). The counters are in
+memory on one instance. The client IP is the connection's address; behind a proxy, the `prod`
+profile trusts `X-Forwarded-For` only through Tomcat's trusted-proxy handling.
+
 The database is in memory, so it is recreated on every backend restart.
 
 Outside the `dev` profile the demo account is not seeded and the session cookie is `Secure`

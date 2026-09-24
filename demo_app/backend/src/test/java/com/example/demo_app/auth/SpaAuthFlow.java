@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.client.RestClient;
 
@@ -51,6 +52,18 @@ public final class SpaAuthFlow {
     return withCsrf(mvc, post("/api/v1/auth/login"))
         .contentType(MediaType.APPLICATION_JSON)
         .content(body);
+  }
+
+  /**
+   * Sends the request from client address {@code ip}. MockMvc otherwise uses {@code 127.0.0.1} for
+   * every request, and the IP throttle's counters live as long as the cached context: give failing
+   * logins their own address so they neither trip nor inherit another test's throttle.
+   */
+  public static RequestPostProcessor fromIp(String ip) {
+    return request -> {
+      request.setRemoteAddr(ip);
+      return request;
+    };
   }
 
   /** Logs in as the demo user; returns the authenticated session. */

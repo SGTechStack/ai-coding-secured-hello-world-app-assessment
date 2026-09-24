@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -66,6 +67,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  *   <li>Failures render as JSON via {@link JsonSecurityErrorHandler}; nothing redirects.
  *   <li>Request bodies over 16 KB are rejected ({@link RequestBodyLimitFilter}) before the CSRF
  *       check, inside the chain so the rejection still carries the security headers.
+ *   <li>Login is throttled per client IP ({@link IpThrottle}, limits in {@link
+ *       ThrottleProperties}); a throttled request answers {@code 429} with {@code Retry-After},
+ *       which CORS exposes to the SPA.
  *   <li>Session fixation: login replaces the session with a new one ({@code newSession}).
  *   <li>Logout is Spring Security's logout filter on {@code POST /api/v1/auth/logout}. It runs
  *       after the CSRF check and before authorization, so it needs a valid CSRF token but no
@@ -184,6 +188,8 @@ class SecurityConfig {
     cors.setAllowCredentials(true);
     cors.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE"));
     cors.setAllowedHeaders(List.of("Content-Type", "Accept", "X-XSRF-TOKEN"));
+    // Not a CORS-safelisted response header: without this the SPA can't read a 429's wait time.
+    cors.setExposedHeaders(List.of(HttpHeaders.RETRY_AFTER));
     cors.setMaxAge(Duration.ofHours(1));
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", cors);

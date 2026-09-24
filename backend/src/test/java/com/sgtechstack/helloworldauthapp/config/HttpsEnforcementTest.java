@@ -32,6 +32,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
+        // Off because this class supplies an H2 datasource, and the migrations
+        // are written for PostgreSQL. The base profile enables Flyway so that a
+        // real deployment cannot run without migrations; a non-dev test on H2 has
+        // to opt back out.
+        "spring.flyway.enabled=false",
         "spring.jpa.open-in-view=false",
         "app.admin.username=https-test-admin",
         "app.admin.password=https-test-admin-password-1234",

@@ -19,7 +19,11 @@ describe("/ (landing page)", () => {
   it("greets by whatever first name the session reports", async () => {
     server.use(
       http.get("/api/v1/auth/me", () =>
-        HttpResponse.json({ username: "janedoe", firstName: "Jane" }),
+        HttpResponse.json({
+          username: "janedoe",
+          firstName: "Jane",
+          role: "USER",
+        }),
       ),
     );
     renderApp("/");

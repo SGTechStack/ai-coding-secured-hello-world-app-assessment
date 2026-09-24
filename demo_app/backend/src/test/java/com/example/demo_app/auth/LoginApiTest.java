@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.demo_app.user.AccountUserDetails;
+import com.example.demo_app.user.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.context.ActiveProfiles;
@@ -30,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.util.SerializationUtils;
 
 /**
  * HTTP seam for {@code /api/v1/auth}: real security filter chain, real H2 database seeded by
@@ -60,6 +64,7 @@ class LoginApiTest {
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.username").value("johndoe"))
             .andExpect(jsonPath("$.firstName").value("John"))
+            .andExpect(jsonPath("$.role").value("USER"))
             .andExpect(jsonPath("$.password").doesNotExist())
             .andReturn();
 
@@ -203,7 +208,40 @@ class LoginApiTest {
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.username").value("johndoe"))
         .andExpect(jsonPath("$.firstName").value("John"))
+        .andExpect(jsonPath("$.role").value("USER"))
         .andExpect(jsonPath("$.password").doesNotExist());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"JohnDoe", "JOHNDOE"})
+  void usernameLookupIgnoresCase(String username) throws Exception {
+    mvc.perform(
+            loginRequest(
+                """
+                {"username": "%s", "password": "Password123!"}
+                """
+                    .formatted(username)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.username").value("johndoe"));
+  }
+
+  @Test
+  void sessionPrincipalCarriesRoleAndEnabledFlagAndSurvivesSerialization() throws Exception {
+    HttpSession session =
+        mvc.perform(loginRequest()).andReturn().getRequest().getSession(false);
+    AccountUserDetails principal =
+        (AccountUserDetails) securityContext(session).getAuthentication().getPrincipal();
+
+    assertThat(principal.getAuthorities())
+        .extracting(GrantedAuthority::getAuthority)
+        .containsExactly("ROLE_USER");
+    assertThat(principal.getRole()).isEqualTo(Role.USER);
+    assertThat(principal.isEnabled()).isTrue();
+
+    AccountUserDetails copy = SerializationUtils.clone(principal);
+    assertThat(copy.getRole()).isEqualTo(Role.USER);
+    assertThat(copy.getFirstName()).isEqualTo("John");
+    assertThat(copy.getAuthorities()).isEqualTo(principal.getAuthorities());
   }
 
   @Test

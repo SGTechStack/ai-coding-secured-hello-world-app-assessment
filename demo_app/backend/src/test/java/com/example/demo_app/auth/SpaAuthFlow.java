@@ -25,7 +25,7 @@ import org.springframework.web.client.RestClient;
  * the shared {@code CsrfFilter}'s repository for a session-based one, breaking cookie assertions in
  * later tests that share the cached context.
  */
-final class SpaAuthFlow {
+public final class SpaAuthFlow {
 
   static final String DEMO_LOGIN =
       """
@@ -54,7 +54,7 @@ final class SpaAuthFlow {
   }
 
   /** Logs in as the demo user; returns the authenticated session. */
-  static MockHttpSession logIn(MockMvc mvc) throws Exception {
+  public static MockHttpSession logIn(MockMvc mvc) throws Exception {
     return (MockHttpSession)
         mvc.perform(loginRequest(mvc, DEMO_LOGIN))
             .andExpect(status().isOk())

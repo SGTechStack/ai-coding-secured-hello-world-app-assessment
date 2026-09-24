@@ -5,6 +5,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Loads the principal for a login. The submitted username is normalised first, so the lookup is
+ * case-insensitive against the lowercase stored value.
+ */
 @Service
 public class AccountUserDetailsService implements UserDetailsService {
 
@@ -18,7 +22,7 @@ public class AccountUserDetailsService implements UserDetailsService {
   @Transactional(readOnly = true)
   public AccountUserDetails loadUserByUsername(String username) {
     return accounts
-        .findByUsername(username)
+        .findByUsername(UserAccount.normaliseUsername(username))
         .map(AccountUserDetails::new)
         .orElseThrow(() -> new UsernameNotFoundException("Unknown user"));
   }

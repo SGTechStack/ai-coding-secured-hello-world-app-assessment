@@ -140,7 +140,11 @@ describe("navbar Log out", () => {
 
     server.use(
       http.post("/api/v1/auth/login", () =>
-        HttpResponse.json({ username: "janedoe", firstName: "Jane" }),
+        HttpResponse.json({
+          username: "janedoe",
+          firstName: "Jane",
+          role: "USER",
+        }),
       ),
     );
     await user.type(await screen.findByLabelText("Username"), "janedoe");

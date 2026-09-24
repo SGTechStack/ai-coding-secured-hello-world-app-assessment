@@ -9,6 +9,7 @@ import static com.example.demo_app.auth.SpaAuthFlow.setEnabled;
 import static com.example.demo_app.auth.SpaAuthFlow.uniqueIp;
 import static com.example.demo_app.auth.SpaAuthFlow.withCsrf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,8 +48,9 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 /**
  * Password reset at the HTTP seam. The emailed link is read from the stub email service's log line
- * (captured output), which is also how the dev-profile e2e suite reads it. Every test registers its
- * own users and sends from its own client address; the clock is reset before each test.
+ * (captured output), which is also how the dev-profile e2e suite reads it. The link is emailed off
+ * the request thread, so tests wait for that line. Every test registers its own users and sends
+ * from its own client address; the clock is reset before each test.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -86,20 +88,45 @@ class PasswordResetApiTest {
 
     for (String body :
         List.of(
-            emailJson(known.toUpperCase() + "@Example.com "),
             emailJson(uniqueName() + "@example.com"),
             emailJson(disabled + "@example.com"),
             emailJson("not an email"),
             emailJson(""),
-            "{}")) {
+            "{}",
+            emailJson(known.toUpperCase() + "@Example.com "))) {
       requestReset(body)
           .andExpect(status().isAccepted())
           .andExpect(content().string(""))
           .andExpect(header().doesNotExist(HttpHeaders.CONTENT_TYPE));
     }
 
-    // Only the known, enabled account was sent a link.
+    // Only the known, enabled account was sent a link, and nothing else arrives later.
+    await()
+        .during(Duration.ofMillis(300))
+        .atMost(Duration.ofSeconds(5))
+        .until(() -> emailLines(output).size() == 1);
     assertThat(emailLines(output)).singleElement().asString().contains(known + "@example.com");
+  }
+
+  @Test
+  void theLinkIsIssuedAndEmailedOffTheRequestThread(CapturedOutput output) throws Exception {
+    String name = newUser();
+    String ip = uniqueIp();
+
+    mvc.perform(resetRequest(emailJson(name + "@example.com")).with(fromIp(ip)))
+        .andExpect(status().isAccepted());
+
+    // MockMvc handles the request on this thread; the token and email work ran on another one,
+    // so a known email costs the request no more than an unknown one.
+    String requestThread = Thread.currentThread().getName();
+    awaitToken(output, name, 1);
+    assertThat(threadOf(emailLines(output).getFirst())).isNotBlank().isNotEqualTo(requestThread);
+    String audit =
+        auditLines(output).stream()
+            .filter(line -> line.contains("event=PASSWORD_RESET_REQUESTED actor=anonymous ip=" + ip))
+            .findFirst()
+            .orElseThrow();
+    assertThat(threadOf(audit)).isEqualTo(requestThread);
   }
 
   @Test
@@ -255,7 +282,7 @@ class PasswordResetApiTest {
         .andExpect(status().isAccepted());
     mvc.perform(resetRequest(emailJson(unknownEmail)).with(fromIp(ip)))
         .andExpect(status().isAccepted());
-    String token = latestToken(output, name);
+    String token = awaitToken(output, name, 1);
     mvc.perform(confirmRequest(token, NEW_PASSWORD).with(fromIp(ip)))
         .andExpect(status().isNoContent());
     mvc.perform(confirmRequest(token, NEW_PASSWORD).with(fromIp(ip)))
@@ -358,8 +385,9 @@ class PasswordResetApiTest {
 
   /** Requests a reset for {@code username}'s email and returns the token from the emailed link. */
   private String requestTokenFor(String username) throws Exception {
+    int sent = emailsTo(output, username).size();
     requestReset(emailJson(username + "@example.com")).andExpect(status().isAccepted());
-    return latestToken(output, username);
+    return awaitToken(output, username, sent + 1);
   }
 
   private ResultActions requestReset(String body) throws Exception {
@@ -403,17 +431,24 @@ class PasswordResetApiTest {
         .andExpect(status().isUnauthorized());
   }
 
-  private static String latestToken(CapturedOutput output, String username) {
-    String token = null;
-    for (String line : emailLines(output)) {
-      if (line.contains(username + "@example.com")) {
-        Matcher link = LINK.matcher(line);
-        assertThat(link.find()).as("reset link in %s", line).isTrue();
-        token = link.group(1);
-      }
-    }
-    assertThat(token).as("a reset link emailed to %s", username).isNotNull();
-    return token;
+  /** The token in the {@code nth} (from 1) link emailed to {@code username}, once it is sent. */
+  private static String awaitToken(CapturedOutput output, String username, int nth) {
+    await().atMost(Duration.ofSeconds(5)).until(() -> emailsTo(output, username).size() >= nth);
+    String line = emailsTo(output, username).get(nth - 1);
+    Matcher link = LINK.matcher(line);
+    assertThat(link.find()).as("reset link in %s", line).isTrue();
+    return link.group(1);
+  }
+
+  private static List<String> emailsTo(CapturedOutput output, String username) {
+    return emailLines(output).stream()
+        .filter(line -> line.contains(username + "@example.com"))
+        .toList();
+  }
+
+  /** The thread an ECS JSON log line was written on. */
+  private static String threadOf(String line) throws Exception {
+    return JSON.readTree(line).at("/process/thread/name").asText();
   }
 
   private static List<String> emailLines(CapturedOutput output) {

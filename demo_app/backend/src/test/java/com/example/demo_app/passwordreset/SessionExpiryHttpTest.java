@@ -1,8 +1,10 @@
 package com.example.demo_app.passwordreset;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import java.net.HttpCookie;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -73,6 +75,10 @@ class SessionExpiryHttpTest {
         null,
         "{\"email\": \"%s@example.com\"}".formatted(name),
         202);
+    // The link is emailed off the request thread.
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .until(() -> output.getOut().contains("Password reset email to " + name));
     Matcher token =
         TOKEN.matcher(
             output

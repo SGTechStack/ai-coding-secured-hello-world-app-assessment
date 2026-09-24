@@ -2,6 +2,8 @@ package com.example.demo_app.security;
 
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
+import com.example.demo_app.web.RequestBodyLimitFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +51,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  *       {@code X-XSRF-TOKEN} header). The plain request handler is used because the SPA sends the
  *       raw cookie value, not a BREACH-masked one.
  *   <li>Failures render as JSON via {@link JsonSecurityErrorHandler}; nothing redirects.
+ *   <li>Request bodies over 16 KB are rejected ({@link RequestBodyLimitFilter}) before the CSRF
+ *       check, inside the chain so the rejection still carries the security headers.
  *   <li>Session fixation: login replaces the session with a new one ({@code newSession}).
  *   <li>Logout is Spring Security's logout filter on {@code POST /api/v1/auth/logout}. It runs
  *       after the CSRF check and before authorization, so it needs a valid CSRF token but no
@@ -56,7 +60,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  *       (the built-in CSRF logout handler), audits {@code LOGOUT} (actor {@code anonymous} without
  *       a session) and answers an empty {@code 204}.
  *   <li>Headers: a restrictive Content-Security-Policy (the API serves JSON only),
- *       Referrer-Policy and Permissions-Policy, on top of Spring Security's defaults.
+ *       Referrer-Policy and Permissions-Policy, on top of Spring Security's defaults (which include
+ *       HSTS on secure requests).
  *   <li>The {@code prod} profile redirects plain HTTP to HTTPS; local dev and the e2e suite run
  *       over HTTP without it.
  * </ul>
@@ -75,6 +80,7 @@ class SecurityConfig {
       SecurityContextRepository securityContextRepository,
       JsonSecurityErrorHandler errorHandler,
       ServerProperties serverProperties,
+      ObjectMapper objectMapper,
       Environment environment,
       AuditLog auditLog)
       throws Exception {
@@ -96,6 +102,7 @@ class SecurityConfig {
             csrf ->
                 csrf.csrfTokenRepository(csrfTokenRepository)
                     .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+        .addFilterBefore(new RequestBodyLimitFilter(objectMapper), CsrfFilter.class)
         .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
         .securityContext(context -> context.securityContextRepository(securityContextRepository))
         // AuthController applies the sessionAuthenticationStrategy bean below, which matches this.

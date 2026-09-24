@@ -1,0 +1,287 @@
+[
+  {
+    "id": "1.1",
+    "title": "Manage Asset Requirements",
+    "acceptance_criteria": [
+      "1.1.1 Requestor (Asset_SAF) shall be able to create, update, view, verify, reject and delete CR asset requirements.",
+      "1.1.2 Requirements shall be submitted at ReqCen level (select from drop down list).",
+      "1.1.3 Requirements shall be based on CR Type (select from drop down list), CR category (select from drop down list), and quantities in whole number.",
+      "1.1.4 Each requirement shall indicate the requesting unit (free text), EE (select from drop down list of EGBs and Essential Companies).",
+      "1.1.5 System shall have a field to select the approving authority (select from drop down list).",
+      "1.1.6 System shall have a free text field to enter internal remarks, e.g. approval reference and approval date.",
+      "1.1.7 Requestor (Asset_SAF) shall be able to view current and rejected CR asset requirements.",
+      "1.1.8 System shall have a function to download a template containing all the essential fields that shall be populated to support mass load into CRIPS.",
+      "1.1.9 System shall have a function to upload a filled template containing all the information needed to mass upload the CR asset requirements into CRIPS.",
+      "1.1.10 System shall restrict Requestor (Asset_SAF) from entering requirements for the same CR type, CR category, Requesting Unit/EE under multiple ReqCens.",
+      "1.1.11 Requestor (Asset_SAF) shall be able to view the allocation by CR category, including substitution CR category and the corresponding quantity allocated.",
+      "1.1.12 Requestor (Asset_SAF) shall be able to export/download the information.",
+      "1.1.13 Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "1.2",
+    "title": "Manage Asset Exemption",
+    "acceptance_criteria": [
+      "1.2.1 Requestor (Asset_SAF) shall be able to create, update, view and delete CR asset exemption request.",
+      "1.2.2 Asset exemption requests shall be routed to the respective Controller for approval. Controller can approve or reject the request.",
+      "1.2.3 Requestor (Asset_SAF) shall be able to create requests to un-exempt assets that the Controllers have approved earlier. Such requests shall be routed to the respective Controller for approval. He/She shall be able to update, view and delete such requests.",
+      "1.2.4 Exempted assets cannot be allocated nor requisitioned. When EMA_AO or EMA_EO attempt to requisition an exempted asset, system shall prompt appropriate message to inform him/her the asset is exempted from requisition.",
+      "1.2.5 Requestor (Asset_SAF) shall be able to export/download the information.",
+      "1.2.6 Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "1.3",
+    "title": "Manage Annual Exercise Plan",
+    "acceptance_criteria": [
+      "1.3.1 Requestor (Asset_SAF) shall be able to view the information for the ReqCens that he/she is authorised.",
+      "1.3.2 System shall display a summary of the ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025).",
+      "1.3.3 The Previous and Last CR Exercise Dates shall be updated automatically after ReqCen has completed their CR exercise.",
+      "1.3.4 System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date.",
+      "1.3.5 System shall show the most current Planned Exercise Workyear if this information is updated by the respective Controller.",
+      "1.3.6 Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "1.4",
+    "title": "Manage Requisition Plan",
+    "acceptance_criteria": [
+      "1.4.1 Requestor (Asset_SAF) shall be able to view Requisition Plans for the ReqCens that he/she is authorised.",
+      "1.4.2 Requestor (Asset_SAF) shall be able to export/download the details of Requisition Plans.",
+      "1.4.3 Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "1.5",
+    "title": "Manage ReqCen POC Details",
+    "acceptance_criteria": [
+      "1.5.1 Requestor (Asset_SAF) shall be able to display ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN).",
+      "1.5.2 Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "1.6",
+    "title": "Manage EMA Details",
+    "acceptance_criteria": [
+      "1.6.1 Requestor (Asset_SAF) shall be able to view the EMA details for ReqCens that he/she is authorised.",
+      "1.6.2 Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field. 2 CRO(ASSET) USER STORY"
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.1",
+    "title": "Manage Asset Requirements",
+    "acceptance_criteria": [
+      "2.1.1 CRO(Asset) shall be able to view CR asset requirements for ReqCens that he/she is authorised.",
+      "2.1.2 CRO(Asset) shall be able to view the allocation by CR category, including substitution CR category and the corresponding quantity allocated.",
+      "2.1.3 CRO(Asset) shall be able to export/download the information.",
+      "2.1.4 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.2",
+    "title": "Assign EE to ReqCen",
+    "acceptance_criteria": [
+      "2.2.1 System shall control the access by CR Types.",
+      "2.2.2 CRO(Asset) shall only be able to assign EEs to SCDF ReqCens for CR Vehicles and CR Heavy Plants.",
+      "2.2.3 CRO(Asset) shall be able to un-tag EEs to ReqCen.",
+      "2.2.4 CRO(Asset) shall be able to view details of EE\u2019s CR requirements.",
+      "2.2.5 System shall have a function to download and upload template for EE\u2019s CR requirements.",
+      "2.2.6 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.3",
+    "title": "Manage Annual Exercise Plan",
+    "acceptance_criteria": [
+      "2.3.1 CRO(Asset) shall be able to view the information for the ReqCens that he/she is authorised.",
+      "2.3.2 System shall display a summary of the ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025).",
+      "2.3.3 System shall update the Previous and Last CR Exercise Dates automatically after ReqCen has completed their CR exercise.",
+      "2.3.4 System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date.",
+      "2.3.5 System shall show the most current Planned Exercise Workyear if this information is updated by the respective Controller.",
+      "2.3.6 Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.4",
+    "title": "Manage Requisition Plan",
+    "acceptance_criteria": [
+      "2.4.1 CRO(Asset) shall be able to create, update, view and delete Requisition Plan for the ReqCens that he/she is authorised.",
+      "2.4.2 CRO(Asset) shall be able to export/download the details of Requisition Plans.",
+      "2.4.3 System shall restrict each CR requisition plan to have only one ReqCen and there must be a start and end date for every plan.",
+      "2.4.4 Have various plan types and user must select \u2018Training\u2019, \u2018Exercise\u2019 or \u2018Operations\u2019 when creating a CR requisition plan.",
+      "2.4.5 In planning the participating list of CR categories, all CR categories managed by the ReqCen shall be listed and CRO(Asset) shall select the CR categories to be included in the Requisition Plan.",
+      "2.4.6 In planning the participating list of CR owners, recommendations shall be provided to CRO(Asset) on which CR owners should be earmarked for mobilisation exercise, e.g. a. Display the last mobilisation date for each CR owner.",
+      "2.4.7 RFQ No. DEFNGPP7126100138 b. Indicate whether the CR owner is due for exercise.",
+      "2.4.8 In the Requisition Plan, display the CR owner, CR categories, CR requirement (i.e. required quantity) and CR allocated quantity, then a. Allow CRO(Asset) to input quantity, i.e. the quantity to requisition. System shall ensure the quantity cannot exceed the CR allocated quantity. b. Allow CRO(Asset) to select/earmark specific asset to requisition, e.g. vehicle registration number XD2103T.",
+      "2.4.9 In the Requisition Plan, CRO(Asset) shall be able to select the planned CR categories and planned CR quantity to be distributed to the Requesting Unit/EE.",
+      "2.4.10 For each CR category, the planned CR quantity can exceed the quantity demanded by the Requesting Unit/Essential Establishment (EE) but it must not exceed the earmarked quantity listed in the Requisition Plan.",
+      "2.4.11 At the Requisition Plan summary page, CRO(Asset) shall be able to view the total number of CR owners, the total number of CR categories, the total CR quantities included in the plan. It shall also provide the required budget to support the Requisition Plan, e.g. a. Estimated cost for 4-hours for each CR category. b. Estimated cost for 1-day w/o undertaking for each category. c. Estimated cost for 1 day with undertaking for each category. d. Estimated cost for 4-hours for the entire Requisition Plan. e. Estimated cost for 1-day w/o undertaking for the entire Requisition Plan. f. Estimated cost for 1 day with undertaking for the entire Requisition Plan.",
+      "2.4.12 CRO(Asset) shall be able to save the draft Requisition Plan.",
+      "2.4.13 CRO(Asset) shall be able to amend or delete the draft Requisition Plan.",
+      "2.4.14 Once the CRO(Asset) is satisfied with the draft Requisition Plan, he/she shall submit the plan and it shall be routed to Chief Controller Office for approval.",
+      "2.4.15 Incomplete Requisition Plan cannot be submitted. Chief Controller Office shall either approve or reject the Requisition Plan.",
+      "2.4.16 Upon committing an Exercise or Operations Requisition Plan, system shall auto generate and send emails, informing the CR Owners that they have been selected to participate in an upcoming CR requisition. The email shall contain pertinent details such as the period that they could be activated, the CR assets and quantity required for requisition, the primary and alternate/secondary EMA address, and contact details of the CRO(Asset), name and appointment of the Competent Authority.",
+      "2.4.17 System shall provide relevant warning and/or error messages that are self- explanatory to guide CRO(Asset).",
+      "2.4.18 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.5",
+    "title": "Manage ReqCen POC Details",
+    "acceptance_criteria": [
+      "2.5.1 CRO(Asset) shall be able to update ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN).",
+      "2.5.2 The ReqCen details shall be used to populate templated emails that will be sent to CR owners when CRO(Asset) commit the Requisition Plans.",
+      "2.5.3 CRO(Asset) shall be able to export/download the information.",
+      "2.5.4 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.6",
+    "title": "Manage EMA Details",
+    "acceptance_criteria": [
+      "2.6.1 CRO(Asset) shall be able to create, update, view and delete the EMA of each ReqCen.",
+      "2.6.2 System shall use the EMA details to populate templated emails that will be sent to CR owners when CRO(Asset) commit the Requisition Plans.",
+      "2.6.3 CRO(Asset) shall be able to update the number of car parking lots and heavy vehicle parking lots respectively.",
+      "2.6.4 System shall set the postal code of the EMA as an optional field and CRO(Asset) shall key in the nearest postal code should the EMA not have one. The postal code information shall be used for sourcing and allocation where CR owners\u2019 premise in close proximity to the EM OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "2.6.5 An address would be prioritised, hence support Controller Vehicle in deciding the CR Owners selection.",
+      "2.6.6 CRO(Asset) shall be able to export/download the information.",
+      "2.6.7 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.7",
+    "title": "Plan Requisition Budget",
+    "acceptance_criteria": [
+      "2.7.1 CRO(Asset) shall be able to select the ReqCen that he/she is authorised.",
+      "2.7.2 The system shall display the relevant CR Categories and the Allocated Quantity, depending on the ReqCen selection .",
+      "2.7.3 CRO(Asset) shall be able to input the Quantity Planned for requisition and click on the \u2018Calculate\u2019 button.",
+      "2.7.4 Based on his/her input, the output shall display \u2018CR Category\u2019, \u2018Quantity Planned\u2019 and also derive the Estimated Cost for 4-hours, Estimated Cost for 1-day w/o Undertaking and Estimated Cost for 1 day with Undertaking for each category.",
+      "2.7.5 System shall display a row with the total for Quantity Planned, Estimated Cost for 4-hours, Estimated Cost for 1-day w/o Undertaking and Estimated Cost for 1 day with Undertaking.",
+      "2.7.6 CRO(Asset) shall be able to export/download the details of the budget plan.",
+      "2.7.7 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.8",
+    "title": "Manage CR Owners Information",
+    "acceptance_criteria": [
+      "2.8.1 The CR Owners shall be segregated into \u201cAllocated CR Owners\u201d and \u201cUnallocated CR Owners\u201d. a. Allocated CR Owners. They can be allocated to one or more ReqCens. They are generally termed as shared CR Owner if the company is supporting more than one ReqCen. CRO(Asset) shall be only be able to access records based on the ReqCen he/she is assigned to. CRO(Asset) shall be able to view when",
+      "2.8.2 RFQ No. DEFNGPP7126100138 the CR Owner was last mobilised. For shared CR Owner, the last mobilisation date for each ReqCen shall be shown. b. Unallocated CR Owners. CRO(Asset) shall be able to view the record so that they have the relevant information to reach out to CR Owners who may have suitable heavy plants to meet the ReqCen\u2019s needs.",
+      "2.8.3 System shall include the following in the header information: UEN number, Company Name, Status of the company, Mailing Address, Office/Site Address, GST Registration Number, Office Contact Number, Other Contact Number (e.g.",
+      "2.8.4 Mobile Number), Email Address etc. Some of these information shall be retrieved from the ACRA interface file while some information, e.g. email address shall be editable by CRO(Asset).",
+      "2.8.5 System shall include the following for ReqCen-level information: CR Owner\u2019s POC names, their mobile number, office number, fax number and email address.",
+      "2.8.6 CRO(Asset) shall be able to include multiple POC numbers. CRO(Asset) shall also be able to select the primary POC and secondary POC who will receive our SMS notifications broadcast from official MINDEF/SAF or WOG communication channel, e.g. sender ID \u201cgov.sg\u201d.",
+      "2.8.7 CRO(Asset) shall be able to view the CR Owners\u2019 assets which shall be grouped and presented logically. a. \u201cCR Assets Owned\u201d shall show each CR category and their respective Quantity. It shall provide the total number of CR assets of the CR Owner. b. \u201cCR Category Allocated to ReqCens\u201d shall show the CR category, Quantity Allocated and ReqCen Allocated. It shall provide the allocation to ownership ratio. E.g. if a CR Owner owns 10 assets and only 5 are allocated, the allocation ratio is 50%. c. \u201cReqCen Allocation History\u201d shall show the Allocation Date and the corresponding ReqCen. It shall provide a summary of the total allocation records. d. \u201cDe-allocation History\u201d shall show the De-allocation Date and the corresponding ReqCen and Reason for De-allocation.",
+      "2.8.8 CRO(Asset) shall be able to view the CR Mobilisation Exercise History of each CR Owner. The information shall include ReqCen, Requisition Plan Description, Requisition Plan Type, Mobilisation Date.",
+      "2.8.9 CRO(Asset) shall be able to view additional information related to Shared CR Owners status. The information shall include Major ReqCen and Shared ReqCens.",
+      "2.8.10 CRO(Asset) shall be able to view all the CR assets of the CR Owners. Information shall include CR Type, CR Category, Registration Number, Chassis Number, Engine Number, etc.",
+      "2.8.11 CRO(Asset) shall be able to export/download the information.",
+      "2.8.12 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.9",
+    "title": "Manage Compensation",
+    "acceptance_criteria": [
+      "2.9.1 System shall compute the compensation amount payable to CR owners automatically based on pre-determined rates for assets.",
+      "2.9.2 System shall support progressive compensation when the asset requisition is for a prolonged duration of more than one month and allow progressive compensation to be made at the end of every 30 days following the requisition, with the balance payment to be made upon derequisition.",
+      "2.9.3 For Compensation for Requisition Plan, CRO(Asset) shall be able to: a. View requisition details. b. View Requisition Form and De-requisition Forms. c. Submit compensation for loss/damage to Controller CRIC Office for verification.",
+      "2.9.4 d. e. Upload and download supporting documents. Resubmit for verification for cases previously rejected by Controller CRIC Office. f. Resubmit for approval for cases previously rejected by Approving Officer (Asset). This function is only applicable for MINDEF/SAF\u2019s CRO(Asset). g. Create/View Appeal. h. Update Owner\u2019s Response wrt Appeal and Decision by Controller CRIC. i. Track compensation payment and appeal status. For Compensation for Modification/Inspection, CRO(Asset) shall be able to: a. Submit compensation for modification/inspection to Controller CRIC Office for verification. b. c. d. Create new compensation (individual or multiple cases). Upload and download supporting documents. Resubmit for verification for cases previously rejected by Controller CRIC Office. e. Resubmit for approval for cases previously rejected by Approving Officer (Asset). OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) RFQ No. DEFNGPP7126100138",
+      "2.9.5 f. Create/View Appeal. g. h. Update Owner\u2019s Response wrt Appeal and Decision by Controller CRIC. Track compensation payment and appeal status. System shall allow for all compensations to be verified by Controller CRIC Office digitally. Upon verification, a. For Requisition Plans and Modification/Inspection initiated by MINDEF/SAF, the compensation shall be routed to Approving Officer(Asset). After Approving Officer(Asset)\u2019s approval, compensation shall be routed automatically to MINDEF/SAF Payment Service Hub/ Enterprise System for payment processing. b. For Requisition Plans and Modification/Inspection initiated by Homefront users, CRO(Asset) shall be able to export/download the details for compensation payment processing via their respective financial systems. CRO(Asset) shall be able to upload the payment details (e.g. payment date and reference number, remarks, etc) to close the record in CRIPS."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.10",
+    "title": "Review Payment Instruction",
+    "acceptance_criteria": [
+      "2.10.1 System shall restrict this function to CRO(Asset) from MINDEF/SAF.",
+      "2.10.2 CRO(Asset) shall be able to resubmit compensation payment instructions previously rejected by MINDEF/SAF payment system.",
+      "2.10.3 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.11",
+    "title": "Export Homefront Payment",
+    "acceptance_criteria": [
+      "2.11.1 System shall restrict this function to CRO(Asset) from SCDF.",
+      "2.11.2 For Requisition Plans and Modification/Inspection initiated by Homefront users, CRO(Asset) shall be able to export/download the compensation payment details so that he/she can submit the details to his/her agency\u2019s finance department to process the compensation payment to CR Owners. CRO(Asset) shall only be able to export/download compensation records that have been verified by CRIC Officer in CRIPS.",
+      "2.11.3 CRO(Asset) shall be able to upload the payment details (e.g. AGD payment date, AGD payment reference number, payment amount, etc) to close the record in CRIPS. He/She shall be able to download the template, fill in the additional details and upload the information in CRIPS.",
+      "2.11.4 CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "2.12",
+    "title": "Reports",
+    "acceptance_criteria": [
+      "2.12.1 CRO(Asset) shall be able to generate reports as follows: a. Heavy Plants and LTA Registered Assets. This report shall generate heavy plant and LTA registered assets per CR summary details. Information displayed shall be restricted by CR Types that CRO(Asset) is authorised to. b. Asset Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan.",
+      "2.12.2 Asset Requisition Payment Report (MINDEF/SAF). This report shall generate payment for CR assets with requisition plan, with additional information, i.e. consists of MINDEF/SAF payments details that go through Payment Service Hub/ Enterprise System for payment. This report is only applicable for MINDEF/SAF\u2019s CRO(Asset)."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "3.1",
+    "title": "Manage EMA User",
+    "acceptance_criteria": [
+      "3.1.1 Upon committing a requisition plan, system shall auto create EMA user accounts for CRO(Asset) tagged to the ReqCen. System shall also create EMA user accounts for CRIPS users with Administrator role. They shall be assigned with EMA_Admin and EMA_HQ roles for the requisition plan.",
+      "3.1.2 System shall auto create EMA user accounts for CRIPS users with Chief Controller Office role as well as for the respective CRA Controller based on their assigned ReqCens. They shall be assigned with EMA_HQ role for the requisition plan.",
+      "3.1.3 System shall generate and trigger an email to CRO(Asset), Administrator, Chief Controller Office, respective CRA Controllers to notify them the EMA user accounts are created.",
+      "3.1.4 EMA_Admin shall be able to: a. b. Create, Delete and View EMA users Assign roles to existing users (to select one/more of the following) \uf0a7 EMA_DyAdmin \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP c. Modify roles of existing users (to select one/more of the following) \uf0a7 EMA_DyAdmin \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP d. a. b. Mass upload a list of users and the role(s) of each user EMA_DyAdmin supports EMA_Admin in managing EMA user accounts.",
+      "3.1.5 EMA_DyAdmin shall be able to: Create, Delete and View EMA users Assign roles to existing users (to select one/more of the following) \uf0a7 EMA_HQ \uf0a7 EMA_AO OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) RFQ No. DEFNGPP7126100138",
+      "3.1.6 \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP c. Modify roles of existing users (to select one/more of the following) \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP d. Mass upload a list of users and the role(s) of each user System shall disallow EMA_Admin to modify his/her roles. Similarly, system shall disallow EMA_DyAdmin to modify his/her roles.",
+      "3.1.7 System shall cap the number of users with EMA_DyAdmin role for each requisition plan. This cap number shall be maintained via App Setting or Site Properties and shall apply to all active Requisition Plans.",
+      "3.1.8 System shall disable/delete all EMA accounts upon the expiry of the requisition plan. 4 EMA_HQ USER STORY"
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "4.1",
+    "title": "Activation",
+    "acceptance_criteria": [
+      "4.1.1 EMA_HQ shall be able to enter the activation date and time, select \u2018Primary EMA\u2019 or \u2018Alternate/Secondary EMA\u2019.",
+      "4.1.2 EMA_HQ shall be able to amend the activation date and time if the original date/time has not lapsed.",
+      "4.1.3 For Training Plan, EMA_HQ shall be able to enter up to 2 mobile numbers to receive the activation message.",
+      "4.1.4 Upon clicking on \u2018Activate\u2019 button and on the activation date and time, a. Notifications shall be sent via SMSes to CR Owner\u2019s POCs. The contents in the SMSes may be generic or specific, and shall allow customisation/configuration easily. The SMS contents may vary according to ReqCens and EMA. Ability to use WOG products such as \u2018Postman\u2019 shall be explored. b. Notices/Orders shall be published in CR Owner Portal. CR Owners shall login to the CR Owner Portal to retrieve the notices/orders to find out more information of the activation and to acknowledge the notices/orders.",
+      "4.1.5 EMA_HQ shall be able to toggle between primary and alternate/secondary EMA and then re-activate the requisition plan.",
+      "4.1.6 Upon clicking on \u2018Activate\u2019 button following changes to EMA selection, a. Notifications shall be sent via SMSes to CR Owner\u2019s POCs. The contents in the SMSes may be generic or specific, and shall allow customisation/configuration easily. The SMS contents may vary according to ReqCens and EMA. Ability to use WOG products such as \u2018Postman\u2019 shall be explored. b. New notices/orders shall be published in CR Owner Portal. CR Owners shall login to the CR Owner Portal to retrieve the new notices/orders to find out more information of the re-activation and to acknowledge the new notices/orders.",
+      "4.1.7 System shall track and display the user who last activated/re-activated the plan. It shall display the name of this user, and the date/time of the last activation/re- activation made by him/her."
+    ],
+    "group": "default",
+    "release": 1
+  }
+]

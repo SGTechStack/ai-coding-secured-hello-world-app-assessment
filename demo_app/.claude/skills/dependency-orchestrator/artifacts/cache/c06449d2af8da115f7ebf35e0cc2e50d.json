@@ -1,0 +1,3089 @@
+{
+  "feature_groups": [
+    {
+      "id": "1",
+      "title": "1.1 Manage Asset Requirements",
+      "owned_nodes": [
+        "db_setup",
+        "be_asset_requirement_db_schema",
+        "be_asset_requirement_data_access",
+        "be_asset_requirement_service",
+        "be_asset_requirement_routes",
+        "fe_asset_requirement_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to create, update, view, verify, reject and delete CR asset requirements. Requirements shall be submitted at ReqCen level (select from drop down list). Requirements shall be based on CR Type (select from drop down list), CR category (select from drop down list), and quantities in whole number. Each requirement shall indicate the requesting unit (free text), EE (select from drop down list of EGBs and Essential Companies). System shall have a field to select the approving authority (select from drop down list). System shall have a free text field to enter internal remarks, e.g. approval reference and approval date. Requestor (Asset_SAF) shall be able to view current and rejected CR asset requirements. System shall have a function to download a template containing all the essential fields that shall be populated to support mass load into CRIPS. System shall have a function to upload a filled template containing all the information needed to mass upload the CR asset requirements into CRIPS. System shall restrict Requestor (Asset_SAF) from entering requirements for the same CR type, CR category, Requesting Unit/EE under multiple ReqCens. Requestor (Asset_SAF) shall be able to view the allocation by CR category, including substitution CR category and the corresponding quantity allocated. Requestor (Asset_SAF) shall be able to export/download the information. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "2",
+      "title": "1.2 Manage Asset Exemption",
+      "owned_nodes": [
+        "be_asset_exemption_db_schema",
+        "be_asset_exemption_data_access",
+        "be_asset_exemption_service",
+        "be_asset_exemption_routes",
+        "fe_asset_exemption_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to create, update, view and delete CR asset exemption request.\nAsset exemption requests shall be routed to the respective Controller for approval. Controller can approve or reject the request.\nRequestor (Asset_SAF) shall be able to create requests to un-exempt assets that the Controllers have approved earlier. Such requests shall be routed to the respective Controller for approval. He/She shall be able to update, view and delete such requests.\nExempted assets cannot be allocated nor requisitioned. When EMA_AO or EMA_EO attempt to requisition an exempted asset, system shall prompt appropriate message to inform him/her the asset is exempted from requisition.\nRequestor (Asset_SAF) shall be able to export/download the information. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "3",
+      "title": "1.3 Manage Annual Exercise Plan",
+      "owned_nodes": [
+        "be_exercise_plan_db_schema",
+        "be_exercise_plan_data_access",
+        "be_exercise_plan_service",
+        "be_exercise_plan_routes",
+        "fe_exercise_plan_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to view the information for the ReqCens that he/she is authorised.\nSystem shall display a summary of the ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025). The Previous and Last CR Exercise Dates shall be updated automatically after ReqCen has completed their CR exercise. System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date. System shall show the most current Planned Exercise Workyear if this information is updated by the respective Controller. Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    },
+    {
+      "id": "4",
+      "title": "1.4 Manage Requisition Plan",
+      "owned_nodes": [
+        "be_requisition_plan_db_schema",
+        "be_requisition_plan_data_access",
+        "be_requisition_plan_service",
+        "be_requisition_plan_routes",
+        "fe_requisition_plan_list"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to view Requisition Plans for the ReqCens that he/she is authorised.\nRequestor (Asset_SAF) shall be able to export/download the details of Requisition Plans. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "5",
+      "title": "1.5 Manage ReqCen POC Details",
+      "owned_nodes": [
+        "be_reqcen_poc_db_schema",
+        "be_reqcen_poc_data_access",
+        "be_reqcen_poc_service",
+        "be_reqcen_poc_routes",
+        "fe_reqcen_poc_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to display ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN). Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "6",
+      "title": "1.6 Manage EMA Details",
+      "owned_nodes": [
+        "be_ema_detail_db_schema",
+        "be_ema_detail_data_access",
+        "be_ema_detail_service",
+        "be_ema_detail_routes",
+        "fe_ema_detail_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to view the EMA details for ReqCens that he/she is authorised. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field. 2 CRO(ASSET) USER STORY"
+    },
+    {
+      "id": "7",
+      "title": "2.1 Manage Asset Requirements",
+      "owned_nodes": [
+        "fe_cro_asset_requirement_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to view CR asset requirements for ReqCens that he/she is authorised.\nCRO(Asset) shall be able to view the allocation by CR category, including substitution CR category and the corresponding quantity allocated. CRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "8",
+      "title": "2.2 Assign EE to ReqCen",
+      "owned_nodes": [
+        "be_ee_assignment_db_schema",
+        "be_ee_assignment_data_access",
+        "be_ee_assignment_service",
+        "be_ee_assignment_routes",
+        "fe_ee_assignment_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall control the access by CR Types. CRO(Asset) shall only be able to assign EEs to SCDF ReqCens for CR Vehicles and CR Heavy Plants. CRO(Asset) shall be able to un-tag EEs to ReqCen. CRO(Asset) shall be able to view details of EE\u2019s CR requirements. System shall have a function to download and upload template for EE\u2019s CR requirements. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "9",
+      "title": "2.3 Manage Annual Exercise Plan",
+      "owned_nodes": [
+        "fe_cro_exercise_plan_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to view the information for the ReqCens that he/she is authorised.\nSystem shall display a summary of the ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025). System shall update the Previous and Last CR Exercise Dates automatically after ReqCen has completed their CR exercise. System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date. System shall show the most current Planned Exercise Workyear if this information is updated by the respective Controller. Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    },
+    {
+      "id": "10",
+      "title": "2.4 Manage Requisition Plan",
+      "owned_nodes": [
+        "fe_requisition_plan_form",
+        "be_notification_service",
+        "shared_auth"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to create, update, view and delete Requisition Plan for the ReqCens that he/she is authorised.\nCRO(Asset) shall be able to export/download the details of Requisition Plans. System shall restrict each CR requisition plan to have only one ReqCen and there must be a start and end date for every plan.\nHave various plan types and user must select \u2018Training\u2019, \u2018Exercise\u2019 or \u2018Operations\u2019 when creating a CR requisition plan.\nIn planning the participating list of CR categories, all CR categories managed by the ReqCen shall be listed and CRO(Asset) shall select the CR categories to be included in the Requisition Plan.\nIn planning the participating list of CR owners, recommendations shall be provided to CRO(Asset) on which CR owners should be earmarked for mobilisation exercise, e.g. a. Display the last mobilisation date for each CR owner. b. Indicate whether the CR owner is due for exercise. In the Requisition Plan, display the CR owner, CR categories, CR requirement (i.e. required quantity) and CR allocated quantity, then a. Allow CRO(Asset) to input quantity, i.e. the quantity to requisition. System shall ensure the quantity cannot exceed the CR allocated quantity. b. Allow CRO(Asset) to select/earmark specific asset to requisition, e.g. vehicle registration number XD2103T. In the Requisition Plan, CRO(Asset) shall be able to select the planned CR categories and planned CR quantity to be distributed to the Requesting Unit/EE. For each CR category, the planned CR quantity can exceed the quantity demanded by the Requesting Unit/Essential Establishment (EE) but it must not exceed the earmarked quantity listed in the Requisition Plan. At the Requisition Plan summary page, CRO(Asset) shall be able to view the total number of CR owners, the total number of CR categories, the total CR quantities included in the plan. It shall also provide the required budget to support the Requisition Plan, e.g. a. Estimated cost for 4-hours for each CR category. b. Estimated cost for 1-day w/o undertaking for each category. c. Estimated cost for 1 day with undertaking for each category. d. Estimated cost for 4-hours for the entire Requisition Plan. e. Estimated cost for 1-day w/o undertaking for the entire Requisition Plan. f. Estimated cost for 1 day with undertaking for the entire Requisition Plan. CRO(Asset) shall be able to save the draft Requisition Plan. CRO(Asset) shall be able to amend or delete the draft Requisition Plan. Once the CRO(Asset) is satisfied with the draft Requisition Plan, he/she shall submit the plan and it shall be routed to Chief Controller Office for approval. Incomplete Requisition Plan cannot be submitted. Chief Controller Office shall either approve or reject the Requisition Plan. CRO(Asset) shall be able to amend the rejected Requisition Plan and resubmit it for approval. CRO(Asset) shall be able to amend an approved Requisition Plan. a. For training/exercise requisition plans, if the changed number of earmarked owners/assets exceed the approved number of owners/assets, system shall reset the status as \u2018Pending Approval\u2019 and route the plan to Chief Controller Office for approval. b. For operation requisition plans, system shall allow CRO(Asset) to re-commit without re-submitting it for approval. c. If the start and/or end date of the plan is changed, system shall reset the status as \u2018Pending Approval\u2019 and route the plan to Chief Controller for approval. CRO(Asset) shall be able to commit approved Requisition Plans so as to initiate the requisition operation. Upon committing an Exercise or Operations Requisition Plan, system shall auto generate and send emails, informing the CR Owners that they have been selected to participate in an upcoming CR requisition. The email shall contain pertinent details such as the period that they could be activated, the CR assets and quantity required for requisition, the primary and alternate/secondary EMA address, and contact details of the CRO(Asset), name and appointment of the Competent Authority. System shall provide relevant warning and/or error messages that are self- explanatory to guide CRO(Asset). CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "11",
+      "title": "2.5 Manage ReqCen POC Details",
+      "owned_nodes": [
+        "fe_reqcen_poc_form"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to update ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN).\nThe ReqCen details shall be used to populate templated emails that will be sent to CR owners when CRO(Asset) commit the Requisition Plans.\nCRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "12",
+      "title": "2.6 Manage EMA Details",
+      "owned_nodes": [
+        "fe_ema_detail_form"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to create, update, view and delete the EMA of each ReqCen.\nSystem shall use the EMA details to populate templated emails that will be sent to CR owners when CRO(Asset) commit the Requisition Plans.\nCRO(Asset) shall be able to update the number of car parking lots and heavy vehicle parking lots respectively.\nSystem shall set the postal code of the EMA as an optional field and CRO(Asset) shall key in the nearest postal code should the EMA not have one. The postal code information shall be used for sourcing and allocation where CR owners\u2019 premise in close proximity to the EM An address would be prioritised, hence support Controller Vehicle in deciding the CR Owners selection. CRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "13",
+      "title": "2.7 Plan Requisition Budget",
+      "owned_nodes": [
+        "be_budget_service",
+        "be_budget_routes",
+        "fe_budget_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to select the ReqCen that he/she is authorised. The system shall display the relevant CR Categories and the Allocated Quantity, depending on the ReqCen selection .\nCRO(Asset) shall be able to input the Quantity Planned for requisition and click on the \u2018Calculate\u2019 button.\nBased on his/her input, the output shall display \u2018CR Category\u2019, \u2018Quantity Planned\u2019 and also derive the Estimated Cost for 4-hours, Estimated Cost for 1-day w/o Undertaking and Estimated Cost for 1 day with Undertaking for each category. System shall display a row with the total for Quantity Planned, Estimated Cost for 4-hours, Estimated Cost for 1-day w/o Undertaking and Estimated Cost for 1 day with Undertaking. CRO(Asset) shall be able to export/download the details of the budget plan. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "14",
+      "title": "2.8 Manage CR Owners Information",
+      "owned_nodes": [
+        "be_cr_owner_db_schema",
+        "be_cr_owner_data_access",
+        "be_cr_owner_service",
+        "be_cr_owner_routes",
+        "be_acra_integration",
+        "fe_cr_owner_page"
+      ],
+      "category": "feature",
+      "verifiable": "The CR Owners shall be segregated into \u201cAllocated CR Owners\u201d and \u201cUnallocated CR Owners\u201d. a. Allocated CR Owners. They can be allocated to one or more ReqCens. They are generally termed as shared CR Owner if the company is supporting more than one ReqCen. CRO(Asset) shall be only be able to access records based on the ReqCen he/she is assigned to. CRO(Asset) shall be able to view when the CR Owner was last mobilised. For shared CR Owner, the last mobilisation date for each ReqCen shall be shown. b. Unallocated CR Owners. CRO(Asset) shall be able to view the record so that they have the relevant information to reach out to CR Owners who may have suitable heavy plants to meet the ReqCen\u2019s needs. System shall include the following in the header information: UEN number, Company Name, Status of the company, Mailing Address, Office/Site Address, GST Registration Number, Office Contact Number, Other Contact Number (e.g. Mobile Number), Email Address etc. Some of these information shall be retrieved from the ACRA interface file while some information, e.g. email address shall be editable by CRO(Asset). System shall include the following for ReqCen-level information: CR Owner\u2019s POC names, their mobile number, office number, fax number and email address. CRO(Asset) shall be able to include multiple POC numbers. CRO(Asset) shall also be able to select the primary POC and secondary POC who will receive our SMS notifications broadcast from official MINDEF/SAF or WOG communication channel, e.g. sender ID \u201cgov.sg\u201d. CRO(Asset) shall be able to view the CR Owners\u2019 assets which shall be grouped and presented logically. a. \u201cCR Assets Owned\u201d shall show each CR category and their respective Quantity. It shall provide the total number of CR assets of the CR Owner. b. \u201cCR Category Allocated to ReqCens\u201d shall show the CR category, Quantity Allocated and ReqCen Allocated. It shall provide the allocation to ownership ratio. E.g. if a CR Owner owns 10 assets and only 5 are allocated, the allocation ratio is 50%. c. \u201cReqCen Allocation History\u201d shall show the Allocation Date and the corresponding ReqCen. It shall provide a summary of the total allocation records. d. \u201cDe-allocation History\u201d shall show the De-allocation Date and the corresponding ReqCen and Reason for De-allocation. CRO(Asset) shall be able to view the CR Mobilisation Exercise History of each CR Owner. The information shall include ReqCen, Requisition Plan Description, Requisition Plan Type, Mobilisation Date. CRO(Asset) shall be able to view additional information related to Shared CR Owners status. The information shall include Major ReqCen and Shared ReqCens. CRO(Asset) shall be able to view all the CR assets of the CR Owners. Information shall include CR Type, CR Category, Registration Number, Chassis Number, Engine Number, etc. System shall have a function to download a template containing all the essential fields that shall be populated to support mass load CR Owner Details into CRIPS. System shall have a function to download all the CR assets of the CR Owners. System shall have a function to download all the CR Owners details. There shall be controls to restrict the number of records that can be downloaded each time. This control shall be managed via App Setting or Site Properties.\nCRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "15",
+      "title": "2.9 Manage Compensation",
+      "owned_nodes": [
+        "be_compensation_db_schema",
+        "be_compensation_data_access",
+        "be_compensation_service",
+        "be_compensation_routes",
+        "be_document_service",
+        "fe_compensation_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall compute the compensation amount payable to CR owners automatically based on pre-determined rates for assets.\nSystem shall support progressive compensation when the asset requisition is for a prolonged duration of more than one month and allow progressive compensation to be made at the end of every 30 days following the requisition, with the balance payment to be made upon derequisition.\nFor Compensation for Requisition Plan, CRO(Asset) shall be able to: a. View requisition details. b. View Requisition Form and De-requisition Forms. c. Submit compensation for loss/damage to Controller CRIC Office for verification.\nd. e. Upload and download supporting documents. Resubmit for verification for cases previously rejected by Controller CRIC Office. f. Resubmit for approval for cases previously rejected by Approving Officer (Asset). This function is only applicable for MINDEF/SAF\u2019s CRO(Asset). g. Create/View Appeal. h. Update Owner\u2019s Response wrt Appeal and Decision by Controller CRIC. i. Track compensation payment and appeal status. For Compensation for Modification/Inspection, CRO(Asset) shall be able to: a. Submit compensation for modification/inspection to Controller CRIC Office for verification. b. c. d. Create new compensation (individual or multiple cases). Upload and download supporting documents. Resubmit for verification for cases previously rejected by Controller CRIC Office. e. Resubmit for approval for cases previously rejected by Approving Officer (Asset).\nf. Create/View Appeal. g. h. Update Owner\u2019s Response wrt Appeal and Decision by Controller CRIC. Track compensation payment and appeal status. System shall allow for all compensations to be verified by Controller CRIC Office digitally. Upon verification, a. For Requisition Plans and Modification/Inspection initiated by MINDEF/SAF, the compensation shall be routed to Approving Officer(Asset). After Approving Officer(Asset)\u2019s approval, compensation shall be routed automatically to MINDEF/SAF Payment Service Hub/ Enterprise System for payment processing. b. For Requisition Plans and Modification/Inspection initiated by Homefront users, CRO(Asset) shall be able to export/download the details for compensation payment processing via their respective financial systems. CRO(Asset) shall be able to upload the payment details (e.g. payment date and reference number, remarks, etc) to close the record in CRIPS."
+    },
+    {
+      "id": "16",
+      "title": "2.10 Review Payment Instruction",
+      "owned_nodes": [
+        "be_payment_hub_integration",
+        "fe_payment_review_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict this function to CRO(Asset) from MINDEF/SAF. CRO(Asset) shall be able to resubmit compensation payment instructions previously rejected by MINDEF/SAF payment system.\nCRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "17",
+      "title": "2.11 Export Homefront Payment",
+      "owned_nodes": [
+        "fe_payment_export_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict this function to CRO(Asset) from SCDF. For Requisition Plans and Modification/Inspection initiated by Homefront users, CRO(Asset) shall be able to export/download the compensation payment details so that he/she can submit the details to his/her agency\u2019s finance department to process the compensation payment to CR Owners. CRO(Asset) shall only be able to export/download compensation records that have been verified by CRIC Officer in CRIPS. c.\nCRO(Asset) shall be able to upload the payment details (e.g. AGD payment date, AGD payment reference number, payment amount, etc) to close the record in CRIPS. He/She shall be able to download the template, fill in the additional details and upload the information in CRIPS. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "18",
+      "title": "2.12 Reports",
+      "owned_nodes": [
+        "be_report_service",
+        "be_report_routes",
+        "fe_cro_report_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to generate reports as follows: a. Heavy Plants and LTA Registered Assets. This report shall generate heavy plant and LTA registered assets per CR summary details. Information displayed shall be restricted by CR Types that CRO(Asset) is authorised to. b. Asset Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. Asset Requisition Payment Report (MINDEF/SAF). This report shall generate payment for CR assets with requisition plan, with additional information, i.e. consists of MINDEF/SAF payments details that go through Payment Service Hub/ Enterprise System for payment. This report is only applicable for MINDEF/SAF\u2019s CRO(Asset). Asset Requisition Payment Report (Homefront). This report shall generate payment for CR assets with requisition plan initiated by SCDF, with additional information, i.e. consists of payments details that go through SCDF finance system. This report is only applicable for SCDF\u2019s CRO(Asset). Asset Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. Asset Modification/Inspection Payment Report (MINDEF/SAF). This report shall generate payment for CR assets without requisition plan, namely modification and inspection compensation with additional information, i.e. consists of MINDEF/SAF payments details that go through Payment Service Hub/ Enterprise System for payment. This report is only applicable for MINDEF/SAF\u2019s CRO(Asset). Asset Modification/Inspection Payment Report (Homefront). This report shall generate payment for CR assets without requisition plan, namely modification and inspection compensation initiated by SCDF with additional information, i.e. consists of payments details that go through SCDF finance system. This report is only applicable for SCDF\u2019s CRO(Asset). CRO(Asset) shall be able to export/download the reports. d. e. f. g. 3 EMA_ADMIN & EMA_DYADMIN USER STORY"
+    },
+    {
+      "id": "19",
+      "title": "3.1 Manage EMA User",
+      "owned_nodes": [
+        "be_ema_user_db_schema",
+        "be_ema_user_data_access",
+        "be_ema_user_service",
+        "be_ema_user_routes",
+        "fe_ema_user_page"
+      ],
+      "category": "feature",
+      "verifiable": "Upon committing a requisition plan, system shall auto create EMA user accounts for CRO(Asset) tagged to the ReqCen. System shall also create EMA user accounts for CRIPS users with Administrator role. They shall be assigned with EMA_Admin and EMA_HQ roles for the requisition plan.\nSystem shall auto create EMA user accounts for CRIPS users with Chief Controller Office role as well as for the respective CRA Controller based on their assigned ReqCens. They shall be assigned with EMA_HQ role for the requisition plan.\nSystem shall generate and trigger an email to CRO(Asset), Administrator, Chief Controller Office, respective CRA Controllers to notify them the EMA user accounts are created.\nEMA_Admin shall be able to: a. b. Create, Delete and View EMA users Assign roles to existing users (to select one/more of the following) \uf0a7 EMA_DyAdmin \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP c. Modify roles of existing users (to select one/more of the following) \uf0a7 EMA_DyAdmin \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP d. a. b. Mass upload a list of users and the role(s) of each user EMA_DyAdmin supports EMA_Admin in managing EMA user accounts. EMA_DyAdmin shall be able to: Create, Delete and View EMA users Assign roles to existing users (to select one/more of the following) \uf0a7 EMA_HQ \uf0a7 EMA_AO\n\uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP c. Modify roles of existing users (to select one/more of the following) \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP d. Mass upload a list of users and the role(s) of each user System shall disallow EMA_Admin to modify his/her roles. Similarly, system shall disallow EMA_DyAdmin to modify his/her roles. System shall cap the number of users with EMA_DyAdmin role for each requisition plan. This cap number shall be maintained via App Setting or Site Properties and shall apply to all active Requisition Plans. System shall disable/delete all EMA accounts upon the expiry of the requisition plan. 4 EMA_HQ USER STORY"
+    },
+    {
+      "id": "20",
+      "title": "4.1 Activation",
+      "owned_nodes": [
+        "be_activation_db_schema",
+        "be_activation_data_access",
+        "be_activation_service",
+        "be_activation_routes",
+        "fe_activation_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_HQ shall be able to enter the activation date and time, select \u2018Primary EMA\u2019 or \u2018Alternate/Secondary EMA\u2019. EMA_HQ shall be able to amend the activation date and time if the original date/time has not lapsed. For Training Plan, EMA_HQ shall be able to enter up to 2 mobile numbers to receive the activation message. Upon clicking on \u2018Activate\u2019 button and on the activation date and time, a. Notifications shall be sent via SMSes to CR Owner\u2019s POCs. The contents in the SMSes may be generic or specific, and shall allow customisation/configuration easily. The SMS contents may vary according to ReqCens and EMA. Ability to use WOG products such as \u2018Postman\u2019 shall be explored. b. Notices/Orders shall be published in CR Owner Portal. CR Owners shall login to the CR Owner Portal to retrieve the notices/orders to find out more information of the activation and to acknowledge the notices/orders. EMA_HQ shall be able to toggle between primary and alternate/secondary EMA and then re-activate the requisition plan. Upon clicking on \u2018Activate\u2019 button following changes to EMA selection, a. Notifications shall be sent via SMSes to CR Owner\u2019s POCs. The contents in the SMSes may be generic or specific, and shall allow customisation/configuration easily. The SMS contents may vary according to ReqCens and EMA. Ability to use WOG products such as \u2018Postman\u2019 shall be explored. b. New notices/orders shall be published in CR Owner Portal. CR Owners shall login to the CR Owner Portal to retrieve the new notices/orders to find out more information of the re-activation and to acknowledge the new notices/orders. System shall track and display the user who last activated/re-activated the plan. It shall display the name of this user, and the date/time of the last activation/re- activation made by him/her."
+    },
+    {
+      "id": "21",
+      "title": "4.2 Status Tracking",
+      "owned_nodes": [
+        "be_status_tracking_service",
+        "be_status_tracking_routes",
+        "fe_status_tracking_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall display UEN number, Company Name, Acknowledgement and Reporting Status, CR Owner Response Time, Primary and Secondary POC name and their respective contact number.\nCR Owners who have acknowledged the activation message, system shall display the status as \u2018Acknowledged\u2019 and include the acknowledgement phone number, date and time. Otherwise, status shall be displayed as \u2018Not Yet Acknowledged\u2019.\nSystem shall display the requisition status as \u2018Reported\u2019 and include the reporting date and time after the CR Owners\u2019 assets are requisitioned. If CR Owner is earmarked to report with multiple assets, the status should only be displayed as \u2018Reported\u2019 when all the earmarked assets are requisitioned. Status shall be displayed as \u2018Partial Assets Report\u2019 if partial quantities are requisitioned. Otherwise, status shall be displayed as \u2018Not Yet Reported\u2019.\nSystem shall display the CR Owner response time. If CR Owner is earmarked to report with multiple assets, the response time shall be computed using the last asset requisitioned date/time versus the activation start date/time.\nEMA_HQ shall be able to filter by different status. EMA_HQ shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "22",
+      "title": "4.3 View Photos, Inspection Checklist, Receipts",
+      "owned_nodes": [
+        "fe_document_viewer_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall display the UEN, Company Name, Asset Number, CR Category and the four documents, i.e. Photos, Inspection Checklist, Requisition Receipts and De- Requisition Receipts. EMA_HQ shall be able to open the documents to view the Photos, Inspection Checklist, Requisition Receipts and De-Requisition Receipts. EMA_HQ shall be able to download multiple documents at one time. EMA_HQ shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "23",
+      "title": "4.4 End Activation",
+      "owned_nodes": [
+        "fe_activation_end_widget"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_HQ shall only be allowed to end activation after all the assets are de- requisitioned. System shall ensure that activation end date and time must be later than Activation start date and time. System shall disallow EMA_AO and EMA_EO to requisition and de-requisition after the activation ends."
+    },
+    {
+      "id": "24",
+      "title": "4.5 EMA_HQ_Dashboard",
+      "owned_nodes": [
+        "be_dashboard_service",
+        "be_dashboard_routes",
+        "fe_dashboard_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA Dashboard shall be divided into five key sections a. CR Demand and Fulfilment status b. CR Requisition status c. CR De-Requisition status d. CR Issue-To status\ne. CR Return-To-ReqCen status EMA Dashboards shall be displayed at three levels a. b. Aggregated at Level 1 \u2013 Display all (i.e. MINDEF/SAF and WOG) Aggregated at Level 2 \u2013 Display at Service-level (i.e. Army, RSAF, RSN, DIS and WOG/SCDF) c. Aggregated at Level 3- Display at ReqCen-level (e.g. ReqCen A, L1, R1, etc.) When generating the dashboards, EMA_HQ shall be able to view information related to all active requisition plans. For examples, there shall be accompanying bar charts to show the status by CR categories, primary and alternate/secondary EMA. There shall be accompanying details to support the aggregated information and EMA_HQ shall be able to export/download the information."
+    },
+    {
+      "id": "25",
+      "title": "4.6 Reports",
+      "owned_nodes": [
+        "fe_ema_hq_report_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_HQ shall be able to generate a. Requisition Monitoring Report. The report shall display the UEN, Company Name, Earmarked CR Asset Category, Actual Requisitioned CR Asset Category, Substitution, Requisitioned Asset ID, Reported at EMA (Primary or Alternate/Secondary), Requisition Date/Time, De-Requisition Date/Time, Asset Reporting Response Time, CR Owner Response Time etc. b. Requisition Hourly Status Report. The report shall display assets that have been requisitioned within 72 hours of activation. c. Issue-To Hourly Status Report. The report shall display assets that have been issued to units within 72 hours of activation. d. e. f. g. h. i. Return-To-ReqCen Hourly Status Report. The report shall display assets that have been returned by the units to the ReqCens within 72 hours of activation. De-Requisition Hourly Status Report. The report shall display assets that have been de-requisitioned within 72 hours of activation. Rejection Hourly Status Report. The report shall display assets that have been rejected during inspection within 72 hours of activation. Summary Report on Issued-To. The report shall display the issued assets and its issued quantity for each unit/EE. Summary Report on Return-To-ReqCen. The report shall display the returned assets and its returned quantity per unit. Report on Issued-To DIV. The report shall display the issued assets to DIV, the EMA_DIV_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. j. Report on Issued-To BDE. The report shall display the issued assets to DIV, the EMA_BDE_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. k. Report on Issued-To BN. The report shall display the issued assets to DIV, the EMA_BN_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. l. Report on Issued-To Unit. The report shall display the issued assets to DIV, the EMA_UNIT_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. m. Report on Return-To ReqCen. The report shall display the returned assets to ReqCens triggered by EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP. It shall display the users who triggered the return, the EMA_AO/EO who receive the returned assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total returned quantity. EMA_HQ shall be able to export/download the reports. 5 EMA_AO & EMA_EO (INCLUDE EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP AND EMA_UNIT_RP) USER STORY"
+    },
+    {
+      "id": "26",
+      "title": "5.1 Perform Requisition and Derequisition",
+      "owned_nodes": [
+        "fe_ema_landing_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nEMA_AO and EMA_EO shall be able to display, update, delete requisition plan listings.\nEMA_AO and EMA_EO shall be able to create and display registration information of the asset.\nEMA_AO and EMA_EO shall be able to update and display inspection checklist. EMA_AO shall be able to update and display the requisition details. EMA_AO and EMA_EO shall be able to update and display issue and return details. EMA_AO shall be able to update and read the derequisition details. EMA_AO and EMA_EO shall be able to create and display contingency and register new asset."
+    },
+    {
+      "id": "27",
+      "title": "5.2 Requisition Plan Listing",
+      "owned_nodes": [
+        "fe_ema_requisition_list_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nEMA_AO and EMA_EO shall be able to search the list of assets belonging to CR Owners earmarked to participate in the \u2018Training\u2019, \u2018Exercise\u2019 or \u2018Operation\u2019 plan.\nEMA_AO and EMA_EO shall be able to do advance filter such as searching by CR category or earmarked CR asset number.\nEMA_AO and EMA_EO shall be able to search specific assets (e.g. by the asset registration number) from a master list of assets maintained in CRIPS. The results should provide information such as the CR Owner, CR category that would be useful to EMA_AO and EMA_EO."
+    },
+    {
+      "id": "28",
+      "title": "5.3 Registration",
+      "owned_nodes": [
+        "be_registration_db_schema",
+        "be_registration_data_access",
+        "be_registration_service",
+        "be_registration_routes",
+        "be_ocr_integration",
+        "fe_registration_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nWithin the Registration module, EMA_AO and EMA_EO shall be able to use the Optical Character Recognition (OCR) or other suitable technology to scan the asset registration number and validate whether the asset belongs to any of the CR Owners earmarked in the requisition plan. EMA_AO and EMA_EO shall also be able to key in the asset registration number manually in the Registration module.\nSystem shall disallow EMA_AO and EMA_EO to register the asset if the asset is exempted/under immunity from requisition. Appropriate error message shall be prompted to inform him/her of the reason.\nsystem shall disallow EMA_AO and EMA_EO to register the asset, if the asset does not belong to any of the CR Owners earmarked in the requisition plan. Appropriate error message shall be prompted to inform him/her of the reason.\nEMA_AO and EMA_EO shall be prompted of the mismatch or discrepancy, if the asset belongs to one of the CR Owners earmarked in the requisition plan but the asset is not within the earmarked CR category,. He/she shall be allowed to register new asset (for \u2018Training\u2019 and \u2018Operation\u2019 requisition plan only) and manage it as a substitution by choosing from the list of earmarked CR category. Alternatively, he/she can reject the asset, i.e. do not register as new CR asset in CRIPS. To complete the Registration process, a. System shall require EMA_AO or EMA_EO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who brought in the asset for registration. b. The registration date/time shall be defaulted to current date/time. EMA_AO and EMA_EO shall be allowed to amend the registration date/time. Controls shall be in place to ensure it is not later than the current date/time. c. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC."
+    },
+    {
+      "id": "29",
+      "title": "5.4 Inspection",
+      "owned_nodes": [
+        "be_inspection_db_schema",
+        "be_inspection_data_access",
+        "be_inspection_service",
+        "be_inspection_routes",
+        "fe_inspection_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nSystem shall ensure that only assets that have been registered successfully in the Registration stage can proceed to the Inspection stage.\nSystem shall generate the checklist in accordance with the CR type of the asset. There shall be unique checklist for (i) CR Vessels, (ii) CR Craft; (iii) CR Vehicles, and (iv) CR Heavy Plants.\nUpon the completion of physical inspection of the asset, EMA_AO and EMA_EO shall update the inspection results in the system. a. EMA_AO and EMA_EO shall be able to select \u2018Pass\u2019, \u2018Fail\u2019 or \u2018N.A.\u2019 for each inspection category as well as the detailed checklist within each inspection category. b. EMA_AO and EMA_EO shall be able to choose \u2018Pass\u2019 or \u2018Fail\u2019 the inspection of the asset. System shall allow only assets that have passed inspection to proceed to the Requisition stage. Those that failed inspection shall be rejected and disallowed from requisition. c. If the asset is rejected, system shall prompt him/her the reason(s) for rejection. An email notification shall be triggered to inform the CR owner that his/her vehicle is rejected and the reason.\nEMA_AO and EMA_EO shall be able to take photos of the vehicles and upload to the system.\nTo complete the Inspection process, a. System shall require EMA_AO or EMA_EO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who b. c. present the asset for requisition. System shall default this information based on the same details collected at the Registration stage. System shall still allow EMA_AO and EMA_EO to update the information. The inspection date/time shall be defaulted to current date/time. EMA_AO and EMA_EO shall be allowed to amend the inspection date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the registration date/time. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC."
+    },
+    {
+      "id": "30",
+      "title": "5.5 Requisition",
+      "owned_nodes": [
+        "be_requisition_db_schema",
+        "be_requisition_data_access",
+        "be_requisition_service",
+        "be_requisition_routes",
+        "be_esign_integration",
+        "fe_ema_requisition_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict the requisition function to EMA_AO only. EMA_AO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nSystem shall ensure that for exercise and training requisition plans, only assets that have passed inspection can be requisitioned. For \u2018Operation\u2019 requisition plans, the Inspection stage can be skipped/by-passed.\nTo complete the Requisition process, a. EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number and validate whether the asset belongs to any of the CR Owners earmarked in the requisition plan. EMA_AO shall also be allowed to key in the asset registration number manually in the Requisition module. b. c. When there is a mismatch between the earmarked CR category and the CR category of the reported asset, system shall prompt accordingly and also allow EMA_AO to select the CR category it would be substituting. System shall auto-fill all the information related to the asset, the requisition date/time, estimated compensation amount, GST amount, etc onto the Requisition form. \uf0a7 The requisition date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the requisition date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the inspection date/time. If Inspection is \u2018by- pass\u2019, the requisition date/time cannot be earlier than the registration date/time. \uf0a7 The compensation amount shall be derived based on minimally 4-hour requisition duration using \u2018with undertaking\u2019 hourly rate. If substitution CR category is accepted at the Requisition stage, the compensation amount shall be derived using the lower rate. d. e. f. g. System shall require EMA_AO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who present the asset for requisition. System shall default this information based on the same details collected earlier (i.e. Registration and Inspection stages) and still allow EMA_AO to update the information. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. System shall require EMA_AO to choose the EMA that received the requisitioned asset, i.e. Primary EMA or Alternate/Secondary EMA. EMA_AO shall be able to e-sign on the digital requisition form. Ability to digital-sign the requisition form via WOG products such as Signify shall be explored. \uf0a7 System shall auto generate the requisition form and send it to the CR owner via email. The requisition forms shall be password protected and shall also be made available in the CR Owner Portal for them to retrieve the receipts/forms."
+    },
+    {
+      "id": "31",
+      "title": "5.6 De-Requisition (applicable for EMA_AO only)",
+      "owned_nodes": [
+        "be_derequisition_db_schema",
+        "be_derequisition_data_access",
+        "be_derequisition_service",
+        "be_derequisition_routes",
+        "fe_derequisition_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict the de-requisition function to EMA_AO only. EMA_AO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. System shall ensure that only assets held at the ReqCen level can be de- requisitioned. For assets that have been issued/distributed to Unit/EEs/DIV and not returned to ReqCen, system shall not allow EMA_AO to perform the de-requisition function. To complete the De-Requisition process, a. EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number and validate whether the asset has been returned to the ReqCen. EMA_AO shall also be allowed to key in the asset registration number manually in the De-Requisition module. b. System shall auto-fill all the information related to the asset, the requisition and de-requisition date/time, compensation amount, GST amount onto the De-Requisition form. \uf0a7 The de-requisition date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the de-requisition date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the requisition date/time. \uf0a7 The compensation amount shall be derived based on minimally 4-hour requisition duration using \u2018with undertaking\u2019 hourly rate. If total requisition duration exceeds 4 hours, the compensation amount shall be derived based on the additional hours or daily rates. If substitution CR c. d. category is accepted at the Requisition stage, the compensation amount shall be derived using the lower rate. EMA_AO shall be able to select if there are damages/loss of the asset. If there are damages, EMA_AO shall be able to take photos of the damaged assets and upload them to CRIPS_EMA. EMA_AO shall be able to download the photos. System shall require EMA_AO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative receiving the de-requisitioned asset. System shall default this information based on the same details collected at the requisition stage and still allow EMA_AO to update the information. e. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. f. CR Owner or his representative shall be able to e-sign on the digital de- requisition form. Ability to digital-sign the de-requisition form via WOG products such as Signify shall be explored. System shall auto generate the de-requisition form and send it to the CR owner via email. The de-requisition forms shall be password protected and shall also be made available in the CR Owner Portal for them to retrieve the receipts/forms."
+    },
+    {
+      "id": "32",
+      "title": "5.7 Issue-To",
+      "owned_nodes": [
+        "be_issue_db_schema",
+        "be_issue_data_access",
+        "be_issue_service",
+        "be_issue_routes",
+        "fe_issue_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. EMA_AO and EMA_EO shall be able to issue requisitioned assets to the requesting unit/EE (select from drop down list) and the unit representative (enter a valid NRIC number/FIN). EMA_AO and EMA_EO shall be able to select individual or multiple assets to perform the Issue-to-Unit/EE transaction. EMA_AO and EMA_EO shall be able to issue units/EEs with number of assets exceeding the requesting Units/EEs\u2019 allocated quantity. System shall be able to handle multiple tiers of asset redistribution and have a two- step transfer function to support this. a. Issue/Distribute to DIV. EMA_AO and EMA_EO shall be able to issue/distribute to DIV. The issuing ReqCen, EMA_AO/EO\u2019s NRIC number, receiving Unit and the EMA_DIV_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_DIV_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_DIV_RP shall be required to accept the transferred assets. b. Issue/Distribute to BDE. EMA_DIV_RP shall be able to issue to the next echelon, i.e. BDE. The issuing DIV, EMA_DIV_RP\u2019s NRIC number, receiving Unit and the EMA_BDE_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_BDE_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_BDE_RP shall be required to accept the transferred assets. c. Issue/Distribute to BN. EMA_BDE_RP shall be able to issue to the next echelon, i.e. BN. The issuing BDE, EMA_BDE_RP\u2019s NRIC number, receiving Unit and the EMA_BN_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_BN_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_BN_RP shall be required to accept the transferred assets. d. Issue/Distribute to Unit. EMA_AO and EMA_EO shall be able to issue/distribute to Unit. The issuing ReqCen, EMA_AO/EO\u2019s NRIC number, receiving Unit and the EMA_UNIT_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_UNIT_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_UNIT_RP shall be required to accept the transferred assets. System shall be able to handle direct issue to unit/EE via a one-step transfer. The issuing ReqCen, NRIC number of the EMA_AO or EMA_EO, receiving unit/EE and NRIC number of the unit representative taking over the assets shall be included in the issuing and receiving transaction. The unit representative is not required to login to CRIPS to accept the assets. System shall be able to track the individuals responsible for each requisitioned asset at all times. All issuing and receiving parties shall be able to e-sign the HOTO documents. Ability to digital-sign the HOTO forms via WOG products such as Signify shall be explored. System shall be able to generate and download the HOTO documents. The download function shall support multiple documents to be downloaded at one time."
+    },
+    {
+      "id": "33",
+      "title": "5.8 Return-To-ReqCen",
+      "owned_nodes": [
+        "be_return_db_schema",
+        "be_return_data_access",
+        "be_return_service",
+        "be_return_routes",
+        "fe_return_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO, EMA_EO, EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. EMA_AO and EMA_EO shall be able to select assets that are issued to a particular unit/EE (select from drop down list) and the unit representative (enter a valid NRIC number/FIN). EMA_AO and EMA_EO shall be able to select individual or multiple assets to perform Return-from-Unit/EE transaction. System shall be able to handle return of assets that are redistributed and have a two- step transfer function to support this. a. Return from Unit to ReqCen. EMA_UNIT_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning Unit, EMA_UNIT_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. b. Return from BN to ReqCen. EMA_BN_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning BN, EMA_BN_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. c. Return from BDE to ReqCen. EMA_BDE_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning BDE, EMA_BDE_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. d. Return from DIV to ReqCen. EMA_DIV_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning DIV, EMA_DIV_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. System shall be able to handle direct return from unit/EE to ReqCen via one-step transfer. The returning unit/EE, NRIC number of the unit representative who is returning the assets, receiving ReqCen and NRIC number of the EMA_AO or EMA_EO shall be included in the returning and acceptance transaction. The returning unit/EE representative is not required to login to CRIPS to return the assets. System shall be able to track every asset and the individuals accountable for the asset at all times. All returning and acceptance parties shall be able to e-sign the HOTO document. Ability to digital-sign the HOTO forms via WOG products such as Signify shall be explored. System shall be able to generate and download the HOTO documents. The download function shall support multiple documents to be downloaded at one time."
+    },
+    {
+      "id": "34",
+      "title": "5.9 Register New Asset/Commandeering",
+      "owned_nodes": [
+        "be_commandeer_db_schema",
+        "be_commandeer_data_access",
+        "be_commandeer_service",
+        "be_commandeer_routes",
+        "fe_commandeer_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO, EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nRegister new asset, a. System shall restrict this function to only Heavy Plant CR type. b. System shall restrict this function to only \u2018Training\u2019 and \u2018Operation\u2019 requisition plans. EMA_AO and EMA_EO shall not be allowed to register new assets for Exercise plans. c. For new assets introduced via \u2018Training\u2019 requisition plans, the asset shall not be included permanently as CR supplies data in CRIPS. d. For new assets introduced via \u2018Operation\u2019 requisition plans, the asset shall be included permanently as CR supplies data in CRIPS. Only Controller Vehicles Office can update/de-register the such assets.\nCommandeering, a. b. System shall restrict this function to only EMA_AO. Upon clicking on \u2018Commandeering\u2019 function, EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number. EMA_AO shall also be able to key in the asset registration number manually. System shall auto fill other information such as CR category, chassis number, engine number that shall be retrieved from CRIPS database using the asset registration number. c. System shall require EMA_AO to enter the UEN/NRIC Number, Company Name/Owner Name, Company/Owner address and asset registration number. d. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. e. The registration date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the registration date/time. Controls shall be in place to ensure it is not later than the current date/time. f. The requisition workflow is the same as the earmarked assets."
+    },
+    {
+      "id": "35",
+      "title": "5.10 Reports",
+      "owned_nodes": [
+        "fe_ema_ao_report_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO, EMA_EO, EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. EMA_AO and EMA_EO shall be able to generate a. Requisitioned Summary. This summary information displays the number of requisitioned assets per CR category versus the number of assets earmarked per category. It also shows the total number of requisitioned assets versus the total number of assets earmarked. b. c. d. e. Issue Summary. This summary information displays the number of assets issued to unit per category. It also shows the total number of issued assets versus the total number of requisitioned assets. Number of assets issued refers to those assets issued to Unit/EE via one-step transfer. Return Summary. This summary information displays the number of assets returned by Unit/EE versus the total number of issued assets issued. It also shows the total number of returned assets versus the total number of issued assets. Number of assets returned refers to those assets returned by Unit/EE via one-step transfer. De-Requisition Summary. This summary information displays the number of derequisitioned assets per category versus the number of assets requisitioned per category. It also shows the total number of de-requisitioned assets versus the total number of assets requisitioned. Transfer Accepted by Unit/DIV RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by Unit/DIV via two -step transfer. f. Return Accepted by ReqCen Summary. This summary information displays the number of accepted assets per category versus the number of assets returned to ReqCen per category. It also shows the total number of accepted assets versus the total number of assets returned to ReqCen. Number of assets accepted refers to those assets returned by Unit/DIV/BDE/BN and accepted by ReqCen via two -step transfer. EMA_DIV_RP shall be able to generate a. Transfer Accepted by DIV RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_DIV_RP via two -step transfer. b. Transfer Accepted by BDE RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BDE_RP via two -step transfer. EMA_BDE_RP shall be able to generate a. Transfer Accepted by BDE RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BDE_RP via two -step transfer. b. Transfer Accepted by BN RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BN_RP via two -step transfer. EMA_BN_RP shall be able to generate a. Transfer Accepted by BN RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BN_RP via two -step transfer. EMA_UNIT_RP shall be able to generate a. Transfer Accepted by Unit RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_UNIT_RP via two -step transfer. 6 APPROVING OFFICER(ASSET) USER STORY"
+    }
+  ],
+  "user_stories": [
+    {
+      "id": "1",
+      "title": "1.1 Manage Asset Requirements",
+      "owned_nodes": [
+        "db_setup",
+        "be_asset_requirement_db_schema",
+        "be_asset_requirement_data_access",
+        "be_asset_requirement_service",
+        "be_asset_requirement_routes",
+        "fe_asset_requirement_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to create, update, view, verify, reject and delete CR asset requirements. Requirements shall be submitted at ReqCen level (select from drop down list). Requirements shall be based on CR Type (select from drop down list), CR category (select from drop down list), and quantities in whole number. Each requirement shall indicate the requesting unit (free text), EE (select from drop down list of EGBs and Essential Companies). System shall have a field to select the approving authority (select from drop down list). System shall have a free text field to enter internal remarks, e.g. approval reference and approval date. Requestor (Asset_SAF) shall be able to view current and rejected CR asset requirements. System shall have a function to download a template containing all the essential fields that shall be populated to support mass load into CRIPS. System shall have a function to upload a filled template containing all the information needed to mass upload the CR asset requirements into CRIPS. System shall restrict Requestor (Asset_SAF) from entering requirements for the same CR type, CR category, Requesting Unit/EE under multiple ReqCens. Requestor (Asset_SAF) shall be able to view the allocation by CR category, including substitution CR category and the corresponding quantity allocated. Requestor (Asset_SAF) shall be able to export/download the information. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "2",
+      "title": "1.2 Manage Asset Exemption",
+      "owned_nodes": [
+        "be_asset_exemption_db_schema",
+        "be_asset_exemption_data_access",
+        "be_asset_exemption_service",
+        "be_asset_exemption_routes",
+        "fe_asset_exemption_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to create, update, view and delete CR asset exemption request.\nAsset exemption requests shall be routed to the respective Controller for approval. Controller can approve or reject the request.\nRequestor (Asset_SAF) shall be able to create requests to un-exempt assets that the Controllers have approved earlier. Such requests shall be routed to the respective Controller for approval. He/She shall be able to update, view and delete such requests.\nExempted assets cannot be allocated nor requisitioned. When EMA_AO or EMA_EO attempt to requisition an exempted asset, system shall prompt appropriate message to inform him/her the asset is exempted from requisition.\nRequestor (Asset_SAF) shall be able to export/download the information. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "3",
+      "title": "1.3 Manage Annual Exercise Plan",
+      "owned_nodes": [
+        "be_exercise_plan_db_schema",
+        "be_exercise_plan_data_access",
+        "be_exercise_plan_service",
+        "be_exercise_plan_routes",
+        "fe_exercise_plan_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to view the information for the ReqCens that he/she is authorised.\nSystem shall display a summary of the ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025). The Previous and Last CR Exercise Dates shall be updated automatically after ReqCen has completed their CR exercise. System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date. System shall show the most current Planned Exercise Workyear if this information is updated by the respective Controller. Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    },
+    {
+      "id": "4",
+      "title": "1.4 Manage Requisition Plan",
+      "owned_nodes": [
+        "be_requisition_plan_db_schema",
+        "be_requisition_plan_data_access",
+        "be_requisition_plan_service",
+        "be_requisition_plan_routes",
+        "fe_requisition_plan_list"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to view Requisition Plans for the ReqCens that he/she is authorised.\nRequestor (Asset_SAF) shall be able to export/download the details of Requisition Plans. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "5",
+      "title": "1.5 Manage ReqCen POC Details",
+      "owned_nodes": [
+        "be_reqcen_poc_db_schema",
+        "be_reqcen_poc_data_access",
+        "be_reqcen_poc_service",
+        "be_reqcen_poc_routes",
+        "fe_reqcen_poc_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to display ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN). Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "6",
+      "title": "1.6 Manage EMA Details",
+      "owned_nodes": [
+        "be_ema_detail_db_schema",
+        "be_ema_detail_data_access",
+        "be_ema_detail_service",
+        "be_ema_detail_routes",
+        "fe_ema_detail_page"
+      ],
+      "category": "feature",
+      "verifiable": "Requestor (Asset_SAF) shall be able to view the EMA details for ReqCens that he/she is authorised. Requestor (Asset_SAF) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field. 2 CRO(ASSET) USER STORY"
+    },
+    {
+      "id": "7",
+      "title": "2.1 Manage Asset Requirements",
+      "owned_nodes": [
+        "fe_cro_asset_requirement_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to view CR asset requirements for ReqCens that he/she is authorised.\nCRO(Asset) shall be able to view the allocation by CR category, including substitution CR category and the corresponding quantity allocated. CRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "8",
+      "title": "2.2 Assign EE to ReqCen",
+      "owned_nodes": [
+        "be_ee_assignment_db_schema",
+        "be_ee_assignment_data_access",
+        "be_ee_assignment_service",
+        "be_ee_assignment_routes",
+        "fe_ee_assignment_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall control the access by CR Types. CRO(Asset) shall only be able to assign EEs to SCDF ReqCens for CR Vehicles and CR Heavy Plants. CRO(Asset) shall be able to un-tag EEs to ReqCen. CRO(Asset) shall be able to view details of EE\u2019s CR requirements. System shall have a function to download and upload template for EE\u2019s CR requirements. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "9",
+      "title": "2.3 Manage Annual Exercise Plan",
+      "owned_nodes": [
+        "fe_cro_exercise_plan_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to view the information for the ReqCens that he/she is authorised.\nSystem shall display a summary of the ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025). System shall update the Previous and Last CR Exercise Dates automatically after ReqCen has completed their CR exercise. System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date. System shall show the most current Planned Exercise Workyear if this information is updated by the respective Controller. Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    },
+    {
+      "id": "10",
+      "title": "2.4 Manage Requisition Plan",
+      "owned_nodes": [
+        "fe_requisition_plan_form",
+        "be_notification_service",
+        "shared_auth"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to create, update, view and delete Requisition Plan for the ReqCens that he/she is authorised.\nCRO(Asset) shall be able to export/download the details of Requisition Plans. System shall restrict each CR requisition plan to have only one ReqCen and there must be a start and end date for every plan.\nHave various plan types and user must select \u2018Training\u2019, \u2018Exercise\u2019 or \u2018Operations\u2019 when creating a CR requisition plan.\nIn planning the participating list of CR categories, all CR categories managed by the ReqCen shall be listed and CRO(Asset) shall select the CR categories to be included in the Requisition Plan.\nIn planning the participating list of CR owners, recommendations shall be provided to CRO(Asset) on which CR owners should be earmarked for mobilisation exercise, e.g. a. Display the last mobilisation date for each CR owner. b. Indicate whether the CR owner is due for exercise. In the Requisition Plan, display the CR owner, CR categories, CR requirement (i.e. required quantity) and CR allocated quantity, then a. Allow CRO(Asset) to input quantity, i.e. the quantity to requisition. System shall ensure the quantity cannot exceed the CR allocated quantity. b. Allow CRO(Asset) to select/earmark specific asset to requisition, e.g. vehicle registration number XD2103T. In the Requisition Plan, CRO(Asset) shall be able to select the planned CR categories and planned CR quantity to be distributed to the Requesting Unit/EE. For each CR category, the planned CR quantity can exceed the quantity demanded by the Requesting Unit/Essential Establishment (EE) but it must not exceed the earmarked quantity listed in the Requisition Plan. At the Requisition Plan summary page, CRO(Asset) shall be able to view the total number of CR owners, the total number of CR categories, the total CR quantities included in the plan. It shall also provide the required budget to support the Requisition Plan, e.g. a. Estimated cost for 4-hours for each CR category. b. Estimated cost for 1-day w/o undertaking for each category. c. Estimated cost for 1 day with undertaking for each category. d. Estimated cost for 4-hours for the entire Requisition Plan. e. Estimated cost for 1-day w/o undertaking for the entire Requisition Plan. f. Estimated cost for 1 day with undertaking for the entire Requisition Plan. CRO(Asset) shall be able to save the draft Requisition Plan. CRO(Asset) shall be able to amend or delete the draft Requisition Plan. Once the CRO(Asset) is satisfied with the draft Requisition Plan, he/she shall submit the plan and it shall be routed to Chief Controller Office for approval. Incomplete Requisition Plan cannot be submitted. Chief Controller Office shall either approve or reject the Requisition Plan. CRO(Asset) shall be able to amend the rejected Requisition Plan and resubmit it for approval. CRO(Asset) shall be able to amend an approved Requisition Plan. a. For training/exercise requisition plans, if the changed number of earmarked owners/assets exceed the approved number of owners/assets, system shall reset the status as \u2018Pending Approval\u2019 and route the plan to Chief Controller Office for approval. b. For operation requisition plans, system shall allow CRO(Asset) to re-commit without re-submitting it for approval. c. If the start and/or end date of the plan is changed, system shall reset the status as \u2018Pending Approval\u2019 and route the plan to Chief Controller for approval. CRO(Asset) shall be able to commit approved Requisition Plans so as to initiate the requisition operation. Upon committing an Exercise or Operations Requisition Plan, system shall auto generate and send emails, informing the CR Owners that they have been selected to participate in an upcoming CR requisition. The email shall contain pertinent details such as the period that they could be activated, the CR assets and quantity required for requisition, the primary and alternate/secondary EMA address, and contact details of the CRO(Asset), name and appointment of the Competent Authority. System shall provide relevant warning and/or error messages that are self- explanatory to guide CRO(Asset). CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "11",
+      "title": "2.5 Manage ReqCen POC Details",
+      "owned_nodes": [
+        "fe_reqcen_poc_form"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to update ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN).\nThe ReqCen details shall be used to populate templated emails that will be sent to CR owners when CRO(Asset) commit the Requisition Plans.\nCRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "12",
+      "title": "2.6 Manage EMA Details",
+      "owned_nodes": [
+        "fe_ema_detail_form"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to create, update, view and delete the EMA of each ReqCen.\nSystem shall use the EMA details to populate templated emails that will be sent to CR owners when CRO(Asset) commit the Requisition Plans.\nCRO(Asset) shall be able to update the number of car parking lots and heavy vehicle parking lots respectively.\nSystem shall set the postal code of the EMA as an optional field and CRO(Asset) shall key in the nearest postal code should the EMA not have one. The postal code information shall be used for sourcing and allocation where CR owners\u2019 premise in close proximity to the EM An address would be prioritised, hence support Controller Vehicle in deciding the CR Owners selection. CRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "13",
+      "title": "2.7 Plan Requisition Budget",
+      "owned_nodes": [
+        "be_budget_service",
+        "be_budget_routes",
+        "fe_budget_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to select the ReqCen that he/she is authorised. The system shall display the relevant CR Categories and the Allocated Quantity, depending on the ReqCen selection .\nCRO(Asset) shall be able to input the Quantity Planned for requisition and click on the \u2018Calculate\u2019 button.\nBased on his/her input, the output shall display \u2018CR Category\u2019, \u2018Quantity Planned\u2019 and also derive the Estimated Cost for 4-hours, Estimated Cost for 1-day w/o Undertaking and Estimated Cost for 1 day with Undertaking for each category. System shall display a row with the total for Quantity Planned, Estimated Cost for 4-hours, Estimated Cost for 1-day w/o Undertaking and Estimated Cost for 1 day with Undertaking. CRO(Asset) shall be able to export/download the details of the budget plan. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "14",
+      "title": "2.8 Manage CR Owners Information",
+      "owned_nodes": [
+        "be_cr_owner_db_schema",
+        "be_cr_owner_data_access",
+        "be_cr_owner_service",
+        "be_cr_owner_routes",
+        "be_acra_integration",
+        "fe_cr_owner_page"
+      ],
+      "category": "feature",
+      "verifiable": "The CR Owners shall be segregated into \u201cAllocated CR Owners\u201d and \u201cUnallocated CR Owners\u201d. a. Allocated CR Owners. They can be allocated to one or more ReqCens. They are generally termed as shared CR Owner if the company is supporting more than one ReqCen. CRO(Asset) shall be only be able to access records based on the ReqCen he/she is assigned to. CRO(Asset) shall be able to view when the CR Owner was last mobilised. For shared CR Owner, the last mobilisation date for each ReqCen shall be shown. b. Unallocated CR Owners. CRO(Asset) shall be able to view the record so that they have the relevant information to reach out to CR Owners who may have suitable heavy plants to meet the ReqCen\u2019s needs. System shall include the following in the header information: UEN number, Company Name, Status of the company, Mailing Address, Office/Site Address, GST Registration Number, Office Contact Number, Other Contact Number (e.g. Mobile Number), Email Address etc. Some of these information shall be retrieved from the ACRA interface file while some information, e.g. email address shall be editable by CRO(Asset). System shall include the following for ReqCen-level information: CR Owner\u2019s POC names, their mobile number, office number, fax number and email address. CRO(Asset) shall be able to include multiple POC numbers. CRO(Asset) shall also be able to select the primary POC and secondary POC who will receive our SMS notifications broadcast from official MINDEF/SAF or WOG communication channel, e.g. sender ID \u201cgov.sg\u201d. CRO(Asset) shall be able to view the CR Owners\u2019 assets which shall be grouped and presented logically. a. \u201cCR Assets Owned\u201d shall show each CR category and their respective Quantity. It shall provide the total number of CR assets of the CR Owner. b. \u201cCR Category Allocated to ReqCens\u201d shall show the CR category, Quantity Allocated and ReqCen Allocated. It shall provide the allocation to ownership ratio. E.g. if a CR Owner owns 10 assets and only 5 are allocated, the allocation ratio is 50%. c. \u201cReqCen Allocation History\u201d shall show the Allocation Date and the corresponding ReqCen. It shall provide a summary of the total allocation records. d. \u201cDe-allocation History\u201d shall show the De-allocation Date and the corresponding ReqCen and Reason for De-allocation. CRO(Asset) shall be able to view the CR Mobilisation Exercise History of each CR Owner. The information shall include ReqCen, Requisition Plan Description, Requisition Plan Type, Mobilisation Date. CRO(Asset) shall be able to view additional information related to Shared CR Owners status. The information shall include Major ReqCen and Shared ReqCens. CRO(Asset) shall be able to view all the CR assets of the CR Owners. Information shall include CR Type, CR Category, Registration Number, Chassis Number, Engine Number, etc. System shall have a function to download a template containing all the essential fields that shall be populated to support mass load CR Owner Details into CRIPS. System shall have a function to download all the CR assets of the CR Owners. System shall have a function to download all the CR Owners details. There shall be controls to restrict the number of records that can be downloaded each time. This control shall be managed via App Setting or Site Properties.\nCRO(Asset) shall be able to export/download the information. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "15",
+      "title": "2.9 Manage Compensation",
+      "owned_nodes": [
+        "be_compensation_db_schema",
+        "be_compensation_data_access",
+        "be_compensation_service",
+        "be_compensation_routes",
+        "be_document_service",
+        "fe_compensation_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall compute the compensation amount payable to CR owners automatically based on pre-determined rates for assets.\nSystem shall support progressive compensation when the asset requisition is for a prolonged duration of more than one month and allow progressive compensation to be made at the end of every 30 days following the requisition, with the balance payment to be made upon derequisition.\nFor Compensation for Requisition Plan, CRO(Asset) shall be able to: a. View requisition details. b. View Requisition Form and De-requisition Forms. c. Submit compensation for loss/damage to Controller CRIC Office for verification.\nd. e. Upload and download supporting documents. Resubmit for verification for cases previously rejected by Controller CRIC Office. f. Resubmit for approval for cases previously rejected by Approving Officer (Asset). This function is only applicable for MINDEF/SAF\u2019s CRO(Asset). g. Create/View Appeal. h. Update Owner\u2019s Response wrt Appeal and Decision by Controller CRIC. i. Track compensation payment and appeal status. For Compensation for Modification/Inspection, CRO(Asset) shall be able to: a. Submit compensation for modification/inspection to Controller CRIC Office for verification. b. c. d. Create new compensation (individual or multiple cases). Upload and download supporting documents. Resubmit for verification for cases previously rejected by Controller CRIC Office. e. Resubmit for approval for cases previously rejected by Approving Officer (Asset).\nf. Create/View Appeal. g. h. Update Owner\u2019s Response wrt Appeal and Decision by Controller CRIC. Track compensation payment and appeal status. System shall allow for all compensations to be verified by Controller CRIC Office digitally. Upon verification, a. For Requisition Plans and Modification/Inspection initiated by MINDEF/SAF, the compensation shall be routed to Approving Officer(Asset). After Approving Officer(Asset)\u2019s approval, compensation shall be routed automatically to MINDEF/SAF Payment Service Hub/ Enterprise System for payment processing. b. For Requisition Plans and Modification/Inspection initiated by Homefront users, CRO(Asset) shall be able to export/download the details for compensation payment processing via their respective financial systems. CRO(Asset) shall be able to upload the payment details (e.g. payment date and reference number, remarks, etc) to close the record in CRIPS."
+    },
+    {
+      "id": "16",
+      "title": "2.10 Review Payment Instruction",
+      "owned_nodes": [
+        "be_payment_hub_integration",
+        "fe_payment_review_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict this function to CRO(Asset) from MINDEF/SAF. CRO(Asset) shall be able to resubmit compensation payment instructions previously rejected by MINDEF/SAF payment system.\nCRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "17",
+      "title": "2.11 Export Homefront Payment",
+      "owned_nodes": [
+        "fe_payment_export_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict this function to CRO(Asset) from SCDF. For Requisition Plans and Modification/Inspection initiated by Homefront users, CRO(Asset) shall be able to export/download the compensation payment details so that he/she can submit the details to his/her agency\u2019s finance department to process the compensation payment to CR Owners. CRO(Asset) shall only be able to export/download compensation records that have been verified by CRIC Officer in CRIPS. c.\nCRO(Asset) shall be able to upload the payment details (e.g. AGD payment date, AGD payment reference number, payment amount, etc) to close the record in CRIPS. He/She shall be able to download the template, fill in the additional details and upload the information in CRIPS. CRO(Asset) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "18",
+      "title": "2.12 Reports",
+      "owned_nodes": [
+        "be_report_service",
+        "be_report_routes",
+        "fe_cro_report_page"
+      ],
+      "category": "feature",
+      "verifiable": "CRO(Asset) shall be able to generate reports as follows: a. Heavy Plants and LTA Registered Assets. This report shall generate heavy plant and LTA registered assets per CR summary details. Information displayed shall be restricted by CR Types that CRO(Asset) is authorised to. b. Asset Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. Asset Requisition Payment Report (MINDEF/SAF). This report shall generate payment for CR assets with requisition plan, with additional information, i.e. consists of MINDEF/SAF payments details that go through Payment Service Hub/ Enterprise System for payment. This report is only applicable for MINDEF/SAF\u2019s CRO(Asset). Asset Requisition Payment Report (Homefront). This report shall generate payment for CR assets with requisition plan initiated by SCDF, with additional information, i.e. consists of payments details that go through SCDF finance system. This report is only applicable for SCDF\u2019s CRO(Asset). Asset Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. Asset Modification/Inspection Payment Report (MINDEF/SAF). This report shall generate payment for CR assets without requisition plan, namely modification and inspection compensation with additional information, i.e. consists of MINDEF/SAF payments details that go through Payment Service Hub/ Enterprise System for payment. This report is only applicable for MINDEF/SAF\u2019s CRO(Asset). Asset Modification/Inspection Payment Report (Homefront). This report shall generate payment for CR assets without requisition plan, namely modification and inspection compensation initiated by SCDF with additional information, i.e. consists of payments details that go through SCDF finance system. This report is only applicable for SCDF\u2019s CRO(Asset). CRO(Asset) shall be able to export/download the reports. d. e. f. g. 3 EMA_ADMIN & EMA_DYADMIN USER STORY"
+    },
+    {
+      "id": "19",
+      "title": "3.1 Manage EMA User",
+      "owned_nodes": [
+        "be_ema_user_db_schema",
+        "be_ema_user_data_access",
+        "be_ema_user_service",
+        "be_ema_user_routes",
+        "fe_ema_user_page"
+      ],
+      "category": "feature",
+      "verifiable": "Upon committing a requisition plan, system shall auto create EMA user accounts for CRO(Asset) tagged to the ReqCen. System shall also create EMA user accounts for CRIPS users with Administrator role. They shall be assigned with EMA_Admin and EMA_HQ roles for the requisition plan.\nSystem shall auto create EMA user accounts for CRIPS users with Chief Controller Office role as well as for the respective CRA Controller based on their assigned ReqCens. They shall be assigned with EMA_HQ role for the requisition plan.\nSystem shall generate and trigger an email to CRO(Asset), Administrator, Chief Controller Office, respective CRA Controllers to notify them the EMA user accounts are created.\nEMA_Admin shall be able to: a. b. Create, Delete and View EMA users Assign roles to existing users (to select one/more of the following) \uf0a7 EMA_DyAdmin \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP c. Modify roles of existing users (to select one/more of the following) \uf0a7 EMA_DyAdmin \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP d. a. b. Mass upload a list of users and the role(s) of each user EMA_DyAdmin supports EMA_Admin in managing EMA user accounts. EMA_DyAdmin shall be able to: Create, Delete and View EMA users Assign roles to existing users (to select one/more of the following) \uf0a7 EMA_HQ \uf0a7 EMA_AO\n\uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP c. Modify roles of existing users (to select one/more of the following) \uf0a7 EMA_HQ \uf0a7 EMA_AO \uf0a7 EMA_EO \uf0a7 EMA_DIV_RP \uf0a7 EMA_BDE_RP \uf0a7 EMA_BN_RP \uf0a7 EMA_UNIT_RP d. Mass upload a list of users and the role(s) of each user System shall disallow EMA_Admin to modify his/her roles. Similarly, system shall disallow EMA_DyAdmin to modify his/her roles. System shall cap the number of users with EMA_DyAdmin role for each requisition plan. This cap number shall be maintained via App Setting or Site Properties and shall apply to all active Requisition Plans. System shall disable/delete all EMA accounts upon the expiry of the requisition plan. 4 EMA_HQ USER STORY"
+    },
+    {
+      "id": "20",
+      "title": "4.1 Activation",
+      "owned_nodes": [
+        "be_activation_db_schema",
+        "be_activation_data_access",
+        "be_activation_service",
+        "be_activation_routes",
+        "fe_activation_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_HQ shall be able to enter the activation date and time, select \u2018Primary EMA\u2019 or \u2018Alternate/Secondary EMA\u2019. EMA_HQ shall be able to amend the activation date and time if the original date/time has not lapsed. For Training Plan, EMA_HQ shall be able to enter up to 2 mobile numbers to receive the activation message. Upon clicking on \u2018Activate\u2019 button and on the activation date and time, a. Notifications shall be sent via SMSes to CR Owner\u2019s POCs. The contents in the SMSes may be generic or specific, and shall allow customisation/configuration easily. The SMS contents may vary according to ReqCens and EMA. Ability to use WOG products such as \u2018Postman\u2019 shall be explored. b. Notices/Orders shall be published in CR Owner Portal. CR Owners shall login to the CR Owner Portal to retrieve the notices/orders to find out more information of the activation and to acknowledge the notices/orders. EMA_HQ shall be able to toggle between primary and alternate/secondary EMA and then re-activate the requisition plan. Upon clicking on \u2018Activate\u2019 button following changes to EMA selection, a. Notifications shall be sent via SMSes to CR Owner\u2019s POCs. The contents in the SMSes may be generic or specific, and shall allow customisation/configuration easily. The SMS contents may vary according to ReqCens and EMA. Ability to use WOG products such as \u2018Postman\u2019 shall be explored. b. New notices/orders shall be published in CR Owner Portal. CR Owners shall login to the CR Owner Portal to retrieve the new notices/orders to find out more information of the re-activation and to acknowledge the new notices/orders. System shall track and display the user who last activated/re-activated the plan. It shall display the name of this user, and the date/time of the last activation/re- activation made by him/her."
+    },
+    {
+      "id": "21",
+      "title": "4.2 Status Tracking",
+      "owned_nodes": [
+        "be_status_tracking_service",
+        "be_status_tracking_routes",
+        "fe_status_tracking_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall display UEN number, Company Name, Acknowledgement and Reporting Status, CR Owner Response Time, Primary and Secondary POC name and their respective contact number.\nCR Owners who have acknowledged the activation message, system shall display the status as \u2018Acknowledged\u2019 and include the acknowledgement phone number, date and time. Otherwise, status shall be displayed as \u2018Not Yet Acknowledged\u2019.\nSystem shall display the requisition status as \u2018Reported\u2019 and include the reporting date and time after the CR Owners\u2019 assets are requisitioned. If CR Owner is earmarked to report with multiple assets, the status should only be displayed as \u2018Reported\u2019 when all the earmarked assets are requisitioned. Status shall be displayed as \u2018Partial Assets Report\u2019 if partial quantities are requisitioned. Otherwise, status shall be displayed as \u2018Not Yet Reported\u2019.\nSystem shall display the CR Owner response time. If CR Owner is earmarked to report with multiple assets, the response time shall be computed using the last asset requisitioned date/time versus the activation start date/time.\nEMA_HQ shall be able to filter by different status. EMA_HQ shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "22",
+      "title": "4.3 View Photos, Inspection Checklist, Receipts",
+      "owned_nodes": [
+        "fe_document_viewer_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall display the UEN, Company Name, Asset Number, CR Category and the four documents, i.e. Photos, Inspection Checklist, Requisition Receipts and De- Requisition Receipts. EMA_HQ shall be able to open the documents to view the Photos, Inspection Checklist, Requisition Receipts and De-Requisition Receipts. EMA_HQ shall be able to download multiple documents at one time. EMA_HQ shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "23",
+      "title": "4.4 End Activation",
+      "owned_nodes": [
+        "fe_activation_end_widget"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_HQ shall only be allowed to end activation after all the assets are de- requisitioned. System shall ensure that activation end date and time must be later than Activation start date and time. System shall disallow EMA_AO and EMA_EO to requisition and de-requisition after the activation ends."
+    },
+    {
+      "id": "24",
+      "title": "4.5 EMA_HQ_Dashboard",
+      "owned_nodes": [
+        "be_dashboard_service",
+        "be_dashboard_routes",
+        "fe_dashboard_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA Dashboard shall be divided into five key sections a. CR Demand and Fulfilment status b. CR Requisition status c. CR De-Requisition status d. CR Issue-To status\ne. CR Return-To-ReqCen status EMA Dashboards shall be displayed at three levels a. b. Aggregated at Level 1 \u2013 Display all (i.e. MINDEF/SAF and WOG) Aggregated at Level 2 \u2013 Display at Service-level (i.e. Army, RSAF, RSN, DIS and WOG/SCDF) c. Aggregated at Level 3- Display at ReqCen-level (e.g. ReqCen A, L1, R1, etc.) When generating the dashboards, EMA_HQ shall be able to view information related to all active requisition plans. For examples, there shall be accompanying bar charts to show the status by CR categories, primary and alternate/secondary EMA. There shall be accompanying details to support the aggregated information and EMA_HQ shall be able to export/download the information."
+    },
+    {
+      "id": "25",
+      "title": "4.6 Reports",
+      "owned_nodes": [
+        "fe_ema_hq_report_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_HQ shall be able to generate a. Requisition Monitoring Report. The report shall display the UEN, Company Name, Earmarked CR Asset Category, Actual Requisitioned CR Asset Category, Substitution, Requisitioned Asset ID, Reported at EMA (Primary or Alternate/Secondary), Requisition Date/Time, De-Requisition Date/Time, Asset Reporting Response Time, CR Owner Response Time etc. b. Requisition Hourly Status Report. The report shall display assets that have been requisitioned within 72 hours of activation. c. Issue-To Hourly Status Report. The report shall display assets that have been issued to units within 72 hours of activation. d. e. f. g. h. i. Return-To-ReqCen Hourly Status Report. The report shall display assets that have been returned by the units to the ReqCens within 72 hours of activation. De-Requisition Hourly Status Report. The report shall display assets that have been de-requisitioned within 72 hours of activation. Rejection Hourly Status Report. The report shall display assets that have been rejected during inspection within 72 hours of activation. Summary Report on Issued-To. The report shall display the issued assets and its issued quantity for each unit/EE. Summary Report on Return-To-ReqCen. The report shall display the returned assets and its returned quantity per unit. Report on Issued-To DIV. The report shall display the issued assets to DIV, the EMA_DIV_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. j. Report on Issued-To BDE. The report shall display the issued assets to DIV, the EMA_BDE_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. k. Report on Issued-To BN. The report shall display the issued assets to DIV, the EMA_BN_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. l. Report on Issued-To Unit. The report shall display the issued assets to DIV, the EMA_UNIT_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. m. Report on Return-To ReqCen. The report shall display the returned assets to ReqCens triggered by EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP. It shall display the users who triggered the return, the EMA_AO/EO who receive the returned assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total returned quantity. EMA_HQ shall be able to export/download the reports. 5 EMA_AO & EMA_EO (INCLUDE EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP AND EMA_UNIT_RP) USER STORY"
+    },
+    {
+      "id": "26",
+      "title": "5.1 Perform Requisition and Derequisition",
+      "owned_nodes": [
+        "fe_ema_landing_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nEMA_AO and EMA_EO shall be able to display, update, delete requisition plan listings.\nEMA_AO and EMA_EO shall be able to create and display registration information of the asset.\nEMA_AO and EMA_EO shall be able to update and display inspection checklist. EMA_AO shall be able to update and display the requisition details. EMA_AO and EMA_EO shall be able to update and display issue and return details. EMA_AO shall be able to update and read the derequisition details. EMA_AO and EMA_EO shall be able to create and display contingency and register new asset."
+    },
+    {
+      "id": "27",
+      "title": "5.2 Requisition Plan Listing",
+      "owned_nodes": [
+        "fe_ema_requisition_list_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nEMA_AO and EMA_EO shall be able to search the list of assets belonging to CR Owners earmarked to participate in the \u2018Training\u2019, \u2018Exercise\u2019 or \u2018Operation\u2019 plan.\nEMA_AO and EMA_EO shall be able to do advance filter such as searching by CR category or earmarked CR asset number.\nEMA_AO and EMA_EO shall be able to search specific assets (e.g. by the asset registration number) from a master list of assets maintained in CRIPS. The results should provide information such as the CR Owner, CR category that would be useful to EMA_AO and EMA_EO."
+    },
+    {
+      "id": "28",
+      "title": "5.3 Registration",
+      "owned_nodes": [
+        "be_registration_db_schema",
+        "be_registration_data_access",
+        "be_registration_service",
+        "be_registration_routes",
+        "be_ocr_integration",
+        "fe_registration_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nWithin the Registration module, EMA_AO and EMA_EO shall be able to use the Optical Character Recognition (OCR) or other suitable technology to scan the asset registration number and validate whether the asset belongs to any of the CR Owners earmarked in the requisition plan. EMA_AO and EMA_EO shall also be able to key in the asset registration number manually in the Registration module.\nSystem shall disallow EMA_AO and EMA_EO to register the asset if the asset is exempted/under immunity from requisition. Appropriate error message shall be prompted to inform him/her of the reason.\nsystem shall disallow EMA_AO and EMA_EO to register the asset, if the asset does not belong to any of the CR Owners earmarked in the requisition plan. Appropriate error message shall be prompted to inform him/her of the reason.\nEMA_AO and EMA_EO shall be prompted of the mismatch or discrepancy, if the asset belongs to one of the CR Owners earmarked in the requisition plan but the asset is not within the earmarked CR category,. He/she shall be allowed to register new asset (for \u2018Training\u2019 and \u2018Operation\u2019 requisition plan only) and manage it as a substitution by choosing from the list of earmarked CR category. Alternatively, he/she can reject the asset, i.e. do not register as new CR asset in CRIPS. To complete the Registration process, a. System shall require EMA_AO or EMA_EO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who brought in the asset for registration. b. The registration date/time shall be defaulted to current date/time. EMA_AO and EMA_EO shall be allowed to amend the registration date/time. Controls shall be in place to ensure it is not later than the current date/time. c. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC."
+    },
+    {
+      "id": "29",
+      "title": "5.4 Inspection",
+      "owned_nodes": [
+        "be_inspection_db_schema",
+        "be_inspection_data_access",
+        "be_inspection_service",
+        "be_inspection_routes",
+        "fe_inspection_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nSystem shall ensure that only assets that have been registered successfully in the Registration stage can proceed to the Inspection stage.\nSystem shall generate the checklist in accordance with the CR type of the asset. There shall be unique checklist for (i) CR Vessels, (ii) CR Craft; (iii) CR Vehicles, and (iv) CR Heavy Plants.\nUpon the completion of physical inspection of the asset, EMA_AO and EMA_EO shall update the inspection results in the system. a. EMA_AO and EMA_EO shall be able to select \u2018Pass\u2019, \u2018Fail\u2019 or \u2018N.A.\u2019 for each inspection category as well as the detailed checklist within each inspection category. b. EMA_AO and EMA_EO shall be able to choose \u2018Pass\u2019 or \u2018Fail\u2019 the inspection of the asset. System shall allow only assets that have passed inspection to proceed to the Requisition stage. Those that failed inspection shall be rejected and disallowed from requisition. c. If the asset is rejected, system shall prompt him/her the reason(s) for rejection. An email notification shall be triggered to inform the CR owner that his/her vehicle is rejected and the reason.\nEMA_AO and EMA_EO shall be able to take photos of the vehicles and upload to the system.\nTo complete the Inspection process, a. System shall require EMA_AO or EMA_EO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who b. c. present the asset for requisition. System shall default this information based on the same details collected at the Registration stage. System shall still allow EMA_AO and EMA_EO to update the information. The inspection date/time shall be defaulted to current date/time. EMA_AO and EMA_EO shall be allowed to amend the inspection date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the registration date/time. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC."
+    },
+    {
+      "id": "30",
+      "title": "5.5 Requisition",
+      "owned_nodes": [
+        "be_requisition_db_schema",
+        "be_requisition_data_access",
+        "be_requisition_service",
+        "be_requisition_routes",
+        "be_esign_integration",
+        "fe_ema_requisition_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict the requisition function to EMA_AO only. EMA_AO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nSystem shall ensure that for exercise and training requisition plans, only assets that have passed inspection can be requisitioned. For \u2018Operation\u2019 requisition plans, the Inspection stage can be skipped/by-passed.\nTo complete the Requisition process, a. EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number and validate whether the asset belongs to any of the CR Owners earmarked in the requisition plan. EMA_AO shall also be allowed to key in the asset registration number manually in the Requisition module. b. c. When there is a mismatch between the earmarked CR category and the CR category of the reported asset, system shall prompt accordingly and also allow EMA_AO to select the CR category it would be substituting. System shall auto-fill all the information related to the asset, the requisition date/time, estimated compensation amount, GST amount, etc onto the Requisition form. \uf0a7 The requisition date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the requisition date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the inspection date/time. If Inspection is \u2018by- pass\u2019, the requisition date/time cannot be earlier than the registration date/time. \uf0a7 The compensation amount shall be derived based on minimally 4-hour requisition duration using \u2018with undertaking\u2019 hourly rate. If substitution CR category is accepted at the Requisition stage, the compensation amount shall be derived using the lower rate. d. e. f. g. System shall require EMA_AO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who present the asset for requisition. System shall default this information based on the same details collected earlier (i.e. Registration and Inspection stages) and still allow EMA_AO to update the information. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. System shall require EMA_AO to choose the EMA that received the requisitioned asset, i.e. Primary EMA or Alternate/Secondary EMA. EMA_AO shall be able to e-sign on the digital requisition form. Ability to digital-sign the requisition form via WOG products such as Signify shall be explored. \uf0a7 System shall auto generate the requisition form and send it to the CR owner via email. The requisition forms shall be password protected and shall also be made available in the CR Owner Portal for them to retrieve the receipts/forms."
+    },
+    {
+      "id": "31",
+      "title": "5.6 De-Requisition (applicable for EMA_AO only)",
+      "owned_nodes": [
+        "be_derequisition_db_schema",
+        "be_derequisition_data_access",
+        "be_derequisition_service",
+        "be_derequisition_routes",
+        "fe_derequisition_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict the de-requisition function to EMA_AO only. EMA_AO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. System shall ensure that only assets held at the ReqCen level can be de- requisitioned. For assets that have been issued/distributed to Unit/EEs/DIV and not returned to ReqCen, system shall not allow EMA_AO to perform the de-requisition function. To complete the De-Requisition process, a. EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number and validate whether the asset has been returned to the ReqCen. EMA_AO shall also be allowed to key in the asset registration number manually in the De-Requisition module. b. System shall auto-fill all the information related to the asset, the requisition and de-requisition date/time, compensation amount, GST amount onto the De-Requisition form. \uf0a7 The de-requisition date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the de-requisition date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the requisition date/time. \uf0a7 The compensation amount shall be derived based on minimally 4-hour requisition duration using \u2018with undertaking\u2019 hourly rate. If total requisition duration exceeds 4 hours, the compensation amount shall be derived based on the additional hours or daily rates. If substitution CR c. d. category is accepted at the Requisition stage, the compensation amount shall be derived using the lower rate. EMA_AO shall be able to select if there are damages/loss of the asset. If there are damages, EMA_AO shall be able to take photos of the damaged assets and upload them to CRIPS_EMA. EMA_AO shall be able to download the photos. System shall require EMA_AO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative receiving the de-requisitioned asset. System shall default this information based on the same details collected at the requisition stage and still allow EMA_AO to update the information. e. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. f. CR Owner or his representative shall be able to e-sign on the digital de- requisition form. Ability to digital-sign the de-requisition form via WOG products such as Signify shall be explored. System shall auto generate the de-requisition form and send it to the CR owner via email. The de-requisition forms shall be password protected and shall also be made available in the CR Owner Portal for them to retrieve the receipts/forms."
+    },
+    {
+      "id": "32",
+      "title": "5.7 Issue-To",
+      "owned_nodes": [
+        "be_issue_db_schema",
+        "be_issue_data_access",
+        "be_issue_service",
+        "be_issue_routes",
+        "fe_issue_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. EMA_AO and EMA_EO shall be able to issue requisitioned assets to the requesting unit/EE (select from drop down list) and the unit representative (enter a valid NRIC number/FIN). EMA_AO and EMA_EO shall be able to select individual or multiple assets to perform the Issue-to-Unit/EE transaction. EMA_AO and EMA_EO shall be able to issue units/EEs with number of assets exceeding the requesting Units/EEs\u2019 allocated quantity. System shall be able to handle multiple tiers of asset redistribution and have a two- step transfer function to support this. a. Issue/Distribute to DIV. EMA_AO and EMA_EO shall be able to issue/distribute to DIV. The issuing ReqCen, EMA_AO/EO\u2019s NRIC number, receiving Unit and the EMA_DIV_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_DIV_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_DIV_RP shall be required to accept the transferred assets. b. Issue/Distribute to BDE. EMA_DIV_RP shall be able to issue to the next echelon, i.e. BDE. The issuing DIV, EMA_DIV_RP\u2019s NRIC number, receiving Unit and the EMA_BDE_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_BDE_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_BDE_RP shall be required to accept the transferred assets. c. Issue/Distribute to BN. EMA_BDE_RP shall be able to issue to the next echelon, i.e. BN. The issuing BDE, EMA_BDE_RP\u2019s NRIC number, receiving Unit and the EMA_BN_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_BN_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_BN_RP shall be required to accept the transferred assets. d. Issue/Distribute to Unit. EMA_AO and EMA_EO shall be able to issue/distribute to Unit. The issuing ReqCen, EMA_AO/EO\u2019s NRIC number, receiving Unit and the EMA_UNIT_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_UNIT_RP based on the NRIC number stated in the issue transaction. He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_UNIT_RP shall be required to accept the transferred assets. System shall be able to handle direct issue to unit/EE via a one-step transfer. The issuing ReqCen, NRIC number of the EMA_AO or EMA_EO, receiving unit/EE and NRIC number of the unit representative taking over the assets shall be included in the issuing and receiving transaction. The unit representative is not required to login to CRIPS to accept the assets. System shall be able to track the individuals responsible for each requisitioned asset at all times. All issuing and receiving parties shall be able to e-sign the HOTO documents. Ability to digital-sign the HOTO forms via WOG products such as Signify shall be explored. System shall be able to generate and download the HOTO documents. The download function shall support multiple documents to be downloaded at one time."
+    },
+    {
+      "id": "33",
+      "title": "5.8 Return-To-ReqCen",
+      "owned_nodes": [
+        "be_return_db_schema",
+        "be_return_data_access",
+        "be_return_service",
+        "be_return_routes",
+        "fe_return_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO, EMA_EO, EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. EMA_AO and EMA_EO shall be able to select assets that are issued to a particular unit/EE (select from drop down list) and the unit representative (enter a valid NRIC number/FIN). EMA_AO and EMA_EO shall be able to select individual or multiple assets to perform Return-from-Unit/EE transaction. System shall be able to handle return of assets that are redistributed and have a two- step transfer function to support this. a. Return from Unit to ReqCen. EMA_UNIT_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning Unit, EMA_UNIT_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. b. Return from BN to ReqCen. EMA_BN_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning BN, EMA_BN_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. c. Return from BDE to ReqCen. EMA_BDE_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning BDE, EMA_BDE_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. d. Return from DIV to ReqCen. EMA_DIV_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning DIV, EMA_DIV_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. System shall be able to handle direct return from unit/EE to ReqCen via one-step transfer. The returning unit/EE, NRIC number of the unit representative who is returning the assets, receiving ReqCen and NRIC number of the EMA_AO or EMA_EO shall be included in the returning and acceptance transaction. The returning unit/EE representative is not required to login to CRIPS to return the assets. System shall be able to track every asset and the individuals accountable for the asset at all times. All returning and acceptance parties shall be able to e-sign the HOTO document. Ability to digital-sign the HOTO forms via WOG products such as Signify shall be explored. System shall be able to generate and download the HOTO documents. The download function shall support multiple documents to be downloaded at one time."
+    },
+    {
+      "id": "34",
+      "title": "5.9 Register New Asset/Commandeering",
+      "owned_nodes": [
+        "be_commandeer_db_schema",
+        "be_commandeer_data_access",
+        "be_commandeer_service",
+        "be_commandeer_routes",
+        "fe_commandeer_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO, EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.\nRegister new asset, a. System shall restrict this function to only Heavy Plant CR type. b. System shall restrict this function to only \u2018Training\u2019 and \u2018Operation\u2019 requisition plans. EMA_AO and EMA_EO shall not be allowed to register new assets for Exercise plans. c. For new assets introduced via \u2018Training\u2019 requisition plans, the asset shall not be included permanently as CR supplies data in CRIPS. d. For new assets introduced via \u2018Operation\u2019 requisition plans, the asset shall be included permanently as CR supplies data in CRIPS. Only Controller Vehicles Office can update/de-register the such assets.\nCommandeering, a. b. System shall restrict this function to only EMA_AO. Upon clicking on \u2018Commandeering\u2019 function, EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number. EMA_AO shall also be able to key in the asset registration number manually. System shall auto fill other information such as CR category, chassis number, engine number that shall be retrieved from CRIPS database using the asset registration number. c. System shall require EMA_AO to enter the UEN/NRIC Number, Company Name/Owner Name, Company/Owner address and asset registration number. d. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. e. The registration date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the registration date/time. Controls shall be in place to ensure it is not later than the current date/time. f. The requisition workflow is the same as the earmarked assets."
+    },
+    {
+      "id": "35",
+      "title": "5.10 Reports",
+      "owned_nodes": [
+        "fe_ema_ao_report_page"
+      ],
+      "category": "feature",
+      "verifiable": "EMA_AO, EMA_EO, EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass. EMA_AO and EMA_EO shall be able to generate a. Requisitioned Summary. This summary information displays the number of requisitioned assets per CR category versus the number of assets earmarked per category. It also shows the total number of requisitioned assets versus the total number of assets earmarked. b. c. d. e. Issue Summary. This summary information displays the number of assets issued to unit per category. It also shows the total number of issued assets versus the total number of requisitioned assets. Number of assets issued refers to those assets issued to Unit/EE via one-step transfer. Return Summary. This summary information displays the number of assets returned by Unit/EE versus the total number of issued assets issued. It also shows the total number of returned assets versus the total number of issued assets. Number of assets returned refers to those assets returned by Unit/EE via one-step transfer. De-Requisition Summary. This summary information displays the number of derequisitioned assets per category versus the number of assets requisitioned per category. It also shows the total number of de-requisitioned assets versus the total number of assets requisitioned. Transfer Accepted by Unit/DIV RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by Unit/DIV via two -step transfer. f. Return Accepted by ReqCen Summary. This summary information displays the number of accepted assets per category versus the number of assets returned to ReqCen per category. It also shows the total number of accepted assets versus the total number of assets returned to ReqCen. Number of assets accepted refers to those assets returned by Unit/DIV/BDE/BN and accepted by ReqCen via two -step transfer. EMA_DIV_RP shall be able to generate a. Transfer Accepted by DIV RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_DIV_RP via two -step transfer. b. Transfer Accepted by BDE RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BDE_RP via two -step transfer. EMA_BDE_RP shall be able to generate a. Transfer Accepted by BDE RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BDE_RP via two -step transfer. b. Transfer Accepted by BN RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BN_RP via two -step transfer. EMA_BN_RP shall be able to generate a. Transfer Accepted by BN RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BN_RP via two -step transfer. EMA_UNIT_RP shall be able to generate a. Transfer Accepted by Unit RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_UNIT_RP via two -step transfer. 6 APPROVING OFFICER(ASSET) USER STORY"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "db_setup",
+      "name": "Database Setup & Migration Framework",
+      "duration_days": 0.5,
+      "category": "infrastructure"
+    },
+    {
+      "id": "shared_auth",
+      "name": "MCC Shared Auth (private_key_jwt, JWKS publication, OAuth2 client credentials)",
+      "duration_days": 0.5,
+      "category": "backend",
+      "appfw_standard": "Appfw-Mcc-Standards/Appfw-Shared-Auth-Standards"
+    },
+    {
+      "id": "be_asset_requirement_db_schema",
+      "name": "Asset Requirement DB Schema & Migration",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_asset_requirement_data_access",
+      "name": "Asset Requirement Data Access Layer (CRUD, search, filter)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_asset_requirement_service",
+      "name": "Asset Requirement Service (validation, allocation logic, mass import/export)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_asset_requirement_routes",
+      "name": "Asset Requirement API Routes (CRUD, search, export, template upload)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_asset_requirement_page",
+      "name": "Asset Requirement Page (CRUD, allocation view, mass upload/download, search, export)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_asset_exemption_db_schema",
+      "name": "Asset Exemption DB Schema & Migration",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_asset_exemption_data_access",
+      "name": "Asset Exemption Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_asset_exemption_service",
+      "name": "Asset Exemption Service (approval/rejection workflow, un-exempt routing)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_asset_exemption_routes",
+      "name": "Asset Exemption API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_asset_exemption_page",
+      "name": "Asset Exemption Page (create/update/view/delete, approval routing, search, export)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_exercise_plan_db_schema",
+      "name": "Exercise Plan DB Schema (ReqCen dates, workyear mapping table)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_exercise_plan_data_access",
+      "name": "Exercise Plan Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_exercise_plan_service",
+      "name": "Exercise Plan Service (workyear derivation logic, auto-update dates)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_exercise_plan_routes",
+      "name": "Exercise Plan API Routes (read, drill-down by date)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_exercise_plan_page",
+      "name": "Exercise Plan Page (summary view, date drill-down, exercise scale)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_requisition_plan_db_schema",
+      "name": "Requisition Plan DB Schema (plans, categories, owners, assets, approval states)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_requisition_plan_data_access",
+      "name": "Requisition Plan Data Access Layer (complex queries, earmarking)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_requisition_plan_service",
+      "name": "Requisition Plan Service (CRUD, earmarking, budget calc, approval workflow, email triggers)",
+      "duration_days": 4
+    },
+    {
+      "id": "be_requisition_plan_routes",
+      "name": "Requisition Plan API Routes (CRUD, search, export, submit, approve/reject)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_requisition_plan_list",
+      "name": "Requisition Plan List Page (view/search/export \u2014 Requestor read-only)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_reqcen_poc_db_schema",
+      "name": "ReqCen POC DB Schema (contact info, competent authority)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_reqcen_poc_data_access",
+      "name": "ReqCen POC Data Access Layer",
+      "duration_days": 0.25
+    },
+    {
+      "id": "be_reqcen_poc_service",
+      "name": "ReqCen POC Service (read/update, email template population)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_reqcen_poc_routes",
+      "name": "ReqCen POC API Routes (read, update, search)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_reqcen_poc_page",
+      "name": "ReqCen POC Page (contact info, competent authority display, search)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ema_detail_db_schema",
+      "name": "EMA Detail DB Schema (address, parking, postal code)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ema_detail_data_access",
+      "name": "EMA Detail Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ema_detail_service",
+      "name": "EMA Detail Service (CRUD, geolocation/proximity logic for allocation priority)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_ema_detail_routes",
+      "name": "EMA Detail API Routes (CRUD, search, export)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_ema_detail_page",
+      "name": "EMA Detail Page (view/search/export \u2014 Requestor)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_ee_assignment_db_schema",
+      "name": "EE Assignment DB Schema (EE-to-ReqCen mappings, CR type restrictions)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ee_assignment_data_access",
+      "name": "EE Assignment Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ee_assignment_service",
+      "name": "EE Assignment Service (CR type access control, tag/un-tag EEs, template upload)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_ee_assignment_routes",
+      "name": "EE Assignment API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_ee_assignment_page",
+      "name": "EE Assignment Page (assign/un-tag EEs, view EE CR requirements, template download/upload, search)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_requisition_plan_form",
+      "name": "Requisition Plan Form (create/edit plan: earmarking, category selection, distribution, budget estimate, approval submit)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_notification_service",
+      "name": "Notification Service (SMS + email delivery via MCNS, rate limiting, retry)",
+      "duration_days": 1.5,
+      "appfw_standard": "Appfw-Mcc-Standards/Appfw-Mcns-Standards/MCNS_Core"
+    },
+    {
+      "id": "fe_reqcen_poc_form",
+      "name": "ReqCen POC Edit Form (update contact info, competent authority \u2014 CRO)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_ema_detail_form",
+      "name": "EMA Detail Edit Form (create/update/delete EMA, parking lots, postal code \u2014 CRO)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_budget_service",
+      "name": "Budget Service (estimated cost calculation per category and plan totals)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_budget_routes",
+      "name": "Budget API Routes (calculate, export)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_budget_page",
+      "name": "Budget Planning Page (quantity input, cost calculation display, export)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_db_schema",
+      "name": "CR Owner DB Schema (company info, assets, allocation history, POC contacts)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_data_access",
+      "name": "CR Owner Data Access Layer (owner records, asset grouping, allocation/deallocation history)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_service",
+      "name": "CR Owner Service (POC management, allocation ratio, shared-owner logic, SMS contact selection, download controls)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_cr_owner_routes",
+      "name": "CR Owner API Routes (CRUD, search, export, mass template download)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_acra_integration",
+      "name": "ACRA Interface Integration (retrieve company info from ACRA interface file)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_cr_owner_page",
+      "name": "CR Owner Page (allocated/unallocated owners, multi-section: assets, allocation history, mobilisation history, shared owners, search, export)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_compensation_db_schema",
+      "name": "Compensation DB Schema (compensation records, appeals, progressive payment tracking)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_compensation_data_access",
+      "name": "Compensation Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_compensation_service",
+      "name": "Compensation Service (auto-calculation, progressive payments, appeal workflow, MINDEF/SAF vs Homefront routing)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_compensation_routes",
+      "name": "Compensation API Routes (submit, verify, approve, reject, appeal, upload payment details, export)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_document_service",
+      "name": "Document & File Service (upload, S3 clean store, SFS virus scan, download, zombie cleanup)",
+      "duration_days": 2,
+      "appfw_standard": "Appfw-File-Standards/mcc"
+    },
+    {
+      "id": "fe_compensation_page",
+      "name": "Compensation Page (requisition/modification compensation, appeal management, payment tracking, search, export)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_payment_hub_integration",
+      "name": "MINDEF/SAF Payment Service Hub Integration (submit payment instructions, handle rejections)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_payment_review_page",
+      "name": "Payment Instruction Review Page (resubmit rejected instructions \u2014 MINDEF/SAF CRO only, search)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_payment_export_page",
+      "name": "Homefront Payment Export Page (download verified compensation for SCDF finance, upload AGD payment details)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_report_service",
+      "name": "Report Service (JasperReports engine, multi-format PDF/XLSX/CSV, template management)",
+      "duration_days": 2,
+      "appfw_standard": "Appfw-Report-Standards/Report_Core"
+    },
+    {
+      "id": "be_report_routes",
+      "name": "Report API Routes (generate and download reports by type)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cro_report_page",
+      "name": "CRO Report Page (select and download asset/compensation/payment reports)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_ema_user_db_schema",
+      "name": "EMA User DB Schema (accounts, role assignments, cap limits, expiry)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ema_user_data_access",
+      "name": "EMA User Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ema_user_service",
+      "name": "EMA User Service (auto-create on plan commit, role assignment, mass upload, role cap enforcement, expiry/disable)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_ema_user_routes",
+      "name": "EMA User API Routes (create, delete, view, role assign/modify, mass upload)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_ema_user_page",
+      "name": "EMA User Management Page (create/delete users, assign/modify roles, mass upload, view)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_activation_db_schema",
+      "name": "Activation DB Schema (activation events, EMA selection, SMS mobile numbers, audit trail)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_activation_data_access",
+      "name": "Activation Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_activation_service",
+      "name": "Activation Service (trigger SMS/notices, toggle EMA, re-activation, last-activated tracking)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_activation_routes",
+      "name": "Activation API Routes (activate, re-activate, end activation, EMA toggle)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_activation_page",
+      "name": "Activation Page (activate/re-activate, EMA selection, training phone numbers, tracking display)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_status_tracking_service",
+      "name": "Status Tracking Service (acknowledgement, reporting status, response time calculations)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_status_tracking_routes",
+      "name": "Status Tracking API Routes (status list, filter by status)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_status_tracking_page",
+      "name": "Status Tracking Page (acknowledgement/reporting status per CR owner, response times, filter/search)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_document_viewer_page",
+      "name": "Document Viewer Page (view/download photos, inspection checklists, requisition/de-requisition receipts by asset)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_activation_end_widget",
+      "name": "End Activation Widget (end activation after all de-requisition, date/time validation)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_dashboard_service",
+      "name": "EMA Dashboard Service (aggregate demand, fulfilment, requisition, de-requisition, issue, return data across 3 levels)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_dashboard_routes",
+      "name": "EMA Dashboard API Routes (aggregated data endpoints by level)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_dashboard_page",
+      "name": "EMA HQ Dashboard Page (5-section multi-level dashboard with bar charts and drill-down detail, export)",
+      "duration_days": 3
+    },
+    {
+      "id": "fe_ema_hq_report_page",
+      "name": "EMA HQ Report Page (requisition monitoring, hourly status, issue-to, return, de-requisition, rejection, summary reports)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_ema_landing_page",
+      "name": "EMA Web Landing Page (Singpass entry point, navigation hub to EMA operations)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_ema_requisition_list_page",
+      "name": "EMA Requisition Plan Listing Page (search/filter earmarked assets by CR category, asset number, master-list lookup)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_registration_db_schema",
+      "name": "Asset Registration DB Schema (registration records, CR owner representative details, substitution flags)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_registration_data_access",
+      "name": "Asset Registration Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_registration_service",
+      "name": "Asset Registration Service (OCR validation, exemption check, earmark verification, substitution routing, new-asset registration)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_registration_routes",
+      "name": "Asset Registration API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ocr_integration",
+      "name": "OCR Integration (scan asset registration number and NRIC/digital NRIC via OCR/suitable technology)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_registration_page",
+      "name": "Registration Page (OCR scan, manual entry, exemption/earmark validation, new asset registration, representative NRIC capture)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_inspection_db_schema",
+      "name": "Inspection DB Schema (inspection results, checklist per CR type, photo references, pass/fail status)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_inspection_data_access",
+      "name": "Inspection Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_inspection_service",
+      "name": "Inspection Service (CR-type checklist generation, pass/fail logic, rejection email trigger, photo upload coordination)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_inspection_routes",
+      "name": "Inspection API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_inspection_page",
+      "name": "Inspection Page (checklist per CR type, pass/fail per item, photo capture/upload, date/time control, NRIC OCR)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_requisition_db_schema",
+      "name": "EMA Requisition DB Schema (requisition records, compensation amounts, substitution, GST, EMA selection)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_requisition_data_access",
+      "name": "EMA Requisition Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_requisition_service",
+      "name": "EMA Requisition Service (inspection bypass for Operations, compensation calc, OCR scan, form generation, e-sign, email dispatch)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_requisition_routes",
+      "name": "EMA Requisition API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_esign_integration",
+      "name": "E-Signature Integration (digital signing via Signify/WOG e-sign for requisition/derequisition/HOTO forms)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_ema_requisition_page",
+      "name": "EMA Requisition Page (OCR/manual asset entry, substitution handling, e-sign, form auto-fill, EMA selection)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_derequisition_db_schema",
+      "name": "De-Requisition DB Schema (de-requisition records, damage flags, updated compensation)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_derequisition_data_access",
+      "name": "De-Requisition Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_derequisition_service",
+      "name": "De-Requisition Service (asset-held-at-ReqCen check, compensation recalc with duration/damages, form generation, e-sign, email)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_derequisition_routes",
+      "name": "De-Requisition API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_derequisition_page",
+      "name": "De-Requisition Page (OCR/manual entry, damage photo upload, e-sign, compensation display)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_issue_db_schema",
+      "name": "Issue-To DB Schema (issue/distribution records, two-step transfer chain, HOTO references)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_issue_data_access",
+      "name": "Issue-To Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_issue_service",
+      "name": "Issue-To Service (multi-tier distribution, auto-create RP accounts, one-step and two-step transfer, asset tracking, HOTO doc generation)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_issue_routes",
+      "name": "Issue-To API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_issue_page",
+      "name": "Issue-To Page (select unit/EE, individual/multi-asset issue, tier distribution, e-sign, HOTO download)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_return_db_schema",
+      "name": "Return-To-ReqCen DB Schema (return records, two-step transfer chain, accepting party)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_return_data_access",
+      "name": "Return-To-ReqCen Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_return_service",
+      "name": "Return-To-ReqCen Service (two-step and one-step return, full asset tracking at all times, HOTO doc generation)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_return_routes",
+      "name": "Return-To-ReqCen API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_return_page",
+      "name": "Return-To-ReqCen Page (select unit/EE, multi-asset return, e-sign, HOTO download)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_commandeer_db_schema",
+      "name": "Commandeering DB Schema (new-asset records, permanent vs training flag, UEN/NRIC owner details)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_commandeer_data_access",
+      "name": "Commandeering Data Access Layer",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_commandeer_service",
+      "name": "Commandeering Service (CR type restriction, plan type restriction, permanent-vs-training persistence, commandeering workflow)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_commandeer_routes",
+      "name": "Commandeering API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_commandeer_page",
+      "name": "Commandeering Page (OCR/manual asset scan, UEN/NRIC entry, new asset registration, commandeering form)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_ema_ao_report_page",
+      "name": "EMA AO/EO Report Page (requisition/issue/return/de-requisition summary reports per role)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_cro_asset_requirement_page",
+      "name": "CRO(Asset) Asset Requirements View (read-only view of CR asset requirements, allocation by CR category, export/download, search)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cro_exercise_plan_page",
+      "name": "CRO(Asset) Annual Exercise Plan View (ReqCen summary, previous/last exercise dates, planned workyear, exercise scale drill-down)",
+      "duration_days": 0.5
+    }
+  ],
+  "edges": [
+    [
+      "db_setup",
+      "be_asset_requirement_db_schema"
+    ],
+    [
+      "be_asset_requirement_db_schema",
+      "be_asset_requirement_data_access"
+    ],
+    [
+      "be_asset_requirement_data_access",
+      "be_asset_requirement_service"
+    ],
+    [
+      "be_asset_requirement_service",
+      "be_asset_requirement_routes"
+    ],
+    [
+      "logging",
+      "be_asset_requirement_service"
+    ],
+    [
+      "auth_service",
+      "be_asset_requirement_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_asset_requirement_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_asset_requirement_routes"
+    ],
+    [
+      "be_asset_requirement_routes",
+      "fe_asset_requirement_page"
+    ],
+    [
+      "api_client",
+      "fe_asset_requirement_page"
+    ],
+    [
+      "auth_ui",
+      "fe_asset_requirement_page"
+    ],
+    [
+      "component_lib",
+      "fe_asset_requirement_page"
+    ],
+    [
+      "routing_setup",
+      "fe_asset_requirement_page"
+    ],
+    [
+      "state_management",
+      "fe_asset_requirement_page"
+    ],
+    [
+      "db_setup",
+      "be_asset_exemption_db_schema"
+    ],
+    [
+      "be_asset_exemption_db_schema",
+      "be_asset_exemption_data_access"
+    ],
+    [
+      "be_asset_exemption_data_access",
+      "be_asset_exemption_service"
+    ],
+    [
+      "be_asset_exemption_service",
+      "be_asset_exemption_routes"
+    ],
+    [
+      "logging",
+      "be_asset_exemption_service"
+    ],
+    [
+      "auth_service",
+      "be_asset_exemption_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_asset_exemption_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_asset_exemption_routes"
+    ],
+    [
+      "be_asset_exemption_routes",
+      "fe_asset_exemption_page"
+    ],
+    [
+      "api_client",
+      "fe_asset_exemption_page"
+    ],
+    [
+      "auth_ui",
+      "fe_asset_exemption_page"
+    ],
+    [
+      "component_lib",
+      "fe_asset_exemption_page"
+    ],
+    [
+      "routing_setup",
+      "fe_asset_exemption_page"
+    ],
+    [
+      "state_management",
+      "fe_asset_exemption_page"
+    ],
+    [
+      "db_setup",
+      "be_exercise_plan_db_schema"
+    ],
+    [
+      "be_exercise_plan_db_schema",
+      "be_exercise_plan_data_access"
+    ],
+    [
+      "be_exercise_plan_data_access",
+      "be_exercise_plan_service"
+    ],
+    [
+      "be_exercise_plan_service",
+      "be_exercise_plan_routes"
+    ],
+    [
+      "logging",
+      "be_exercise_plan_service"
+    ],
+    [
+      "auth_service",
+      "be_exercise_plan_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_exercise_plan_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_exercise_plan_routes"
+    ],
+    [
+      "be_exercise_plan_routes",
+      "fe_exercise_plan_page"
+    ],
+    [
+      "api_client",
+      "fe_exercise_plan_page"
+    ],
+    [
+      "auth_ui",
+      "fe_exercise_plan_page"
+    ],
+    [
+      "component_lib",
+      "fe_exercise_plan_page"
+    ],
+    [
+      "routing_setup",
+      "fe_exercise_plan_page"
+    ],
+    [
+      "state_management",
+      "fe_exercise_plan_page"
+    ],
+    [
+      "db_setup",
+      "be_requisition_plan_db_schema"
+    ],
+    [
+      "be_requisition_plan_db_schema",
+      "be_requisition_plan_data_access"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_requisition_plan_service"
+    ],
+    [
+      "be_requisition_plan_service",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "logging",
+      "be_requisition_plan_service"
+    ],
+    [
+      "auth_service",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "be_requisition_plan_routes",
+      "fe_requisition_plan_list"
+    ],
+    [
+      "api_client",
+      "fe_requisition_plan_list"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_plan_list"
+    ],
+    [
+      "component_lib",
+      "fe_requisition_plan_list"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_plan_list"
+    ],
+    [
+      "state_management",
+      "fe_requisition_plan_list"
+    ],
+    [
+      "db_setup",
+      "be_reqcen_poc_db_schema"
+    ],
+    [
+      "be_reqcen_poc_db_schema",
+      "be_reqcen_poc_data_access"
+    ],
+    [
+      "be_reqcen_poc_data_access",
+      "be_reqcen_poc_service"
+    ],
+    [
+      "be_reqcen_poc_service",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "logging",
+      "be_reqcen_poc_service"
+    ],
+    [
+      "auth_service",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "be_reqcen_poc_routes",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "api_client",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "auth_ui",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "component_lib",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "routing_setup",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "state_management",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "db_setup",
+      "be_ema_detail_db_schema"
+    ],
+    [
+      "be_ema_detail_db_schema",
+      "be_ema_detail_data_access"
+    ],
+    [
+      "be_ema_detail_data_access",
+      "be_ema_detail_service"
+    ],
+    [
+      "be_ema_detail_service",
+      "be_ema_detail_routes"
+    ],
+    [
+      "logging",
+      "be_ema_detail_service"
+    ],
+    [
+      "auth_service",
+      "be_ema_detail_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_ema_detail_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_ema_detail_routes"
+    ],
+    [
+      "be_ema_detail_routes",
+      "fe_ema_detail_page"
+    ],
+    [
+      "api_client",
+      "fe_ema_detail_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_detail_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_detail_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_detail_page"
+    ],
+    [
+      "state_management",
+      "fe_ema_detail_page"
+    ],
+    [
+      "db_setup",
+      "be_ee_assignment_db_schema"
+    ],
+    [
+      "be_ee_assignment_db_schema",
+      "be_ee_assignment_data_access"
+    ],
+    [
+      "be_ee_assignment_data_access",
+      "be_ee_assignment_service"
+    ],
+    [
+      "be_cr_owner_data_access",
+      "be_ee_assignment_service"
+    ],
+    [
+      "be_ee_assignment_service",
+      "be_ee_assignment_routes"
+    ],
+    [
+      "logging",
+      "be_ee_assignment_service"
+    ],
+    [
+      "auth_service",
+      "be_ee_assignment_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_ee_assignment_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_ee_assignment_routes"
+    ],
+    [
+      "be_ee_assignment_routes",
+      "fe_ee_assignment_page"
+    ],
+    [
+      "api_client",
+      "fe_ee_assignment_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ee_assignment_page"
+    ],
+    [
+      "component_lib",
+      "fe_ee_assignment_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ee_assignment_page"
+    ],
+    [
+      "state_management",
+      "fe_ee_assignment_page"
+    ],
+    [
+      "shared_auth",
+      "be_notification_service"
+    ],
+    [
+      "be_notification_service",
+      "be_requisition_plan_service"
+    ],
+    [
+      "be_requisition_plan_routes",
+      "fe_requisition_plan_form"
+    ],
+    [
+      "api_client",
+      "fe_requisition_plan_form"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_plan_form"
+    ],
+    [
+      "component_lib",
+      "fe_requisition_plan_form"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_plan_form"
+    ],
+    [
+      "state_management",
+      "fe_requisition_plan_form"
+    ],
+    [
+      "be_reqcen_poc_routes",
+      "fe_reqcen_poc_form"
+    ],
+    [
+      "api_client",
+      "fe_reqcen_poc_form"
+    ],
+    [
+      "auth_ui",
+      "fe_reqcen_poc_form"
+    ],
+    [
+      "component_lib",
+      "fe_reqcen_poc_form"
+    ],
+    [
+      "routing_setup",
+      "fe_reqcen_poc_form"
+    ],
+    [
+      "state_management",
+      "fe_reqcen_poc_form"
+    ],
+    [
+      "be_ema_detail_routes",
+      "fe_ema_detail_form"
+    ],
+    [
+      "api_client",
+      "fe_ema_detail_form"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_detail_form"
+    ],
+    [
+      "component_lib",
+      "fe_ema_detail_form"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_detail_form"
+    ],
+    [
+      "state_management",
+      "fe_ema_detail_form"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_budget_service"
+    ],
+    [
+      "be_budget_service",
+      "be_budget_routes"
+    ],
+    [
+      "logging",
+      "be_budget_service"
+    ],
+    [
+      "auth_service",
+      "be_budget_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_budget_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_budget_routes"
+    ],
+    [
+      "be_budget_routes",
+      "fe_budget_page"
+    ],
+    [
+      "api_client",
+      "fe_budget_page"
+    ],
+    [
+      "auth_ui",
+      "fe_budget_page"
+    ],
+    [
+      "component_lib",
+      "fe_budget_page"
+    ],
+    [
+      "routing_setup",
+      "fe_budget_page"
+    ],
+    [
+      "state_management",
+      "fe_budget_page"
+    ],
+    [
+      "db_setup",
+      "be_cr_owner_db_schema"
+    ],
+    [
+      "be_cr_owner_db_schema",
+      "be_cr_owner_data_access"
+    ],
+    [
+      "be_cr_owner_data_access",
+      "be_cr_owner_service"
+    ],
+    [
+      "be_acra_integration",
+      "be_cr_owner_service"
+    ],
+    [
+      "be_cr_owner_service",
+      "be_cr_owner_routes"
+    ],
+    [
+      "logging",
+      "be_cr_owner_service"
+    ],
+    [
+      "auth_service",
+      "be_cr_owner_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_cr_owner_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_cr_owner_routes"
+    ],
+    [
+      "be_cr_owner_routes",
+      "fe_cr_owner_page"
+    ],
+    [
+      "api_client",
+      "fe_cr_owner_page"
+    ],
+    [
+      "auth_ui",
+      "fe_cr_owner_page"
+    ],
+    [
+      "component_lib",
+      "fe_cr_owner_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cr_owner_page"
+    ],
+    [
+      "state_management",
+      "fe_cr_owner_page"
+    ],
+    [
+      "db_setup",
+      "be_compensation_db_schema"
+    ],
+    [
+      "be_compensation_db_schema",
+      "be_compensation_data_access"
+    ],
+    [
+      "be_compensation_data_access",
+      "be_compensation_service"
+    ],
+    [
+      "be_document_service",
+      "be_compensation_service"
+    ],
+    [
+      "be_compensation_service",
+      "be_compensation_routes"
+    ],
+    [
+      "logging",
+      "be_compensation_service"
+    ],
+    [
+      "auth_service",
+      "be_compensation_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_compensation_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_compensation_routes"
+    ],
+    [
+      "be_compensation_routes",
+      "fe_compensation_page"
+    ],
+    [
+      "api_client",
+      "fe_compensation_page"
+    ],
+    [
+      "auth_ui",
+      "fe_compensation_page"
+    ],
+    [
+      "component_lib",
+      "fe_compensation_page"
+    ],
+    [
+      "routing_setup",
+      "fe_compensation_page"
+    ],
+    [
+      "state_management",
+      "fe_compensation_page"
+    ],
+    [
+      "be_compensation_service",
+      "be_payment_hub_integration"
+    ],
+    [
+      "be_payment_hub_integration",
+      "fe_payment_review_page"
+    ],
+    [
+      "api_client",
+      "fe_payment_review_page"
+    ],
+    [
+      "auth_ui",
+      "fe_payment_review_page"
+    ],
+    [
+      "component_lib",
+      "fe_payment_review_page"
+    ],
+    [
+      "routing_setup",
+      "fe_payment_review_page"
+    ],
+    [
+      "state_management",
+      "fe_payment_review_page"
+    ],
+    [
+      "be_compensation_routes",
+      "fe_payment_export_page"
+    ],
+    [
+      "api_client",
+      "fe_payment_export_page"
+    ],
+    [
+      "auth_ui",
+      "fe_payment_export_page"
+    ],
+    [
+      "component_lib",
+      "fe_payment_export_page"
+    ],
+    [
+      "routing_setup",
+      "fe_payment_export_page"
+    ],
+    [
+      "state_management",
+      "fe_payment_export_page"
+    ],
+    [
+      "be_report_service",
+      "be_report_routes"
+    ],
+    [
+      "logging",
+      "be_report_service"
+    ],
+    [
+      "auth_service",
+      "be_report_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_report_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_report_routes"
+    ],
+    [
+      "be_report_routes",
+      "fe_cro_report_page"
+    ],
+    [
+      "api_client",
+      "fe_cro_report_page"
+    ],
+    [
+      "auth_ui",
+      "fe_cro_report_page"
+    ],
+    [
+      "component_lib",
+      "fe_cro_report_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cro_report_page"
+    ],
+    [
+      "state_management",
+      "fe_cro_report_page"
+    ],
+    [
+      "db_setup",
+      "be_ema_user_db_schema"
+    ],
+    [
+      "be_ema_user_db_schema",
+      "be_ema_user_data_access"
+    ],
+    [
+      "be_ema_user_data_access",
+      "be_ema_user_service"
+    ],
+    [
+      "be_ema_user_service",
+      "be_ema_user_routes"
+    ],
+    [
+      "logging",
+      "be_ema_user_service"
+    ],
+    [
+      "auth_service",
+      "be_ema_user_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_ema_user_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_ema_user_routes"
+    ],
+    [
+      "be_notification_service",
+      "be_ema_user_service"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_ema_user_service"
+    ],
+    [
+      "be_ema_user_routes",
+      "fe_ema_user_page"
+    ],
+    [
+      "api_client",
+      "fe_ema_user_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_user_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_user_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_user_page"
+    ],
+    [
+      "state_management",
+      "fe_ema_user_page"
+    ],
+    [
+      "db_setup",
+      "be_activation_db_schema"
+    ],
+    [
+      "be_activation_db_schema",
+      "be_activation_data_access"
+    ],
+    [
+      "be_activation_data_access",
+      "be_activation_service"
+    ],
+    [
+      "be_activation_service",
+      "be_activation_routes"
+    ],
+    [
+      "logging",
+      "be_activation_service"
+    ],
+    [
+      "auth_service",
+      "be_activation_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_activation_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_activation_routes"
+    ],
+    [
+      "be_notification_service",
+      "be_activation_service"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_activation_service"
+    ],
+    [
+      "be_activation_routes",
+      "fe_activation_page"
+    ],
+    [
+      "api_client",
+      "fe_activation_page"
+    ],
+    [
+      "auth_ui",
+      "fe_activation_page"
+    ],
+    [
+      "component_lib",
+      "fe_activation_page"
+    ],
+    [
+      "routing_setup",
+      "fe_activation_page"
+    ],
+    [
+      "state_management",
+      "fe_activation_page"
+    ],
+    [
+      "be_activation_data_access",
+      "be_status_tracking_service"
+    ],
+    [
+      "be_status_tracking_service",
+      "be_status_tracking_routes"
+    ],
+    [
+      "logging",
+      "be_status_tracking_service"
+    ],
+    [
+      "auth_service",
+      "be_status_tracking_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_status_tracking_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_status_tracking_routes"
+    ],
+    [
+      "be_status_tracking_routes",
+      "fe_status_tracking_page"
+    ],
+    [
+      "api_client",
+      "fe_status_tracking_page"
+    ],
+    [
+      "auth_ui",
+      "fe_status_tracking_page"
+    ],
+    [
+      "component_lib",
+      "fe_status_tracking_page"
+    ],
+    [
+      "routing_setup",
+      "fe_status_tracking_page"
+    ],
+    [
+      "state_management",
+      "fe_status_tracking_page"
+    ],
+    [
+      "be_document_service",
+      "fe_document_viewer_page"
+    ],
+    [
+      "api_client",
+      "fe_document_viewer_page"
+    ],
+    [
+      "auth_ui",
+      "fe_document_viewer_page"
+    ],
+    [
+      "component_lib",
+      "fe_document_viewer_page"
+    ],
+    [
+      "routing_setup",
+      "fe_document_viewer_page"
+    ],
+    [
+      "state_management",
+      "fe_document_viewer_page"
+    ],
+    [
+      "be_activation_service",
+      "fe_activation_end_widget"
+    ],
+    [
+      "be_activation_routes",
+      "fe_activation_end_widget"
+    ],
+    [
+      "component_lib",
+      "fe_activation_end_widget"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_activation_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_requisition_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_derequisition_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_issue_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_return_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_dashboard_service",
+      "be_dashboard_routes"
+    ],
+    [
+      "logging",
+      "be_dashboard_service"
+    ],
+    [
+      "auth_service",
+      "be_dashboard_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_dashboard_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_dashboard_routes"
+    ],
+    [
+      "be_dashboard_routes",
+      "fe_dashboard_page"
+    ],
+    [
+      "api_client",
+      "fe_dashboard_page"
+    ],
+    [
+      "auth_ui",
+      "fe_dashboard_page"
+    ],
+    [
+      "component_lib",
+      "fe_dashboard_page"
+    ],
+    [
+      "routing_setup",
+      "fe_dashboard_page"
+    ],
+    [
+      "state_management",
+      "fe_dashboard_page"
+    ],
+    [
+      "be_report_routes",
+      "fe_ema_hq_report_page"
+    ],
+    [
+      "api_client",
+      "fe_ema_hq_report_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_hq_report_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_hq_report_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_hq_report_page"
+    ],
+    [
+      "state_management",
+      "fe_ema_hq_report_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_landing_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_landing_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_landing_page"
+    ],
+    [
+      "state_management",
+      "fe_ema_landing_page"
+    ],
+    [
+      "be_requisition_plan_routes",
+      "fe_ema_requisition_list_page"
+    ],
+    [
+      "api_client",
+      "fe_ema_requisition_list_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_requisition_list_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_requisition_list_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_requisition_list_page"
+    ],
+    [
+      "state_management",
+      "fe_ema_requisition_list_page"
+    ],
+    [
+      "db_setup",
+      "be_registration_db_schema"
+    ],
+    [
+      "be_registration_db_schema",
+      "be_registration_data_access"
+    ],
+    [
+      "be_registration_data_access",
+      "be_registration_service"
+    ],
+    [
+      "be_registration_service",
+      "be_registration_routes"
+    ],
+    [
+      "logging",
+      "be_registration_service"
+    ],
+    [
+      "auth_service",
+      "be_registration_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_registration_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_registration_routes"
+    ],
+    [
+      "be_ocr_integration",
+      "be_registration_service"
+    ],
+    [
+      "be_cr_owner_data_access",
+      "be_registration_service"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_registration_service"
+    ],
+    [
+      "be_asset_exemption_data_access",
+      "be_registration_service"
+    ],
+    [
+      "be_registration_routes",
+      "fe_registration_page"
+    ],
+    [
+      "api_client",
+      "fe_registration_page"
+    ],
+    [
+      "auth_ui",
+      "fe_registration_page"
+    ],
+    [
+      "component_lib",
+      "fe_registration_page"
+    ],
+    [
+      "routing_setup",
+      "fe_registration_page"
+    ],
+    [
+      "state_management",
+      "fe_registration_page"
+    ],
+    [
+      "db_setup",
+      "be_inspection_db_schema"
+    ],
+    [
+      "be_inspection_db_schema",
+      "be_inspection_data_access"
+    ],
+    [
+      "be_inspection_data_access",
+      "be_inspection_service"
+    ],
+    [
+      "be_inspection_service",
+      "be_inspection_routes"
+    ],
+    [
+      "logging",
+      "be_inspection_service"
+    ],
+    [
+      "auth_service",
+      "be_inspection_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_inspection_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_inspection_routes"
+    ],
+    [
+      "be_registration_data_access",
+      "be_inspection_service"
+    ],
+    [
+      "be_document_service",
+      "be_inspection_service"
+    ],
+    [
+      "be_notification_service",
+      "be_inspection_service"
+    ],
+    [
+      "be_inspection_routes",
+      "fe_inspection_page"
+    ],
+    [
+      "api_client",
+      "fe_inspection_page"
+    ],
+    [
+      "auth_ui",
+      "fe_inspection_page"
+    ],
+    [
+      "component_lib",
+      "fe_inspection_page"
+    ],
+    [
+      "routing_setup",
+      "fe_inspection_page"
+    ],
+    [
+      "state_management",
+      "fe_inspection_page"
+    ],
+    [
+      "db_setup",
+      "be_requisition_db_schema"
+    ],
+    [
+      "be_requisition_db_schema",
+      "be_requisition_data_access"
+    ],
+    [
+      "be_requisition_data_access",
+      "be_requisition_service"
+    ],
+    [
+      "be_requisition_service",
+      "be_requisition_routes"
+    ],
+    [
+      "logging",
+      "be_requisition_service"
+    ],
+    [
+      "auth_service",
+      "be_requisition_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_requisition_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_requisition_routes"
+    ],
+    [
+      "be_inspection_data_access",
+      "be_requisition_service"
+    ],
+    [
+      "be_registration_data_access",
+      "be_requisition_service"
+    ],
+    [
+      "be_esign_integration",
+      "be_requisition_service"
+    ],
+    [
+      "be_notification_service",
+      "be_requisition_service"
+    ],
+    [
+      "be_ocr_integration",
+      "be_requisition_service"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_requisition_service"
+    ],
+    [
+      "be_requisition_routes",
+      "fe_ema_requisition_page"
+    ],
+    [
+      "api_client",
+      "fe_ema_requisition_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_requisition_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_requisition_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_requisition_page"
+    ],
+    [
+      "state_management",
+      "fe_ema_requisition_page"
+    ],
+    [
+      "db_setup",
+      "be_derequisition_db_schema"
+    ],
+    [
+      "be_derequisition_db_schema",
+      "be_derequisition_data_access"
+    ],
+    [
+      "be_derequisition_data_access",
+      "be_derequisition_service"
+    ],
+    [
+      "be_derequisition_service",
+      "be_derequisition_routes"
+    ],
+    [
+      "logging",
+      "be_derequisition_service"
+    ],
+    [
+      "auth_service",
+      "be_derequisition_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_derequisition_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_derequisition_routes"
+    ],
+    [
+      "be_requisition_data_access",
+      "be_derequisition_service"
+    ],
+    [
+      "be_esign_integration",
+      "be_derequisition_service"
+    ],
+    [
+      "be_document_service",
+      "be_derequisition_service"
+    ],
+    [
+      "be_notification_service",
+      "be_derequisition_service"
+    ],
+    [
+      "be_derequisition_routes",
+      "fe_derequisition_page"
+    ],
+    [
+      "api_client",
+      "fe_derequisition_page"
+    ],
+    [
+      "auth_ui",
+      "fe_derequisition_page"
+    ],
+    [
+      "component_lib",
+      "fe_derequisition_page"
+    ],
+    [
+      "routing_setup",
+      "fe_derequisition_page"
+    ],
+    [
+      "state_management",
+      "fe_derequisition_page"
+    ],
+    [
+      "db_setup",
+      "be_issue_db_schema"
+    ],
+    [
+      "be_issue_db_schema",
+      "be_issue_data_access"
+    ],
+    [
+      "be_issue_data_access",
+      "be_issue_service"
+    ],
+    [
+      "be_issue_service",
+      "be_issue_routes"
+    ],
+    [
+      "logging",
+      "be_issue_service"
+    ],
+    [
+      "auth_service",
+      "be_issue_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_issue_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_issue_routes"
+    ],
+    [
+      "be_requisition_data_access",
+      "be_issue_service"
+    ],
+    [
+      "be_ema_user_service",
+      "be_issue_service"
+    ],
+    [
+      "be_esign_integration",
+      "be_issue_service"
+    ],
+    [
+      "be_document_service",
+      "be_issue_service"
+    ],
+    [
+      "be_issue_routes",
+      "fe_issue_page"
+    ],
+    [
+      "api_client",
+      "fe_issue_page"
+    ],
+    [
+      "auth_ui",
+      "fe_issue_page"
+    ],
+    [
+      "component_lib",
+      "fe_issue_page"
+    ],
+    [
+      "routing_setup",
+      "fe_issue_page"
+    ],
+    [
+      "state_management",
+      "fe_issue_page"
+    ],
+    [
+      "db_setup",
+      "be_return_db_schema"
+    ],
+    [
+      "be_return_db_schema",
+      "be_return_data_access"
+    ],
+    [
+      "be_return_data_access",
+      "be_return_service"
+    ],
+    [
+      "be_return_service",
+      "be_return_routes"
+    ],
+    [
+      "logging",
+      "be_return_service"
+    ],
+    [
+      "auth_service",
+      "be_return_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_return_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_return_routes"
+    ],
+    [
+      "be_issue_data_access",
+      "be_return_service"
+    ],
+    [
+      "be_esign_integration",
+      "be_return_service"
+    ],
+    [
+      "be_document_service",
+      "be_return_service"
+    ],
+    [
+      "be_return_routes",
+      "fe_return_page"
+    ],
+    [
+      "api_client",
+      "fe_return_page"
+    ],
+    [
+      "auth_ui",
+      "fe_return_page"
+    ],
+    [
+      "component_lib",
+      "fe_return_page"
+    ],
+    [
+      "routing_setup",
+      "fe_return_page"
+    ],
+    [
+      "state_management",
+      "fe_return_page"
+    ],
+    [
+      "db_setup",
+      "be_commandeer_db_schema"
+    ],
+    [
+      "be_commandeer_db_schema",
+      "be_commandeer_data_access"
+    ],
+    [
+      "be_commandeer_data_access",
+      "be_commandeer_service"
+    ],
+    [
+      "be_commandeer_service",
+      "be_commandeer_routes"
+    ],
+    [
+      "logging",
+      "be_commandeer_service"
+    ],
+    [
+      "auth_service",
+      "be_commandeer_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_commandeer_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_commandeer_routes"
+    ],
+    [
+      "be_cr_owner_data_access",
+      "be_commandeer_service"
+    ],
+    [
+      "be_ocr_integration",
+      "be_commandeer_service"
+    ],
+    [
+      "be_commandeer_routes",
+      "fe_commandeer_page"
+    ],
+    [
+      "api_client",
+      "fe_commandeer_page"
+    ],
+    [
+      "auth_ui",
+      "fe_commandeer_page"
+    ],
+    [
+      "component_lib",
+      "fe_commandeer_page"
+    ],
+    [
+      "routing_setup",
+      "fe_commandeer_page"
+    ],
+    [
+      "state_management",
+      "fe_commandeer_page"
+    ],
+    [
+      "be_report_routes",
+      "fe_ema_ao_report_page"
+    ],
+    [
+      "api_client",
+      "fe_ema_ao_report_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_ao_report_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_ao_report_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_ao_report_page"
+    ],
+    [
+      "state_management",
+      "fe_ema_ao_report_page"
+    ],
+    [
+      "be_asset_requirement_routes",
+      "fe_cro_asset_requirement_page"
+    ],
+    [
+      "api_client",
+      "fe_cro_asset_requirement_page"
+    ],
+    [
+      "auth_ui",
+      "fe_cro_asset_requirement_page"
+    ],
+    [
+      "component_lib",
+      "fe_cro_asset_requirement_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cro_asset_requirement_page"
+    ],
+    [
+      "state_management",
+      "fe_cro_asset_requirement_page"
+    ],
+    [
+      "be_exercise_plan_routes",
+      "fe_cro_exercise_plan_page"
+    ],
+    [
+      "api_client",
+      "fe_cro_exercise_plan_page"
+    ],
+    [
+      "auth_ui",
+      "fe_cro_exercise_plan_page"
+    ],
+    [
+      "component_lib",
+      "fe_cro_exercise_plan_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cro_exercise_plan_page"
+    ],
+    [
+      "state_management",
+      "fe_cro_exercise_plan_page"
+    ]
+  ]
+}

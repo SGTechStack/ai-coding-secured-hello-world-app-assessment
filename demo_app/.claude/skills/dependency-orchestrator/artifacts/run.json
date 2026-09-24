@@ -1,0 +1,23 @@
+{
+  "fingerprint": "6d0e842102cb9a1a",
+  "model": "claude-sonnet-4-6",
+  "prompt_version": "1",
+  "started": "2026-08-26T03:10:32+00:00",
+  "stages": {
+    "parse": {
+      "status": "ok",
+      "at": "2026-08-26T03:39:19+00:00",
+      "outputs": [
+        "artifacts/stories.json",
+        "artifacts/standards-scope.json"
+      ]
+    },
+    "batch": {
+      "status": "ok",
+      "at": "2026-08-26T03:39:19+00:00",
+      "outputs": [
+        "artifacts/batch-manifest.json"
+      ]
+    }
+  }
+}

@@ -1,0 +1,245 @@
+[
+  {
+    "id": "4.2",
+    "title": "Status Tracking",
+    "acceptance_criteria": [
+      "4.2.1 System shall display UEN number, Company Name, Acknowledgement and Reporting Status, CR Owner Response Time, Primary and Secondary POC name and their respective contact number.",
+      "4.2.2 CR Owners who have acknowledged the activation message, system shall display the status as \u2018Acknowledged\u2019 and include the acknowledgement phone number, date and time. Otherwise, status shall be displayed as \u2018Not Yet Acknowledged\u2019.",
+      "4.2.3 System shall display the requisition status as \u2018Reported\u2019 and include the reporting date and time after the CR Owners\u2019 assets are requisitioned. If CR Owner is earmarked to report with multiple assets, the status should only be displayed as \u2018Reported\u2019 when all the earmarked assets are requisitioned. Status shall be displayed as \u2018Partial Assets Report\u2019 if partial quantities are requisitioned. Otherwise, status shall be displayed as \u2018Not Yet Reported\u2019.",
+      "4.2.4 System shall display the CR Owner response time. If CR Owner is earmarked to report with multiple assets, the response time shall be computed using the last asset requisitioned date/time versus the activation start date/time.",
+      "4.2.5 EMA_HQ shall be able to filter by different status.",
+      "4.2.6 EMA_HQ shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "4.3",
+    "title": "View Photos, Inspection Checklist, Receipts",
+    "acceptance_criteria": [
+      "4.3.1 System shall display the UEN, Company Name, Asset Number, CR Category and the four documents, i.e. Photos, Inspection Checklist, Requisition Receipts and De- Requisition Receipts.",
+      "4.3.2 EMA_HQ shall be able to open the documents to view the Photos, Inspection Checklist, Requisition Receipts and De-Requisition Receipts.",
+      "4.3.3 EMA_HQ shall be able to download multiple documents at one time.",
+      "4.3.4 EMA_HQ shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "4.4",
+    "title": "End Activation",
+    "acceptance_criteria": [
+      "4.4.1 EMA_HQ shall only be allowed to end activation after all the assets are de- requisitioned.",
+      "4.4.2 System shall ensure that activation end date and time must be later than Activation start date and time.",
+      "4.4.3 System shall disallow EMA_AO and EMA_EO to requisition and de-requisition after the activation ends."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "4.5",
+    "title": "EMA_HQ_Dashboard",
+    "acceptance_criteria": [
+      "4.5.1 EMA Dashboard shall be divided into five key sections a. CR Demand and Fulfilment status b. CR Requisition status c. CR De-Requisition status d. CR Issue-To status OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) RFQ No. DEFNGPP7126100138",
+      "4.5.2 e. CR Return-To-ReqCen status EMA Dashboards shall be displayed at three levels a. b. Aggregated at Level 1 \u2013 Display all (i.e. MINDEF/SAF and WOG) Aggregated at Level 2 \u2013 Display at Service-level (i.e. Army, RSAF, RSN, DIS and WOG/SCDF) c. Aggregated at Level 3- Display at ReqCen-level (e.g. ReqCen A, L1, R1, etc.) When generating the dashboards, EMA_HQ shall be able to view information related to all active requisition plans. For examples, there shall be accompanying bar charts to show the status by CR categories, primary and alternate/secondary EMA.",
+      "4.5.3 There shall be accompanying details to support the aggregated information and EMA_HQ shall be able to export/download the information."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "4.6",
+    "title": "Reports",
+    "acceptance_criteria": [
+      "4.6.1 EMA_HQ shall be able to generate a. Requisition Monitoring Report. The report shall display the UEN, Company Name, Earmarked CR Asset Category, Actual Requisitioned CR Asset Category, Substitution, Requisitioned Asset ID, Reported at EMA (Primary or Alternate/Secondary), Requisition Date/Time, De-Requisition Date/Time, Asset Reporting Response Time, CR Owner Response Time etc. b. Requisition Hourly Status Report. The report shall display assets that have been requisitioned within 72 hours of activation. c. Issue-To Hourly Status Report. The report shall display assets that have been issued to units within 72 hours of activation. d. e. f. g. h. i. Return-To-ReqCen Hourly Status Report. The report shall display assets that have been returned by the units to the ReqCens within 72 hours of activation. De-Requisition Hourly Status Report. The report shall display assets that have been de-requisitioned within 72 hours of activation. Rejection Hourly Status Report. The report shall display assets that have been rejected during inspection within 72 hours of activation. Summary Report on Issued-To. The report shall display the issued assets and its issued quantity for each unit/EE. Summary Report on Return-To-ReqCen. The report shall display the returned assets and its returned quantity per unit. Report on Issued-To DIV. The report shall display the issued assets to DIV, the EMA_DIV_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "4.6.2 j. Report on Issued-To BDE. The report shall display the issued assets to DIV, the EMA_BDE_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. k. Report on Issued-To BN. The report shall display the issued assets to DIV, the EMA_BN_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. l. Report on Issued-To Unit. The report shall display the issued assets to DIV, the EMA_UNIT_RP taking over the assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total issued quantity. m. Report on Return-To ReqCen. The report shall display the returned assets to ReqCens triggered by EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP. It shall display the users who triggered the return, the EMA_AO/EO who receive the returned assets, status of the two-step transfer, and the relevant transaction date/time. There shall be a summary of the total returned quantity. EMA_HQ shall be able to export/download the reports. 5 EMA_AO & EMA_EO (INCLUDE EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP AND EMA_UNIT_RP) USER STORY"
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.1",
+    "title": "Perform Requisition and Derequisition",
+    "acceptance_criteria": [
+      "5.1.1 EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.1.2 EMA_AO and EMA_EO shall be able to display, update, delete requisition plan listings.",
+      "5.1.3 EMA_AO and EMA_EO shall be able to create and display registration information of the asset.",
+      "5.1.4 EMA_AO and EMA_EO shall be able to update and display inspection checklist.",
+      "5.1.5 EMA_AO shall be able to update and display the requisition details.",
+      "5.1.6 EMA_AO and EMA_EO shall be able to update and display issue and return details.",
+      "5.1.7 EMA_AO shall be able to update and read the derequisition details.",
+      "5.1.8 EMA_AO and EMA_EO shall be able to create and display contingency and register new asset."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.2",
+    "title": "Requisition Plan Listing",
+    "acceptance_criteria": [
+      "5.2.1 EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.2.2 EMA_AO and EMA_EO shall be able to search the list of assets belonging to CR Owners earmarked to participate in the \u2018Training\u2019, \u2018Exercise\u2019 or \u2018Operation\u2019 plan.",
+      "5.2.3 EMA_AO and EMA_EO shall be able to do advance filter such as searching by CR category or earmarked CR asset number.",
+      "5.2.4 EMA_AO and EMA_EO shall be able to search specific assets (e.g. by the asset registration number) from a master list of assets maintained in CRIPS. The results should provide information such as the CR Owner, CR category that would be useful to EMA_AO and EMA_EO."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.3",
+    "title": "Registration",
+    "acceptance_criteria": [
+      "5.3.1 EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.3.2 Within the Registration module, EMA_AO and EMA_EO shall be able to use the Optical Character Recognition (OCR) or other suitable technology to scan the asset registration number and validate whether the asset belongs to any of the CR Owners earmarked in the requisition plan. EMA_AO and EMA_EO shall also be able to key in the asset registration number manually in the Registration module.",
+      "5.3.3 System shall disallow EMA_AO and EMA_EO to register the asset if the asset is exempted/under immunity from requisition. Appropriate error message shall be prompted to inform him/her of the reason.",
+      "5.3.4 system shall disallow EMA_AO and EMA_EO to register the asset, if the asset does not belong to any of the CR Owners earmarked in the requisition plan. Appropriate error message shall be prompted to inform him/her of the reason.",
+      "5.3.5 EMA_AO and EMA_EO shall be prompted of the mismatch or discrepancy, if the asset belongs to one of the CR Owners earmarked in the requisition plan but the asset is not within the earmarked CR category,. He/she shall be allowed to register new asset (for \u2018Training\u2019 and \u2018Operation\u2019 requisition plan only) and manage it as a OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "5.3.6 substitution by choosing from the list of earmarked CR category. Alternatively, he/she can reject the asset, i.e. do not register as new CR asset in CRIPS. To complete the Registration process, a. System shall require EMA_AO or EMA_EO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who brought in the asset for registration. b. The registration date/time shall be defaulted to current date/time. EMA_AO and EMA_EO shall be allowed to amend the registration date/time. Controls shall be in place to ensure it is not later than the current date/time. c. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.4",
+    "title": "Inspection",
+    "acceptance_criteria": [
+      "5.4.1 EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.4.2 System shall ensure that only assets that have been registered successfully in the Registration stage can proceed to the Inspection stage.",
+      "5.4.3 System shall generate the checklist in accordance with the CR type of the asset. There shall be unique checklist for (i) CR Vessels, (ii) CR Craft; (iii) CR Vehicles, and (iv) CR Heavy Plants.",
+      "5.4.4 Upon the completion of physical inspection of the asset, EMA_AO and EMA_EO shall update the inspection results in the system. a. EMA_AO and EMA_EO shall be able to select \u2018Pass\u2019, \u2018Fail\u2019 or \u2018N.A.\u2019 for each inspection category as well as the detailed checklist within each inspection category. b. EMA_AO and EMA_EO shall be able to choose \u2018Pass\u2019 or \u2018Fail\u2019 the inspection of the asset. System shall allow only assets that have passed inspection to proceed to the Requisition stage. Those that failed inspection shall be rejected and disallowed from requisition. c. If the asset is rejected, system shall prompt him/her the reason(s) for rejection. An email notification shall be triggered to inform the CR owner that his/her vehicle is rejected and the reason.",
+      "5.4.5 EMA_AO and EMA_EO shall be able to take photos of the vehicles and upload to the system.",
+      "5.4.6 To complete the Inspection process, a. System shall require EMA_AO or EMA_EO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) b. c. RFQ No. DEFNGPP7126100138 present the asset for requisition. System shall default this information based on the same details collected at the Registration stage. System shall still allow EMA_AO and EMA_EO to update the information. The inspection date/time shall be defaulted to current date/time. EMA_AO and EMA_EO shall be allowed to amend the inspection date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the registration date/time. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.5",
+    "title": "Requisition",
+    "acceptance_criteria": [
+      "5.5.1 System shall restrict the requisition function to EMA_AO only.",
+      "5.5.2 EMA_AO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.5.3 System shall ensure that for exercise and training requisition plans, only assets that have passed inspection can be requisitioned. For \u2018Operation\u2019 requisition plans, the Inspection stage can be skipped/by-passed.",
+      "5.5.4 To complete the Requisition process, a. EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number and validate whether the asset belongs to any of the CR Owners earmarked in the requisition plan. EMA_AO shall also be allowed to key in the asset registration number manually in the Requisition module. b. c. When there is a mismatch between the earmarked CR category and the CR category of the reported asset, system shall prompt accordingly and also allow EMA_AO to select the CR category it would be substituting. System shall auto-fill all the information related to the asset, the requisition date/time, estimated compensation amount, GST amount, etc onto the Requisition form. \uf0a7 The requisition date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the requisition date/time. Controls shall be in place to ensure it is not later than the current date/time, as well as not earlier than the inspection date/time. If Inspection is \u2018by- pass\u2019, the requisition date/time cannot be earlier than the registration date/time. \uf0a7 The compensation amount shall be derived based on minimally 4-hour requisition duration using \u2018with undertaking\u2019 hourly rate. If substitution CR category is accepted at the Requisition stage, the compensation amount shall be derived using the lower rate. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) d. e. f. g. RFQ No. DEFNGPP7126100138 System shall require EMA_AO to enter the name, NRIC number/FIN, contact number of the CR Owner or his representative who present the asset for requisition. System shall default this information based on the same details collected earlier (i.e. Registration and Inspection stages) and still allow EMA_AO to update the information. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. System shall require EMA_AO to choose the EMA that received the requisitioned asset, i.e. Primary EMA or Alternate/Secondary EMA. EMA_AO shall be able to e-sign on the digital requisition form. Ability to digital-sign the requisition form via WOG products such as Signify shall be explored. \uf0a7 System shall auto generate the requisition form and send it to the CR owner via email. The requisition forms shall be password protected and shall also be made available in the CR Owner Portal for them to retrieve the receipts/forms."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.6",
+    "title": "De-Requisition (applicable for EMA_AO only)",
+    "acceptance_criteria": [
+      "5.6.1 System shall restrict the de-requisition function to EMA_AO only.",
+      "5.6.2 EMA_AO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.6.3 System shall ensure that only assets held at the ReqCen level can be de- requisitioned. For assets that have been issued/distributed to Unit/EEs/DIV and not returned to ReqCen, system shall not allow EMA_AO to perform the de-requisition function.",
+      "5.6.4 To complete the De-Requisition process, a. EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number and validate whether the asset has been returned to the ReqCen. EMA_AO shall also be allowed to key in the asset registration number manually in the De-Requisition module. b. System shall auto-fill all the information related to the asset, the requisition and de-requisition date/time, compensation amount, GST amount onto the De-Requisition form. \uf0a7 The de-requisition date/time shall be defaulted to current date/time."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.7",
+    "title": "Issue-To",
+    "acceptance_criteria": [
+      "5.7.1 EMA_AO and EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.7.2 EMA_AO and EMA_EO shall be able to issue requisitioned assets to the requesting unit/EE (select from drop down list) and the unit representative (enter a valid NRIC number/FIN).",
+      "5.7.3 EMA_AO and EMA_EO shall be able to select individual or multiple assets to perform the Issue-to-Unit/EE transaction.",
+      "5.7.4 EMA_AO and EMA_EO shall be able to issue units/EEs with number of assets exceeding the requesting Units/EEs\u2019 allocated quantity.",
+      "5.7.5 System shall be able to handle multiple tiers of asset redistribution and have a two- step transfer function to support this. a. Issue/Distribute to DIV. EMA_AO and EMA_EO shall be able to issue/distribute to DIV. The issuing ReqCen, EMA_AO/EO\u2019s NRIC number, receiving Unit and the EMA_DIV_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_DIV_RP based on the NRIC number stated in the issue transaction.",
+      "5.7.6 b. Issue/Distribute to BDE. EMA_DIV_RP shall be able to issue to the next echelon, i.e. BDE. The issuing DIV, EMA_DIV_RP\u2019s NRIC number, receiving Unit and the EMA_BDE_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_BDE_RP based on the NRIC number stated in the issue transaction.",
+      "5.7.7 He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_BDE_RP shall be required to accept the transferred assets. c. Issue/Distribute to BN. EMA_BDE_RP shall be able to issue to the next echelon, i.e. BN. The issuing BDE, EMA_BDE_RP\u2019s NRIC number, receiving Unit and the EMA_BN_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_BN_RP based on the NRIC number stated in the issue transaction.",
+      "5.7.8 He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_BN_RP shall be required to accept the transferred assets. d. Issue/Distribute to Unit. EMA_AO and EMA_EO shall be able to issue/distribute to Unit. The issuing ReqCen, EMA_AO/EO\u2019s NRIC number, receiving Unit and the EMA_UNIT_RP\u2019s NRIC number shall be included in the issuing and receiving transaction. System shall auto-create account for EMA_UNIT_RP based on the NRIC number stated in the issue transaction.",
+      "5.7.9 He/She shall be able to use his/her personal device to access CRIPS EMA web and sign-in using his/her Singpass. EMA_UNIT_RP shall be required to accept the transferred assets."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.8",
+    "title": "Return-To-ReqCen",
+    "acceptance_criteria": [
+      "5.8.1 RFQ No. DEFNGPP7126100138 EMA_AO, EMA_EO, EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.8.2 EMA_AO and EMA_EO shall be able to select assets that are issued to a particular unit/EE (select from drop down list) and the unit representative (enter a valid NRIC number/FIN).",
+      "5.8.3 EMA_AO and EMA_EO shall be able to select individual or multiple assets to perform Return-from-Unit/EE transaction.",
+      "5.8.4 System shall be able to handle return of assets that are redistributed and have a two- step transfer function to support this. a. Return from Unit to ReqCen. EMA_UNIT_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning Unit, EMA_UNIT_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. b. Return from BN to ReqCen. EMA_BN_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning BN, EMA_BN_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. c. Return from BDE to ReqCen. EMA_BDE_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning BDE, EMA_BDE_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction. d. Return from DIV to ReqCen. EMA_DIV_RP shall be able to return the assets to the ReqCen directly. EMA_AO and EMA_EO shall be required to accept the returned assets. The returning DIV, EMA_DIV_RP\u2019s NRIC number, receiving ReqCen and the EMA_AO/EO\u2019s NRIC number shall be included in the returning and receiving transaction.",
+      "5.8.5 System shall be able to handle direct return from unit/EE to ReqCen via one-step transfer. The returning unit/EE, NRIC number of the unit representative who is returning the assets, receiving ReqCen and NRIC number of the EMA_AO or EMA_EO shall be included in the returning and acceptance transaction. The returning unit/EE representative is not required to login to CRIPS to return the assets.",
+      "5.8.6 System shall be able to track every asset and the individuals accountable for the asset at all times.",
+      "5.8.7 All returning and acceptance parties shall be able to e-sign the HOTO document.",
+      "5.8.8 Ability to digital-sign the HOTO forms via WOG products such as Signify shall be explored."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.9",
+    "title": "Register New Asset/Commandeering",
+    "acceptance_criteria": [
+      "5.9.1 EMA_AO, EMA_EO shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.9.2 Register new asset, a. System shall restrict this function to only Heavy Plant CR type. b. System shall restrict this function to only \u2018Training\u2019 and \u2018Operation\u2019 requisition plans. EMA_AO and EMA_EO shall not be allowed to register new assets for Exercise plans. c. For new assets introduced via \u2018Training\u2019 requisition plans, the asset shall not be included permanently as CR supplies data in CRIPS. d. For new assets introduced via \u2018Operation\u2019 requisition plans, the asset shall be included permanently as CR supplies data in CRIPS. Only Controller Vehicles Office can update/de-register the such assets.",
+      "5.9.3 Commandeering, a. b. System shall restrict this function to only EMA_AO. Upon clicking on \u2018Commandeering\u2019 function, EMA_AO shall be able to use OCR or other suitable technology to scan the asset registration number. EMA_AO shall also be able to key in the asset registration number manually. System shall auto fill other information such as CR category, chassis number, engine number that shall be retrieved from CRIPS database using the asset registration number. c. System shall require EMA_AO to enter the UEN/NRIC Number, Company Name/Owner Name, Company/Owner address and asset registration number. d. System shall support the use of OCR or other suitable technology to scan the information on the NRIC, including digital NRIC. e. The registration date/time shall be defaulted to current date/time. EMA_AO shall be allowed to amend the registration date/time. Controls shall be in place to ensure it is not later than the current date/time. f. The requisition workflow is the same as the earmarked assets."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "5.10",
+    "title": "Reports",
+    "acceptance_criteria": [
+      "5.10.1 RFQ No. DEFNGPP7126100138 EMA_AO, EMA_EO, EMA_DIV_RP, EMA_BDE_RP, EMA_BN_RP and EMA_UNIT_RP shall be able to use their personal device to access CRIPS EMA Web and sign-in using his/her Singpass.",
+      "5.10.2 EMA_AO and EMA_EO shall be able to generate a. Requisitioned Summary. This summary information displays the number of requisitioned assets per CR category versus the number of assets earmarked per category. It also shows the total number of requisitioned assets versus the total number of assets earmarked. b. c. d. e. Issue Summary. This summary information displays the number of assets issued to unit per category. It also shows the total number of issued assets versus the total number of requisitioned assets. Number of assets issued refers to those assets issued to Unit/EE via one-step transfer.",
+      "5.10.3 Return Summary. This summary information displays the number of assets returned by Unit/EE versus the total number of issued assets issued. It also shows the total number of returned assets versus the total number of issued assets. Number of assets returned refers to those assets returned by Unit/EE via one-step transfer.",
+      "5.10.4 to those assets transferred and accepted by EMA_BDE_RP via two -step transfer.",
+      "5.10.5 EMA_BDE_RP shall be able to generate a. Transfer Accepted by BDE RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BDE_RP via two -step transfer. b. Transfer Accepted by BN RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BN_RP via two -step transfer.",
+      "5.10.6 EMA_BN_RP shall be able to generate a. Transfer Accepted by BN RP Summary. This summary information displays the number of accepted assets per category versus the number of assets transferred per category. It also shows the total number of accepted assets versus the total number of assets transferred. Number of assets accepted refers to those assets transferred and accepted by EMA_BN_RP via two -step transfer."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "6.1",
+    "title": "Approve Compensation",
+    "acceptance_criteria": [
+      "6.1.1 System shall generate and trigger an email to Approving Officer(Asset) to notify him/her there is a compensation case pending approval. If the case is not approved, an email shall be sent to Approving Officer(Asset) every 7-day interval to remind him/her of the outstanding cases.",
+      "6.1.2 Approving Officer(Asset) shall be allowed to verify various types of payment, i.e. Use, Loss, Damage, Appeal for Use, Appeal for Loss, and Appeal for Damage.",
+      "6.1.3 For Asset Requisition Plan, Approving Officer(Asset) shall be able to: OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "6.1.4 .1 6.1.5 6.1.6 6.1.7 a. View Requisition Plan including the Requisition and De-requisition Forms. b. View Progressive compensation details. c. View compensation details, e.g. usage duration, unit rate, compensation amount, GST status, Earmarked CR category, Report CR category. d. Update the fund objects (e.g. G/L account, Commitment Item, Funds Centre, Cost Centre, etc). This is applicable only for MINDEF/SAF. e. Approve single/multiple compensation cases. f. Reject single/multiple compensation cases and state the reason(s) for the rejection.",
+      "6.1.4 For Asset Modification/Inspection, Approving Officer(Asset) shall be able to a. Approve compensation requests. b. Reject compensation requests and state the reason(s) for the rejection."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "7.1",
+    "title": "Manage Asset Requirements",
+    "acceptance_criteria": [
+      "7.1.1 supplies to meet my Unit/EE\u2019s needs. EE comprises Essential Government Bodies (EGBs) and Essential Companies.",
+      "7.1.2 Requestor(Asset_WOG) shall be able to create, update, view, verify, reject and delete CR asset requirements for the EGBs he/she is authorised.",
+      "7.1.3 Requirements shall be submitted at EGB level (select from drop down list).",
+      "7.1.4 Requirements shall be based on CR Type & CR Category (select from drop down list), CR category (select from drop down list), and quantities in whole number. a. For EGB\u2019s requirements, REQUESTOR(Asset_WOG) shall select its EGB. b. For Essential Companies\u2019 requirements, Requestor(Asset_WOG) shall select from the list of Essential Companies registered by the EGB.",
+      "7.1.5 System shall have a field to select the approving authority (select from drop down list).",
+      "7.1.6 System shall have a free text field to enter internal remarks, e.g. approval reference and approval date.",
+      "7.1.7 Requestor(Asset_WOG) shall be able to view the current and rejected CR requirements.",
+      "7.1.8 System shall have a function to download a template containing all the essential fields that shall be populated to support mass load into CRIPS.",
+      "7.1.9 System shall have a function to upload a filled template containing all the information needed to mass upload the CR asset requirements into CRIPS.",
+      "7.1.10 Requestor(Asset_WOG) shall be able to view the allocation by CR category, including substitution CR category and the corresponding quantity allocation.",
+      "7.1.11 System shall have a mapping table to assign the SCDF ReqCens to the WOG agencies. Requestor(Asset) managing SCDF ReqCens shall be able to maintain this mapping table, e.g. via Assign EE to ReqCen module.",
+      "7.1.12 Requestor(Asset_WOG) shall be able to export/download the information."
+    ],
+    "group": "default",
+    "release": 1
+  },
+  {
+    "id": "7.2",
+    "title": "Manage Asset Exemption",
+    "acceptance_criteria": [
+      "7.2.1 Requestor(Asset_WOG) shall be able to create, update, view and delete CR asset exemption request.",
+      "7.2.2 Asset exemption requests shall be routed to the respective Controller for approval. Controller can approve or reject the request. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "7.2.3 Requestor (Asset_WOG) shall be able to create requests to un-exempt assets that the Controllers have approved earlier. Such requests shall be routed to the respective Controller for approval. He/She shall be able to update, view and delete such requests.",
+      "7.2.4 System shall ensure that exempted assets cannot be allocated nor requisitioned.",
+      "7.2.5 When EMA_AO or EMA_EO attempt to requisition an exempted asset, system shall prompt appropriate message to inform him/her the asset is exempted from requisition.",
+      "7.2.6 Requestor(Asset_WOG) shall be able to export/download the information."
+    ],
+    "group": "default",
+    "release": 1
+  }
+]

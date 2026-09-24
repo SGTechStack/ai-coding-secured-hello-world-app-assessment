@@ -1,0 +1,16 @@
+{
+  "in_scope": [
+    "User",
+    "Logging",
+    "File",
+    "MCC",
+    "Report"
+  ],
+  "reasoning": {
+    "User": "Login/auth stories detected (baseline universal)",
+    "Logging": "Audit log stories detected (baseline universal)",
+    "File": "Story 11.1 mentions 'attachment'",
+    "MCC": "Story 2.4 mentions 'send email'",
+    "Report": "Story 2.12 mentions 'report'"
+  }
+}

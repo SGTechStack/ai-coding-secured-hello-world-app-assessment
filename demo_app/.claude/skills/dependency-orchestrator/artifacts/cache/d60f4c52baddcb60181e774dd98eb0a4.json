@@ -1,0 +1,1438 @@
+{
+  "feature_groups": [
+    {
+      "id": "81",
+      "title": "14.7 De-allocate CR Owner",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict by CR types according to the respective Controller’s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to view the list of CR Owners allocated to each ReqCen and select the CR owners to de-allocate from the chosen ReqCen. When de- allocating CR Owners, the Controller shall be prompted to enter the reasons for the de-allocation. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "82",
+      "title": "14.8 Manage Annual Exercise Plan",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict by ReqCens according to the respective Controller’s access rights.\nSystem shall display a summary of all ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025).\nSystem shall update the Previous and Last CR Exercise Dates automatically after ReqCen has completed their CR exercise.\nSystem shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date.\nControllers shall be able to amend the Planned Exercise Workyear for ReqCens that he/she is authorised to.\nUpon clicking onto the respective ReqCen’s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    },
+    {
+      "id": "83",
+      "title": "14.9 Manage Requisition Plan",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict the display by ReqCens according to the respective Controller’s access rights.\nControllers shall be able to view Requisition Plans. Controllers shall be able to export/download the details of Requisition Plans. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "84",
+      "title": "14.10 Manage ReqCen POC Details",
+      "owned_nodes": [
+        "be_reqcen_poc_db_schema",
+        "be_reqcen_poc_data_access",
+        "be_reqcen_poc_service",
+        "be_reqcen_poc_routes",
+        "fe_reqcen_poc_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict the display by ReqCens according to the respective Controller’s access rights. Controllers shall be able to display ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN). Controllers shall be able to export/download the information. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "85",
+      "title": "14.11 Manage EMA",
+      "owned_nodes": [
+        "be_ema_db_schema",
+        "be_ema_data_access",
+        "be_ema_service",
+        "be_ema_routes",
+        "fe_ema_page"
+      ],
+      "category": "feature",
+      "verifiable": "Controllers shall be able to view the EMA information of each ReqCen that he/she is authorised.\nControllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "86",
+      "title": "14.12 Manage CR Owners Information",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "The CR Owners shall be segregated into ‘Allocated CR Owners’ and ‘Unallocated CR Owners’. a. b. Allocated CR Owners. They can be allocated to one or more ReqCens. They are generally termed as shared CR Owner if the company is supporting more than one ReqCen. Controllers shall be able to view all records regardless of ReqCens. He/She shall be able to view when the CR Owner was last mobilised. For shared CR Owner, the last mobilisation date for each ReqCen shall be shown. Unallocated CR Owners. Controllers shall be able to view all the records. Header information shall include UEN number, Company Name, Status of the company, Mailing Address, Office/Site Address, GST Registration Number, Office Contact Number, Other Contact Number (e.g. Mobile Number), Email Address etc. ReqCen-level information shall include CR Owner’s POC names, their mobile number, office number, fax number and email address. There shall also be a display checkbox to indicate who are the primary and secondary POCs. Controllers shall be able to view the CR Owners’ assets which shall be grouped and presented logically. a. ‘CR Assets Owned’ shall show each CR category and their respective Quantity. It shall provide the total number of CR assets of the CR Owner. b. ‘CR Category Allocated to ReqCens’ shall show the CR category, Quantity Allocated and ReqCen Allocated. It shall provide the allocation to ownership ratio. E.g. if a CR Owner owns 10 assets and only 5 are allocated, the allocation ratio is 50%. c. ‘ReqCen Allocation History’ shall show the Allocation Date and the corresponding ReqCen. It shall provide a summary of the total allocation records. d. ‘De-allocation History’ shall show the De-allocation Date and the corresponding ReqCen and Reason for De-allocation. Controllers shall be able to view the CR Mobilisation Exercise History of each CR Owner. The information shall include ReqCen, Requisition Plan Description, Requisition Plan Type, Mobilisation Date. Controllers shall be able to view additional information related to Shared CR Owners status. The information shall include Major ReqCen and Shared ReqCens. Controllers shall be able to view all the CR assets of the CR Owners. Information shall include CR Type, CR Category, Registration Number, Chassis Number, Engine Number, etc. System shall have a function to download a template containing all the essential fields that shall be populated to support mass load CR Owner Details into CRIPS. System shall have a function to download all the CR assets of the CR Owners. System shall have a function to download all the CR Owners details. There shall be controls to restrict the number of records that can be downloaded each time. This control shall be managed via App Setting or Site Properties. Controllers shall be able to export/download the information. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "87",
+      "title": "14.13 Manage Compensation Rates",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict by CR types according to the respective Controller’s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to update, view, verify and reject compensation rates. Compensation rates are to be maintained for CR Type + CR category. For each CR category, there shall be various types of compensation rates, e.g. a. Asset Hourly Rate without Operators b. Asset Half-Daily Rate without Operators c. Asset Daily Rate without Operators d. Undertaking Hourly Rate with Operators e. Undertaking Half-Daily Rate with Operators f. Undertaking Daily Rate with Operators System shall have a function to download a template containing all the essential fields that shall be populated to support mass load into CRIPS. System shall have a function to upload a filled template containing all the information needed to mass upload the compensation rates into CRIPS. Controllers shall be able to export/download the compensation rates. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "88",
+      "title": "14.14 Assign EE to ReqCen",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall control the access by CR Types. Controller (Vessels) shall only be able to assign EEs to RSN ReqCens for CR Vessels and CR Craft. Controller (Vessels) shall be able to un-tag the EEs to ReqCen. Controller (Vessels) shall be able to view details of EE’s CR (Vessels and Craft) requirements. Have a function to download and upload template for EE’s CR (Vessels and Craft) requirements. Controller (Vehicles) shall be able to view the assignment of EEs to ReqCens. Controller (Vehicles) shall be able to view details of EE’s CR (Vehicles and Heavy Plants) requirements. Controller (Vehicles) and Controller (Vessels) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "89",
+      "title": "14.15 Reports",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "rights, a. b. c. System shall restrict by CR types according to the respective Controller’s access a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) CR Vessels, CR Craft (applicable for Controller Vessels) CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to generate reports for Allocation Summary by ReqCen. This report shall generate CR allocation summary details by ReqCen. b. Allocation Summary by Service. This report shall generate CR allocation summary details by Services (e.g. Army, RSAF, RSN, DIS, etc). c. Allocation Summary by Unit/EE. This report shall generate CR allocation summary details by Unit/EE. d. Allocated CR Owners. This report shall generate the allocated CR Owner with summary information of their CR assets by CR category. Information displayed shall be restricted by CR type. e. Unallocated CR Owners. This report shall generate all unallocated CR Owners with summary information of their CR assets by CR category. Information displayed shall be restricted by CR type. f. ReqCen CR Requirements vs CR Owner Allocation. This report shall generate ReqCen CR requirements and allocated CR Owner details. g. Unit/EE CR Requirements vs CR Owner Allocation. This report shall generate Unit/EE CR requirements and allocated CR Owner details. h. ReqCen Unit/EE Asset Allocation. This report shall generate individual asset allocation to Unit/EE. i. j. k. l. m. n. o. p. q. r. s. t. u. ReqCen Allocated CR Owner Details. This report shall generate CR Owners summary details. Unmap Mobile Crane. This report shall generate all unmapped mobile crane details. Heavy Plants and LTA Registered Assets. This report shall generate heavy plant and LTA registered assets per CR summary details. Information displayed shall be restricted by allocated CR Owners and unallocated heavy plant CR owners for CRO(Asset). This report is only applicable for Controller (Vehicles). Vessels and Craft CR Owner. This report shall generate vessels and craft CR Owners summary details to facilitate Controllers in sourcing quotations. This report is only applicable for Controller (Vessels). National Resource Pool Vessel and Craft. This report shall generate vessels and craft CR details to facilitate Controllers in asset allocation. This report is only applicable for Controller (Vessels). Vessels and Craft CR Owner Allocation. This report shall generate vessels and craft CR Owner summary details to facilitate Controllers in asset allocation. This report is only applicable for Controller (Vessels). Exemption Request. This report shall generate EE exemption requests. Exemption Request with Error. This report shall generate EE requests with error. ReqCen Exercise Planning – Allocated CR Owners and Categories. This report shall generate the allocated CR owners and CR categories to facilitate ReqCen’s CR exercise planning. It shall allow users to select the single or multiple ReqCens. The output shall include details such as  Date CR owner was last exercised.  Date CR owner was last exercise by the ReqCen.  Date CR category was last exercised.  Date CR category was last exercised by the ReqCen. CR Owners Exercise Details. This report shall generate CR Owners that have participated in past CR exercises and details of their participation. It shall allow users to define the range for selection, e.g. exercise date range, CR Owner, ReqCen, etc. List of CR Owners Exercised. This report shall generate a summary of CR Owners that have participated in past CR exercises. It shall allow users to define the range for selection, e.g. exercise date range, ReqCen, etc. EMA Ops Hourly Status Report. This report shall generate Requisitioned, De- Requisitioned, Issued, Returned, Rejection hourly status for exercise and operations requisition plans. It shall allow users to define the range for selection, e.g. exercise date range, ReqCen, Requisition Plan, etc. CR Owners Response Time. This report shall generate the response time of CR owners who had participated in CR exercises. It shall allow users to define the range for selection, e.g. exercise date range, CR Owner, ReqCen, etc. v. Quantity of CR Owners/Assets Exercised and Compensation Made. This report shall generate approved and exercise quantity and compensation. It shall allow users to define the range for selection, e.g. exercise date range, CR Owner, ReqCen, etc."
+    },
+    {
+      "id": "90",
+      "title": "14.16 Dashboard",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict the display by CR types according to the respective Controller’s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Asset Dashboard shall be divided into three key sections a. CR Allocation (Asset) focus on demand fulfilment status. b. CR Planning (Asset) focus on CR exercise policy compliance and Undertaking Readiness. c. CR Requisition (Asset) focus on the overall requisition/ derequisition status and response time of CR owners especially during operations. Asset Dashboards shall be displayed at three levels a. b. Aggregated at Level 1 – Display all (i.e. MINDEF/SAF and WOG). Aggregated at Level 2 – Display at Service-level (i.e. Army, RSAF, RSN, DIS and WOG/SCDF). c. Aggregated at Level 3 – Display at ReqCen-level (e.g. ReqCen A, L1, R1, etc.). When generating the dashboards, Controllers shall be able to select by specific period, e.g. Work-Year 2025 which refers to 1 April 2025 to 31 March 2026. a. b. The results shall provide the statistics in numbers and percentage. The dashboard shall use the traffic light system (green, amber, red) so that it draws the users’ attention to areas that are important or of concern. The respective performance target for green, amber and red shall be pre-defined and can be re-defined easily. There shall be accompanying details to support the aggregated information and Controllers shall be able to export/download the information. 15. CONTROLLER UNDERTAKINGS USER STORY"
+    },
+    {
+      "id": "91",
+      "title": "15.1 Manage Undertaking Approvals",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Upon a Requesting Agency’s submission of a request to register a firm, system shall send an email notification to the Lead Agency for allocation. Of note, Controller Undertakings shall be included in the list of Lead Agency.\nFor cases where CRO(Undertaking) selects Controller Undertakings as the Lead Agency, Controller Undertakings shall be able to allocate and reject agency’s requests routed to him/her.\nController Undertakings shall be able to allocate a company to the request if no preferred company is not indicated in the request. If Controller Undertakings rejects the request, system shall prompt him/her to enter the reason for rejecting the request.\nSystem shall send an email notification to inform Controller Undertakings of the request pending his/her approval, after MHA Office updates in CRIPS the firm’s security clearance is successful. Of note, MHA Office may indicate an expiry date for the security clearance. a. If MHA Office indicate the expiry date as “31-12-9999”, it means no expiry date.\nFor other dates, CRO(Undertaking) or Controller Undertakings Office shall initiate security re-clearance at least 2 months before the security clearance expiry date. System shall have a workflow to allow CRO(Undertaking) or Controller Undertakings Office to submit for security re-clearance. The re-clearance requests could be due to changes in the firm’s senior management or expiry set by MHA Office. Expiry and security re-clearance shall not reset the processes performed upon MHA Office’s first security clearance. If MHA Office indicate the expiry date as “31-12-9999”, it means no expiry date. For other dates, the Requesting Agency shall initiate security re-clearance at least 2 months before the security clearance expiry date. Expiry and security re-clearance shall not reset the processes performed upon MHA Office’s first security clearance. Controller Undertakings shall be able to approve and reject agency’s requests. a. After approval, if there is more than one agency that requires the firm, system shall update it from ‘Individual’ to ‘Shared’ firm. For shared firm, an email notification shall be sent to the CRO(Undertaking) of the affected agencies to inform their EF is now a shared EF and shared by how many agencies. b. c. d. b. C-150 Controller Undertakings shall be able to approve and reject agency’s requests to de- register an approved firm. If he/she approves the request, the firm shall be deallocated from the requesting agency. If Controller Undertakings rejects the request, system shall prompt him/her to enter the reason for rejecting the request. After de-allocation, if there is only one agency that requires the firm, system shall update it from ‘Shared’ to ‘Individual’ firm. System shall enable Controller Undertakings to display all undertaking requirements pending his/her action, a. ‘Allocation’ – It shall display requirements with ‘Pending Approval’ status. b. ‘De-Allocation’ – It shall display requirements with ‘Pending De-Allocation Approval’ status. System shall enable Controller Undertakings to process the request individually. He/She shall also be able to select multi requests to approve/reject."
+    },
+    {
+      "id": "92",
+      "title": "15.2 Reports",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Controller Undertakings shall be able to generate a. Undertakings Requirement Approval Status Report. This report gives an overview of the status of requests for companies/firms by the requesting agency. The report also has information such as the approval dates by the various stakeholders given that each request is routed through multiple agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency, Submission From Dates and Current Status. b. Essential Firms (by Agency) Report. This report generates the list of firms by Requesting Agencies. When generating the report, Controller Undertakings shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency and Allocated From Dates. c. Essential Firms (by Company) Report. This report generates the list of firms by company/firm. The report shall show if the Company is ‘Individual’ or ‘Shared’, and if it is ‘Shared’, it shall show the list of agencies that have registered the company. When generating the report, users shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Coordinating Agency and the Allocated from dates. d. Undertakings Readiness (by Agency) Report. This report generates a summary of firms’ readiness covering the E-Plan and Exercise status by Requesting Agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. e. Undertakings Readiness (by Company) Report. This report generates a summary of firms’ readiness covering the E-Plan and Exercise status by company/firm. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. f. Essential Firm Security Clearance Status Report. This report generates the status of security clearance of companies. When generating the report, users shall be able to select the clearance status (e.g. all status, submitted, approved, pending, rejected). There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and Security Clearance. g. Essential Firm Security Re-Clearance Report. This report generates the list of companies that are subjected to security re-clearance. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm, Security Expiry Date, Re-clearance status. h. Schedule of Service Report. This report generates a listing of the Schedule of Service of the firms. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. i. Outstanding Service Acceptance. This report generated the list of outstanding service acceptance after TDPCUs have been served. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. Controller Undertakings shall be able to export/download the reports."
+    },
+    {
+      "id": "93",
+      "title": "15.3 Dashboards",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Undertakings Dashboard shall be divided into three key sections a. CR Allocation (Undertakings) focus on demand fulfilment status. b. CR Planning (Undertakings) focus on E-Plan Readiness, Requisition Readiness. c. CR Requisition (Undertakings) focus on the overall requisition/ derequisition status. Aside from CR Allocation (‘Lead Agency’ selected), all Undertakings Dashboards shall have the same functionality and can be drilled down to three levels a. b. c. Aggregated at Level 1 – Display all (i.e. MINDEF/SAF and WOG). Aggregated at Level 2 – Display at Ministry-level. Aggregated at Level 3 – Display at Requesting Agency Level (e.g. RSAF, SPF, MAS, PUB, etc.). When generating the dashboards, Controller Undertakings shall be able to select by specific period, e.g. Work-Year 2025 which refers to 1 April 2025 to 31 March 2026. a. b. The results shall provide the statistics in numbers and percentage. The dashboard shall use the traffic light system (green, amber, red) so that it draws the users’ attention to areas that are important or of concern. The respective performance target for green, amber and red shall be pre-defined and can be re-defined easily. There shall be accompanying details to support the aggregated information and Controller Undertakings shall be able to export/download the information. 16. CONTROLLER CRIC & CRIC OFFICER USER STORY"
+    },
+    {
+      "id": "94",
+      "title": "16.1 Verify Compensation",
+      "owned_nodes": [
+        "be_cric_reminder_job",
+        "be_cric_report_service",
+        "be_cric_report_routes",
+        "fe_cric_verify_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall generate and trigger an email to CRIC Officer to notify him/her there is compensation pending verification. If the compensation is not verified, an email shall be sent to CRIC Officer every 7-day interval to remind him/her of the outstanding cases.\nCRIC Officer shall be allowed to verify various types of compensation, i.e. Use, Loss, Damage, Appeal for Use, Appeal for Loss, and Appeal for Damage.\nCompensation for Asset Requisition Plan, CRIC Officer shall be able to a. View Requisition Plan including the Requisition Form and De-requisition Form b. View Progressive Payment Details c. View Compensation Details, e.g. usage duration, unit rate, compensation amount\nd. e. Verify Single and Multiple Compensation Reject Single and Multiple Compensation and state the reason(s) for the rejection Compensation for Modification/Inspection, CRIC Officer shall be able to a. Verify Compensation b. Reject Compensation and state the reason(s) for the rejection Compensation for Undertakings Requisition Plan, CRIC Officer shall be able to a. View Requisition Plan b. View Service Acceptance Form c. View Partial Acceptance Details d. Verify Single and Multiple Compensation e. Reject Single and Multiple Compensation and state the reason(s) for the rejection CRIC Officer shall be able to generate a. Appeal Report. This report shall generate appeal details. b. Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. c. Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. d. Undertaking Compensation Report. This report shall generate compensation for undertakings requisition plan. e. Timeliness Report. This report shall generate a timeline of verification, approval and payment processing for compensations. f. Verification Report. This report shall generate compensation count (pending verification and verified) for assets and undertakings. CRIC Officer shall be able to export/download the reports. CRIC Officer shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "95",
+      "title": "16.2 Review Appeal",
+      "owned_nodes": [
+        "be_cric_appeal_service",
+        "be_cric_appeal_routes",
+        "be_cric_appeal_reminder_job",
+        "fe_cric_appeal_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall generate and trigger an email to Controller CRIC to notify him/her there is appeal case that requires his/her assessment and decision. If he/she does not update the decision, an email shall be sent to Controller CRIC every 7-day interval to remind him/her of the outstanding appeal cases.\nAppeal for Asset, Controller CRIC shall be able to a. View Requisition Plan and Appeal details for Use/Loss/Damage b. View Appeal details for Modification/Inspection c. Update his/her assessment and decision,  Accept and the accepted additional amount; or  Counter Propose and the counter offer additional amount; or  Reject and state the reason(s) for the rejection\nAppeal for Undertaking, Controller CRIC shall be able to a. b. View Requisition Plan and Appeal details for Undertaking Update his/her assessment and decision,  Accept and the accepted additional amount; or  Counter Propose and the counter offer additional amount; or  Reject and state the reason(s) for the rejection\nController CRIC shall be able to generate a. b. Appeal Report. This report shall generate appeal details. Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. c. Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. d. Undertaking Compensation Report. This report shall generate compensation for undertakings requisition plan. e. Timeliness Report. This report shall generate a timeline of verification, approval and payment processing for compensations. f. Verification Report. This report shall generate compensation count (pending verification and verified) for assets and undertakings. Controller CRIC shall be able to export/download the reports. Controller CRIC shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field. 17. RORCB OFFICE USER STORY"
+    },
+    {
+      "id": "96",
+      "title": "17.1 Appeal to RORCB",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Upon clicking on the Appeal to RORCB module, system shall display a summary of all appeals rejected by CR Owners/Companies/Firms within 8 weeks from Controller CRIC’s offer. The cases shall be segregated by ‘Assets’ and ‘Undertakings’.\nSystem shall display all RORCB cases and grouped them by tabs according to the status of each case, i.e. 'Open’, ‘Pending’, and 'Closed'.\nFor Asset cases, system shall display details such as CR Owner Name and its UEN, CR Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).\nFor Undertaking cases, system shall display details such as the Company/Firm Name and its UEN, Service Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).\nSystem shall have an ‘Action’ button for each case, and upon clicking it, system shall display appeal details for the selected case. a. Case ID field is not enabled for user input. Requesting Amount and Ordered Amount fields are enabled only if appeal status is ‘Open’ or ‘Pending’. ‘Upload Supporting Document’ function is enabled only if the appeal status is ‘Open’ or ‘Pending’. b. C-155 c. d. e. f. g. h. ‘List of supporting documents’ function is displayed only if the appeal status is ‘Pending’ or ‘Closed’. There shall be a ‘Generate Form’ function and upon clicking on this, system shall open a pop-up window with a list of form options available for generation in pdf format. The Competent Authority name will be populated in the pdf document is required. This function is only available if the appeal is ‘Open’ or ‘Pending’. There shall be a ‘Generate Case ID’ function and upon clicking on this, system shall auto generate a case number in the format of YYYY-XXXXXX where YYYY is the current calendar year and XXXXXX is a running number. The case number shall be populated to the Case ID field. The ‘Generate Case ID’ function is only available if the appeal is ‘Open’. System shall allow RORCB Office rep to update details related to RORCB hearing. There shall be a ‘Add Hearing’ function and upon clicking on this, system shall open a pop-up window and RORCB Office rep shall be able to enter hearing related details, including multiple hearing dates. The ‘Add Hearing’ function is only available if the appeal is ‘Open’ or ‘Pending’. System shall allow RORCB Office rep to delete hearing records. This function is only available if the appeal is pending with hearing. System shall allow RORCB Office rep to update the case after the hearing is completed and decision is finalised. He/She shall update the ordered amount and submit this appeal for payment. System shall auto update the appeal set as ‘Closed’. RORCB Office rep shall be able to export/download the information. RORCB Office rep shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field. 18. CR OWNER USER STORY"
+    },
+    {
+      "id": "97",
+      "title": "18.1 Login to CR Owner Portal",
+      "owned_nodes": [
+        "be_cr_owner_portal_auth_service",
+        "fe_cr_owner_portal_auth_page"
+      ],
+      "category": "feature",
+      "verifiable": "Upon clicking on ‘Login’ button, system shall require CR owner to login as a Corppass user, i.e. CR owner must have a valid Corppass ID and password for logging in to the CR Owner Portal. System shall block non-allocated CR owners from accessing the CR owner portal. System shall have ‘Logout’ button to allow CR owners to logout of the portal. System shall display the CR owner last login to the CR owner portal. System shall be able to track CR owner login, the corresponding timestamp as well as the audit logs of CR owner’s actions."
+    },
+    {
+      "id": "98",
+      "title": "18.2 CR Owner Information and Contact Details",
+      "owned_nodes": [
+        "be_cr_owner_self_service_service",
+        "be_cr_owner_self_service_routes",
+        "fe_cr_owner_self_service_page"
+      ],
+      "category": "feature",
+      "verifiable": "CR Owner shall be able to submit, update, view, verify the company details and contact information. There should be fields such as the company’s UEN, handphone number, office number, registered company mailing address, email address, GST registration status, POC contact details. CR Owner shall be able to assign multiple point-of-contact (POC) to receive notices and notification for CR requisition. CR Owner can update the contact information of the POC. System shall have a section on ‘Contact and Notification Preferences’ and include a ‘View/Edit’ function. a. b. c. System shall list all the ReqCens supported by the CR owner. For each ReqCen, system shall display a message to state ‘You will receive SMS notification sent to [POCs], [mobile numbers] and email notification at [email addresses]. Upon clicking on the ‘View/Edit button’, system shall allow toggle between ‘View’ and ‘Edit’ mode. d. e. CR Owner shall be allowed to select ‘SMS’, ‘Email’ and ‘SMS and Email’ as the mode of notifications. System shall require CR Owner to click on the checkbox to consent to the Terms and Conditions of Use and agree to receive digital notices and notifications. The Terms and Conditions of Use shall be embedded with hyperlink to bring him/her to a page with relevant information. The content on this page shall be configurable easily via Service Request. There shall be a ‘Save Changes’ and ‘Cancel’ button. CR Owner shall be allowed to select that he/she does not want to receive SMS and/or email notification. A pop-up message shall be displayed to ask him/her to confirm his/her selection. f. System shall list the company registered and mailing address. The registered address shall be retrieved from ACRA or other relevant sources. CR owner shall be allowed to updated the mailing address. System shall inform CR owner by displaying a message that say if he/she has selected to receive paper notices, the notices will be sent to address maintained in CR Owner Portal. When updating CR Owner’s contact details, system shall display a consent messaging prompt to seek the CR Owner’s consent during the updating of contact details. System shall ensure that it is mandatory for CR owner to select the consent checkbox before allowing submission of the updated contact details (i.e. system shall disable submit button until consent is provided). System shall display a prompt indicating that the consent is required. The contact details and information shall be updated in CRIPS database and visible to the relevant CROs. An email notification shall be sent to inform the CRO(Asset) or CRO(Undertaking) on updates made by CR Owners supporting his/her ReqCen(s) or Homefront Agency. CROs shall be able to generate the list of updates made by CR owners for his/her tracking."
+    },
+    {
+      "id": "99",
+      "title": "18.3 Notices, Orders, Directions and Requisition published in the CR Owner Portal",
+      "owned_nodes": [
+        "be_notice_db_schema",
+        "be_notice_data_access",
+        "be_notice_service",
+        "be_notice_routes",
+        "fe_cr_owner_notice_page"
+      ],
+      "category": "feature",
+      "verifiable": "For new notifications, CR owner shall be able to click ‘Acknowledge’ in the system. The system shall also track and update the status to ‘Acknowledged’. System shall log and display the timestamp of the acknowledgment. System shall be able to mark the notifications as ‘Read’ once the CR owner view the message, i.e. even without clicking the ‘Acknowledge’ button, the status shall be updated to ‘Read’. System shall log and display the timestamp of when the notification was read. CR owner shall be able to view and re-open past notifications even though they have been read and/or acknowledged. System shall list the notifications according to the timestamp it was sent and display the most recent notifications on top of the list. New notifications that have not been read shall be have a ‘New’ icon to highlight/draw attention. System shall also show the total number of new notifications. System shall leverage on WoG products such as Postman to send SMS and email notifications to CR Owners."
+    },
+    {
+      "id": "100",
+      "title": "18.4 Resources Earmarked for Requisition",
+      "owned_nodes": [
+        "be_cr_owner_earmark_service",
+        "be_cr_owner_earmark_routes",
+        "fe_cr_owner_earmark_page"
+      ],
+      "category": "feature",
+      "verifiable": "For ‘Exercise’ and ‘Operation’ Requisition Plans, system shall auto generate and send emails, informing the CR Owners that they have been selected to participate in an upcoming CR requisition.\nCR owner shall be able to retrieve such notifications via the CR Owner Portal. He/She shall be able to view the pertinent details such as the period that they could be activated, the types of CR assets and quantity required for requisition, the primary and alternate EMA address, and contact details of the CROs, name and appointment of the Competent Authority. CR Owner shall be able to use the appropriate functions in the CR Owner Portal to inform the CROs on the availability of the allocated CR assets when assets not serviceable. CR Owner shall be able to use the appropriate functions in the CR Owner Portal to notify the CROs of changes in their heavy plant assets. For example, new heavy plants acquired and existing heavy plants that have been sold or disposed."
+    },
+    {
+      "id": "101",
+      "title": "18.5 Receipts of Requisition and De-requisition",
+      "owned_nodes": [
+        "be_cr_owner_receipt_service",
+        "be_cr_owner_receipt_routes",
+        "fe_cr_owner_receipt_page"
+      ],
+      "category": "feature",
+      "verifiable": "After the requisition of each CR asset, system shall auto send the receipt of requisition to CR owner via an email to inform him/her the completion of the asset requisition. He/She shall be able to retrieve the receipts of requisition via the CR Owner Portal. After the derequisition of each CR asset, system shall auto send the receipt of de- requisition to CR owner via an email to inform him/her the completion of the asset de-requisition. He/She shall be able to retrieve the receipts of de-requisition via the CR Owner Portal. CR Owner shall be able to view the pertinent details such as Requisition, Derequisition and Compensation amount. CR Owner shall be able to select the receipts and notify the CRO on matters related to the CR requisition. Upon submitting, owner, system shall send emails to the CRO to inform him/her on the message(s) submitted by the CR owner. CR Owners shall be able to enquire on compensation payment status."
+    },
+    {
+      "id": "102",
+      "title": "18.6 Chatbot",
+      "owned_nodes": [
+        "be_chatbot_integration",
+        "fe_chatbot_widget"
+      ],
+      "category": "feature",
+      "verifiable": "System shall ensure that upon successful login to the CR Owner Portal, the Chatbot icon/button shall be visible and accessible at all times. CR owners shall be able to type and submit questions. System’s chatbot shall display only information that is assigned to that CR owner and not address queries that may provide information/ sensitive details about other CR owners. System’s chatbot shall display restricted information and shall display appropriate access restriction message when CR owner attempt to ask or retrieve unauthorised data. System’s chatbot shall be quick in responding (i.e. within a certain timeframe). System’s chatbot shall provide a fallback response when it cannot understand or answer to a query. System’s chatbot shall prompt the CR owner to provide or clarify if additional details are required. In the event that the Chatbot service is unavailable, system shall display an appropriate message informing the CR owner that Chatbot assistance is temporarily unavailable. System shall ensure that the chat history shall remain available during the CR owner’s active session. System shall allow administrator to extract chat history for analysis."
+    },
+    {
+      "id": "103",
+      "title": "18.7 System Administration for CR owner Portal",
+      "owned_nodes": [
+        "be_cr_owner_portal_admin_service",
+        "be_cr_owner_portal_admin_routes",
+        "fe_cr_owner_portal_admin_page"
+      ],
+      "category": "feature",
+      "verifiable": "Administrator shall be able to publish information such as downtime message in the CR Owner Portal to inform CR owners of the upcoming system maintenance and downtime. Administrator shall be able to publish forms that are useful for CR owners, e.g. the latest Application form for Interbank GIRO. Administrator shall be able to view CR owner’s details uploaded in the CR owner portal. Administrator shall be able to download all read and acknowledgement activities performed by CR owners. Administrator shall be able to download the details of the CR owner’s assets. 19. ADMINISTRATOR USER STORY"
+    },
+    {
+      "id": "104",
+      "title": "19.1 Manage Users",
+      "owned_nodes": [
+        "be_user_mgmt_db_schema",
+        "be_user_mgmt_data_access",
+        "be_user_mgmt_service",
+        "be_user_mgmt_routes",
+        "fe_user_mgmt_page"
+      ],
+      "category": "feature",
+      "verifiable": "Administrator shall not be allowed to manage his/her own account. By default, system shall display the current list of “Active” users, with search function to search users by NRIC number, UserID or Name. There shall be advance filter function to search by appointment, role, email address, and also toggle to display the list “Inactive” users. Fields to be displayed include: NRIC number, UserID, Name, Roles Assigned, Appointment, Ministry/Agency, Unit/Department, Email Address, Date of Last Update. Sort function shall be included. Administrator shall be able to create new user account. When creating new users, system shall require the Administrator to enter information such as NRIC number, UserID, Full Name, Appointment, Unit/Department, Ministry/Agency, Work email (internet), Role Assignment (main and sub-roles) etc. Certain fields shall require Administrator to select from pre-defined list, such as Ministry/Agency and ReqCens. Option fields shall include “Remarks”, etc. All logins shall be via SingPass and there shall be appropriate validation to check the NRIC number is valid. For MINDEF/SAF users, there shall be an additional layer to valid the NRIC number and UserID exist in EAD/EIMS. System shall log all activities that are related to creating new user account. Administrator shall be able to add, change and remove the role assignment (main and sub-roles) of an existing user account. He/She shall be able to toggle “Active” and “Inactive” status of the users. For changing the role assignment of an exisiting user account, there shall be a pre-defined list of roles for the Administrator to choose from. Administrator shall be able to delete an existing user account. System shall provide an option for Administrator to export the list of users. He/She can select for the output file to be in Excel or PDF format."
+    },
+    {
+      "id": "105",
+      "title": "19.2 Manage App Settings",
+      "owned_nodes": [
+        "be_app_settings_db_schema",
+        "be_app_settings_data_access",
+        "be_app_settings_service",
+        "be_app_settings_routes",
+        "fe_app_settings_page"
+      ],
+      "category": "feature",
+      "verifiable": "Administrator shall be able to set the maximum upload file size. There shall be individual setting for Assets, Undertakings and Compensation modules.\nAdministrator shall be able to set the valid admin upload file extensions such as xls, xlsx, doc, docx, ppt, pptx, pdf, zip, png, jpg, jpeg. There shall be individual setting for Assets, Undertakings and Compensation modules.\nAdministrator shall be able to set the valid user upload file extensions such as xls, xlsx, doc, docx, ppt, pptx, pdf, zip, png, jpg, jpeg. There shall be individual setting for Assets, Undertakings and Compensation modules.\nAdministrator shall be able to create a generic error message to show to users if any database exception error happens.\nAdministrator shall be able to set the maximum number of records/lines to show to users on every list screen.\nAdministrator shall be able to generate system downtime notices for announcements in CRIPS as well as broadcast via sending auto emails to all CRIPS users. Administrator shall be able to select the mode of announcement/broadcast."
+    }
+  ],
+  "nodes": [
+    {
+      "id": "be_reqcen_poc_db_schema",
+      "name": "ReqCen POC Database Schema",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_reqcen_poc_data_access",
+      "name": "ReqCen POC Data Access",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_reqcen_poc_service",
+      "name": "ReqCen POC Business Logic Service",
+      "duration_days": 1
+    },
+    {
+      "id": "be_reqcen_poc_routes",
+      "name": "ReqCen POC API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_reqcen_poc_page",
+      "name": "ReqCen POC Details Page",
+      "duration_days": 1
+    },
+    {
+      "id": "be_ema_db_schema",
+      "name": "EMA Database Schema",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ema_data_access",
+      "name": "EMA Data Access",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_ema_service",
+      "name": "EMA Business Logic Service",
+      "duration_days": 1
+    },
+    {
+      "id": "be_ema_routes",
+      "name": "EMA API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_ema_page",
+      "name": "Manage EMA Page",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cric_reminder_job",
+      "name": "CRIC Officer Compensation Reminder Job",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_cric_report_service",
+      "name": "CRIC Compensation Report Generation Service",
+      "duration_days": 2,
+      "appfw_standard": "Appfw-Report-Standards/Report_Core"
+    },
+    {
+      "id": "be_cric_report_routes",
+      "name": "CRIC Compensation Report API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cric_verify_page",
+      "name": "CRIC Officer Compensation Verification Page",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_cric_appeal_service",
+      "name": "Controller CRIC Appeal Assessment Service",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_cric_appeal_routes",
+      "name": "Controller CRIC Appeal API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_cric_appeal_reminder_job",
+      "name": "Controller CRIC Appeal Reminder Job",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cric_appeal_page",
+      "name": "Controller CRIC Appeal Review Page",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_portal_auth_service",
+      "name": "CR Owner Portal Authentication Service (Corppass SSO)",
+      "duration_days": 1.5,
+      "appfw_standard": [
+        "Appfw-User-Standards/User_SSO",
+        "Appfw-User-Standards/Shared_Recipes"
+      ]
+    },
+    {
+      "id": "fe_cr_owner_portal_auth_page",
+      "name": "CR Owner Portal Login Page",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_cr_owner_self_service_service",
+      "name": "CR Owner Self-Service (Contact & POC Management) Service",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_cr_owner_self_service_routes",
+      "name": "CR Owner Self-Service API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cr_owner_self_service_page",
+      "name": "CR Owner Contact Details & Notification Preferences Page",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_notice_db_schema",
+      "name": "Notice / Order / Direction Database Schema",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_notice_data_access",
+      "name": "Notice Data Access",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_notice_service",
+      "name": "Notice Acknowledgment & Read-Status Service",
+      "duration_days": 1
+    },
+    {
+      "id": "be_notice_routes",
+      "name": "Notice API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cr_owner_notice_page",
+      "name": "CR Owner Notices & Orders Page",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_earmark_service",
+      "name": "CR Owner Earmark Notification & Asset Availability Service",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_earmark_routes",
+      "name": "CR Owner Earmark API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cr_owner_earmark_page",
+      "name": "Resources Earmarked for Requisition Page",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_receipt_service",
+      "name": "CR Owner Requisition & De-Requisition Receipt Service",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_receipt_routes",
+      "name": "CR Owner Receipt API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cr_owner_receipt_page",
+      "name": "Receipts of Requisition & De-Requisition Page",
+      "duration_days": 1
+    },
+    {
+      "id": "be_chatbot_integration",
+      "name": "CR Owner Portal Chatbot Integration",
+      "duration_days": 3
+    },
+    {
+      "id": "fe_chatbot_widget",
+      "name": "CR Owner Portal Chatbot Widget",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_cr_owner_portal_admin_service",
+      "name": "CR Owner Portal Administration Service",
+      "duration_days": 1
+    },
+    {
+      "id": "be_cr_owner_portal_admin_routes",
+      "name": "CR Owner Portal Administration API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_cr_owner_portal_admin_page",
+      "name": "CR Owner Portal Admin Management Page",
+      "duration_days": 1
+    },
+    {
+      "id": "be_user_mgmt_db_schema",
+      "name": "User Management Database Schema",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_user_mgmt_data_access",
+      "name": "User Management Data Access",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_user_mgmt_service",
+      "name": "User Management Business Logic Service",
+      "duration_days": 2,
+      "appfw_standard": [
+        "Appfw-User-Standards/User_SSO",
+        "Appfw-User-Standards/Shared_Recipes"
+      ]
+    },
+    {
+      "id": "be_user_mgmt_routes",
+      "name": "User Management API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_user_mgmt_page",
+      "name": "Manage Users Admin Page",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_app_settings_db_schema",
+      "name": "App Settings Database Schema",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_app_settings_data_access",
+      "name": "App Settings Data Access",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_app_settings_service",
+      "name": "App Settings Business Logic & Broadcast Service",
+      "duration_days": 1
+    },
+    {
+      "id": "be_app_settings_routes",
+      "name": "App Settings API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_app_settings_page",
+      "name": "Manage App Settings Admin Page",
+      "duration_days": 1
+    }
+  ],
+  "edges": [
+    [
+      "db_setup",
+      "be_reqcen_poc_db_schema"
+    ],
+    [
+      "be_reqcen_poc_db_schema",
+      "be_reqcen_poc_data_access"
+    ],
+    [
+      "be_reqcen_poc_data_access",
+      "be_reqcen_poc_service"
+    ],
+    [
+      "be_reqcen_poc_service",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "logging",
+      "be_reqcen_poc_service"
+    ],
+    [
+      "auth_service",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_reqcen_poc_routes"
+    ],
+    [
+      "arch_tests",
+      "be_reqcen_poc_service"
+    ],
+    [
+      "be_reqcen_poc_routes",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "auth_ui",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "component_lib",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "routing_setup",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "api_client",
+      "fe_reqcen_poc_page"
+    ],
+    [
+      "db_setup",
+      "be_ema_db_schema"
+    ],
+    [
+      "be_ema_db_schema",
+      "be_ema_data_access"
+    ],
+    [
+      "be_ema_data_access",
+      "be_ema_service"
+    ],
+    [
+      "be_ema_service",
+      "be_ema_routes"
+    ],
+    [
+      "logging",
+      "be_ema_service"
+    ],
+    [
+      "auth_service",
+      "be_ema_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_ema_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_ema_routes"
+    ],
+    [
+      "arch_tests",
+      "be_ema_service"
+    ],
+    [
+      "be_ema_routes",
+      "fe_ema_page"
+    ],
+    [
+      "auth_ui",
+      "fe_ema_page"
+    ],
+    [
+      "component_lib",
+      "fe_ema_page"
+    ],
+    [
+      "routing_setup",
+      "fe_ema_page"
+    ],
+    [
+      "api_client",
+      "fe_ema_page"
+    ],
+    [
+      "be_compensation_service",
+      "be_cric_report_service"
+    ],
+    [
+      "be_compensation_service",
+      "be_cric_reminder_job"
+    ],
+    [
+      "logging",
+      "be_cric_report_service"
+    ],
+    [
+      "logging",
+      "be_cric_reminder_job"
+    ],
+    [
+      "auth_service",
+      "be_cric_report_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_cric_report_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_cric_report_routes"
+    ],
+    [
+      "arch_tests",
+      "be_cric_report_service"
+    ],
+    [
+      "arch_tests",
+      "be_cric_reminder_job"
+    ],
+    [
+      "be_cric_report_service",
+      "be_cric_report_routes"
+    ],
+    [
+      "mcns_core",
+      "be_cric_reminder_job"
+    ],
+    [
+      "be_cric_report_routes",
+      "fe_cric_verify_page"
+    ],
+    [
+      "be_compensation_routes",
+      "fe_cric_verify_page"
+    ],
+    [
+      "auth_ui",
+      "fe_cric_verify_page"
+    ],
+    [
+      "component_lib",
+      "fe_cric_verify_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cric_verify_page"
+    ],
+    [
+      "api_client",
+      "fe_cric_verify_page"
+    ],
+    [
+      "be_rorcb_appeal_service",
+      "be_cric_appeal_service"
+    ],
+    [
+      "logging",
+      "be_cric_appeal_service"
+    ],
+    [
+      "logging",
+      "be_cric_appeal_reminder_job"
+    ],
+    [
+      "auth_service",
+      "be_cric_appeal_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_cric_appeal_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_cric_appeal_routes"
+    ],
+    [
+      "arch_tests",
+      "be_cric_appeal_service"
+    ],
+    [
+      "arch_tests",
+      "be_cric_appeal_reminder_job"
+    ],
+    [
+      "be_cric_appeal_service",
+      "be_cric_appeal_routes"
+    ],
+    [
+      "mcns_core",
+      "be_cric_appeal_reminder_job"
+    ],
+    [
+      "be_cric_appeal_routes",
+      "fe_cric_appeal_page"
+    ],
+    [
+      "be_cric_report_routes",
+      "fe_cric_appeal_page"
+    ],
+    [
+      "auth_ui",
+      "fe_cric_appeal_page"
+    ],
+    [
+      "component_lib",
+      "fe_cric_appeal_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cric_appeal_page"
+    ],
+    [
+      "api_client",
+      "fe_cric_appeal_page"
+    ],
+    [
+      "shared_auth",
+      "be_cr_owner_portal_auth_service"
+    ],
+    [
+      "auth_service",
+      "be_cr_owner_portal_auth_service"
+    ],
+    [
+      "logging",
+      "be_cr_owner_portal_auth_service"
+    ],
+    [
+      "arch_tests",
+      "be_cr_owner_portal_auth_service"
+    ],
+    [
+      "be_cr_owner_portal_auth_service",
+      "fe_cr_owner_portal_auth_page"
+    ],
+    [
+      "component_lib",
+      "fe_cr_owner_portal_auth_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cr_owner_portal_auth_page"
+    ],
+    [
+      "be_cr_owner_portal_auth_service",
+      "be_cr_owner_self_service_service"
+    ],
+    [
+      "be_acra_integration",
+      "be_cr_owner_self_service_service"
+    ],
+    [
+      "logging",
+      "be_cr_owner_self_service_service"
+    ],
+    [
+      "auth_service",
+      "be_cr_owner_self_service_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_cr_owner_self_service_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_cr_owner_self_service_routes"
+    ],
+    [
+      "arch_tests",
+      "be_cr_owner_self_service_service"
+    ],
+    [
+      "mcns_core",
+      "be_cr_owner_self_service_service"
+    ],
+    [
+      "be_cr_owner_self_service_service",
+      "be_cr_owner_self_service_routes"
+    ],
+    [
+      "be_cr_owner_self_service_routes",
+      "fe_cr_owner_self_service_page"
+    ],
+    [
+      "fe_cr_owner_portal_auth_page",
+      "fe_cr_owner_self_service_page"
+    ],
+    [
+      "component_lib",
+      "fe_cr_owner_self_service_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cr_owner_self_service_page"
+    ],
+    [
+      "api_client",
+      "fe_cr_owner_self_service_page"
+    ],
+    [
+      "db_setup",
+      "be_notice_db_schema"
+    ],
+    [
+      "be_notice_db_schema",
+      "be_notice_data_access"
+    ],
+    [
+      "be_notice_data_access",
+      "be_notice_service"
+    ],
+    [
+      "be_notice_service",
+      "be_notice_routes"
+    ],
+    [
+      "logging",
+      "be_notice_service"
+    ],
+    [
+      "auth_service",
+      "be_notice_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_notice_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_notice_routes"
+    ],
+    [
+      "arch_tests",
+      "be_notice_service"
+    ],
+    [
+      "mcns_core",
+      "be_notice_service"
+    ],
+    [
+      "be_notice_routes",
+      "fe_cr_owner_notice_page"
+    ],
+    [
+      "fe_cr_owner_portal_auth_page",
+      "fe_cr_owner_notice_page"
+    ],
+    [
+      "component_lib",
+      "fe_cr_owner_notice_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cr_owner_notice_page"
+    ],
+    [
+      "api_client",
+      "fe_cr_owner_notice_page"
+    ],
+    [
+      "be_cr_owner_portal_auth_service",
+      "be_cr_owner_earmark_service"
+    ],
+    [
+      "logging",
+      "be_cr_owner_earmark_service"
+    ],
+    [
+      "auth_service",
+      "be_cr_owner_earmark_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_cr_owner_earmark_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_cr_owner_earmark_routes"
+    ],
+    [
+      "arch_tests",
+      "be_cr_owner_earmark_service"
+    ],
+    [
+      "mcns_core",
+      "be_cr_owner_earmark_service"
+    ],
+    [
+      "be_cr_owner_earmark_service",
+      "be_cr_owner_earmark_routes"
+    ],
+    [
+      "be_cr_owner_earmark_routes",
+      "fe_cr_owner_earmark_page"
+    ],
+    [
+      "fe_cr_owner_portal_auth_page",
+      "fe_cr_owner_earmark_page"
+    ],
+    [
+      "component_lib",
+      "fe_cr_owner_earmark_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cr_owner_earmark_page"
+    ],
+    [
+      "api_client",
+      "fe_cr_owner_earmark_page"
+    ],
+    [
+      "be_cr_owner_portal_auth_service",
+      "be_cr_owner_receipt_service"
+    ],
+    [
+      "be_compensation_service",
+      "be_cr_owner_receipt_service"
+    ],
+    [
+      "logging",
+      "be_cr_owner_receipt_service"
+    ],
+    [
+      "auth_service",
+      "be_cr_owner_receipt_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_cr_owner_receipt_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_cr_owner_receipt_routes"
+    ],
+    [
+      "arch_tests",
+      "be_cr_owner_receipt_service"
+    ],
+    [
+      "mcns_core",
+      "be_cr_owner_receipt_service"
+    ],
+    [
+      "be_cr_owner_receipt_service",
+      "be_cr_owner_receipt_routes"
+    ],
+    [
+      "be_cr_owner_receipt_routes",
+      "fe_cr_owner_receipt_page"
+    ],
+    [
+      "fe_cr_owner_portal_auth_page",
+      "fe_cr_owner_receipt_page"
+    ],
+    [
+      "component_lib",
+      "fe_cr_owner_receipt_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cr_owner_receipt_page"
+    ],
+    [
+      "api_client",
+      "fe_cr_owner_receipt_page"
+    ],
+    [
+      "be_cr_owner_portal_auth_service",
+      "be_chatbot_integration"
+    ],
+    [
+      "logging",
+      "be_chatbot_integration"
+    ],
+    [
+      "auth_service",
+      "be_chatbot_integration"
+    ],
+    [
+      "arch_tests",
+      "be_chatbot_integration"
+    ],
+    [
+      "be_chatbot_integration",
+      "fe_chatbot_widget"
+    ],
+    [
+      "fe_cr_owner_portal_auth_page",
+      "fe_chatbot_widget"
+    ],
+    [
+      "component_lib",
+      "fe_chatbot_widget"
+    ],
+    [
+      "be_cr_owner_portal_auth_service",
+      "be_cr_owner_portal_admin_service"
+    ],
+    [
+      "be_notice_service",
+      "be_cr_owner_portal_admin_service"
+    ],
+    [
+      "logging",
+      "be_cr_owner_portal_admin_service"
+    ],
+    [
+      "auth_service",
+      "be_cr_owner_portal_admin_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_cr_owner_portal_admin_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_cr_owner_portal_admin_routes"
+    ],
+    [
+      "arch_tests",
+      "be_cr_owner_portal_admin_service"
+    ],
+    [
+      "be_cr_owner_portal_admin_service",
+      "be_cr_owner_portal_admin_routes"
+    ],
+    [
+      "be_cr_owner_portal_admin_routes",
+      "fe_cr_owner_portal_admin_page"
+    ],
+    [
+      "auth_ui",
+      "fe_cr_owner_portal_admin_page"
+    ],
+    [
+      "component_lib",
+      "fe_cr_owner_portal_admin_page"
+    ],
+    [
+      "routing_setup",
+      "fe_cr_owner_portal_admin_page"
+    ],
+    [
+      "api_client",
+      "fe_cr_owner_portal_admin_page"
+    ],
+    [
+      "db_setup",
+      "be_user_mgmt_db_schema"
+    ],
+    [
+      "be_user_mgmt_db_schema",
+      "be_user_mgmt_data_access"
+    ],
+    [
+      "be_user_mgmt_data_access",
+      "be_user_mgmt_service"
+    ],
+    [
+      "be_user_mgmt_service",
+      "be_user_mgmt_routes"
+    ],
+    [
+      "logging",
+      "be_user_mgmt_service"
+    ],
+    [
+      "auth_service",
+      "be_user_mgmt_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_user_mgmt_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_user_mgmt_routes"
+    ],
+    [
+      "arch_tests",
+      "be_user_mgmt_service"
+    ],
+    [
+      "be_eims_integration",
+      "be_user_mgmt_service"
+    ],
+    [
+      "shared_auth",
+      "be_user_mgmt_service"
+    ],
+    [
+      "be_user_mgmt_routes",
+      "fe_user_mgmt_page"
+    ],
+    [
+      "auth_ui",
+      "fe_user_mgmt_page"
+    ],
+    [
+      "component_lib",
+      "fe_user_mgmt_page"
+    ],
+    [
+      "routing_setup",
+      "fe_user_mgmt_page"
+    ],
+    [
+      "api_client",
+      "fe_user_mgmt_page"
+    ],
+    [
+      "db_setup",
+      "be_app_settings_db_schema"
+    ],
+    [
+      "be_app_settings_db_schema",
+      "be_app_settings_data_access"
+    ],
+    [
+      "be_app_settings_data_access",
+      "be_app_settings_service"
+    ],
+    [
+      "be_app_settings_service",
+      "be_app_settings_routes"
+    ],
+    [
+      "logging",
+      "be_app_settings_service"
+    ],
+    [
+      "auth_service",
+      "be_app_settings_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_app_settings_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_app_settings_routes"
+    ],
+    [
+      "arch_tests",
+      "be_app_settings_service"
+    ],
+    [
+      "mcns_core",
+      "be_app_settings_service"
+    ],
+    [
+      "be_app_settings_routes",
+      "fe_app_settings_page"
+    ],
+    [
+      "auth_ui",
+      "fe_app_settings_page"
+    ],
+    [
+      "component_lib",
+      "fe_app_settings_page"
+    ],
+    [
+      "routing_setup",
+      "fe_app_settings_page"
+    ],
+    [
+      "api_client",
+      "fe_app_settings_page"
+    ]
+  ],
+  "user_stories": [
+    {
+      "id": "81",
+      "title": "14.7 De-allocate CR Owner",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict by CR types according to the respective Controller’s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to view the list of CR Owners allocated to each ReqCen and select the CR owners to de-allocate from the chosen ReqCen. When de- allocating CR Owners, the Controller shall be prompted to enter the reasons for the de-allocation. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "82",
+      "title": "14.8 Manage Annual Exercise Plan",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict by ReqCens according to the respective Controller’s access rights.\nSystem shall display a summary of all ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025).\nSystem shall update the Previous and Last CR Exercise Dates automatically after ReqCen has completed their CR exercise.\nSystem shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date.\nControllers shall be able to amend the Planned Exercise Workyear for ReqCens that he/she is authorised to.\nUpon clicking onto the respective ReqCen’s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    },
+    {
+      "id": "83",
+      "title": "14.9 Manage Requisition Plan",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict the display by ReqCens according to the respective Controller’s access rights.\nControllers shall be able to view Requisition Plans. Controllers shall be able to export/download the details of Requisition Plans. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "84",
+      "title": "14.10 Manage ReqCen POC Details",
+      "owned_nodes": [
+        "be_reqcen_poc_db_schema",
+        "be_reqcen_poc_data_access",
+        "be_reqcen_poc_service",
+        "be_reqcen_poc_routes",
+        "fe_reqcen_poc_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall restrict the display by ReqCens according to the respective Controller’s access rights. Controllers shall be able to display ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN). Controllers shall be able to export/download the information. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "85",
+      "title": "14.11 Manage EMA",
+      "owned_nodes": [
+        "be_ema_db_schema",
+        "be_ema_data_access",
+        "be_ema_service",
+        "be_ema_routes",
+        "fe_ema_page"
+      ],
+      "category": "feature",
+      "verifiable": "Controllers shall be able to view the EMA information of each ReqCen that he/she is authorised.\nControllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "86",
+      "title": "14.12 Manage CR Owners Information",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "The CR Owners shall be segregated into ‘Allocated CR Owners’ and ‘Unallocated CR Owners’. a. b. Allocated CR Owners. They can be allocated to one or more ReqCens. They are generally termed as shared CR Owner if the company is supporting more than one ReqCen. Controllers shall be able to view all records regardless of ReqCens. He/She shall be able to view when the CR Owner was last mobilised. For shared CR Owner, the last mobilisation date for each ReqCen shall be shown. Unallocated CR Owners. Controllers shall be able to view all the records. Header information shall include UEN number, Company Name, Status of the company, Mailing Address, Office/Site Address, GST Registration Number, Office Contact Number, Other Contact Number (e.g. Mobile Number), Email Address etc. ReqCen-level information shall include CR Owner’s POC names, their mobile number, office number, fax number and email address. There shall also be a display checkbox to indicate who are the primary and secondary POCs. Controllers shall be able to view the CR Owners’ assets which shall be grouped and presented logically. a. ‘CR Assets Owned’ shall show each CR category and their respective Quantity. It shall provide the total number of CR assets of the CR Owner. b. ‘CR Category Allocated to ReqCens’ shall show the CR category, Quantity Allocated and ReqCen Allocated. It shall provide the allocation to ownership ratio. E.g. if a CR Owner owns 10 assets and only 5 are allocated, the allocation ratio is 50%. c. ‘ReqCen Allocation History’ shall show the Allocation Date and the corresponding ReqCen. It shall provide a summary of the total allocation records. d. ‘De-allocation History’ shall show the De-allocation Date and the corresponding ReqCen and Reason for De-allocation. Controllers shall be able to view the CR Mobilisation Exercise History of each CR Owner. The information shall include ReqCen, Requisition Plan Description, Requisition Plan Type, Mobilisation Date. Controllers shall be able to view additional information related to Shared CR Owners status. The information shall include Major ReqCen and Shared ReqCens. Controllers shall be able to view all the CR assets of the CR Owners. Information shall include CR Type, CR Category, Registration Number, Chassis Number, Engine Number, etc. System shall have a function to download a template containing all the essential fields that shall be populated to support mass load CR Owner Details into CRIPS. System shall have a function to download all the CR assets of the CR Owners. System shall have a function to download all the CR Owners details. There shall be controls to restrict the number of records that can be downloaded each time. This control shall be managed via App Setting or Site Properties. Controllers shall be able to export/download the information. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "87",
+      "title": "14.13 Manage Compensation Rates",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict by CR types according to the respective Controller’s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to update, view, verify and reject compensation rates. Compensation rates are to be maintained for CR Type + CR category. For each CR category, there shall be various types of compensation rates, e.g. a. Asset Hourly Rate without Operators b. Asset Half-Daily Rate without Operators c. Asset Daily Rate without Operators d. Undertaking Hourly Rate with Operators e. Undertaking Half-Daily Rate with Operators f. Undertaking Daily Rate with Operators System shall have a function to download a template containing all the essential fields that shall be populated to support mass load into CRIPS. System shall have a function to upload a filled template containing all the information needed to mass upload the compensation rates into CRIPS. Controllers shall be able to export/download the compensation rates. Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "88",
+      "title": "14.14 Assign EE to ReqCen",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall control the access by CR Types. Controller (Vessels) shall only be able to assign EEs to RSN ReqCens for CR Vessels and CR Craft. Controller (Vessels) shall be able to un-tag the EEs to ReqCen. Controller (Vessels) shall be able to view details of EE’s CR (Vessels and Craft) requirements. Have a function to download and upload template for EE’s CR (Vessels and Craft) requirements. Controller (Vehicles) shall be able to view the assignment of EEs to ReqCens. Controller (Vehicles) shall be able to view details of EE’s CR (Vehicles and Heavy Plants) requirements. Controller (Vehicles) and Controller (Vessels) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "89",
+      "title": "14.15 Reports",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "rights, a. b. c. System shall restrict by CR types according to the respective Controller’s access a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) CR Vessels, CR Craft (applicable for Controller Vessels) CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to generate reports for Allocation Summary by ReqCen. This report shall generate CR allocation summary details by ReqCen. b. Allocation Summary by Service. This report shall generate CR allocation summary details by Services (e.g. Army, RSAF, RSN, DIS, etc). c. Allocation Summary by Unit/EE. This report shall generate CR allocation summary details by Unit/EE. d. Allocated CR Owners. This report shall generate the allocated CR Owner with summary information of their CR assets by CR category. Information displayed shall be restricted by CR type. e. Unallocated CR Owners. This report shall generate all unallocated CR Owners with summary information of their CR assets by CR category. Information displayed shall be restricted by CR type. f. ReqCen CR Requirements vs CR Owner Allocation. This report shall generate ReqCen CR requirements and allocated CR Owner details. g. Unit/EE CR Requirements vs CR Owner Allocation. This report shall generate Unit/EE CR requirements and allocated CR Owner details. h. ReqCen Unit/EE Asset Allocation. This report shall generate individual asset allocation to Unit/EE. i. j. k. l. m. n. o. p. q. r. s. t. u. ReqCen Allocated CR Owner Details. This report shall generate CR Owners summary details. Unmap Mobile Crane. This report shall generate all unmapped mobile crane details. Heavy Plants and LTA Registered Assets. This report shall generate heavy plant and LTA registered assets per CR summary details. Information displayed shall be restricted by allocated CR Owners and unallocated heavy plant CR owners for CRO(Asset). This report is only applicable for Controller (Vehicles). Vessels and Craft CR Owner. This report shall generate vessels and craft CR Owners summary details to facilitate Controllers in sourcing quotations. This report is only applicable for Controller (Vessels). National Resource Pool Vessel and Craft. This report shall generate vessels and craft CR details to facilitate Controllers in asset allocation. This report is only applicable for Controller (Vessels). Vessels and Craft CR Owner Allocation. This report shall generate vessels and craft CR Owner summary details to facilitate Controllers in asset allocation. This report is only applicable for Controller (Vessels). Exemption Request. This report shall generate EE exemption requests. Exemption Request with Error. This report shall generate EE requests with error. ReqCen Exercise Planning – Allocated CR Owners and Categories. This report shall generate the allocated CR owners and CR categories to facilitate ReqCen’s CR exercise planning. It shall allow users to select the single or multiple ReqCens. The output shall include details such as  Date CR owner was last exercised.  Date CR owner was last exercise by the ReqCen.  Date CR category was last exercised.  Date CR category was last exercised by the ReqCen. CR Owners Exercise Details. This report shall generate CR Owners that have participated in past CR exercises and details of their participation. It shall allow users to define the range for selection, e.g. exercise date range, CR Owner, ReqCen, etc. List of CR Owners Exercised. This report shall generate a summary of CR Owners that have participated in past CR exercises. It shall allow users to define the range for selection, e.g. exercise date range, ReqCen, etc. EMA Ops Hourly Status Report. This report shall generate Requisitioned, De- Requisitioned, Issued, Returned, Rejection hourly status for exercise and operations requisition plans. It shall allow users to define the range for selection, e.g. exercise date range, ReqCen, Requisition Plan, etc. CR Owners Response Time. This report shall generate the response time of CR owners who had participated in CR exercises. It shall allow users to define the range for selection, e.g. exercise date range, CR Owner, ReqCen, etc. v. Quantity of CR Owners/Assets Exercised and Compensation Made. This report shall generate approved and exercise quantity and compensation. It shall allow users to define the range for selection, e.g. exercise date range, CR Owner, ReqCen, etc."
+    },
+    {
+      "id": "90",
+      "title": "14.16 Dashboard",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "System shall restrict the display by CR types according to the respective Controller’s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Asset Dashboard shall be divided into three key sections a. CR Allocation (Asset) focus on demand fulfilment status. b. CR Planning (Asset) focus on CR exercise policy compliance and Undertaking Readiness. c. CR Requisition (Asset) focus on the overall requisition/ derequisition status and response time of CR owners especially during operations. Asset Dashboards shall be displayed at three levels a. b. Aggregated at Level 1 – Display all (i.e. MINDEF/SAF and WOG). Aggregated at Level 2 – Display at Service-level (i.e. Army, RSAF, RSN, DIS and WOG/SCDF). c. Aggregated at Level 3 – Display at ReqCen-level (e.g. ReqCen A, L1, R1, etc.). When generating the dashboards, Controllers shall be able to select by specific period, e.g. Work-Year 2025 which refers to 1 April 2025 to 31 March 2026. a. b. The results shall provide the statistics in numbers and percentage. The dashboard shall use the traffic light system (green, amber, red) so that it draws the users’ attention to areas that are important or of concern. The respective performance target for green, amber and red shall be pre-defined and can be re-defined easily. There shall be accompanying details to support the aggregated information and Controllers shall be able to export/download the information. 15. CONTROLLER UNDERTAKINGS USER STORY"
+    },
+    {
+      "id": "91",
+      "title": "15.1 Manage Undertaking Approvals",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Upon a Requesting Agency’s submission of a request to register a firm, system shall send an email notification to the Lead Agency for allocation. Of note, Controller Undertakings shall be included in the list of Lead Agency.\nFor cases where CRO(Undertaking) selects Controller Undertakings as the Lead Agency, Controller Undertakings shall be able to allocate and reject agency’s requests routed to him/her.\nController Undertakings shall be able to allocate a company to the request if no preferred company is not indicated in the request. If Controller Undertakings rejects the request, system shall prompt him/her to enter the reason for rejecting the request.\nSystem shall send an email notification to inform Controller Undertakings of the request pending his/her approval, after MHA Office updates in CRIPS the firm’s security clearance is successful. Of note, MHA Office may indicate an expiry date for the security clearance. a. If MHA Office indicate the expiry date as “31-12-9999”, it means no expiry date.\nFor other dates, CRO(Undertaking) or Controller Undertakings Office shall initiate security re-clearance at least 2 months before the security clearance expiry date. System shall have a workflow to allow CRO(Undertaking) or Controller Undertakings Office to submit for security re-clearance. The re-clearance requests could be due to changes in the firm’s senior management or expiry set by MHA Office. Expiry and security re-clearance shall not reset the processes performed upon MHA Office’s first security clearance. If MHA Office indicate the expiry date as “31-12-9999”, it means no expiry date. For other dates, the Requesting Agency shall initiate security re-clearance at least 2 months before the security clearance expiry date. Expiry and security re-clearance shall not reset the processes performed upon MHA Office’s first security clearance. Controller Undertakings shall be able to approve and reject agency’s requests. a. After approval, if there is more than one agency that requires the firm, system shall update it from ‘Individual’ to ‘Shared’ firm. For shared firm, an email notification shall be sent to the CRO(Undertaking) of the affected agencies to inform their EF is now a shared EF and shared by how many agencies. b. c. d. b. C-150 Controller Undertakings shall be able to approve and reject agency’s requests to de- register an approved firm. If he/she approves the request, the firm shall be deallocated from the requesting agency. If Controller Undertakings rejects the request, system shall prompt him/her to enter the reason for rejecting the request. After de-allocation, if there is only one agency that requires the firm, system shall update it from ‘Shared’ to ‘Individual’ firm. System shall enable Controller Undertakings to display all undertaking requirements pending his/her action, a. ‘Allocation’ – It shall display requirements with ‘Pending Approval’ status. b. ‘De-Allocation’ – It shall display requirements with ‘Pending De-Allocation Approval’ status. System shall enable Controller Undertakings to process the request individually. He/She shall also be able to select multi requests to approve/reject."
+    },
+    {
+      "id": "92",
+      "title": "15.2 Reports",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Controller Undertakings shall be able to generate a. Undertakings Requirement Approval Status Report. This report gives an overview of the status of requests for companies/firms by the requesting agency. The report also has information such as the approval dates by the various stakeholders given that each request is routed through multiple agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency, Submission From Dates and Current Status. b. Essential Firms (by Agency) Report. This report generates the list of firms by Requesting Agencies. When generating the report, Controller Undertakings shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency and Allocated From Dates. c. Essential Firms (by Company) Report. This report generates the list of firms by company/firm. The report shall show if the Company is ‘Individual’ or ‘Shared’, and if it is ‘Shared’, it shall show the list of agencies that have registered the company. When generating the report, users shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Coordinating Agency and the Allocated from dates. d. Undertakings Readiness (by Agency) Report. This report generates a summary of firms’ readiness covering the E-Plan and Exercise status by Requesting Agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. e. Undertakings Readiness (by Company) Report. This report generates a summary of firms’ readiness covering the E-Plan and Exercise status by company/firm. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. f. Essential Firm Security Clearance Status Report. This report generates the status of security clearance of companies. When generating the report, users shall be able to select the clearance status (e.g. all status, submitted, approved, pending, rejected). There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and Security Clearance. g. Essential Firm Security Re-Clearance Report. This report generates the list of companies that are subjected to security re-clearance. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm, Security Expiry Date, Re-clearance status. h. Schedule of Service Report. This report generates a listing of the Schedule of Service of the firms. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. i. Outstanding Service Acceptance. This report generated the list of outstanding service acceptance after TDPCUs have been served. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. Controller Undertakings shall be able to export/download the reports."
+    },
+    {
+      "id": "93",
+      "title": "15.3 Dashboards",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Undertakings Dashboard shall be divided into three key sections a. CR Allocation (Undertakings) focus on demand fulfilment status. b. CR Planning (Undertakings) focus on E-Plan Readiness, Requisition Readiness. c. CR Requisition (Undertakings) focus on the overall requisition/ derequisition status. Aside from CR Allocation (‘Lead Agency’ selected), all Undertakings Dashboards shall have the same functionality and can be drilled down to three levels a. b. c. Aggregated at Level 1 – Display all (i.e. MINDEF/SAF and WOG). Aggregated at Level 2 – Display at Ministry-level. Aggregated at Level 3 – Display at Requesting Agency Level (e.g. RSAF, SPF, MAS, PUB, etc.). When generating the dashboards, Controller Undertakings shall be able to select by specific period, e.g. Work-Year 2025 which refers to 1 April 2025 to 31 March 2026. a. b. The results shall provide the statistics in numbers and percentage. The dashboard shall use the traffic light system (green, amber, red) so that it draws the users’ attention to areas that are important or of concern. The respective performance target for green, amber and red shall be pre-defined and can be re-defined easily. There shall be accompanying details to support the aggregated information and Controller Undertakings shall be able to export/download the information. 16. CONTROLLER CRIC & CRIC OFFICER USER STORY"
+    },
+    {
+      "id": "94",
+      "title": "16.1 Verify Compensation",
+      "owned_nodes": [
+        "be_cric_reminder_job",
+        "be_cric_report_service",
+        "be_cric_report_routes",
+        "fe_cric_verify_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall generate and trigger an email to CRIC Officer to notify him/her there is compensation pending verification. If the compensation is not verified, an email shall be sent to CRIC Officer every 7-day interval to remind him/her of the outstanding cases.\nCRIC Officer shall be allowed to verify various types of compensation, i.e. Use, Loss, Damage, Appeal for Use, Appeal for Loss, and Appeal for Damage.\nCompensation for Asset Requisition Plan, CRIC Officer shall be able to a. View Requisition Plan including the Requisition Form and De-requisition Form b. View Progressive Payment Details c. View Compensation Details, e.g. usage duration, unit rate, compensation amount\nd. e. Verify Single and Multiple Compensation Reject Single and Multiple Compensation and state the reason(s) for the rejection Compensation for Modification/Inspection, CRIC Officer shall be able to a. Verify Compensation b. Reject Compensation and state the reason(s) for the rejection Compensation for Undertakings Requisition Plan, CRIC Officer shall be able to a. View Requisition Plan b. View Service Acceptance Form c. View Partial Acceptance Details d. Verify Single and Multiple Compensation e. Reject Single and Multiple Compensation and state the reason(s) for the rejection CRIC Officer shall be able to generate a. Appeal Report. This report shall generate appeal details. b. Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. c. Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. d. Undertaking Compensation Report. This report shall generate compensation for undertakings requisition plan. e. Timeliness Report. This report shall generate a timeline of verification, approval and payment processing for compensations. f. Verification Report. This report shall generate compensation count (pending verification and verified) for assets and undertakings. CRIC Officer shall be able to export/download the reports. CRIC Officer shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    },
+    {
+      "id": "95",
+      "title": "16.2 Review Appeal",
+      "owned_nodes": [
+        "be_cric_appeal_service",
+        "be_cric_appeal_routes",
+        "be_cric_appeal_reminder_job",
+        "fe_cric_appeal_page"
+      ],
+      "category": "feature",
+      "verifiable": "System shall generate and trigger an email to Controller CRIC to notify him/her there is appeal case that requires his/her assessment and decision. If he/she does not update the decision, an email shall be sent to Controller CRIC every 7-day interval to remind him/her of the outstanding appeal cases.\nAppeal for Asset, Controller CRIC shall be able to a. View Requisition Plan and Appeal details for Use/Loss/Damage b. View Appeal details for Modification/Inspection c. Update his/her assessment and decision,  Accept and the accepted additional amount; or  Counter Propose and the counter offer additional amount; or  Reject and state the reason(s) for the rejection\nAppeal for Undertaking, Controller CRIC shall be able to a. b. View Requisition Plan and Appeal details for Undertaking Update his/her assessment and decision,  Accept and the accepted additional amount; or  Counter Propose and the counter offer additional amount; or  Reject and state the reason(s) for the rejection\nController CRIC shall be able to generate a. b. Appeal Report. This report shall generate appeal details. Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. c. Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. d. Undertaking Compensation Report. This report shall generate compensation for undertakings requisition plan. e. Timeliness Report. This report shall generate a timeline of verification, approval and payment processing for compensations. f. Verification Report. This report shall generate compensation count (pending verification and verified) for assets and undertakings. Controller CRIC shall be able to export/download the reports. Controller CRIC shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field. 17. RORCB OFFICE USER STORY"
+    },
+    {
+      "id": "96",
+      "title": "17.1 Appeal to RORCB",
+      "owned_nodes": [],
+      "category": "feature",
+      "verifiable": "Upon clicking on the Appeal to RORCB module, system shall display a summary of all appeals rejected by CR Owners/Companies/Firms within 8 weeks from Controller CRIC’s offer. The cases shall be segregated by ‘Assets’ and ‘Undertakings’.\nSystem shall display all RORCB cases and grouped them by tabs according to the status of each case, i.e. 'Open’, ‘Pending’, and 'Closed'.\nFor Asset cases, system shall display details such as CR Owner Name and its UEN, CR Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).\nFor Undertaking cases, system shall display details such as the Company/Firm Name and its UEN, Service Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).\nSystem shall have an ‘Action’ button for each case, and upon clicking it, system shall display appeal details for the selected case. a. Case ID field is not enabled for user input. Requesting Amount and Ordered Amount fields are enabled only if appeal status is ‘Open’ or ‘Pending’. ‘Upload Supporting Document’ function is enabled only if the appeal status is ‘Open’ or ‘Pending’. b. C-155 c. d. e. f. g. h. ‘List of supporting documents’ function is displayed only if the appeal status is ‘Pending’ or ‘Closed’. There shall be a ‘Generate Form’ function and upon clicking on this, system shall open a pop-up window with a list of form options available for generation in pdf format. The Competent Authority name will be populated in the pdf document is required. This function is only available if the appeal is ‘Open’ or ‘Pending’. There shall be a ‘Generate Case ID’ function and upon clicking on this, system shall auto generate a case number in the format of YYYY-XXXXXX where YYYY is the current calendar year and XXXXXX is a running number. The case number shall be populated to the Case ID field. The ‘Generate Case ID’ function is only available if the appeal is ‘Open’. System shall allow RORCB Office rep to update details related to RORCB hearing. There shall be a ‘Add Hearing’ function and upon clicking on this, system shall open a pop-up window and RORCB Office rep shall be able to enter hearing related details, including multiple hearing dates. The ‘Add Hearing’ function is only available if the appeal is ‘Open’ or ‘Pending’. System shall allow RORCB Office rep to delete hearing records. This function is only available if the appeal is pending with hearing. System shall allow RORCB Office rep to update the case after the hearing is completed and decision is finalised. He/She shall update the ordered amount and submit this appeal for payment. System shall auto update the appeal set as ‘Closed’. RORCB Office rep shall be able to export/download the information. RORCB Office rep shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field. 18. CR OWNER USER STORY"
+    },
+    {
+      "id": "97",
+      "title": "18.1 Login to CR Owner Portal",
+      "owned_nodes": [
+        "be_cr_owner_portal_auth_service",
+        "fe_cr_owner_portal_auth_page"
+      ],
+      "category": "feature",
+      "verifiable": "Upon clicking on ‘Login’ button, system shall require CR owner to login as a Corppass user, i.e. CR owner must have a valid Corppass ID and password for logging in to the CR Owner Portal. System shall block non-allocated CR owners from accessing the CR owner portal. System shall have ‘Logout’ button to allow CR owners to logout of the portal. System shall display the CR owner last login to the CR owner portal. System shall be able to track CR owner login, the corresponding timestamp as well as the audit logs of CR owner’s actions."
+    },
+    {
+      "id": "98",
+      "title": "18.2 CR Owner Information and Contact Details",
+      "owned_nodes": [
+        "be_cr_owner_self_service_service",
+        "be_cr_owner_self_service_routes",
+        "fe_cr_owner_self_service_page"
+      ],
+      "category": "feature",
+      "verifiable": "CR Owner shall be able to submit, update, view, verify the company details and contact information. There should be fields such as the company’s UEN, handphone number, office number, registered company mailing address, email address, GST registration status, POC contact details. CR Owner shall be able to assign multiple point-of-contact (POC) to receive notices and notification for CR requisition. CR Owner can update the contact information of the POC. System shall have a section on ‘Contact and Notification Preferences’ and include a ‘View/Edit’ function. a. b. c. System shall list all the ReqCens supported by the CR owner. For each ReqCen, system shall display a message to state ‘You will receive SMS notification sent to [POCs], [mobile numbers] and email notification at [email addresses]. Upon clicking on the ‘View/Edit button’, system shall allow toggle between ‘View’ and ‘Edit’ mode. d. e. CR Owner shall be allowed to select ‘SMS’, ‘Email’ and ‘SMS and Email’ as the mode of notifications. System shall require CR Owner to click on the checkbox to consent to the Terms and Conditions of Use and agree to receive digital notices and notifications. The Terms and Conditions of Use shall be embedded with hyperlink to bring him/her to a page with relevant information. The content on this page shall be configurable easily via Service Request. There shall be a ‘Save Changes’ and ‘Cancel’ button. CR Owner shall be allowed to select that he/she does not want to receive SMS and/or email notification. A pop-up message shall be displayed to ask him/her to confirm his/her selection. f. System shall list the company registered and mailing address. The registered address shall be retrieved from ACRA or other relevant sources. CR owner shall be allowed to updated the mailing address. System shall inform CR owner by displaying a message that say if he/she has selected to receive paper notices, the notices will be sent to address maintained in CR Owner Portal. When updating CR Owner’s contact details, system shall display a consent messaging prompt to seek the CR Owner’s consent during the updating of contact details. System shall ensure that it is mandatory for CR owner to select the consent checkbox before allowing submission of the updated contact details (i.e. system shall disable submit button until consent is provided). System shall display a prompt indicating that the consent is required. The contact details and information shall be updated in CRIPS database and visible to the relevant CROs. An email notification shall be sent to inform the CRO(Asset) or CRO(Undertaking) on updates made by CR Owners supporting his/her ReqCen(s) or Homefront Agency. CROs shall be able to generate the list of updates made by CR owners for his/her tracking."
+    },
+    {
+      "id": "99",
+      "title": "18.3 Notices, Orders, Directions and Requisition published in the CR Owner Portal",
+      "owned_nodes": [
+        "be_notice_db_schema",
+        "be_notice_data_access",
+        "be_notice_service",
+        "be_notice_routes",
+        "fe_cr_owner_notice_page"
+      ],
+      "category": "feature",
+      "verifiable": "For new notifications, CR owner shall be able to click ‘Acknowledge’ in the system. The system shall also track and update the status to ‘Acknowledged’. System shall log and display the timestamp of the acknowledgment. System shall be able to mark the notifications as ‘Read’ once the CR owner view the message, i.e. even without clicking the ‘Acknowledge’ button, the status shall be updated to ‘Read’. System shall log and display the timestamp of when the notification was read. CR owner shall be able to view and re-open past notifications even though they have been read and/or acknowledged. System shall list the notifications according to the timestamp it was sent and display the most recent notifications on top of the list. New notifications that have not been read shall be have a ‘New’ icon to highlight/draw attention. System shall also show the total number of new notifications. System shall leverage on WoG products such as Postman to send SMS and email notifications to CR Owners."
+    },
+    {
+      "id": "100",
+      "title": "18.4 Resources Earmarked for Requisition",
+      "owned_nodes": [
+        "be_cr_owner_earmark_service",
+        "be_cr_owner_earmark_routes",
+        "fe_cr_owner_earmark_page"
+      ],
+      "category": "feature",
+      "verifiable": "For ‘Exercise’ and ‘Operation’ Requisition Plans, system shall auto generate and send emails, informing the CR Owners that they have been selected to participate in an upcoming CR requisition.\nCR owner shall be able to retrieve such notifications via the CR Owner Portal. He/She shall be able to view the pertinent details such as the period that they could be activated, the types of CR assets and quantity required for requisition, the primary and alternate EMA address, and contact details of the CROs, name and appointment of the Competent Authority. CR Owner shall be able to use the appropriate functions in the CR Owner Portal to inform the CROs on the availability of the allocated CR assets when assets not serviceable. CR Owner shall be able to use the appropriate functions in the CR Owner Portal to notify the CROs of changes in their heavy plant assets. For example, new heavy plants acquired and existing heavy plants that have been sold or disposed."
+    },
+    {
+      "id": "101",
+      "title": "18.5 Receipts of Requisition and De-requisition",
+      "owned_nodes": [
+        "be_cr_owner_receipt_service",
+        "be_cr_owner_receipt_routes",
+        "fe_cr_owner_receipt_page"
+      ],
+      "category": "feature",
+      "verifiable": "After the requisition of each CR asset, system shall auto send the receipt of requisition to CR owner via an email to inform him/her the completion of the asset requisition. He/She shall be able to retrieve the receipts of requisition via the CR Owner Portal. After the derequisition of each CR asset, system shall auto send the receipt of de- requisition to CR owner via an email to inform him/her the completion of the asset de-requisition. He/She shall be able to retrieve the receipts of de-requisition via the CR Owner Portal. CR Owner shall be able to view the pertinent details such as Requisition, Derequisition and Compensation amount. CR Owner shall be able to select the receipts and notify the CRO on matters related to the CR requisition. Upon submitting, owner, system shall send emails to the CRO to inform him/her on the message(s) submitted by the CR owner. CR Owners shall be able to enquire on compensation payment status."
+    },
+    {
+      "id": "102",
+      "title": "18.6 Chatbot",
+      "owned_nodes": [
+        "be_chatbot_integration",
+        "fe_chatbot_widget"
+      ],
+      "category": "feature",
+      "verifiable": "System shall ensure that upon successful login to the CR Owner Portal, the Chatbot icon/button shall be visible and accessible at all times. CR owners shall be able to type and submit questions. System’s chatbot shall display only information that is assigned to that CR owner and not address queries that may provide information/ sensitive details about other CR owners. System’s chatbot shall display restricted information and shall display appropriate access restriction message when CR owner attempt to ask or retrieve unauthorised data. System’s chatbot shall be quick in responding (i.e. within a certain timeframe). System’s chatbot shall provide a fallback response when it cannot understand or answer to a query. System’s chatbot shall prompt the CR owner to provide or clarify if additional details are required. In the event that the Chatbot service is unavailable, system shall display an appropriate message informing the CR owner that Chatbot assistance is temporarily unavailable. System shall ensure that the chat history shall remain available during the CR owner’s active session. System shall allow administrator to extract chat history for analysis."
+    },
+    {
+      "id": "103",
+      "title": "18.7 System Administration for CR owner Portal",
+      "owned_nodes": [
+        "be_cr_owner_portal_admin_service",
+        "be_cr_owner_portal_admin_routes",
+        "fe_cr_owner_portal_admin_page"
+      ],
+      "category": "feature",
+      "verifiable": "Administrator shall be able to publish information such as downtime message in the CR Owner Portal to inform CR owners of the upcoming system maintenance and downtime. Administrator shall be able to publish forms that are useful for CR owners, e.g. the latest Application form for Interbank GIRO. Administrator shall be able to view CR owner’s details uploaded in the CR owner portal. Administrator shall be able to download all read and acknowledgement activities performed by CR owners. Administrator shall be able to download the details of the CR owner’s assets. 19. ADMINISTRATOR USER STORY"
+    },
+    {
+      "id": "104",
+      "title": "19.1 Manage Users",
+      "owned_nodes": [
+        "be_user_mgmt_db_schema",
+        "be_user_mgmt_data_access",
+        "be_user_mgmt_service",
+        "be_user_mgmt_routes",
+        "fe_user_mgmt_page"
+      ],
+      "category": "feature",
+      "verifiable": "Administrator shall not be allowed to manage his/her own account. By default, system shall display the current list of “Active” users, with search function to search users by NRIC number, UserID or Name. There shall be advance filter function to search by appointment, role, email address, and also toggle to display the list “Inactive” users. Fields to be displayed include: NRIC number, UserID, Name, Roles Assigned, Appointment, Ministry/Agency, Unit/Department, Email Address, Date of Last Update. Sort function shall be included. Administrator shall be able to create new user account. When creating new users, system shall require the Administrator to enter information such as NRIC number, UserID, Full Name, Appointment, Unit/Department, Ministry/Agency, Work email (internet), Role Assignment (main and sub-roles) etc. Certain fields shall require Administrator to select from pre-defined list, such as Ministry/Agency and ReqCens. Option fields shall include “Remarks”, etc. All logins shall be via SingPass and there shall be appropriate validation to check the NRIC number is valid. For MINDEF/SAF users, there shall be an additional layer to valid the NRIC number and UserID exist in EAD/EIMS. System shall log all activities that are related to creating new user account. Administrator shall be able to add, change and remove the role assignment (main and sub-roles) of an existing user account. He/She shall be able to toggle “Active” and “Inactive” status of the users. For changing the role assignment of an exisiting user account, there shall be a pre-defined list of roles for the Administrator to choose from. Administrator shall be able to delete an existing user account. System shall provide an option for Administrator to export the list of users. He/She can select for the output file to be in Excel or PDF format."
+    },
+    {
+      "id": "105",
+      "title": "19.2 Manage App Settings",
+      "owned_nodes": [
+        "be_app_settings_db_schema",
+        "be_app_settings_data_access",
+        "be_app_settings_service",
+        "be_app_settings_routes",
+        "fe_app_settings_page"
+      ],
+      "category": "feature",
+      "verifiable": "Administrator shall be able to set the maximum upload file size. There shall be individual setting for Assets, Undertakings and Compensation modules.\nAdministrator shall be able to set the valid admin upload file extensions such as xls, xlsx, doc, docx, ppt, pptx, pdf, zip, png, jpg, jpeg. There shall be individual setting for Assets, Undertakings and Compensation modules.\nAdministrator shall be able to set the valid user upload file extensions such as xls, xlsx, doc, docx, ppt, pptx, pdf, zip, png, jpg, jpeg. There shall be individual setting for Assets, Undertakings and Compensation modules.\nAdministrator shall be able to create a generic error message to show to users if any database exception error happens.\nAdministrator shall be able to set the maximum number of records/lines to show to users on every list screen.\nAdministrator shall be able to generate system downtime notices for announcements in CRIPS as well as broadcast via sending auto emails to all CRIPS users. Administrator shall be able to select the mode of announcement/broadcast."
+    }
+  ]
+}

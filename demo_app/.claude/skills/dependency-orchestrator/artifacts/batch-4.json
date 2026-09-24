@@ -1,0 +1,158 @@
+[
+  {
+    "id": "8.3",
+    "title": "Manage E-Plans",
+    "acceptance_criteria": [
+      "8.3.1 RFQ No. DEFNGPP7126100138 CRO(Undertaking) shall be able to create, a. E-Plans \uf0a7 For non-shared firms, and individual E-Plans have not been created, system shall display the status as \u2018Pending Individual E-Plan\u2019. \uf0a7 For shared firms, agency shall create their respective individual E-Plans.",
+      "8.3.2 The Coordinating Agency shall work with the other requesting agencies and the firm to come out with the Combined E-Plan to fulfil the requirement for a WOG\u2019s approach with the firm providing essential services. \uf0a7 System shall display the status as \u2018Completed\u2019 when individual and/or combined E-Plans are created. \uf0a7 System shall remind CRO(Undertaking) and Controller Undertakings Office three months before the due date of the E-Plan. System shall continue to send monthly reminders if the E-Plan information is still not updated after one year from the date of approval of allocation of the firm. The reminders shall cease once CRO(Undertaking) and Controller Undertakings Office has updated the E-Plan information. \uf0a7 System shall remind CRO(Undertaking) and Controller Undertakings Office three months before the E-Plan is due for review (due date is 3 years from the E-Plan last approved date). System shall continue to send monthly reminders if the E-Plan information is still not updated after one year from the date of approval of allocation of the firm. The reminders shall cease once CRO(Undertaking) or Controller Undertakings Office has updated the E-Plan information. b. Schedule of Services \uf0a7 Upon completion of the individual E-Plans in CRIPS, CRO(Undertaking) shall be able to create the Schedule of Services which shall include all the services required of the firm. System shall have a download / upload template function for CRO(Undertaking) to upload filled template to ease the mass creation of schedule of services. \uf0a7 Each schedule of service shall come with a unit of measure (UOM) and the estimated price per UOM. \uf0a7 The schedule of services shall be used in the subsequent creation of requisition plans and compensation for the services requisitioned.",
+      "8.3.3 System shall allow CRO(Undertaking) to create a schedule of services after the individual E-Plan is created. Each service of schedule shall include a. b. c. d. a. Description of the service required from the firm (one line per service) Service Category (select from dropdown list) UOM (select from dropdown list) Estimated Unit Price per UOM To create a Combined E-Plan, CRO(Undertaking) appointed as Coordinating Agency shall first select a shared firm from the approved list. In the Combined E- Plan, he/she shall fill in the following information.",
+      "8.3.4 Reference Number (fill in the Co-ordinating Agency internal reference number) b. Approval Date (fill in the date that Co-ordinating Agency\u2019s obtained the approval of the combined E-Plan)"
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "8.4",
+    "title": "Manage Requisition Plans",
+    "acceptance_criteria": [
+      "8.4.1 CRO(Undertaking) shall be able to create, update, view and delete Undertaking Requisition Plan.",
+      "8.4.2 System shall have various plan types and CRO(Undertaking) must select \u2018Training\u2019, \u2018Exercise (Others)\u2019, \u2018Exercise (invoke RORA)\u2019 or \u2018Operation\u2019 when creating an Undertaking Requisition plan. a. \u2018Exercise (Others)\u2019 \u2013 Peacetime exercise that is carried out without invoking RORA and it is through arrangement with the firm such as contractual arrangement. There is no need to create an Undertaking Requisition Plan in CRIPS. CRO(Undertaking) shall be able to update the exercise completion details in CRIPS.",
+      "8.4.3 b. \u2018Exercise (invoke RORA)\u2019 \u2013 CRA will need to obtain Minister for Defence\u2019s approval to invoke RORA for a specific time period for the exercise.",
+      "8.4.4 CRO(Undertaking) shall create an undertaking requisition plan as the requisition process shall be executed using CRIPS. The services required can be imported and selected from the schedule of services created prior. c. If the selected Requisition Plan type is \u2018Training\u2019, \u2018Exercise (invoke RORA)\u2019 or \u2018Operation\u2019 type, Chief Controller Office shall receive an email notification to approve the undertaking requisition plan."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "8.5",
+    "title": "Manage Requisition",
+    "acceptance_criteria": [
+      "8.5.1 CRO(Undertaking) shall be able to update and view existing Undertakings Requisition Plans.",
+      "8.5.2 System shall trigger the appropriate workflow based on the type of requisition plan, a. \u2018Exercise (Others)\u2019 \u2013 CRO(Undertaking) shall only be required to update the basic details of the exercise. Upon the completion of the exercise, CRO(Undertaking) shall update the plan details and set to \u2018Closed\u2019 status. CRO(Undertaking) shall be able to cancel requisition plan that has not been closed. a. b. \u2018Exercise (invoke RORA)\u2019 \u2013 Chief Controller Office must approve the requisition plan before CRO(Undertaking) can execute the requisition process in CRIPS. Given that exercises are pre-planned, CRO(Undertaking) shall not be allowed to add new services or import from the E-Plan\u2019s schedule of services after the requisition plan has been approved. \u2018Operation\u2019 \u2013 The workflow is similar to \u2018Exercise (invoke RORA)\u2019 and shall have flexibility. During the requisition phase, CRO(Undertaking) shall be allowed to include new services or import from schedule of services maintained in the E-Plan. c. d. e. \u2018Training\u2019 \u2013 The workflow is similar to \u2018Exercise (invoke RORA)\u2019 and shall have flexibility to include new schedule of services during the requisition phase. As this is for internal training, email notifications shall not be sent to the POC of the firms included in the requisition plan. Instead, they shall be sent to the CRO(Undertaking) who created the requisition plan. The compensation process is not applicable for training plans. Undertaking Requisition Plans shall have one of following statuses at any point in time, Planning \u2013 Upon the creation of the plan. \uf0a7 Pending Approval \u2013 When CRO(Undertaking) submit the plan to Chief Controller Office for approval. \uf0a7 Pending Requisition \u2013 After the plan is approved by Chief Controller Office but the requisition has not yet started. At this stage, Notice of Direction (NOD) is not printed and issued to the firm. \uf0a7 Requisition \u2013 This stage is where NOD Acknowledgement is received, and the actual requisition process has commenced. \uf0a7 TNOD Issued \u2013 When the Termination of NOD is issued with outstanding services. \uf0a7 Closed - Requisition Plan is completed with no further action required. Exercise (Others) Exercise (invoke RORA), Operation, Training Planning Planning Closed Pending Approval OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) RFQ No. DEFNGPP7126100138 Pending Requisition Requisition TNOD Issued Closed",
+      "8.5.3 CRO(Undertaking) shall be able to import Schedule of Services that was maintained when creating individual/ combined E-Plans. If Schedule of Services was not maintained in E-Plans, CRO(Undertaking) shall be able to create the Schedule of Services in the undertaking requisition plan. CRO(Undertaking) shall update the quantity of each service required for the requisition plan. For each Schedule of Services, CRO(Undertaking) shall select the fund objects (e.g. G/L account, Commitment Item, Fund Centre, Cost Centre, etc) and this is applicable only for MINDEF/SAF.",
+      "8.5.4 CRO(Undertaking) shall be able to save the undertaking requisition plan as draft.",
+      "8.5.5 Upon finalising all the details in the requisition plan, CRO(Undertaking) shall submit the plan. Except for \u2018Exercise (Others)\u2019 requisition plan, an email notification shall be sent to inform Chief Controller Office of a plan pending his/her approval.",
+      "8.5.6 CRO(Undertaking) shall be able to save the undertakings requisition plan as draft.",
+      "8.5.7 Upon finalising all the details in the requisition plan, CRO(Undertaking) shall submit the plan. Except for \u2018Exercise (Others)\u2019 requisition plan, an email notification shall be sent to inform Chief Controller Office of a plan pending his/her approval.",
+      "8.5.8 CRO(Undertaking) shall be able to execute approved undertakings requisition plans.",
+      "8.5.9 DPCU00001. Specific only to requisition plan created with \u2018Operation\u2019 type, CRO(Undertaking) shall be allowed to add new services or import additional schedule of services. CRO(Undertaking) shall be allowed to generate a new DPCU after adding new services or import additional schedule of services.",
+      "8.5.10 CRO(Undertaking) shall be able to perform service acceptance after the requisitioned services have been completed. CRO(Undertaking) shall only be allowed to perform service acceptance on the services tagged to the DPCUs. Partial acceptance of service shall be allowed so that progressive payment can be made to the firm. System shall show the balance quantity available for acceptance. System shall require CRO(Undertaking) to update the acceptance date (default to current system date) and attach supporting document when he/she performs the service acceptance. The compensation process shall be initiated upon service acceptance.",
+      "8.5.11 CRO(Undertaking) shall be able to terminate DPCU and is required to enter the termination date of the DPCU. He/She shall be able to generate the TDPCU after terminating the DPCU."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "8.6",
+    "title": "Manage Compensation",
+    "acceptance_criteria": [
+      "8.6.1 System shall compute the compensation amount payable to firms based on rates updated in the undertakings requisition plan.",
+      "8.6.2 System shall retrieve the firm\u2019s GST registration number (e.g. via API with IRAS Marketplace). CRO(Undertaking) shall be able to select the applicable GST rate, e.g. 0%, 9%.",
+      "8.6.3 System shall support progressive compensation when the requisition is for a prolonged duration of more than one month and allow progressive compensation upon acceptance of services (partial or full).",
+      "8.6.4 For compensation for Undertakings Requisition Plan, CRO(Undertaking) shall be able to view compensations and appeals of the selected requisition plan and select the desired status, a. \u2018All\u2019 \u2013 It shall display all compensations and appeals. b. \u2018Verification\u2019 \u2013 It shall display compensations that are pending CRIC Office\u2019s verification. c. \u2018Review Compensation\u2019 \u2013 It shall display compensations rejected by CRIC Office and requires CRO(Undertaking) to follow-up. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "8.6.5 d. \u2018Review Payment Request\u2019 \u2013 It shall display compensations rejected by Approving Officer(Undertaking). e. \u2018Approved\u2019 \u2013 It shall display verified compensation and approved payment requests. f. \u2018Appeal\u2019 \u2013 It shall display all appeals created in the system. g. \u2018Owner\u2019s Response\u2019 \u2013 It shall display appeals reviewed by Controller CRIC.",
+      "8.6.6 CRO(Undertaking) shall be able to download documents attached to undertaking requisition plans.",
+      "8.6.7 CRO(Undertaking) shall be able to resubmit for verification for cases previously rejected by Controller CRIC Office.",
+      "8.6.8 CRO(Undertaking) shall be able to resubmit for approval for cases rejected by Approving Officer(Undertaking) previously.",
+      "8.6.9 CRO(Undertaking) shall be able to create appeals upon receiving such requests from the firm. He/She shall be able to view appeals created by his/her agency.",
+      "8.6.10 CRO(Undertaking) shall be able to update the firm\u2019s response wrt Appeal and Decision by Controller CRIC.",
+      "8.6.11 b. For Undertakings Requisition Plans initiated by Homefront users, CRO(Undertaking) shall be able to export/download the compensation details for payment processing via their respective financial systems.",
+      "8.6.12 CRO(Undertaking) shall be able to upload the payment details (e.g. payment date, payment reference number, payment amount, etc) to close the record in the system."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "8.7",
+    "title": "Review Payment Instruction",
+    "acceptance_criteria": [
+      "8.7.1 System shall restrict this function to CRO(Undertaking) from MINDEF/SAF. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "8.7.2 CRO(Undertaking) shall be able to re-submit compensation payment instructions previously rejected by MINDEF/SAF payment system."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "8.8",
+    "title": "Export Homefront Payment",
+    "acceptance_criteria": [
+      "8.8.1 System shall restrict this function to CRO(Undertaking) from Homefront Agencies.",
+      "8.8.2 For Undertakings Requisition Plans initiated by Homefront users, CRO(Undertaking) shall be able to export/download the compensation payment details so that he/she can submit to his/her agency\u2019s finance department to process the payments to the firms. CRO(Undertaking) shall only be able to export/download compensation records that have been verified by CRIC Officer in CRIPS.",
+      "8.8.3 CRO(Undertaking) shall be allowed to upload the payment details (e.g. AGD payment date, payment reference number, payment amount, etc) to close the record in CRIPS. He/She shall be able to download the template, fill in the additional details and upload the information in CRIPS."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "8.9",
+    "title": "Reports",
+    "acceptance_criteria": [
+      "8.9.1 CRO(Undertaking) shall be able to generate a. Undertakings Requirement Approval Status Report. This report gives an overview of the status of requests for companies/firms by the requesting agency. The report also has information such as the approval dates by the various stakeholders given that each request is routed through multiple agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency, Submission From Dates and Current Status. b. Essential Firms (by Agency) Report. This report generates the list of firms by Requesting Agencies. When generating the report, users shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency and Allocated From Dates. c. Essential Firms (by Company) Report. This report generates the list of firms by company/firm. The report shall show if the Company is \u2018Individual\u2019 or \u2018Shared\u2019, and if it is \u2018Shared\u2019, it shall show the list of agencies that have registered the company. When generating the report, users shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Coordinating Agency and the Allocated from dates. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "8.9.2 d. Undertakings Readiness (by Agency) Report. This report generates a summary of firms\u2019 readiness covering the E-Plan and Exercise status by Requesting Agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. e. Undertakings Readiness (by Company) Report. This report generates a summary of firms\u2019 readiness covering the E-Plan and Exercise status by company/firm. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. f. Essential Firm Security Clearance Status Report. This report generates the status of security clearance of companies. When generating the report, users shall be able to select the clearance status (e.g. all status, submitted, approved, pending, rejected). There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and Security Clearance. g. Essential Firm Security Re-Clearance Report. This report generates the list of companies that are subjected to security re-clearance. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm, Security Expiry Date, Re-clearance status. h. Schedule of Service Report. This report generates a listing of the Schedule of Service of the firms. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. i. Outstanding Service Acceptance. This report generated the list of outstanding service acceptance after TDPCUs have been served. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. j. Undertakings Requisition Compensation Report. This report generates compensation report for undertakings requisition plan. It shall allow users to select the Requisition Plan name, Compensation Status, etc. k. Undertakings Requisition Payment Report (Homefront). This report generates payment report for undertakings requisition plan; consists of Homefront payments that go through manual payment. It shall allow users to select the Requisition Plan name, etc. l. Undertakings Requisition Payment Report (MINDEF/SAF). This report generates payment report for undertakings requisition plan; consists of MINDEF/SAF payment processed by DFO\u2019s Payment Service Hub (PSH) or Enterprise System (ES). It shall allow users to select the Requisition plan name, etc. CRO(Undertaking) shall be able to export/download the reports."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "8.10",
+    "title": "Dashboard",
+    "acceptance_criteria": [
+      "8.10.1 As CRO(Undertaking), I want to generate and customise Dashboards so that I can have a quick insight of CR Undertakings information for analysis and to guide how I can manage Undertakings planning more efficiently and effectively. System shall divide the Undertakings Dashboard into three key sections a. CR Allocation (Undertakings) focus on demand fulfilment status. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "8.10.2 b. CR Planning (Undertakings) focus on E-Plan Readiness, Requisition Readiness. c. CR Requisition (Undertakings) focus on the overall requisition/ derequisition status.",
+      "8.10.3 Aside from CR Allocation (\u2018Lead Agency\u2019 selected), system shall ensure all Undertakings Dashboards have the same functionality and can be drilled down to three levels a. b. c. Aggregated at Level 1 \u2013 Display all (i.e. MINDEF/SAF and WOG).",
+      "8.10.4 Aggregated at Level 2 \u2013 Display at Ministry-level."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "9.1",
+    "title": "Manage Undertaking Requirements",
+    "acceptance_criteria": [
+      "9.1.1 System shall list Controller Undertakings as one of the Lead Agencies for selection under the Lead Agency field.",
+      "9.1.2 System shall display the agency\u2019s Undertaking requirements. There shall be a quick filter function to allow Controller Undertakings Office to choose the status, a. \u2018All\u2019 \u2013 This shall be the default selection, and display all Undertaking requirements regardless of their status. \u2018Re-submit Requirement\u2019 \u2013 Display all Undertaking requirements with the \u2018Review Requirement\u2019 status, i.e. requirements rejected from Lead Agency due to various reasons (e.g. incomplete information). Controller Undertakings Office shall be allow to re-submit their requirements upon completing the follow-up actions (e.g. include missing information in the earlier submission). b. C-103",
+      "9.1.3 RFQ No. DEFNGPP7126100138 c. \u2018Submit Company Details\u2019 \u2013 Display all requirements that are pending the agency\u2019s action to fill in the allocated company details for submission of security clearance (template per MHA\u2019s requirements). d. At the end of the relevant tabs, system shall show the number of pending requirements in amber to denote there are requirements that need Controller Undertakings Office\u2019s action. No number shall be displayed when there is no pending requirement.",
+      "9.1.4 In displaying the Undertakings requirements, system shall show the following information a. Agency\u2019s Reference Number b. Requesting Agency c. Lead Agency d. ACRA file) e. Services Required f. Status Allocated Company (display UEN and latest Company Name retrieved from g. Last Updated h. Last Updated by When Controller Undertakings Office sets quick filter to \u2018All\u2019, system shall provide a progress bar to show the status, e.g. \u2018Re-submit Requirement\u2019, \u2018Submit Company Details\u2019. \u2018Status\u2019 shall have an \u2018info\u2019 button. When Controller Undertakings Office mouse over the button, the system shall display the status tooltip.",
+      "9.1.5 Controller Undertakings Office shall be able to create new undertaking requirements and he/she shall fill in the following information (mandatory for all unless specify otherwise), a. Reference Number (fill in the agency internal reference number) b. Requesting Agency (select from the dropdown list) c. Approver Name (fill in the agency\u2019s approver name) d. Approver Title (select from the dropdown list) e. Approval Date (fill in the date that agency\u2019s obtained the approval to register this undertaking requirement or company) f. h. Lead Agency (select from the dropdown list) g. Services Required Preferred Company (optional - select from the dropdown list with search function using UEN or partial company name; SSIC of the company shall be auto-populated when a UEN is selected) Controller Undertakings Office shall be able to save the inputs as draft. He/She shall be able to retrieve the draft and continue to update it for final submission.",
+      "9.1.6 Upon clicking on \u2018Submit\u2019 for new undertaking requirements, OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "9.1.8 a. b. If the preferred company is already an approved company/firm, system shall inform Controller Undertakings Office and state the company/firm is supporting the number of WOG agencies and inform that there are other companies with the same SSIC that might be suitable. System shall require Controller Undertakings Office to acknowledge the following before he/she could proceed to confirm the submission: \uf0a7 I am aware that [UEN] [Name of Company] selected in this submission will be a shared EF upon final approval of my registration request. \uf0a7 My agency will work with the shared EF to develop an E-Plan.",
+      "9.1.9 Once clicking on \u2018Confirm\u2019, system shall route the request to the selected Lead Agency for allocation. An email notification shall be sent to the relevant Lead Agency or Controller Undertakings to inform of a request pending his/her action. c. There shall be audit trail to record the acknowledgement and timestamp.",
+      "9.1.10 System shall allow Controller Undertakings Office to modify, view and delete undertaking requirements submitted by his/her agency. Only requirements with process prior to Allocation can be modified or deleted while the rest are for view only. An email notification shall be sent to the relevant Lead Agency to inform of a request has been modified/deleted.",
+      "9.1.11 System shall send an email notification to the Controller Undertakings Office to inform him/her when a request is rejected by Lead Agency. He/She shall be able to view the case and the reasons for rejection. He/She shall be able to update/rectify the rejected requirements and re-submit it to the Lead Agency, including selecting another Lead Agency. An email notification shall be sent to the relevant Lead Agency users to inform of a request pending his/her action.",
+      "9.1.12 For shared firms, at the allocation/approval stage, the Lead Agency/Controller Undertakings shall be able to assign a co-ordinating agency who will co- ordinate/oversee a combined E-Plan. The co-ordinating agency is an optional field.",
+      "9.1.13 Upon successfully clearance by MHA Office, the request shall be routed to Controller Undertakings for his/her approval. a. b. Of note, MHA Office may indicate an expiry date for the security clearance.",
+      "9.1.14 If MHA Office indicate the expiry date as \u201c31-12-9999\u201d, it means no expiry date. For other dates, Controller Undertakings Office shall initiate security re- clearance at least 2 months before the security clearance expiry date. c. System shall have a workflow to allow Controller Undertakings Office to submit for security re-clearance. The re-clearance requests could be due to changes in the firm\u2019s senior management or expiry set by MHA Office. d. Expiry and security re-clearance shall not reset the processes performed upon MHA Office\u2019s first security clearance."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "9.2",
+    "title": "Manage Firms Information",
+    "acceptance_criteria": [
+      "9.2.1 System shall have flexibility such that Controller Undertakings Office can manage the firm\u2019s information without having to de-register and re-register the firm.",
+      "9.2.2 For undertakings registered by my agency, system shall allow Controller Undertakings Office to edit and view information of the company, e.g. a. The company\u2019s Point of Contact b. Internal comments (any notes about the company)",
+      "9.2.3 For allocated or approved firms, Controller Undertakings Office shall be able to update selected information, e.g. addresses, contact details, etc.",
+      "9.2.4 When displaying the firm\u2019s name on screen or in generated reports, system shall use the firm\u2019s UEN to retrieve the most updated company name based on ACRA data that is also stored in CRIPS. SSIC of the company shall also be displayed.",
+      "9.2.5 For undertakings registered by an agency, system shall allow the Controller Undertakings Office of that particular agency to de-register companies that have been allocated by Lead Agency or have been approved by Controller Undertakings. An email notification shall be sent to Controller Undertakings to inform of the de- registration request pending his/her action. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "9.2.6 System shall send an email notification to Controller Undertakings Office to inform him/her that Controller Undertakings has deallocated the firm.",
+      "9.2.7 Controller Undertakings Office shall be able to re-submit security clearance should the approved EF has senior management changes. The re-submission shall be routed to MHA Office for processing, including an email notification to inform MHA Office that there are re-submission requests and require their actions."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "9.3",
+    "title": "Manage Allocations",
+    "acceptance_criteria": [
+      "9.3.1 System shall list Controller Undertakings as one of the Lead Agencies for selection under the Lead Agency field.",
+      "9.3.2 Upon a Requesting Agency\u2019s submission of a request to register a firm, system shall send an email notification to the Lead Agency for allocation.",
+      "9.3.3 Lead Agency shall be able to allocate and reject agency\u2019s requests routed to him/her. Lead Agency shall be able to allocate a company to the request if no preferred company is not indicated in the request. If Lead Agency rejects the request, system shall prompt him/her to enter the reason for rejecting the request.",
+      "9.3.4 System shall enable Lead Agency to process the request individually. He/She shall also be able to select multi requests to allocate/reject.",
+      "9.3.5 After allocation, if there is more than one agency that requires the firm, system shall update it from \u2018Individual\u2019 to \u2018Shared\u2019 firm.",
+      "9.3.6 System shall enable Lead Agency to display all undertaking requirements pending his/her action, a. \u2018All\u2019 \u2013 This shall be the default selection, and display all Undertaking requirements regardless of their status. b. \u2018Requirement\u2019 \u2013 Display all Undertaking requirements with the \u2018Review Requirement\u2019 status, i.e. requirements rejected from Lead Agency due to various reasons (e.g. incomplete information). c. \u2018Allocation\u2019 \u2013 Display all Undertaking requirements with \u2018Pending Allocation\u2019, \u2018Pending De-Allocation\u2019 or \u2018Rejected Security Clearance\u2019 status. d. \u2018Company Details\u2019 \u2013 Display all requirements that are pending CRO(Undertakings)\u2019s action to fill in the allocated company details for submission of security clearance (template per MHA\u2019s requirements). e. \u2018Clearance\u2019 \u2013 Display all Undertaking requirements with \u2018Pending Security Clearance\u2019 status, i.e. requirements with company details submitted. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) f. g. h. RFQ No. DEFNGPP7126100138 \u2018Approval\u2019 \u2013 Display all Undertaking requirements with \u2018Pending Approval\u2019 or \u2018Pending De-Allocation Approval\u2019 status, i.e. requirements with security clearance accepted. \u2018Complete\u2019 \u2013 Display all Undertaking requirements with \u2018Allocated\u2019, \u2018De- Allocated\u2019, \u2018Rejected\u2019 or \u2018Rejected Approval\u2019 status, i.e. Approved Allocations by Controller Undertakings. At the end of each tab, system shall show the number of pending requirements in amber to denote there are requirements. No number shall be displayed when there is no pending requirement."
+    ],
+    "group": "default",
+    "release": 2
+  }
+]

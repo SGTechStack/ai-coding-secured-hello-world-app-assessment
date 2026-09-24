@@ -1,0 +1,152 @@
+[
+  {
+    "id": "10.6",
+    "title": "Reports",
+    "acceptance_criteria": [
+      "10.6.1 Lead Agency shall be able to generate a. Undertakings Requirement Approval Status Report. This report gives an overview of the status of requests for companies/firms by the requesting agency. The report also has information such as the approval dates by the various stakeholders given that each request is routed through multiple agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency, Submission From Dates and Current Status. b. Essential Firms (by Agency) Report. This report generates the list of firms by Requesting Agencies. When generating the report, users shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency and Allocated From Dates. c. Essential Firms (by Company) Report. This report generates the list of firms by company/firm. The report shall show if the Company is \u2018Individual\u2019 or \u2018Shared\u2019, and if it is \u2018Shared\u2019, it shall show the list of agencies that have registered the company. When generating the report, users shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Coordinating Agency and the Allocated from dates. d. Undertakings Readiness (by Agency) Report. This report generates a summary of firms\u2019 readiness covering the E-Plan and Exercise status by Requesting Agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. e. Undertakings Readiness (by Company) Report. This report generates a summary of firms\u2019 readiness covering the E-Plan and Exercise status by company/firm. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. f. Essential Firm Security Clearance Status Report. This report generates the status of security clearance of companies. When generating the report, users shall be able to select the clearance status (e.g. all status, submitted, approved, pending, rejected). There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and Security Clearance. g. Essential Firm Security Re-Clearance Report. This report generates the list of companies that are subjected to security re-clearance. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm, Security Expiry Date, Re-clearance status. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "10.6.2 h. Schedule of Service Report. This report generates a listing of the Schedule of Service of the firms. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. i. Outstanding Service Acceptance. This report generated the list of outstanding service acceptance after TDPCUs have been served. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. Lead Agency shall be able to export/download the reports. 11. MHA OFFICE USER STORY"
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "11.1",
+    "title": "Manage Security Clearance",
+    "acceptance_criteria": [
+      "11.1.1 Upon CRO(Undertakings)\u2019s submission of request for security clearance, system shall generate an email to inform MHA Office rep of a task pending his/her action.",
+      "11.1.2 Upon clicking on the Manage Security Clearance module, system shall display a summary of all security clearance tasks and also shows basic information of each task. By default, all requests/tasks shall be displayed and MHA Office rep shall be able to display them based on the selected status, i.e. 'By-pass', 'Cleared', 'Rejected', or 'Request clarification'.",
+      "11.1.3 When MHA Office rep clicks on each task, system shall display information of the requests and attachments included in the task. There shall be a function for him/her to export/download the information. He/she shall be able to download the ACRA files included by CRO(Undertakings) via the Manage Undertaking Requirements module.",
+      "11.1.4 Each task shall have a status. a. b. New. This is the default status for all new requests.",
+      "11.1.5 RFQ No. DEFNGPP7126100138 \uf0a7 An email notification shall be sent to inform CRO(Undertakings) of the status. If the security clearance expiry date is updated by MHA Office, the email shall inform CRO(Undertakings) of this expiry date. d. Request clarification. MHA Office rep shall be able to ask for clarification (free text field). An email notification shall be sent to inform CRO(Undertakings) of MHA Office\u2019s clarification request. System shall auto set the status to \u2018Request clarification\u2019 and the task shall be routed back to CRO(Undertakings) for follow-up. e. Reply to Clarification Request. CRO(Undertakings) shall be able to reply to MHA Office (free text field). An email notification shall be sent to inform MHA Office of CRO(Undertakings)\u2019s reply. System shall auto set the status to \u2018Reply to Clarification\u2019 and the task shall be routed back to MHA Office for follow-up. f. Rejected. MHA Office rep shall be able to set the request to \u2018Rejected\u2019 and select the appropriate reason for rejection, e.g. Incomplete information, Incomplete documents, Company clearance not successful, Personnel clearance not successful, Others. When \u2018Others\u2019 is selected, system shall require MHA Office rep to state the reasons (free text field). An email notification shall be sent to inform CRO(Undertakings) that the request is rejected, the reason for rejection and any additional remarks indicated by MHA Office rep. g. Re-Submitted. For rejected request, the task shall be routed back to CRO(Undertakings) for follow-up. CRO(Undertakings) shall be able to make amendments to the security clearance request, attach new documents and re- submit the request to MHA Office. The status shall be updated as \u2018Re- Submitted\u2019 automatically. An email notification shall be sent to inform MHA Office that CRO(Undertakings) has re-submitted an existing request. h. By-Pass. For task that have not been set to \u2018Cleared\u2019 status, Chief Controller Office can select 'By-Pass'. All requests with \u2018By-Pass\u2019 status are to be made similarly to how \u2018Cleared\u2019 requested are managed. MHA Office rep shall be able to view all past and current requests that have been routed to them. He/She shall be able to export/download the information. a. System shall have filter and sort functions for new and existing undertakings' security request (by Ministry/Agency, by date e.g. month/Year, by Company Name and UEN). b. System shall have search function (by name of Ministry/Agency; by Company Name and UEN, by date of approval of registration and de- registration). c. MHA Office rep shall be able to list all the requests that are pending clearance and have an indication that it is pending clearance. Requests with status \u2018New\u2019, \u2018Processing\u2019, \u2018Reply to Clarification\u2019, \u2018Re-Submitted\u2019 are considered as pending clearance. d. MHA Office rep shall be able to list all undertakings that are pending security clearance, and have additional details such status, date of request, date of last action taken for internal analysis on the duration taken for clearance. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) e. f. g. h. i. RFQ No. DEFNGPP7126100138 MHA Office rep shall be able to list all undertakings registered by the Ministry/Agency, Date of Registration. MHA Office rep shall be able to list all undertakings that are security-cleared and by \u2018Date of Clearance\u2019. MHA Office rep shall be able to list all undertakings that are security-cleared and are registered by the different Ministry/Agency, Lead Agency/Sector Lead, Coordinating Agency. System shall have filter and sort functions for undertakings that is/are de- registered (by Ministry/Agency, by Date e.g. month/Year, by Company Name and UEN). MHA Office rep shall be able to list all undertakings that are de-registered by Ministry/Agency and the date of de-registration. 12. APPROVING OFFICER(UNDERTAKING) USER STORY"
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "12.1",
+    "title": "Approve Compensation",
+    "acceptance_criteria": [
+      "12.1.1 System shall generate and trigger an email to Approving Officer(Undertaking) to notify him/her there is a compensation case pending approval. If the case is not approved, an email shall be sent to Approving Officer(Undertaking) every 7-day interval to remind him/her of the outstanding cases.",
+      "12.1.2 Approving Officer(Undertaking) shall be allowed to verify various types of compensation, i.e. Full, Partial, Appeal for Full, and Appeal for Partial.",
+      "12.1.3 Approving Officer(Undertaking) shall be able to a. View Requisition Plan. b. View Partial acceptance of Services Payment Details. c. View compensation details, e.g. description, service category, quantity, unit rate, amount requested, offered amount, GST status. Update the fund objects (e.g. G/L account, Commitment Item, Funds Centre, Cost Centre, etc). This is applicable only for MINDEF/SAF. e. Approve single/multiple compensation cases. Reject single/multiple compensation cases and state the reason(s) for the rejection.",
+      "12.1.4 Approving Officer(Undertaking) shall be able to generate Undertakings Requisition Compensation Report. This report generates compensation report for undertakings requisition plan. It shall allow users to select the Requisition Plan name, Compensation Status, etc. d. f. a. \fOFFICIAL (CLOSED)",
+      "12.1.5 b. Undertakings Requisition Payment Report (Homefront). This report generates payment report for undertakings requisition plan; consists of Homefront payments that go through manual payment. It shall allow users to select the Requisition Plan name, etc. c. Undertakings Requisition Payment Report (MINDEF/SAF). This report generates payment report for undertakings requisition plan; consists of MINDEF/SAF payment processed by DFO\u2019s Payment Service Hub (PSH) or Enterprise System (ES). It shall allow users to select the Requisition plan name, etc.",
+      "12.1.6 Approving Officer(Undertaking) shall be able to export/download the reports."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.1",
+    "title": "Manage Annual Exercise Plans",
+    "acceptance_criteria": [
+      "13.1.1 System shall display a summary of all ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025).",
+      "13.1.2 The Previous and Last CR Exercise Dates shall be updated automatically after ReqCen has completed their CR exercise.",
+      "13.1.3 System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date.",
+      "13.1.4 System shall show the most current Planned Exercise Workyear if this information is updated by the respective Controller.",
+      "13.1.5 Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.2",
+    "title": "Manage Compensation Rates",
+    "acceptance_criteria": [
+      "13.2.1 System shall display the CR Type, CR category (by description and by code) and various types of compensation rates, e.g. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED) RFQ No. DEFNGPP7126100138",
+      "13.2.2 a. Asset Hourly Rate without Operators b. Asset Half-Daily without Operators c. Asset Daily Rate without Operators d. Undertaking Hourly Rate with Operators e. Undertaking Half-Daily with Operators f. Undertaking Daily Rate with Operators For each record, system shall have an \u2018Info\u2019 button and when mouse over the \u2018Info\u2019 button, Chief Controller Office shall be able to view the details such as the rates that are pending verification, personnel who submitted the rates and the date of submission.",
+      "13.2.3 Chief Controller Office shall be able to export/download the information.",
+      "13.2.4 Chief Controller Office shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.3",
+    "title": "Manage Security Clearance",
+    "acceptance_criteria": [
+      "13.3.1 Upon clicking on the Manage Security Clearance module, system shall display a summary of all security clearance tasks.",
+      "13.3.2 For each task, system shall show basic information, e.g. UEN, Company Name, Requesting Agency, Date of Submission for Clearance, Clearance Status, etc.",
+      "13.3.3 For tasks that are still pending clearance, Chief Controller shall be able to click on the UEN or Company Name to launch the task for further processing. He/She shall be able to select \u2018By-Pass\u2019, enter a reference number, security clearance/by-pass date which are mandatory fields. He shall also be able to enter comments (free text) and this is not a mandatory field. Upon completion, he/she shall click on \u2018Submit\u2019 or he/she shall click on \u2018Back\u2019 to return to the previous page.",
+      "13.3.4 Chief Controller Office shall be able to search using keywords such as UEN and Company Name. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field.",
+      "13.3.5 Upon completion of the \u2018By-Pass\u2019 security clearance process, an email notification shall be sent to inform MHA Office and the relevant CRO(Undertakings) of the status. An email notification shall also be sent to inform Controller Undertakings Office / Controller Undertakings to follow-up on the next step, i.e. approve the undertaking requirement.",
+      "13.3.6 Chief Controller Office shall be able to export/download all tasks and details of each task."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.4",
+    "title": "Approve Requisition Plans",
+    "acceptance_criteria": [
+      "13.4.1 At the Approve Requisition Plan module, Chief Controller Office shall be able to choose \u2018Requisition Plan (Assets)\u2019 or \u2018Requisition Plan (Undertakings).",
+      "13.4.2 System shall display all Requisition Plans and grouped them by tabs according to the status of each plan, i.e. 'Pending Approval', 'Approved', and 'Rejected'. Plans that were approved and committed by CROs shall also be listed and displayed as part of \u2018Approved\u2019 Requisition Plans.",
+      "13.4.3 For Requisition Plan (Assets), a. For each plan, system shall show detailed information such as Requisition Plan ID and Name, Description, Unit, ReqCen, Requisition Plan Type, Start Date, End Date, Approved/Rejected by, Approved/Rejected on, Duration, Mobilisation Type, Number of CR Owners Involved, Number of Assets Involved, Number of Owners Activated for the first time, Primary and Secondary EMA, Participating CR Owners and their UEN, Earmarked CR Category and Quantity for each CR Owner. b. Upon clicking on a specific requisition plan, system shall display the actual requisition plan and display all information related to the plan. c. For plans that are pending approval, Chief Controller Office shall be able to approve or reject the plan. He/She shall be required to select the Approval Type (i.e. \u2018by Minister\u2019 or \u2018by President\u2019), Approval Reference, Approval Reference Date and Remarks (mandatory when \u2018Reject\u2019 is selected\u2019).",
+      "13.4.4 For Requisition Plan (Undertakings), a. For each plan, system shall show detailed information such as Requisition Plan ID, Company/Firm and their UEN, Requesting Agency, Requisition Plan Type, Start Date, End Date, Approved/Rejected by, Approved/Rejected on, Duration, Number of Companies/Firms Involved. b. Upon clicking on a specific requisition plan, system shall display the actual requisition plan and display all information related to the plan. c. For plans that are pending approval, Chief Controller Office shall be able to approve or reject the plan. He/She shall be required to select the Approval Type (i.e. \u2018by Minister\u2019 or \u2018by President\u2019), Approval Reference, Approval Reference Date and Remarks (mandatory when \u2018Reject\u2019 is selected\u2019).",
+      "13.4.5 There shall be an option to mass approve or reject multiple requisition plans.",
+      "13.4.6 Chief Controller Office shall be able to export/download the information.",
+      "13.4.7 Chief Controller Office shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.5",
+    "title": "Manage Requisition Plan",
+    "acceptance_criteria": [
+      "13.5.1 Chief Controller Office shall be above to view Requisition Plans.",
+      "13.5.2 Chief Controller Office shall be able to export/download the details of Requisition Plans.",
+      "13.5.3 Chief Controller Office shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.6",
+    "title": "Manage CR Owners Information",
+    "acceptance_criteria": [
+      "13.6.1 As Chief Controller Office, I want to Manage CR Owners Information through viewing relevant CR owners information so that I can have an overview of the assets owned, assets allocated to support the respective ReqCens, asset allocation and de- allocation history, past participation in CR exercises etc.",
+      "13.6.2 The CR Owners shall be segregated into \u2018Allocated CR Owners\u2019 and \u2018Unallocated CR Owners\u2019. a. b. records.",
+      "13.6.3 System shall include the following in the header information: UEN number, Company Name, Status of the company, Mailing Address, Office/Site Address, GST Registration Number, Office Contact Number, Other Contact Number (e.g.",
+      "13.6.4 Mobile Number), Email Address etc.",
+      "13.6.5 System shall include the following for ReqCen-level information: CR Owner\u2019s POC names, their mobile number, office number, fax number and email address.",
+      "13.6.6 ratio. E.g. if a CR Owner owns 10 assets and only 5 are allocated, the allocation ratio is 50%. c. \u2018ReqCen Allocation History\u2019 shall show the Allocation Date and the corresponding ReqCen. It shall provide a summary of the total allocation records. d. \u2018De-allocation History\u2019 shall show the De-allocation Date and the corresponding ReqCen and Reason for De-allocation.",
+      "13.6.7 Chief Controller Office shall be able to view the CR Mobilisation Exercise History of each CR Owner. The information shall include ReqCen, Requisition Plan Description, Requisition Plan Type, Mobilisation Date.",
+      "13.6.8 Chief Controller Office shall be able to view additional information related to Shared CR Owners status. The information shall include Major ReqCen and Shared ReqCens.",
+      "13.6.9 Chief Controller Office shall be able to view all the CR assets of the CR Owners.",
+      "13.6.10 Information shall include CR Type, CR Category, Registration Number, Chassis Number, Engine Number, etc.",
+      "13.6.11 System shall have a function to download a template containing all the essential fields that shall be populated to support mass load CR Owner Details into CRIPS.",
+      "13.6.12 System shall have a function to download all the CR assets of the CR Owners.",
+      "13.6.13 System shall have a function to download all the CR Owners details. There shall be controls to restrict the number of records that can be downloaded each time. This control shall be managed via App Setting or Site Properties."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.7",
+    "title": "Assign EE to ReqCen",
+    "acceptance_criteria": [
+      "13.7.1 Chief Controller Office shall be able to view the assignment of EEs to ReqCens.",
+      "13.7.2 Chief Controller Officer shall be able to view details of EE\u2019s CR requirements.",
+      "13.7.3 Chief Controller Office shall be able to export/download the information.",
+      "13.7.4 Chief Controller Office shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 2
+  },
+  {
+    "id": "13.8",
+    "title": "Appeal to RORCB",
+    "acceptance_criteria": [
+      "13.8.1 RFQ No. DEFNGPP7126100138 Upon clicking on the Appeal to RORCB module, system shall display a summary of all appeals rejected by CR Owners/Companies/Firms within 8 weeks from Controller CRIC\u2019s offer. The cases shall be segregated by \u2018Assets\u2019 and \u2018Undertakings\u2019.",
+      "13.8.2 System shall display all RORCB cases and grouped them by tabs according to the status of each case, i.e. 'Open\u2019, \u2018Pending\u2019, and 'Closed'.",
+      "13.8.3 For Asset cases, system shall display details such as CR Owner Name and its UEN, CR Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).",
+      "13.8.4 For Undertaking cases, system shall display details such as the Company/Firm Name and its UEN, Service Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).",
+      "13.8.5 System shall have an \u2018Action\u2019 button for each case, and upon clicking it, system shall display appeal details for the selected case. a. Case ID field is not enabled for user input. Requesting Amount and Ordered Amount fields are enabled only if appeal status is \u2018Open\u2019 or \u2018Pending\u2019. b. \u2018Upload Supporting Document\u2019 function is enabled only if the appeal status is \u2018Open\u2019 or \u2018Pending\u2019. c. \u2018List of supporting documents\u2019 function is displayed only if the appeal status is \u2018Pending\u2019 or \u2018Closed\u2019. d. There shall be a \u2018Generate Form\u2019 function and upon clicking on this, system shall open a pop-up window with a list of form options available for generation in pdf format. The Competent Authority name will be populated in the pdf document is required. This function is only available if the appeal is \u2018Open\u2019 or \u2018Pending\u2019. e. There shall be a \u2018Generate Case ID\u2019 function and upon clicking on this, system shall auto generate a case number in the format of YYYY-XXXXXX where YYYY is the current calendar year and XXXXXX is a running number.",
+      "13.8.6 The case number shall be populated to the Case ID field. The \u2018Generate Case ID\u2019 function is only available if the appeal is \u2018Open\u2019. f. System shall allow Chief Controller Office to update details related to RORCB hearing. There shall be a \u2018Add Hearing\u2019 function and upon clicking on this, system shall open a pop-up window and Chief Controller Office shall be able to enter hearing related details, including multiple hearing dates. The \u2018Add Hearing\u2019 function is only available if the appeal is \u2018Open\u2019 or \u2018Pending\u2019. g. System shall allow Chief Controller Office to delete hearing records. This function is only available if the appeal is pending with hearing. h. System shall allow Chief Controller Office to update the case after the hearing is completed and decision is finalised. He/She shall update the ordered amount and submit this appeal for payment. System shall auto update the appeal set as \u2018Closed\u2019.",
+      "13.8.7 Chief Controller Office shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 2
+  }
+]

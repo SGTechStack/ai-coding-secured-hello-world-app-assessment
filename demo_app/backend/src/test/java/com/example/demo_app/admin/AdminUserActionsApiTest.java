@@ -20,7 +20,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -212,7 +211,7 @@ class AdminUserActionsApiTest {
   @Test
   void aUserIsForbiddenAndNothingChanges() throws Exception {
     MockHttpSession john = logIn(mvc);
-    for (ResultActions forbidden : actionsOn(targetId, john).toList()) {
+    for (ResultActions forbidden : actionsOn(targetId, john)) {
       forbidden.andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("FORBIDDEN"));
     }
     assertUnchanged();
@@ -220,7 +219,7 @@ class AdminUserActionsApiTest {
 
   @Test
   void anonymousIsUnauthorizedAndNothingChanges() throws Exception {
-    for (ResultActions unauthorized : actionsOn(targetId, null).toList()) {
+    for (ResultActions unauthorized : actionsOn(targetId, null)) {
       unauthorized
           .andExpect(status().isUnauthorized())
           .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -279,8 +278,10 @@ class AdminUserActionsApiTest {
     assertThat(auditLines(output, "USER_ROLE_CHANGED")).isEmpty();
   }
 
-  private Stream<ResultActions> actionsOn(long id, MockHttpSession session) throws Exception {
-    return Stream.of(setStatus(id, false, session), setRole(id, "ADMIN", session), deleteUser(id, session));
+  /** Disable, promote and delete account {@code id} with {@code session} ({@code null}: none). */
+  private List<ResultActions> actionsOn(long id, MockHttpSession session) throws Exception {
+    return List.of(
+        setStatus(id, false, session), setRole(id, "ADMIN", session), deleteUser(id, session));
   }
 
   private void assertUnchanged() throws Exception {
@@ -296,7 +297,8 @@ class AdminUserActionsApiTest {
   }
 
   private ResultActions setRole(long id, String role, MockHttpSession session) throws Exception {
-    return send(patch("/api/v1/admin/users/{id}/role", id), "{\"role\": \"" + role + "\"}", session);
+    return send(
+        patch("/api/v1/admin/users/{id}/role", id), "{\"role\": \"" + role + "\"}", session);
   }
 
   private ResultActions deleteUser(long id, MockHttpSession session) throws Exception {
@@ -312,7 +314,7 @@ class AdminUserActionsApiTest {
     return mvc.perform(session == null ? json : json.session(session));
   }
 
-  /** A login from its own address, so refused logins never count towards another test's throttle. */
+  /** Logs in from a fresh address, so a refused login never feeds another test's throttle. */
   private ResultActions login(String username) throws Exception {
     return mvc.perform(
         loginRequest(mvc, credentialsJson(username, PASSWORD)).with(fromIp(uniqueIp())));

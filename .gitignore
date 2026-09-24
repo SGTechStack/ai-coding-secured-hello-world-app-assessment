@@ -4,3 +4,6 @@ dist/
 target/
 frontend/node_modules/
 frontend/dist/
+.kiro/
+.claude/
+.agents/

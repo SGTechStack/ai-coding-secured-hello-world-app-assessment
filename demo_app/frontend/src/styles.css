@@ -109,3 +109,9 @@
     animation: none;
   }
 }
+
+/* Lock page scrolling while a modal dialog (AlertDialog) is open. A stylesheet rule, not an
+   injected <style>, so the CSP's style-src 'self' allows it. */
+body:has(dialog[open]) {
+  overflow: hidden;
+}

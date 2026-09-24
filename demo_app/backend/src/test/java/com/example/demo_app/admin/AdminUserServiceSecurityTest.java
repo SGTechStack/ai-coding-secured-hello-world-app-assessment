@@ -3,6 +3,7 @@ package com.example.demo_app.admin;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.demo_app.user.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,6 +35,18 @@ class AdminUserServiceSecurityTest {
   @WithMockUser(roles = "USER")
   void aUserIsDenied() {
     assertThatThrownBy(service::listUsers).isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  @WithMockUser(roles = "USER")
+  void aUserIsDeniedEveryAccountAction() {
+    // Refused before the method runs, so the missing request and unknown id never matter.
+    assertThatThrownBy(() -> service.setEnabled(1L, false, "user", null))
+        .isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> service.setRole(1L, Role.ADMIN, "user", null))
+        .isInstanceOf(AccessDeniedException.class);
+    assertThatThrownBy(() -> service.deleteUser(1L, "user", null))
+        .isInstanceOf(AccessDeniedException.class);
   }
 
   @Test

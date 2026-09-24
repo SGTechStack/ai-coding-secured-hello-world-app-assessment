@@ -96,7 +96,9 @@ frame-ancestors 'none'; require-trusted-types-for 'script'
 
 (one line in the header; `<API origin>` is the origin of `VITE_API_BASE_URL`). No directive is
 relaxed: the app and its dependencies need no inline script, inline `<style>` or Trusted Types
-exemption. `index.html` has no inline script: the pre-paint theme script is
+exemption. The admin page's delete confirmation is a native `<dialog>` (`showModal()`) rather
+than Radix `AlertDialog`, because Radix's scroll lock injects a runtime `<style>` element that
+`style-src 'self'` blocks; the scroll lock is a stylesheet rule instead. `index.html` has no inline script: the pre-paint theme script is
 `frontend/public/theme-init.js`, loaded as a blocking `<script src>` in `<head>`. The Vite dev
 server (`npm run dev`) sends none of these headers, because React Refresh injects an inline
 script, so CSP problems only show up on the production build. That is why the e2e suite runs

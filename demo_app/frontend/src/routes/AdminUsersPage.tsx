@@ -1,9 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
-import { useId } from "react";
-import { adminUsersQueryOptions, type AdminUser } from "../api/admin";
+import { useId, useState } from "react";
+import {
+  adminUsersQueryOptions,
+  deleteUser,
+  setUserEnabled,
+  setUserRole,
+  useAdminUserAction,
+  type AdminUser,
+} from "../api/admin";
 import { meQueryOptions } from "../api/auth";
+import { ApiError } from "../api/client";
 import { ErrorAlert } from "@/components/ErrorAlert";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,6 +33,8 @@ const createdFormat = new Intl.DateTimeFormat(undefined, {
 export function AdminUsersPage() {
   const { data: me } = useQuery(meQueryOptions);
   const users = useQuery(adminUsersQueryOptions);
+  // The latest failed row action; cleared when the next one starts.
+  const [actionFailure, setActionFailure] = useState<string | null>(null);
 
   return (
     <Card className="w-full max-w-5xl">
@@ -44,8 +55,13 @@ export function AdminUsersPage() {
             Loading users...
           </p>
         )}
+        {actionFailure && <ErrorAlert>{actionFailure}</ErrorAlert>}
         {users.data && (
-          <UserTable users={users.data} currentUsername={me?.username} />
+          <UserTable
+            users={users.data}
+            currentUsername={me?.username}
+            onFailure={setActionFailure}
+          />
         )}
       </CardContent>
     </Card>
@@ -55,9 +71,11 @@ export function AdminUsersPage() {
 function UserTable({
   users,
   currentUsername,
+  onFailure,
 }: {
   users: AdminUser[];
   currentUsername: string | undefined;
+  onFailure: (message: string | null) => void;
 }) {
   const headerClass = "px-3 py-2 text-left font-medium text-muted-foreground";
   return (
@@ -95,6 +113,7 @@ function UserTable({
               key={user.id}
               user={user}
               isSelf={user.username === currentUsername}
+              onFailure={onFailure}
             />
           ))}
         </tbody>
@@ -103,7 +122,15 @@ function UserTable({
   );
 }
 
-function UserRow({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
+function UserRow({
+  user,
+  isSelf,
+  onFailure,
+}: {
+  user: AdminUser;
+  isSelf: boolean;
+  onFailure: (message: string | null) => void;
+}) {
   const cellClass = "px-3 py-2 align-top";
   return (
     <tr className="border-b last:border-b-0">
@@ -120,40 +147,118 @@ function UserRow({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
         </time>
       </td>
       <td className={cellClass}>
-        {isSelf && <OwnAccountActions user={user} />}
+        <RowActions user={user} isSelf={isSelf} onFailure={onFailure} />
       </td>
     </tr>
   );
 }
 
+/** What an admin sees when an action fails. */
+function actionFailureMessage(error: Error, username: string): string {
+  if (error instanceof ApiError && error.code === "USER_NOT_FOUND") {
+    return `${username} no longer exists.`;
+  }
+  if (error instanceof ApiError && error.code === "SELF_ACTION_NOT_ALLOWED") {
+    return SELF_ACTION_NOTE;
+  }
+  return `Unable to change ${username}. Please try again later.`;
+}
+
+const SELF_ACTION_NOTE = "You can't change your own account.";
+
 /**
- * The row actions, disabled on the admin's own account: an admin can't disable, demote or delete
- * themselves (the API refuses it too), which also means at least one admin always remains. The
- * explanation is each button's accessible description.
+ * A row's actions: enable/disable, make admin/user, and delete after confirming in an
+ * `AlertDialog`. Each success refetches the list. On the admin's own row they are disabled, with
+ * the explanation as each button's accessible description: an admin can't disable, demote or
+ * delete themselves (the API refuses it too), so at least one admin always remains.
  */
-function OwnAccountActions({ user }: { user: AdminUser }) {
+function RowActions({
+  user,
+  isSelf,
+  onFailure,
+}: {
+  user: AdminUser;
+  isSelf: boolean;
+  onFailure: (message: string | null) => void;
+}) {
   const noteId = useId();
+  const action = useAdminUserAction();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  function run(change: () => Promise<unknown>) {
+    onFailure(null);
+    action.mutate(change, {
+      onSuccess: () => setConfirmingDelete(false),
+      onError: (error) => {
+        setConfirmingDelete(false);
+        onFailure(actionFailureMessage(error, user.username));
+      },
+    });
+  }
+
+  const disabled = isSelf || action.isPending;
+  const describedBy = isSelf ? noteId : undefined;
   return (
     <div className="flex flex-col gap-1">
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" disabled aria-describedby={noteId}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={disabled}
+          aria-describedby={describedBy}
+          onClick={() => run(() => setUserEnabled(user.id, !user.enabled))}
+        >
           {user.enabled ? "Disable" : "Enable"}
         </Button>
-        <Button size="sm" variant="outline" disabled aria-describedby={noteId}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={disabled}
+          aria-describedby={describedBy}
+          onClick={() =>
+            run(() =>
+              setUserRole(user.id, user.role === "ADMIN" ? "USER" : "ADMIN"),
+            )
+          }
+        >
           {user.role === "ADMIN" ? "Make user" : "Make admin"}
         </Button>
         <Button
           size="sm"
           variant="destructive"
-          disabled
-          aria-describedby={noteId}
+          disabled={disabled}
+          aria-describedby={describedBy}
+          onClick={() => setConfirmingDelete(true)}
         >
           Delete
         </Button>
       </div>
-      <p id={noteId} className="text-xs text-muted-foreground">
-        You can't change your own account.
-      </p>
+      {isSelf && (
+        <p id={noteId} className="text-xs text-muted-foreground">
+          {SELF_ACTION_NOTE}
+        </p>
+      )}
+      <AlertDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title={`Delete ${user.username}?`}
+        description="This permanently deletes the account and signs it out everywhere. It can't be undone."
+      >
+        <Button
+          variant="outline"
+          disabled={action.isPending}
+          onClick={() => setConfirmingDelete(false)}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="destructive"
+          disabled={action.isPending}
+          onClick={() => run(() => deleteUser(user.id))}
+        >
+          {action.isPending ? "Deleting..." : "Delete"}
+        </Button>
+      </AlertDialog>
     </div>
   );
 }

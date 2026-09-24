@@ -4,6 +4,7 @@ import static com.example.demo_app.auth.SpaAuthFlow.credentialsJson;
 import static com.example.demo_app.auth.SpaAuthFlow.fromIp;
 import static com.example.demo_app.auth.SpaAuthFlow.loginRequest;
 import static com.example.demo_app.auth.SpaAuthFlow.register;
+import static com.example.demo_app.auth.SpaAuthFlow.setEnabled;
 import static com.example.demo_app.auth.SpaAuthFlow.uniqueIp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,7 +29,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -59,8 +59,6 @@ class LockoutApiTest {
   @Autowired private MutableClock clock;
 
   @Autowired private ObjectMapper objectMapper;
-
-  @Autowired private JdbcTemplate jdbc;
 
   @Autowired private AuthenticationManager authenticationManager;
 
@@ -175,7 +173,7 @@ class LockoutApiTest {
 
   @Test
   void aDisabledAccountGetsTheIdentical401() throws Exception {
-    jdbc.update("UPDATE user_account SET enabled = FALSE WHERE username = ?", username);
+    setEnabled(mvc, username, false);
 
     JsonNode disabled = unauthorized(login(PASSWORD));
     JsonNode wrongPassword = unauthorized(login("wrong password"));
@@ -195,7 +193,7 @@ class LockoutApiTest {
     assertThatThrownBy(() -> authenticate(PASSWORD)).isInstanceOf(LockedException.class);
 
     clock.advance(Duration.ofMinutes(16));
-    jdbc.update("UPDATE user_account SET enabled = FALSE WHERE username = ?", username);
+    setEnabled(mvc, username, false);
     assertThatThrownBy(() -> authenticate("wrong password"))
         .isInstanceOf(BadCredentialsException.class);
     assertThatThrownBy(() -> authenticate(PASSWORD)).isInstanceOf(DisabledException.class);

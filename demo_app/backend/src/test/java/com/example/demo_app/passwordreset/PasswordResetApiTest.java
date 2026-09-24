@@ -5,6 +5,7 @@ import static com.example.demo_app.auth.SpaAuthFlow.fromIp;
 import static com.example.demo_app.auth.SpaAuthFlow.logIn;
 import static com.example.demo_app.auth.SpaAuthFlow.loginRequest;
 import static com.example.demo_app.auth.SpaAuthFlow.register;
+import static com.example.demo_app.auth.SpaAuthFlow.setEnabled;
 import static com.example.demo_app.auth.SpaAuthFlow.uniqueIp;
 import static com.example.demo_app.auth.SpaAuthFlow.withCsrf;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -81,7 +82,7 @@ class PasswordResetApiTest {
       throws Exception {
     String known = newUser();
     String disabled = newUser();
-    jdbc.update("UPDATE user_account SET enabled = FALSE WHERE username = ?", disabled);
+    setEnabled(mvc, disabled, false);
 
     for (String body :
         List.of(

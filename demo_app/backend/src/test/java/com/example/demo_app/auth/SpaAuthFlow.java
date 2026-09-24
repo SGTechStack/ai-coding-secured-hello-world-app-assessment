@@ -2,10 +2,12 @@ package com.example.demo_app.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.net.HttpCookie;
@@ -156,6 +158,41 @@ public final class SpaAuthFlow {
                     registrationJson(username, username + "@example.com", "Test", password))
                 .with(fromIp(uniqueIp())))
         .andExpect(status().isCreated());
+  }
+
+  /**
+   * The id of the account named {@code username}, read from the admin user list with the admin
+   * {@code session}. Fails if there is no such row.
+   */
+  public static long userId(MockMvc mvc, MockHttpSession session, String username)
+      throws Exception {
+    String body =
+        mvc.perform(get("/api/v1/admin/users").session(session))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    for (JsonNode row : JSON.readTree(body)) {
+      if (row.get("username").asText().equals(username)) {
+        return row.get("id").asLong();
+      }
+    }
+    throw new AssertionError("no admin list row for " + username);
+  }
+
+  /**
+   * Disables ({@code enabled = false}) or re-enables {@code username} through the admin API, as
+   * the bootstrap admin. Fails unless the API answers {@code 200}.
+   */
+  public static void setEnabled(MockMvc mvc, String username, boolean enabled) throws Exception {
+    MockHttpSession admin = logInAsAdmin(mvc);
+    long id = userId(mvc, admin, username);
+    mvc.perform(
+            withCsrf(mvc, patch("/api/v1/admin/users/{id}/status", id))
+                .session(admin)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json(Map.of("enabled", enabled))))
+        .andExpect(status().isOk());
   }
 
   private static String json(Object value) {

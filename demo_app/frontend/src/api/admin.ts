@@ -1,4 +1,8 @@
-import { queryOptions } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { Role } from "./auth";
 import { apiRequest } from "./client";
 
@@ -27,3 +31,43 @@ export const adminUsersQueryOptions = queryOptions({
   queryKey: ["admin", "users"],
   queryFn: listUsers,
 });
+
+/** Disables (`enabled: false`) or re-enables account `id`; resolves to the updated row. */
+export function setUserEnabled(
+  id: number,
+  enabled: boolean,
+): Promise<AdminUser> {
+  return apiRequest<AdminUser>(`/api/v1/admin/users/${id}/status`, {
+    method: "PATCH",
+    body: { enabled },
+  });
+}
+
+/** Gives account `id` the `role`; resolves to the updated row. */
+export function setUserRole(id: number, role: Role): Promise<AdminUser> {
+  return apiRequest<AdminUser>(`/api/v1/admin/users/${id}/role`, {
+    method: "PATCH",
+    body: { role },
+  });
+}
+
+/** Deletes account `id` (the API answers an empty `204`). */
+export function deleteUser(id: number): Promise<void> {
+  return apiRequest<void>(`/api/v1/admin/users/${id}`, { method: "DELETE" });
+}
+
+/**
+ * A mutation that runs one admin action (e.g. `() => setUserEnabled(id, false)`) and, once it
+ * succeeds, refetches the user list, so the table always shows what the server now holds. The
+ * API refuses actions on the caller's own account, whatever the UI does.
+ */
+export function useAdminUserAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (action: () => Promise<unknown>) => action(),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: adminUsersQueryOptions.queryKey,
+      }),
+  });
+}

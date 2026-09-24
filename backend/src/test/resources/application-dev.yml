@@ -1,0 +1,16 @@
+# Test-only overrides, layered over the dev document in
+# src/main/resources/application.yml (a profile-specific file wins over a
+# profile document in application.yml, and this file does not shadow it).
+#
+# Why this exists: dev now defaults app.admin.password to blank, which makes
+# AdminBootstrapRunner generate a random password per boot. That is right for a
+# developer running the app, but a test asserting "the seeded password is
+# hashed, not stored plain" needs to know what the password is. Pinning it here
+# keeps that assertion meaningful and keeps it out of main resources.
+#
+# The generated-password path is covered separately by
+# AdminBootstrapRunnerTest, which overrides this back to blank.
+app:
+  admin:
+    username: test-admin
+    password: test-admin-password-1234

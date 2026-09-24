@@ -40,9 +40,12 @@ export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
 
   const isSubmitting = state.kind === "submitting";
 
-  function fillDemoAdminCredentials() {
+  // Username only. The dev admin password is generated per backend boot and
+  // printed to the backend log, so there is no longer a fixed value to prefill
+  // — which is the point: a password this panel could hardcode would be a
+  // password an attacker could read here too.
+  function fillDemoAdminUsername() {
     setUsername("admin");
-    setPassword("password1234");
   }
 
   return (
@@ -63,12 +66,12 @@ export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
             <div className="demo-credentials-row">
               <dt>Password</dt>
               <dd>
-                <code>password1234</code>
+                generated per backend restart — copy it from the backend console
               </dd>
             </div>
           </dl>
-          <button type="button" className="btn-link demo-credentials-fill" onClick={fillDemoAdminCredentials}>
-            Fill in demo credentials
+          <button type="button" className="btn-link demo-credentials-fill" onClick={fillDemoAdminUsername}>
+            Fill in demo username
           </button>
         </div>
       )}

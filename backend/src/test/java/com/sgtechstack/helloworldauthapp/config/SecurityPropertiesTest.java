@@ -60,8 +60,20 @@ class SecurityPropertiesTest {
                 "/api/auth/login",
                 "/api/auth/logout",
                 "/api/auth/password-reset/request",
-                "/api/auth/password-reset/confirm",
-                "/h2-console/**"
+                "/api/auth/password-reset/confirm"
         );
+    }
+
+    @Test
+    void whitelistDoesNotExposeTheH2Console() {
+        // The console's unauthenticated access is granted by
+        // H2ConsoleSecurityConfig, which is @Profile("dev"), so that the rule
+        // and the servlet share one switch. Whitelisting it here would put an
+        // unauthenticated full-SQL surface into every profile again — which is
+        // what this assertion exists to prevent, since the entry looks
+        // harmless next to the others.
+        assertThat(securityProperties.whitelist())
+                .as("H2 console access must be profile-gated, not whitelisted application-wide")
+                .doesNotContain("/h2-console/**");
     }
 }

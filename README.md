@@ -79,12 +79,35 @@ on your own branch.
 ## Running the App
 
 ```powershell
-# backend/ — http://localhost:8080, dev admin: admin / password1234
+# backend/ — http://localhost:8080
 mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
 
 # frontend/ — http://localhost:3000
 npm run dev
 ```
+
+### Dev admin credentials
+
+The username is `admin`. There is no fixed password: if `APP_ADMIN_PASSWORD`
+is unset, the backend generates one on each start and prints it at `WARN`:
+
+```
+No APP_ADMIN_PASSWORD set, so a random one was generated for this run only:
+
+    username: admin
+    password: <generated>
+```
+
+Copy it from the backend console. To pin it across restarts, set the variable:
+
+```powershell
+$env:APP_ADMIN_PASSWORD = "your-dev-password-at-least-12-chars"
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
+Outside the `dev` profile there is no default at all — `APP_ADMIN_USERNAME` and
+`APP_ADMIN_PASSWORD` are required and the application fails to start without
+them, so a deployment cannot boot with a guessable admin account.
 
 ### Walking the password reset flow locally
 

@@ -24,10 +24,11 @@ app:
     # frontend URL outside dev.
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
   admin:
-    # No default outside dev: a predictable initial admin password must
-    # never ship to a real deployment. The dev profile below supplies a
-    # documented, dev-only default so `mvn spring-boot:run -Pdev` works
-    # out of the box.
+    # Deliberately no defaults here. Both placeholders are unresolvable if
+    # the environment does not supply them, so a deployment that forgets to
+    # set admin credentials fails to start rather than booting with a
+    # guessable account. The dev profile below relaxes this, but only as far
+    # as a per-boot random password — never a fixed one.
     username: ${APP_ADMIN_USERNAME}
     password: ${APP_ADMIN_PASSWORD}
   security:
@@ -68,8 +69,14 @@ app:
           path: /api/admin/users/*
     # Routes reachable without authentication. Kept as small as possible:
     # only what a client needs before it has a session (registration,
-    # login, the CSRF token endpoint, health, password reset) plus the
-    # dev-only H2 console.
+    # login, the CSRF token endpoint, health, password reset).
+    #
+    # The H2 console is deliberately NOT here. It used to be, which meant
+    # an unauthenticated full-SQL surface was whitelisted in every profile
+    # on the argument that the servlet only exists in dev. The rule and the
+    # servlet are now gated by the same thing: H2ConsoleSecurityConfig is
+    # @Profile("dev"), so outside dev /h2-console/** is covered by neither
+    # the whitelist nor a url-guard and is therefore denied by default.
     whitelist:
       - /api/auth/register
       - /api/health
@@ -78,7 +85,6 @@ app:
       - /api/auth/logout
       - /api/auth/password-reset/request
       - /api/auth/password-reset/confirm
-      - /h2-console/**
 
 ---
 spring:
@@ -106,5 +112,17 @@ server:
 
 app:
   admin:
+    # The username is not a secret, so a stable dev default is fine.
     username: ${APP_ADMIN_USERNAME:admin}
-    password: ${APP_ADMIN_PASSWORD:password1234}
+    # Empty default, not a fixed password. AdminBootstrapRunner treats blank
+    # as "generate a random one for this boot and log it once", so `mvn
+    # spring-boot:run -Dspring-boot.run.profiles=dev` still works with no
+    # setup, but there is no published credential to try against a dev or
+    # demo instance that happens to be reachable. Set APP_ADMIN_PASSWORD to
+    # pin it to something stable across restarts.
+    #
+    # This blank-default trick is confined to dev on purpose: the base
+    # profile's placeholder has no default at all, so the generate path is
+    # structurally unreachable outside dev — an unset password there fails
+    # startup instead.
+    password: ${APP_ADMIN_PASSWORD:}

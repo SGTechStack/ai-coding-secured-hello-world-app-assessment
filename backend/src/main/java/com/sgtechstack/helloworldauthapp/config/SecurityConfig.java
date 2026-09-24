@@ -13,6 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyAuthoritiesMapper;
@@ -47,6 +48,10 @@ import org.springframework.web.cors.CorsConfigurationSource;
  * Session-fixation protection is Spring Security's default: the session ID
  * is rotated on successful authentication (ChangeSessionIdAuthenticationStrategy),
  * so no explicit override is configured below.
+ *
+ * This chain carries no CSRF exemptions and no relaxed frame-options. The H2
+ * console needs both, and gets them on its own dev-gated chain in
+ * {@link H2ConsoleSecurityConfig} rather than from concessions made here.
  *
  * <h2>Configuration-owned authorization</h2>
  *
@@ -165,7 +170,13 @@ public class SecurityConfig {
         return provider;
     }
 
+    /**
+     * The API chain. Ordered after {@link H2ConsoleSecurityConfig}'s dev-only
+     * chain (which claims {@code /h2-console/**} when that profile is active)
+     * so that everything else lands here.
+     */
     @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(
             HttpSecurity http,
             CorsConfigurationSource corsConfigurationSource,
@@ -192,20 +203,20 @@ public class SecurityConfig {
                         new IpThrottleFilter(ipLoginThrottle, objectMapper),
                         UsernamePasswordAuthenticationFilter.class
                 )
+                // No CSRF exemptions. The H2 console needs one (it posts plain
+                // HTML forms with no token), but it gets it on its own dev-only
+                // chain in H2ConsoleSecurityConfig rather than punching a hole
+                // in the chain that serves the real API.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(csrfRequestHandler)
-                        // H2 console posts plain HTML forms with no CSRF token and
-                        // is only ever registered when spring.h2.console.enabled=true
-                        // (the dev profile), so exempting it here has no effect
-                        // outside dev.
-                        .ignoringRequestMatchers("/h2-console/**")
                 )
-                // H2 console renders itself inside an iframe; same-origin framing
-                // is fine for a local dev-only tool.
-                .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
-                )
+                // Frame-options is left at Spring Security's DENY default. It
+                // was previously relaxed to sameOrigin application-wide so the
+                // H2 console could render itself in an iframe — which weakened
+                // clickjacking protection on every API response to benefit a
+                // dev-only tool. That relaxation now lives on the H2 console's
+                // own chain.
                 // Session-fixation protection: Spring Security's default session
                 // management already rotates the session ID on authentication
                 // (changeSessionId()). maximumSessions/sessionRegistry here is for

@@ -57,4 +57,19 @@ describe("/ (landing page)", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
     expect(meRequests).toBe(0);
   });
+
+  it("shows an HTML-looking first name as literal text, never as markup", async () => {
+    const firstName = "<img src=x onerror=alert(1)>";
+    server.use(
+      http.get(api("/api/v1/auth/me"), () =>
+        HttpResponse.json({ username: "mallory", firstName, role: "USER" }),
+      ),
+    );
+    renderApp("/");
+
+    expect(
+      await screen.findByRole("heading", { name: `Hello, ${firstName}!` }),
+    ).toBeInTheDocument();
+    expect(document.querySelector("img")).toBeNull();
+  });
 });

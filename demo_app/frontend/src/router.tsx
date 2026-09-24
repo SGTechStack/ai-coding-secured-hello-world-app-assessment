@@ -10,6 +10,8 @@ import { meQueryOptions, type UserProfile } from "./api/auth";
 import { AppShell } from "./components/AppShell";
 import { LandingPage } from "./routes/LandingPage";
 import { LoginPage } from "./routes/LoginPage";
+import { RegisterPage } from "./routes/RegisterPage";
+import { parseLoginSearch } from "./routes/loginNotice";
 
 /** Available to every route's `beforeLoad`/`loader` (e.g. for session guards). */
 export type RouterContext = { queryClient: QueryClient };
@@ -42,16 +44,32 @@ const landingRoute = createRoute({
   component: LandingPage,
 });
 
+/** Only for visitors: an existing session goes to the landing page instead. */
+async function requireNoSession({ context }: { context: RouterContext }) {
+  if (await currentSession(context)) throw redirect({ to: "/" });
+}
+
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  beforeLoad: async ({ context }) => {
-    if (await currentSession(context)) throw redirect({ to: "/" });
-  },
+  // A one-shot notice (e.g. after registering), chosen from a fixed set; see loginNotice.ts.
+  validateSearch: parseLoginSearch,
+  beforeLoad: requireNoSession,
   component: LoginPage,
 });
 
-const routeTree = rootRoute.addChildren([landingRoute, loginRoute]);
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/register",
+  beforeLoad: requireNoSession,
+  component: RegisterPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  landingRoute,
+  loginRoute,
+  registerRoute,
+]);
 
 export function createAppRouter({
   queryClient,

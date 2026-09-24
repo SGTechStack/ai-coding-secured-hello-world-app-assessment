@@ -9,6 +9,14 @@ export type Role = "USER" | "ADMIN";
 /** Public profile of the signed-in user, as returned by the auth API. */
 export type UserProfile = { username: string; firstName: string; role: Role };
 
+/** What a visitor submits to create an account. */
+export type Registration = {
+  username: string;
+  email: string;
+  firstName: string;
+  password: string;
+};
+
 /**
  * Logs in. A 403 (a stale CSRF token) is retried once with a freshly issued token; if that fails
  * too, the error propagates. The server rotates the token on login, so the old one is dropped.
@@ -44,6 +52,20 @@ export async function logout(): Promise<void> {
 
 function postLogout(): Promise<void> {
   return apiRequest<void>("/api/v1/auth/logout", { method: "POST" });
+}
+
+/**
+ * Creates an account and resolves to its profile. It does not sign in: the API creates no
+ * session, so the caller sends the user to log in. A 403 (a stale CSRF token) is retried once; a
+ * `400` or `409` carries `fieldErrors` naming the fields to fix.
+ */
+export function register(registration: Registration): Promise<UserProfile> {
+  return withCsrfRetry(() =>
+    apiRequest<UserProfile>("/api/v1/auth/register", {
+      method: "POST",
+      body: registration,
+    }),
+  );
 }
 
 /**

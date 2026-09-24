@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.util.unit.DataSize;
 
 import java.time.Duration;
 import java.util.List;
@@ -57,7 +58,9 @@ public record SecurityProperties(
         boolean requireHttps,
         Duration hstsMaxAge,
         Duration sessionAbsoluteTimeout,
-        String contentSecurityPolicy
+        String contentSecurityPolicy,
+        List<RateLimit> rateLimits,
+        DataSize maxRequestBodySize
 ) {
 
     /**
@@ -67,5 +70,23 @@ public record SecurityProperties(
      * @param path   Ant-style path pattern, e.g. {@code "/api/hello"}.
      */
     public record UrlGuard(String method, String path) {
+    }
+
+    /**
+     * A request-rate limit on one endpoint.
+     *
+     * <p>Counts requests rather than failures, which is the right measure for
+     * endpoints with no notion of failure: registration and password reset
+     * succeed from the caller's point of view every time, and the cost being
+     * defended against is the work performed regardless of outcome.
+     *
+     * @param name        identifies the limit, so one caller is counted
+     *                    separately per endpoint
+     * @param method      HTTP method name
+     * @param path        Ant-style path pattern
+     * @param maxRequests requests permitted per window, per caller
+     * @param window      length of the counting window
+     */
+    public record RateLimit(String name, String method, String path, int maxRequests, Duration window) {
     }
 }

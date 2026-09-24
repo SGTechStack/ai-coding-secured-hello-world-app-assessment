@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.passwordreset;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.auth.RequestRateLimiter;
 import com.sgtechstack.helloworldauthapp.user.Role;
 import com.sgtechstack.helloworldauthapp.user.User;
 import com.sgtechstack.helloworldauthapp.user.UserRepository;
@@ -60,11 +61,20 @@ class PasswordResetTest {
     @MockitoSpyBean
     private EmailService emailService;
 
+    @Autowired
+    private RequestRateLimiter rateLimiter;
+
     @BeforeEach
     void setUp() {
         tokenRepository.deleteAll();
         userRepository.deleteAll();
         userRepository.save(new User(USERNAME, EMAIL, passwordEncoder.encode(OLD_PASSWORD), Role.USER, true));
+        // Reset requests are now rate-limited per caller, and this class issues
+        // several from the same address across its methods. The limiter is a
+        // singleton in the cached context, so without this the later methods
+        // answer 429 instead of exercising the reset flow. RateLimitFilterTest
+        // covers the limiting itself.
+        rateLimiter.reset();
     }
 
     @Test

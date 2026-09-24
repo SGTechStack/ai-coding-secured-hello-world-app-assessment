@@ -15,6 +15,18 @@ server:
   # `framework` only when every route to the app passes through a proxy you
   # trust to overwrite the header.
   forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
+  tomcat:
+    # Caps on what an unauthenticated caller can make this process spend. The
+    # body limit is enforced by MaxRequestSizeFilter rather than here, because
+    # max-http-form-post-size only covers form-encoded bodies and every endpoint
+    # on this API takes JSON.
+    max-http-form-post-size: 64KB
+    max-swallow-size: 64KB
+    max-http-request-header-size: 16KB
+    threads:
+      max: 100
+    max-connections: 2000
+    accept-count: 100
   servlet:
     session:
       # Idle timeout. Was previously unset, which meant an implicit 30-minute
@@ -71,11 +83,46 @@ app:
     # it a session kept warm by periodic activity lives forever, so a stolen
     # cookie stays valid for as long as the attacker keeps using it.
     session-absolute-timeout: 8h
+    # Ceiling on request body size, refused up front from Content-Length before
+    # anything buffers or parses it. Bean validation cannot serve this purpose:
+    # @Size runs after Jackson has already materialised the whole payload. A
+    # caller using chunked encoding sends no Content-Length, so this is a floor
+    # rather than a guarantee — a hard ceiling belongs at the ingress, which can
+    # enforce it while streaming.
+    max-request-body-size: 64KB
     # This service answers with JSON and serves no scripts, styles or images
     # of its own, so the correct policy for its own responses is to permit
     # nothing. Note this does NOT protect the SPA: that is served from a
     # different origin and needs its own CSP at its own host.
     content-security-policy: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    # Request-rate limits on unauthenticated write endpoints, counted per
+    # caller per window. These count REQUESTS, not failures — unlike the login
+    # throttle, which counts failures because a legitimate user logging in
+    # repeatedly should never be limited. Registration and password reset have
+    # no notion of failure: they succeed from the caller's point of view every
+    # time, and what needs defending is the work each call performs anyway. Both
+    # run a BCrypt hash (~100ms of server CPU for near-zero client effort), and
+    # a reset request additionally writes a row and, once real mail is wired,
+    # sends a message to somebody else's inbox.
+    #
+    # Login is absent here on purpose: IpLoginThrottle already covers it on the
+    # more appropriate failure-counting basis.
+    rate-limits:
+      - name: register
+        method: POST
+        path: /api/auth/register
+        max-requests: 10
+        window: 1h
+      - name: password-reset-request
+        method: POST
+        path: /api/auth/password-reset/request
+        max-requests: 5
+        window: 1h
+      - name: password-reset-confirm
+        method: POST
+        path: /api/auth/password-reset/confirm
+        max-requests: 10
+        window: 1h
     # Configuration-owned RBAC (see
     # App-Standards/Appfw-User-Standards/Shared_Recipes/Common_Role-Based_Access_Control_Configuration.md).
     # This is the single source of truth for which role holds which

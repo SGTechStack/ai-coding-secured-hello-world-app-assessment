@@ -8,6 +8,9 @@ import com.sgtechstack.helloworldauthapp.auth.IpThrottleFilter;
 import com.sgtechstack.helloworldauthapp.auth.LoginFailureHandler;
 import com.sgtechstack.helloworldauthapp.auth.LoginSuccessHandler;
 import com.sgtechstack.helloworldauthapp.auth.LogoutSuccessResponseHandler;
+import com.sgtechstack.helloworldauthapp.auth.MaxRequestSizeFilter;
+import com.sgtechstack.helloworldauthapp.auth.RateLimitFilter;
+import com.sgtechstack.helloworldauthapp.auth.RequestRateLimiter;
 import com.sgtechstack.helloworldauthapp.auth.RestAccessDeniedHandler;
 import com.sgtechstack.helloworldauthapp.auth.RestAuthenticationEntryPoint;
 import com.sgtechstack.helloworldauthapp.auth.RestSessionExpiredStrategy;
@@ -191,6 +194,7 @@ public class SecurityConfig {
             RestAuthenticationEntryPoint authenticationEntryPoint,
             IpLoginThrottle ipLoginThrottle,
             ClientIpResolver clientIpResolver,
+            RequestRateLimiter requestRateLimiter,
             ObjectMapper objectMapper,
             SessionRegistry sessionRegistry,
             RestSessionExpiredStrategy sessionExpiredStrategy,
@@ -208,6 +212,21 @@ public class SecurityConfig {
                 .addFilterBefore(
                         new IpThrottleFilter(ipLoginThrottle, objectMapper, clientIpResolver),
                         UsernamePasswordAuthenticationFilter.class
+                )
+                // Both run ahead of everything else in the chain: there is no
+                // point authenticating, parsing or authorizing a request that is
+                // already over a limit. Size first, since rejecting on a header
+                // is cheaper than touching the rate-limit map.
+                .addFilterBefore(
+                        new MaxRequestSizeFilter(
+                                securityProperties.maxRequestBodySize().toBytes(), objectMapper),
+                        IpThrottleFilter.class
+                )
+                .addFilterBefore(
+                        new RateLimitFilter(
+                                requestRateLimiter, clientIpResolver, objectMapper,
+                                securityProperties.rateLimits()),
+                        IpThrottleFilter.class
                 )
                 // No CSRF exemptions. The H2 console needs one (it posts plain
                 // HTML forms with no token), but it gets it on its own dev-only

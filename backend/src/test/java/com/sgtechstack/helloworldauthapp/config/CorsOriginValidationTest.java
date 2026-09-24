@@ -25,8 +25,27 @@ class CorsOriginValidationTest {
         return new CorsConfig(origins, properties(requireHttps));
     }
 
+    /**
+     * Only {@code requireHttps} matters here; everything else is irrelevant to
+     * origin validation. Adding a component to {@link SecurityProperties} has
+     * broken this call twice now, so the unused arguments are listed explicitly
+     * with a comment rather than silently as a row of nulls — if it breaks
+     * again, the fix is to pass a default for the new component, not to make
+     * this test know about it.
+     */
     private static SecurityProperties properties(boolean requireHttps) {
-        return new SecurityProperties(null, null, null, null, requireHttps, null, null, null);
+        return new SecurityProperties(
+                null,   // roleMappings
+                null,   // roleHierarchy
+                null,   // urlGuards
+                null,   // whitelist
+                requireHttps,
+                null,   // hstsMaxAge
+                null,   // sessionAbsoluteTimeout
+                null,   // contentSecurityPolicy
+                null,   // rateLimits
+                null    // maxRequestBodySize
+        );
     }
 
     @Test

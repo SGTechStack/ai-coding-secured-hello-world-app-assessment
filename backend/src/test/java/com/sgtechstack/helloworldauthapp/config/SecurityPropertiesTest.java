@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,6 +63,38 @@ class SecurityPropertiesTest {
                 "/api/auth/password-reset/request",
                 "/api/auth/password-reset/confirm"
         );
+    }
+
+    @Test
+    void rateLimitsCoverEveryUnauthenticatedWriteEndpointExceptLogin() {
+        // Login is deliberately absent: IpLoginThrottle covers it on a
+        // failure-counting basis, which is the right measure there. Every other
+        // unauthenticated write runs a BCrypt hash and must be request-limited.
+        assertThat(securityProperties.rateLimits())
+                .extracting(SecurityProperties.RateLimit::path)
+                .containsExactlyInAnyOrder(
+                        "/api/auth/register",
+                        "/api/auth/password-reset/request",
+                        "/api/auth/password-reset/confirm");
+    }
+
+    @Test
+    void rateLimitWindowsAndThresholdsAreBound() {
+        assertThat(securityProperties.rateLimits())
+                .allSatisfy(limit -> {
+                    assertThat(limit.maxRequests()).isPositive();
+                    assertThat(limit.window()).isNotNull().isPositive();
+                    assertThat(limit.name()).isNotBlank();
+                });
+    }
+
+    @Test
+    void transportAndLifetimeSettingsAreBound() {
+        assertThat(securityProperties.hstsMaxAge()).isEqualTo(Duration.ofDays(365));
+        assertThat(securityProperties.sessionAbsoluteTimeout()).isEqualTo(Duration.ofHours(8));
+        assertThat(securityProperties.maxRequestBodySize().toKilobytes()).isEqualTo(64);
+        // Dev opts out of transport security; nothing else does.
+        assertThat(securityProperties.requireHttps()).isFalse();
     }
 
     @Test

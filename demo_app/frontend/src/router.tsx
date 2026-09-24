@@ -10,7 +10,9 @@ import { meQueryOptions, type UserProfile } from "./api/auth";
 import { AppShell } from "./components/AppShell";
 import { LandingPage } from "./routes/LandingPage";
 import { LoginPage } from "./routes/LoginPage";
+import { ForgotPasswordPage } from "./routes/ForgotPasswordPage";
 import { RegisterPage } from "./routes/RegisterPage";
+import { ResetPasswordPage } from "./routes/ResetPasswordPage";
 import { parseLoginSearch } from "./routes/loginNotice";
 
 /** Available to every route's `beforeLoad`/`loader` (e.g. for session guards). */
@@ -65,10 +67,27 @@ const registerRoute = createRoute({
   component: RegisterPage,
 });
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/forgot-password",
+  beforeLoad: requireNoSession,
+  component: ForgotPasswordPage,
+});
+
+// The reset token arrives in the URL fragment (#token=...), never in the path or query.
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/reset-password",
+  beforeLoad: requireNoSession,
+  component: ResetPasswordPage,
+});
+
 const routeTree = rootRoute.addChildren([
   landingRoute,
   loginRoute,
   registerRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
 ]);
 
 export function createAppRouter({

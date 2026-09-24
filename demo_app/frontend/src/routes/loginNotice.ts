@@ -4,6 +4,7 @@
  */
 const LOGIN_NOTICES = {
   registered: "Account created. Please log in.",
+  "password-updated": "Password updated. Please log in.",
 } as const;
 
 export type LoginNotice = keyof typeof LOGIN_NOTICES;

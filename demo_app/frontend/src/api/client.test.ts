@@ -213,6 +213,18 @@ describe("apiRequest", () => {
     expect(await posts[0]?.text()).toBe("");
   });
 
+  it("resolves an empty 202 without parsing JSON", async () => {
+    captureRequests(
+      "post",
+      "/api/v1/thing",
+      () => new HttpResponse(null, { status: 202 }),
+    );
+
+    await expect(
+      apiRequest<void>("/api/v1/thing", { method: "POST", body: {} }),
+    ).resolves.toBeUndefined();
+  });
+
   it("classifies 401 as unauthorized and keeps the server message and code", async () => {
     captureRequests("post", "/api/v1/auth/login", () =>
       HttpResponse.json(

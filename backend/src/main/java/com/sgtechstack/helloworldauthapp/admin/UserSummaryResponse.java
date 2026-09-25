@@ -24,6 +24,17 @@ import java.util.UUID;
  * purpose and an audit record.
  *
  * @param maskedEmail see {@link EmailMask} for the form and its residual risk
+ * @param enabled admin-controlled: set via {@code PATCH .../enabled}, never
+ *                changed by login failures
+ * @param locked whether {@code lockedUntil} is still in the future — the
+ *               automatic lockout from repeated failed logins. Independent of
+ *               {@code enabled}: an account can be enabled and locked at the
+ *               same time, which is exactly the state that needs to be visible
+ *               here rather than only in the database.
+ * @param loginCount count of successful logins; informational only, not used
+ *                    for any access-control or throttling decision
+ * @param lastLoginAt when this account last logged in successfully, or null
+ *                    if it never has; informational only
  */
 public record UserSummaryResponse(
         UUID id,
@@ -31,7 +42,10 @@ public record UserSummaryResponse(
         String maskedEmail,
         Role role,
         boolean enabled,
-        Instant createdAt
+        boolean locked,
+        Instant createdAt,
+        int loginCount,
+        Instant lastLoginAt
 ) {
     public static UserSummaryResponse from(User user) {
         return new UserSummaryResponse(
@@ -40,7 +54,10 @@ public record UserSummaryResponse(
                 EmailMask.of(user.getEmail()),
                 user.getRole(),
                 user.isEnabled(),
-                user.getCreatedAt()
+                user.getLockedUntil() != null && Instant.now().isBefore(user.getLockedUntil()),
+                user.getCreatedAt(),
+                user.getSuccessfulLoginCount(),
+                user.getLastLoginAt()
         );
     }
 }

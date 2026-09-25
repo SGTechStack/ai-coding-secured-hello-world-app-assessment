@@ -75,6 +75,7 @@ class SecurityPropertiesTest {
         assertThat(securityProperties.urlGuards().get("ADMIN_USER_WRITE"))
                 .containsExactlyInAnyOrder(
                         new SecurityProperties.UrlGuard("PATCH", "/api/admin/users/*/enabled"),
+                        new SecurityProperties.UrlGuard("POST", "/api/admin/users/*/unlock"),
                         new SecurityProperties.UrlGuard("PATCH", "/api/admin/users/*/role"),
                         new SecurityProperties.UrlGuard("DELETE", "/api/admin/users/*")
                 );

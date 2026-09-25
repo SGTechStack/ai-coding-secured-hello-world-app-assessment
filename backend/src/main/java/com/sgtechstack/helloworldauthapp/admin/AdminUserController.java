@@ -1,5 +1,6 @@
 package com.sgtechstack.helloworldauthapp.admin;
 
+import com.sgtechstack.helloworldauthapp.auth.LockoutPolicy;
 import com.sgtechstack.helloworldauthapp.auth.StepUpAuthenticator;
 import com.sgtechstack.helloworldauthapp.auth.UserPrincipal;
 import com.sgtechstack.helloworldauthapp.user.User;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -77,6 +79,21 @@ public class AdminUserController {
             @Valid @RequestBody SetEnabledRequest request
     ) {
         User updated = managementService.setEnabled(actingAdmin.getId(), id, request.enabled());
+        return UserSummaryResponse.from(updated);
+    }
+
+    /**
+     * Clears an account's lockout state (see {@link LockoutPolicy}) ahead of
+     * its automatic cooldown. Separate from {@link #setEnabled}: enabling a
+     * disabled account does not touch {@code lockedUntil}, and this is the
+     * only path that does.
+     */
+    @PostMapping("/{id}/unlock")
+    public UserSummaryResponse unlock(
+            @AuthenticationPrincipal UserPrincipal actingAdmin,
+            @PathVariable UUID id
+    ) {
+        User updated = managementService.unlockAccount(actingAdmin.getId(), id);
         return UserSummaryResponse.from(updated);
     }
 

@@ -25,6 +25,14 @@ public enum AuditAction {
     DELETE_USER,
 
     /**
+     * An admin cleared an account's lockout state ahead of the automatic
+     * cooldown. The account-lockout counter is not visible or resettable any
+     * other way: it is separate from {@code enabled}, and disabling then
+     * re-enabling an account does not touch it.
+     */
+    UNLOCK_ACCOUNT,
+
+    /**
      * An admin revealed another account's email address.
      *
      * <p>Recorded because the listing endpoint no longer returns email in bulk:

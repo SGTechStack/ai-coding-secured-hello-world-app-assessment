@@ -1,6 +1,7 @@
 package com.sgtechstack.helloworldauthapp.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sgtechstack.helloworldauthapp.auth.LockoutPolicy;
 import com.sgtechstack.helloworldauthapp.auth.StepUpAuthenticator;
 import com.sgtechstack.helloworldauthapp.passwordreset.PasswordResetTokenRepository;
 import com.sgtechstack.helloworldauthapp.user.Role;
@@ -15,6 +16,8 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItems;
@@ -89,6 +92,23 @@ class AdminUserControllerTest {
     }
 
     @Test
+    void loginCountReflectsTheNumberOfSuccessfulLogins() throws Exception {
+        // The admin's own setUp login hasn't happened yet at this point, and the
+        // regular user has never logged in, so both start at zero.
+        User target = userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow();
+        assertThat(target.getSuccessfulLoginCount()).isZero();
+
+        loginAndGetSession(REGULAR_USERNAME, REGULAR_PASSWORD);
+        loginAndGetSession(REGULAR_USERNAME, REGULAR_PASSWORD);
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+
+        mockMvc.perform(get("/api/admin/users").session(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.username == '" + REGULAR_USERNAME + "')].loginCount").value(2))
+                .andExpect(jsonPath("$[?(@.username == '" + ADMIN_USERNAME + "')].loginCount").value(1));
+    }
+
+    @Test
     void nonAdminReceivesForbiddenFromUserListing() throws Exception {
         MockHttpSession session = loginAndGetSession(REGULAR_USERNAME, REGULAR_PASSWORD);
 
@@ -139,6 +159,58 @@ class AdminUserControllerTest {
                 .andExpect(jsonPath("$.message").value("An admin cannot disable or enable their own account"));
 
         assertThat(userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow().isEnabled()).isTrue();
+    }
+
+    @Test
+    void adminCanUnlockALockedAccountAndItCanLogInAgainImmediately() throws Exception {
+        MockHttpSession adminSession = loginAndGetSession(ADMIN_USERNAME, ADMIN_PASSWORD);
+        User target = userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow();
+
+        // Simulate LoginFailureHandler having already locked this account,
+        // rather than driving it there through LockoutPolicy.MAX_FAILED_ATTEMPTS
+        // failed requests.
+        target.setFailedLoginAttempts(LockoutPolicy.MAX_FAILED_ATTEMPTS);
+        target.setLockedUntil(Instant.now().plus(LockoutPolicy.LOCKOUT_DURATION));
+        userRepository.save(target);
+
+        mockMvc.perform(get("/api/admin/users").session(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.username == '" + REGULAR_USERNAME + "')].locked").value(true));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
+                        .param("username", REGULAR_USERNAME)
+                        .param("password", REGULAR_PASSWORD))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/admin/users/{id}/unlock", target.getId())
+                        .with(csrf())
+                        .session(adminSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.locked").value(false))
+                // Still enabled throughout: unlock and enable are unrelated fields.
+                .andExpect(jsonPath("$.enabled").value(true));
+
+        User unlocked = userRepository.findByUsernameIgnoreCase(REGULAR_USERNAME).orElseThrow();
+        assertThat(unlocked.getLockedUntil()).isNull();
+        assertThat(unlocked.getFailedLoginAttempts()).isZero();
+
+        mockMvc.perform(post("/api/auth/login")
+                        .with(csrf())
+                        .param("username", REGULAR_USERNAME)
+                        .param("password", REGULAR_PASSWORD))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void nonAdminCannotUnlockAnAccount() throws Exception {
+        MockHttpSession regularSession = loginAndGetSession(REGULAR_USERNAME, REGULAR_PASSWORD);
+        User admin = userRepository.findByUsernameIgnoreCase(ADMIN_USERNAME).orElseThrow();
+
+        mockMvc.perform(post("/api/admin/users/{id}/unlock", admin.getId())
+                        .with(csrf())
+                        .session(regularSession))
+                .andExpect(status().isForbidden());
     }
 
     @Test

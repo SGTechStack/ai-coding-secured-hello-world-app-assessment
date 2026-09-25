@@ -2,6 +2,7 @@ package com.sgtechstack.helloworldauthapp.admin;
 
 import com.sgtechstack.helloworldauthapp.audit.AuditAction;
 import com.sgtechstack.helloworldauthapp.audit.AuditService;
+import com.sgtechstack.helloworldauthapp.auth.LockoutPolicy;
 import com.sgtechstack.helloworldauthapp.auth.SessionRevoker;
 import com.sgtechstack.helloworldauthapp.auth.StepUpAuthenticator;
 import com.sgtechstack.helloworldauthapp.logging.LogSafe;
@@ -153,6 +154,36 @@ public class AdminUserManagementService {
         log.info("Admin action actorRef={} targetRef={} action={} previousRole={} newRole={} revokedSessions={}",
                 pseudonym.of(actingUsername(actingAdminId)), pseudonym.of(target.getUsername()),
                 "CHANGE_ROLE", previousRole, newRole, revokedSessions);
+
+        return target;
+    }
+
+    /**
+     * Clears an account's lockout state, ahead of {@link LockoutPolicy}'s
+     * automatic cooldown.
+     *
+     * <p>Not gated by {@link #requireNotSelf}: {@code enabled} and lockout are
+     * unrelated fields, so a locked admin cannot reach this endpoint through
+     * their own locked account to begin with, and there is no privilege
+     * widening here that self-targeting would need to guard against.
+     *
+     * <p>No session revocation: unlocking only restores the ability to start a
+     * new session, it does not change what an already-live session can do.
+     */
+    @Transactional
+    public User unlockAccount(UUID actingAdminId, UUID targetUserId) {
+        User target = requireUser(targetUserId);
+
+        target.setLockedUntil(null);
+        target.setFailedLoginAttempts(0);
+        userRepository.save(target);
+
+        auditService.record(AuditAction.UNLOCK_ACCOUNT, actingAdminId, actingUsername(actingAdminId),
+                targetUserId, target.getUsername(), "cleared lockedUntil and failedLoginAttempts");
+
+        log.info("Admin action actorRef={} targetRef={} action={}",
+                pseudonym.of(actingUsername(actingAdminId)), pseudonym.of(target.getUsername()),
+                "UNLOCK_ACCOUNT");
 
         return target;
     }

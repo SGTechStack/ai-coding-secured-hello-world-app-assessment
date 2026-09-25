@@ -2,45 +2,24 @@ spring:
   application:
     name: hello-world-auth-app
   flyway:
-    # Schema is owned by versioned migrations, not by Hibernate, in every profile
-    # including dev. Standardising on H2 everywhere is what makes that possible:
-    # the migrations are written in one dialect, so dev and the test suite build
-    # their schema from the same file a deployment does, and a mistake in it fails
-    # the build rather than waiting for a deployment to reveal it.
+    # Schema owned by migrations, not Hibernate, in every profile (incl. dev).
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     locations: classpath:db/migration
   jpa:
     properties:
       hibernate:
         type:
-          # Map enums to varchar rather than H2's native ENUM type.
-          #
-          # Left to itself, Hibernate expects `ENUM ('ADMIN','USER')` on H2, which
-          # bakes the value list into the schema: adding a Role or an AuditAction
-          # constant would need a migration to alter the column, and the schema
-          # and the Java enum could disagree in a way `validate` would catch only
-          # for the column, not the values. varchar keeps the vocabulary in Java,
-          # where the enum already lives.
+          # Enums as varchar, not H2's native ENUM, so adding a constant needs
+          # no migration.
           preferred_enum_jdbc_type: VARCHAR
 
 server:
-  # This governs the framework's own view of the request. The throttle's view
-  # is configured separately via app.security.trusted-proxy-hops; both default
-  # to "assume no proxy" for the same reason.
-  #
-  # Honouring X-Forwarded-* is required behind a TLS-terminating proxy, or
-  # the app cannot tell whether the original request was secure and
-  # requiresHttps/HSTS/Secure-cookies all misfire. It is left OFF by default
-  # on purpose: if the app is reachable directly, a client can forge
-  # X-Forwarded-Proto: https and defeat exactly those controls. Set this to
-  # `framework` only when every route to the app passes through a proxy you
-  # trust to overwrite the header.
+  # Framework's view of the request; throttle's view is app.security.trusted-proxy-hops.
+  # Off by default: only enable behind a proxy you trust to set X-Forwarded-*.
   forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
   tomcat:
-    # Caps on what an unauthenticated caller can make this process spend. The
-    # body limit is enforced by MaxRequestSizeFilter rather than here, because
-    # max-http-form-post-size only covers form-encoded bodies and every endpoint
-    # on this API takes JSON.
+    # Caps on unauthenticated request cost. Body size itself is enforced by
+    # MaxRequestSizeFilter, since max-http-form-post-size only covers form bodies.
     max-http-form-post-size: 64KB
     max-swallow-size: 64KB
     max-http-request-header-size: 16KB
@@ -50,62 +29,34 @@ server:
     accept-count: 100
   servlet:
     session:
-      # Idle timeout. Was previously unset, which meant an implicit 30-minute
-      # container default that nobody had chosen. Paired with
-      # app.security.session-absolute-timeout, which caps total lifetime.
+      # Idle timeout; paired with app.security.session-absolute-timeout for total lifetime.
       timeout: 30m
       cookie:
         name: SESSION
         http-only: true
         same-site: lax
-        # Real deployments must sit behind HTTPS (required for Secure
-        # cookies); local dev runs over HTTP, so this is overridden to
-        # false in the dev profile below.
+        # Overridden to false in dev, which runs over HTTP.
         secure: true
 
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
   logging:
-    # Key used to derive the pseudonymous user references that appear in logs
-    # and audit rows in place of usernames (see UserPseudonym).
-    #
-    # Unset by default, which means "generate one per boot". That is deliberate:
-    # a fixed fallback baked into this file would be readable by anyone with the
-    # repository, making every pseudonym reversible and the protection
-    # decorative. The cost is that references do not survive a restart, so an
-    # investigation spanning one cannot join across it — set this from a secret
-    # manager if that matters.
+    # Salt for pseudonymous user references in logs/audit rows (see UserPseudonym).
+    # Unset = generate per boot, so pseudonyms aren't reversible from this file.
     pseudonym-salt: ${APP_LOG_PSEUDONYM_SALT:}
   retention:
-    # Retention is a policy decision expressed as configuration, so the period
-    # in force is visible in a diff rather than buried in a scheduler.
-    #
-    # Reset-token rows are kept for this long past expiry or use, then deleted.
-    # Not deleted on expiry: "did a reset happen on this account last week, and
-    # was the link consumed" is a question that arises exactly when an account
-    # turns out to have been compromised, and purging on expiry would destroy
-    # the answer at the moment it became useful.
+    # Reset-token rows: kept this long past expiry/use, then deleted. Not purged
+    # on expiry, so "was this link consumed" stays answerable during an investigation.
     reset-token-grace: ${APP_RESET_TOKEN_GRACE:P7D}
     purge-interval: ${APP_PURGE_INTERVAL:PT1H}
-    # Keeps the sweep off the startup path, where it would compete with schema
-    # setup and the admin bootstrap for the same connection pool to delete
-    # nothing.
+    # Delayed off the startup path so it doesn't compete with schema setup/admin bootstrap.
     purge-initial-delay: ${APP_PURGE_INITIAL_DELAY:PT5M}
-    # Master switch for the scheduler. The test suite sets this false: a purge
-    # firing on its own timetable inside an integration test is a background
-    # thread deleting rows another test is asserting on.
+    # Off in tests, so the scheduler can't delete rows a test is asserting on.
     purge-enabled: ${APP_PURGE_ENABLED:true}
   privacy:
-    # The notice shown at the point of collection and served from
-    # GET /api/privacy-notice. Held here rather than as frontend copy so one
-    # source of truth is testable, reusable by any client, and adjustable per
-    # deployment — the lawful basis and the retention periods are exactly the
-    # parts that differ by jurisdiction and operator.
-    #
-    # Drafted against general PDPA/GDPR-style expectations because the PRD
-    # declares no regime. This is input to a compliance review, not its output;
-    # see docs/adr/0005-personal-data-lawful-basis-and-retention.md.
+    # Notice shown at collection and served from GET /api/privacy-notice.
+    # See docs/adr/0005-personal-data-lawful-basis-and-retention.md.
     controller: ${APP_PRIVACY_CONTROLLER:Hello World Auth App (reference implementation)}
     contact: ${APP_PRIVACY_CONTACT:privacy@example.invalid}
     lawful-basis: >-
@@ -130,67 +81,35 @@ app:
       - "Complaint — contact the address above."
     last-updated: ${APP_PRIVACY_LAST_UPDATED:2026-09-24}
   frontend:
-    # Base URL the frontend is served from, used to build links that leave
-    # the backend (e.g. the password reset link emailed to users). Defaults
-    # to the dev frontend origin; must be overridden to the real deployed
-    # frontend URL outside dev.
+    # Base URL for links leaving the backend (e.g. password reset email).
+    # Override outside dev.
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
   admin:
-    # Deliberately no defaults here. Both placeholders are unresolvable if
-    # the environment does not supply them, so a deployment that forgets to
-    # set admin credentials fails to start rather than booting with a
-    # guessable account. The dev profile below relaxes this, but only as far
-    # as a per-boot random password — never a fixed one.
+    # No defaults: a deployment without these fails to start rather than
+    # booting with a guessable account. Dev profile relaxes this below.
     username: ${APP_ADMIN_USERNAME}
     password: ${APP_ADMIN_PASSWORD}
   security:
-    # How many proxies sit between the internet and this application, used to
-    # work out which address to throttle. 0 means "directly reachable", and
-    # X-Forwarded-For is then ignored entirely because nothing can vouch for it
-    # — a caller could otherwise rotate a fake value per request and never be
-    # throttled. Set this to the real hop count behind a proxy, or every client
-    # collapses into one throttle bucket and the tenth failed login from anyone
-    # locks out everyone. Both failure modes are real; the topology has to be
-    # declared rather than guessed.
+    # Proxy hop count, used to pick which address to throttle. 0 = directly
+    # reachable, X-Forwarded-For ignored. Set to the real hop count behind a
+    # proxy, or every client shares one throttle bucket.
     trusted-proxy-hops: ${APP_TRUSTED_PROXY_HOPS:0}
-    # Transport security. When true the filter chain refuses plaintext
-    # (requiresChannel -> requiresSecure) and CORS origins must be https.
-    # Defaults to true so a deployment is secure unless it deliberately opts
-    # out; the dev profile below sets it false, because local dev runs over
-    # HTTP by documented agreement with the PRD.
+    # Rejects plaintext requests when true. Dev sets this false (HTTP by design).
     require-https: ${APP_REQUIRE_HTTPS:true}
-    # HSTS max-age. Spring Security only emits the header on requests that
-    # already arrived over HTTPS, so this is inert until TLS terminates in
-    # front of the app.
+    # Only emitted on requests that already arrived over HTTPS.
     hsts-max-age: 365d
-    # Hard ceiling on session lifetime, independent of idle timeout. Without
-    # it a session kept warm by periodic activity lives forever, so a stolen
-    # cookie stays valid for as long as the attacker keeps using it.
+    # Absolute session ceiling, independent of idle timeout.
     session-absolute-timeout: 8h
-    # Ceiling on request body size, refused up front from Content-Length before
-    # anything buffers or parses it. Bean validation cannot serve this purpose:
-    # @Size runs after Jackson has already materialised the whole payload. A
-    # caller using chunked encoding sends no Content-Length, so this is a floor
-    # rather than a guarantee — a hard ceiling belongs at the ingress, which can
-    # enforce it while streaming.
+    # Rejected up front from Content-Length. Not a substitute for an ingress
+    # limit — chunked requests have no Content-Length to check.
     max-request-body-size: 64KB
-    # This service answers with JSON and serves no scripts, styles or images
-    # of its own, so the correct policy for its own responses is to permit
-    # nothing. Note this does NOT protect the SPA: that is served from a
-    # different origin and needs its own CSP at its own host.
+    # This API serves only JSON, so its own CSP permits nothing. Does not
+    # cover the SPA, which is a separate origin with its own CSP.
     content-security-policy: "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-    # Request-rate limits on unauthenticated write endpoints, counted per
-    # caller per window. These count REQUESTS, not failures — unlike the login
-    # throttle, which counts failures because a legitimate user logging in
-    # repeatedly should never be limited. Registration and password reset have
-    # no notion of failure: they succeed from the caller's point of view every
-    # time, and what needs defending is the work each call performs anyway. Both
-    # run a BCrypt hash (~100ms of server CPU for near-zero client effort), and
-    # a reset request additionally writes a row and, once real mail is wired,
-    # sends a message to somebody else's inbox.
-    #
-    # Login is absent here on purpose: IpLoginThrottle already covers it on the
-    # more appropriate failure-counting basis.
+    # Per-caller request-rate limits on unauthenticated write endpoints. These
+    # count requests, not failures (unlike the login throttle), since register/
+    # reset-request succeed every time yet still cost a BCrypt hash or a
+    # reset-token write. Login isn't listed here — IpLoginThrottle covers it.
     rate-limits:
       - name: register
         method: POST
@@ -209,35 +128,21 @@ app:
         window: 1h
     # Configuration-owned RBAC (see
     # App-Standards/Appfw-User-Standards/Shared_Recipes/Common_Role-Based_Access_Control_Configuration.md).
-    # This is the single source of truth for which role holds which
-    # fine-grained authority, and which HTTP method+path each authority
-    # guards. SecurityConfig's filter chain is built entirely from this
-    # block; changing access to an endpoint means editing this file, not
-    # Java.
+    # Single source of truth for role -> authority and authority -> route.
+    # SecurityConfig builds its filter chain from this block.
     #
-    # role-mappings: which authorities a role is entitled to. USER's
-    # authorities are also reachable by ADMIN via the role-hierarchy
-    # below, so ADMIN does not need HELLO_READ repeated here.
-    # ADMIN_USER_EMAIL_READ is separate from ADMIN_USER_READ on purpose. Reading
-    # the user list and reading somebody's actual email address are different
-    # acts with different sensitivity, and splitting the authority means a future
-    # read-only or support role can be granted the listing without the personal
-    # data behind it. Both land on ADMIN today; the seam is what makes that
-    # changeable without a code change.
-    #
-    # ACCOUNT_SELF_MANAGE sits on USER, and ADMIN reaches it through the role
-    # hierarchy — an admin is a data subject too and has the same rights over
-    # their own account.
+    # role-mappings: authorities per role. ADMIN reaches USER's authorities via
+    # role-hierarchy below, so they aren't repeated here.
+    # ADMIN_USER_EMAIL_READ is split from ADMIN_USER_READ so a future read-only
+    # role could get the listing without the email addresses behind it.
+    # ACCOUNT_SELF_MANAGE sits on USER; ADMIN reaches it via role-hierarchy.
     role-mappings:
       ADMIN: [ADMIN_USER_READ, ADMIN_USER_EMAIL_READ, ADMIN_USER_WRITE]
       USER: [HELLO_READ, ACCOUNT_SELF_MANAGE]
-    # ROLE_ADMIN inherits every authority reachable by ROLE_USER, so an
-    # admin can reach USER-guarded endpoints without USER's authorities
-    # being duplicated into ADMIN's role-mapping above.
+    # ADMIN inherits everything reachable by USER.
     role-hierarchy: "ROLE_ADMIN > ROLE_USER"
-    # Authority -> the HTTP method+path pairs it guards. Every guarded
-    # route must appear here exactly once; anything not covered by this
-    # map or the whitelist below is denied by default.
+    # Authority -> guarded method+path pairs. Anything not covered here or by
+    # the whitelist below is denied by default.
     url-guards:
       HELLO_READ:
         - method: GET
@@ -245,15 +150,12 @@ app:
       ADMIN_USER_READ:
         - method: GET
           path: /api/admin/users
-      # One account at a time, with a mandatory purpose and an audit row. This
-      # replaced GET /api/admin/users returning every registered email address
-      # in a single response.
+      # One account at a time, with a mandatory purpose and an audit row.
       ADMIN_USER_EMAIL_READ:
         - method: GET
           path: /api/admin/users/*/email
-      # Data-subject rights over the caller's own account. Neither route takes
-      # an account id — the subject is always the authenticated principal — so
-      # there is no parameter through which one user could reach another's data.
+      # Subject is always the authenticated principal; no id param means no
+      # path to another user's data.
       ACCOUNT_SELF_MANAGE:
         - method: GET
           path: /api/account/export
@@ -262,25 +164,18 @@ app:
       ADMIN_USER_WRITE:
         - method: PATCH
           path: /api/admin/users/*/enabled
+        - method: POST
+          path: /api/admin/users/*/unlock
         - method: PATCH
           path: /api/admin/users/*/role
         - method: DELETE
           path: /api/admin/users/*
-    # Routes reachable without authentication. Kept as small as possible:
-    # only what a client needs before it has a session (registration,
-    # login, the CSRF token endpoint, health, password reset).
-    #
-    # The H2 console is deliberately NOT here. It used to be, which meant
-    # an unauthenticated full-SQL surface was whitelisted in every profile
-    # on the argument that the servlet only exists in dev. The rule and the
-    # servlet are now gated by the same thing: H2ConsoleSecurityConfig is
-    # @Profile("dev"), so outside dev /h2-console/** is covered by neither
-    # the whitelist nor a url-guard and is therefore denied by default.
+    # Unauthenticated routes. Kept minimal. H2 console is deliberately absent
+    # here — it's gated by @Profile("dev") on H2ConsoleSecurityConfig instead,
+    # so outside dev it's denied by default rather than relying on this list.
     whitelist:
       - /api/auth/register
-      # The privacy notice has to be readable before an account exists: the
-      # person deciding whether to hand over an email address has not registered
-      # yet. It describes the processing and contains no personal data.
+      # Must be readable pre-registration; contains no personal data.
       - /api/privacy-notice
       - /api/health
       - /api/csrf
@@ -301,14 +196,8 @@ spring:
     password:
   jpa:
     hibernate:
-      # validate, not update, even in dev. Flyway builds the schema from the
-      # checked-in migration and Hibernate then checks the entity model against
-      # it, so "I added a field and forgot the migration" fails on the next boot
-      # or the next test run instead of surviving until a deployment.
-      #
-      # This is the concrete gain from dropping the second engine: the migration
-      # that runs in production is the migration dev and CI have been running all
-      # along.
+      # validate, not update, even in dev: Flyway owns the schema, Hibernate
+      # just checks the entity model against it.
       ddl-auto: validate
     open-in-view: false
   h2:
@@ -323,122 +212,59 @@ server:
 
 app:
   security:
-    # Local dev runs over plain HTTP, an accepted and documented gap. This is
-    # the only place that opts out of transport security, and it also relaxes
-    # the CORS origin check to permit the http://localhost frontend.
+    # Dev runs over plain HTTP by design; also relaxes CORS to allow http://localhost.
     require-https: false
   admin:
-    # The username is not a secret, so a stable dev default is fine.
+    # Not a secret; stable dev default is fine.
     username: ${APP_ADMIN_USERNAME:admin}
-    # A fixed, known dev password, by explicit product decision: a predictable
-    # credential is wanted for local work and demos.
-    #
-    # Be clear about what this costs. This is the credential the threat model
-    # recorded as TM-07, a High finding: it was published in the README and
-    # prefilled in the login form, so any reachable dev or demo instance was a
-    # one-guess admin takeover. Reinstating it reopens that finding for any
-    # instance running this profile, and the threat model says so rather than
-    # continuing to claim it is closed.
-    #
-    # Two things keep the blast radius to dev:
-    #
-    #   - The base profile's placeholder still has no default at all, so outside
-    #     dev an unset APP_ADMIN_PASSWORD fails startup. A deployment cannot
-    #     inherit this value by forgetting to set one.
-    #   - AdminBootstrapRunner still generates a random password when the
-    #     configured one is blank, so `APP_ADMIN_PASSWORD=` remains available to
-    #     anyone who wants the safer behaviour for a reachable dev instance.
-    #
-    # Anything running this profile on a reachable address should override it.
+    # Fixed dev password by product decision. This is TM-07 (High) reinstated
+    # for dev only: base profile still has no default, so a real deployment
+    # that forgets APP_ADMIN_PASSWORD fails to start rather than inheriting
+    # this value. AdminBootstrapRunner still generates a random password if
+    # this is set blank.
     password: ${APP_ADMIN_PASSWORD:password1234}
 
 ---
 # Production profile.
 #
-# Before this existed, the only datasource in the application was the dev one:
-# in-process H2, user `sa` with a blank password, `ddl-auto: update` and no
-# migrations. The application as committed could not start outside dev at all,
-# which meant several controls hardened earlier — HTTPS enforcement, CORS origin
-# validation, Secure cookies — were protecting a deployment that did not exist.
+# H2 here too, by explicit product decision — one dialect for dev, tests and
+# prod, so migrations are proven against the same engine they'll run on. See
+# docs/adr/0004-h2-everywhere.md for the accepted trade-off: embedded H2 has no
+# separate server, no concurrent-writer story beyond one JVM, no online backup
+# or replication, and no cross-major-version file format guarantee.
 #
-# H2 in this profile too, by explicit product decision: one engine everywhere.
-#
-# The gain is real and is not just simplicity. One dialect means the migrations
-# that run here are the migrations dev and the test suite have been running all
-# along, so "the migration has never been executed against the real engine" — the
-# main residual on TM-19 — is closed rather than documented.
-#
-# The cost is equally real and belongs on the record. H2 is an embedded database.
-# It has no separate server process to tune or fail over, no concurrent-writer
-# story beyond a single JVM, no online backup, no replication, and a file format
-# that is not guaranteed stable across major versions. Sizing, availability and
-# point-in-time recovery are all outside what it offers. See
-# docs/adr/0004-h2-everywhere.md, which records this as accepted rather than
-# unnoticed.
-#
-# Nothing here has a usable default. Every value is an unresolvable placeholder
-# unless the environment supplies it, so a deployment that forgets one fails to
-# start rather than silently falling back to something weaker. That is the same
-# fail-fast rule the admin credentials already follow, applied to the datasource.
+# No usable defaults anywhere in this profile: an unset value fails startup
+# rather than falling back to something weaker.
 spring:
   config:
     activate:
       on-profile: prod
   datasource:
-    # A file-based H2 database. No default, deliberately: an absent URL must stop
-    # startup rather than fall back to `mem:`, which would accept writes and lose
-    # them on restart — the failure mode where everything looks healthy and
-    # nothing is persisted. That risk is sharper here than it was with an external
-    # engine, because the wrong value is one word away from being valid.
-    #
-    # Expected form, and why each part is there:
-    #
+    # No default. Expected form:
     #   jdbc:h2:file:/var/lib/hello-world-auth-app/db;DB_CLOSE_ON_EXIT=FALSE
-    #
-    #   file:              persistent, not `mem:`.
-    #   DB_CLOSE_ON_EXIT   left FALSE so the shutdown hook does not race Spring's
-    #                      own orderly close.
-    #
-    # Do NOT add AUTO_SERVER=TRUE to get a second instance connected. It would
-    # work, and it would also expose an unauthenticated H2 TCP listener on the
-    # host. Multi-instance is already unsupported for other reasons
-    # (docs/adr/0003).
-    #
-    # There is no TLS setting to configure and that is not a control: the database
-    # is in-process, so there is no connection to protect. The corresponding risk
-    # moves to the filesystem instead — the database file holds every password
-    # hash and email address in plaintext-at-rest, so it needs restrictive file
-    # permissions and disk encryption, neither of which this file can enforce.
+    # file: (not mem:) for persistence across restarts.
+    # DB_CLOSE_ON_EXIT=FALSE so the shutdown hook doesn't race Spring's own close.
+    # Do not add AUTO_SERVER=TRUE — it opens an unauthenticated H2 TCP listener.
+    # No TLS setting: the DB is in-process; the file itself needs OS-level
+    # permissions and disk encryption instead.
     url: ${APP_DB_URL}
     username: ${APP_DB_USERNAME}
-    # Still required, still never defaulted. An embedded H2 file with a blank
-    # password is readable by any process that can open it, which is precisely
-    # what the dev datasource does and precisely what must not ship.
     password: ${APP_DB_PASSWORD}
     hikari:
-      # Bounded pool. H2 is embedded, so connections are cheap, but the write path
-      # serialises regardless — a large pool would only queue inside the engine
-      # where it is harder to see than queuing in Hikari.
+      # Bounded pool; H2's write path serialises regardless, so a large pool
+      # just queues inside the engine instead of in Hikari.
       maximum-pool-size: ${APP_DB_POOL_MAX:10}
       minimum-idle: ${APP_DB_POOL_MIN_IDLE:2}
       connection-timeout: 10s
   jpa:
     hibernate:
-      # validate, never update. `update` lets the running application alter the
-      # schema, which is an ambient write privilege over the data model and a
-      # silent divergence between environments: the schema becomes whatever the
-      # entity classes happened to say on the day each instance started, with no
-      # record of the change. `validate` fails startup when the schema and the
-      # entities disagree, which turns a drift into a deployment failure instead
-      # of a data problem discovered later.
+      # validate, never update: schema drift fails deployment instead of
+      # silently mutating the schema at runtime.
       ddl-auto: validate
     open-in-view: false
   flyway:
     enabled: true
-    # The schema this validates against is created by the checked-in migrations
-    # and nothing else. baseline-on-migrate stays false so pointing a fresh
-    # deployment at a database that already has tables fails loudly rather than
-    # assuming its current state is the baseline.
+    # False so a fresh deployment against a non-empty database fails loudly.
     baseline-on-migrate: false
     validate-on-migrate: true
 
@@ -447,15 +273,9 @@ spring:
       enabled: false
 
 logging:
-  # Structured output, replacing key=value text nobody can query reliably. ECS
-  # because it is the format the common aggregators ingest without a custom
-  # parser, and because a parser is the part that breaks silently when a log line
-  # gains a field.
-  #
-  # This is also what makes the log-forging defences meaningful: in JSON, a
-  # newline inside a value is escaped by the encoder, so a forged line cannot be
-  # produced by content alone. The validation and sanitising remain, because
-  # something still has to hold when a plaintext appender is configured.
+  # Structured ECS output: the format common aggregators ingest without a
+  # custom parser, and what makes log-forging defences meaningful (a newline
+  # in a value is escaped by the encoder).
   structured:
     format:
       console: ecs
@@ -464,13 +284,7 @@ logging:
     name: ${APP_LOG_FILE:/var/log/hello-world-auth-app/application.log}
   logback:
     rollingpolicy:
-      # Retention, enforced rather than described. 90 days matches the period
-      # stated in the privacy notice; without a cap the rotation policy is
-      # "forever", which is the finding.
-      #
-      # Access control on the directory is a deployment concern this file cannot
-      # enforce — the logs carry pseudonymous references rather than usernames
-      # specifically so that a wider-than-intended read grant is less damaging.
+      # Matches the 90-day period stated in the privacy notice.
       max-history: ${APP_LOG_MAX_HISTORY:90}
       max-file-size: 100MB
       total-size-cap: 5GB

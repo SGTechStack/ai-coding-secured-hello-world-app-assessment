@@ -1,7 +1,7 @@
 # Demo App
 
 Session-based login: a Spring Boot API in `backend/` and a React SPA in `frontend/`.
-Spec and tickets live in `.scratch/simple-login/`.
+Spec and tickets live in `.scratch/`.
 
 ## Prerequisites
 

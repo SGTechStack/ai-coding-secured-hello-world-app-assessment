@@ -1,6 +1,6 @@
 # Demo App
 
-Fullstack Simple Login feature: `backend/` (Spring Boot, Java 21, Maven) and `frontend/` (React 19 + TypeScript, Vite).
+Fullstack Demo App with authentication, session management, role-based access, and audit logging: `backend/` (Spring Boot, Java 21, Maven) and `frontend/` (React 19 + TypeScript, Vite).
 
 ## Agent skills
 

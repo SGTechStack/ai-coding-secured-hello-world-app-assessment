@@ -2,6 +2,7 @@ import type { Browser, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import {
   ADMIN,
+  ACCOUNT_DISABLED,
   ADMIN_USERS_PATH,
   INVALID_CREDENTIALS,
   JOHN,
@@ -38,14 +39,18 @@ async function otherBrowser(browser: Browser) {
   return { page, close: () => context.close() };
 }
 
-/** Tries to log `user` in on `page` and expects the generic invalid-credentials banner. */
-async function expectLoginRefused(page: Page, user: NewUser) {
+/** Tries to log `user` in on `page` and expects `banner` (the generic invalid-credentials one by default). */
+async function expectLoginRefused(
+  page: Page,
+  user: NewUser,
+  banner = INVALID_CREDENTIALS,
+) {
   await page.goto("/login");
   const form = loginForm(page);
   await form.username.fill(user.username);
   await form.password.fill(user.password);
   await form.submit.click();
-  await expect(form.banner).toHaveText(INVALID_CREDENTIALS);
+  await expect(form.banner).toHaveText(banner);
 }
 
 test.describe("Story 7: Admin", () => {
@@ -116,8 +121,8 @@ test.describe("Story 7: Admin", () => {
         await target.page.reload();
         await expect(target.page).toHaveURL("/login");
       });
-      await test.step("they can't log in", async () => {
-        await expectLoginRefused(target.page, user);
+      await test.step("they can't log in, and are told the account is disabled", async () => {
+        await expectLoginRefused(target.page, user, ACCOUNT_DISABLED);
       });
 
       await row.getByRole("button", { name: "Enable" }).click();

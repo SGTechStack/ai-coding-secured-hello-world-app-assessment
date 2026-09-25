@@ -239,6 +239,29 @@ describe("/login submission feedback", () => {
     expectReEnabled();
   });
 
+  it("tells a disabled account to contact an admin on a 401 ACCOUNT_DISABLED", async () => {
+    respondToLogin(() =>
+      HttpResponse.json(
+        {
+          status: 401,
+          code: "ACCOUNT_DISABLED",
+          message: "Your account has been disabled. Please contact an admin.",
+        },
+        { status: 401 },
+      ),
+    );
+    await renderFilledLogin();
+
+    await submit();
+    await advance(400);
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      /^Your account has been disabled\. Please contact an admin\.$/,
+    );
+    expectReEnabled();
+  });
+
   it("shows the throttle message on a 429, not the invalid-credentials one", async () => {
     respondToLogin(() =>
       HttpResponse.json(

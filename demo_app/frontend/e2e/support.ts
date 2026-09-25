@@ -34,6 +34,8 @@ export function corsHeaders(route: Route): Record<string, string> {
 }
 
 export const INVALID_CREDENTIALS = "Invalid username or password";
+export const ACCOUNT_DISABLED =
+  "Your account has been disabled. Please contact an admin.";
 export const UNAVAILABLE =
   "Unable to connect to the server. Please try again later.";
 

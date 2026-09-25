@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { settleNoSoonerThan } from "@/lib/timing";
 import { login, meQueryOptions, type Credentials } from "../api/auth";
+import { hasCode } from "../api/client";
 import { bannerMessage } from "./bannerMessage";
 import { loginNoticeText } from "./loginNotice";
 
@@ -21,10 +22,15 @@ import { loginNoticeText } from "./loginNotice";
 const MIN_SUBMITTING_MS = 400;
 
 /**
- * Never says which credential was wrong: every 401 gets this one message. Any other failure that
- * survives the CSRF retry is "can't connect" (see `bannerMessage`).
+ * Never says which credential was wrong: every 401 gets this one message, except a disabled
+ * account's. Any other failure that survives the CSRF retry is "can't connect" (see
+ * `bannerMessage`).
  */
 const INVALID_CREDENTIALS = "Invalid username or password";
+
+/** The server sends `ACCOUNT_DISABLED` only when the password was correct. */
+const ACCOUNT_DISABLED =
+  "Your account has been disabled. Please contact an admin.";
 
 type FieldName = keyof Credentials;
 type FieldErrors = Partial<Record<FieldName, string>>;
@@ -90,9 +96,11 @@ export function LoginPage() {
         {/* The banner sits above the form, outside the <form> element. */}
         {loginMutation.isError && (
           <ErrorAlert>
-            {bannerMessage(loginMutation.error, {
-              unauthorized: INVALID_CREDENTIALS,
-            })}
+            {hasCode(loginMutation.error, "ACCOUNT_DISABLED")
+              ? ACCOUNT_DISABLED
+              : bannerMessage(loginMutation.error, {
+                  unauthorized: INVALID_CREDENTIALS,
+                })}
           </ErrorAlert>
         )}
         <form

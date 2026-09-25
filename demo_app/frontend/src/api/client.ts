@@ -29,7 +29,10 @@ export type ApiErrorKind =
  * error rather than a branch that never runs.
  */
 export type ApiErrorCode =
-  "INVALID_RESET_TOKEN" | "USER_NOT_FOUND" | "SELF_ACTION_NOT_ALLOWED";
+  | "ACCOUNT_DISABLED"
+  | "INVALID_RESET_TOKEN"
+  | "USER_NOT_FOUND"
+  | "SELF_ACTION_NOT_ALLOWED";
 
 /** Whether `error` is an ApiError carrying `code`. */
 export function hasCode(error: unknown, code: ApiErrorCode): error is ApiError {

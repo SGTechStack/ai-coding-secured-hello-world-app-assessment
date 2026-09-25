@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { eraseMyAccount, exportMyAccountData, triggerAccountDataDownload } from "./api/client";
+
+import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
+import { Label } from "@/common/components/ui/label";
+import { Alert, AlertDescription } from "@/common/components/ui/alert";
+import { eraseMyAccount, exportMyAccountData, triggerAccountDataDownload } from "../api";
 
 interface AccountDataPanelProps {
   /** Called once the account no longer exists, so the shell can return to the login view. */
@@ -73,40 +78,42 @@ export function AccountDataPanel({ onErased }: AccountDataPanelProps) {
 
   return (
     <section>
-      <h3>Your data</h3>
+      <h3 className="mb-4 text-[1.05rem] font-semibold">Your data</h3>
 
-      <p className="field-hint">
+      <p className="mb-4 text-[0.78rem] text-muted-foreground">
         We hold your username, email address and a hashed password, plus sign-in activity used to slow down
         brute-force attacks. Your email is used only to send a password reset link you ask for.
       </p>
 
       {state.kind === "error" && (
-        <p className="alert alert-error" role="alert">
-          {state.message}
-        </p>
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{state.message}</AlertDescription>
+        </Alert>
       )}
 
       {state.kind === "exported" && (
-        <p className="alert alert-success" role="status">
-          Your data has been downloaded as <code>my-account-data.json</code>.
-        </p>
+        <Alert variant="success" className="mb-4">
+          <AlertDescription>
+            Your data has been downloaded as <code>my-account-data.json</code>.
+          </AlertDescription>
+        </Alert>
       )}
 
       {state.kind === "confirming-erasure" ? (
         <form
-          className="alert"
+          className="flex flex-col gap-3 rounded-lg border px-4 py-3"
           onSubmit={(e) => {
             e.preventDefault();
             void handleErase(state.password);
           }}
         >
-          <p>
+          <p className="text-sm">
             Deleting your account removes it and its data permanently. This cannot be undone. Enter your password
             to confirm.
           </p>
-          <div className="field">
-            <label htmlFor="erase-password">Your password</label>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="erase-password">Your password</Label>
+            <Input
               id="erase-password"
               name="erase-password"
               type="password"
@@ -117,28 +124,28 @@ export function AccountDataPanel({ onErased }: AccountDataPanelProps) {
               onChange={(e) => setState({ kind: "confirming-erasure", password: e.target.value })}
             />
           </div>
-          <div className="row-actions">
-            <button type="submit" className="btn-danger">
+          <div className="flex items-center gap-2">
+            <Button type="submit" variant="destructive">
               Delete my account
-            </button>
-            <button type="button" className="btn-secondary" onClick={() => setState({ kind: "idle" })}>
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setState({ kind: "idle" })}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
-        <div className="row-actions">
-          <button type="button" className="btn-secondary" disabled={isBusy} onClick={() => void handleExport()}>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="secondary" disabled={isBusy} onClick={() => void handleExport()}>
             {state.kind === "exporting" ? "Preparing…" : "Download my data"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn-danger"
+            variant="destructive"
             disabled={isBusy}
             onClick={() => setState({ kind: "confirming-erasure", password: "" })}
           >
             Delete my account
-          </button>
+          </Button>
         </div>
       )}
     </section>

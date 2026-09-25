@@ -1,5 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { ApiError, login, type LoginResponse } from "./api/client";
+
+import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
+import { Label } from "@/common/components/ui/label";
+import { Alert, AlertDescription } from "@/common/components/ui/alert";
+import { Badge } from "@/common/components/ui/badge";
+import { ApiError } from "@/common/api/http";
+import { login, type LoginResponse } from "../api";
 
 interface LoginFormProps {
   onLoginSuccess: (result: LoginResponse) => void;
@@ -68,36 +75,52 @@ export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {import.meta.env.DEV && (
-        <div className="demo-credentials" data-testid="demo-admin-credentials">
-          <div className="demo-credentials-header">
-            <span className="dev-banner-tag">DEV</span>
-            <span className="demo-credentials-title">Demo admin login</span>
+        <div
+          className="flex flex-col gap-2.5 rounded-md border border-amber-300 bg-amber-50 p-3.5 dark:border-amber-900 dark:bg-amber-950"
+          data-testid="demo-admin-credentials"
+        >
+          <div className="flex items-center gap-2">
+            <Badge className="border-amber-900/10 bg-amber-900/10 text-[0.68rem] font-bold tracking-wide text-amber-900 dark:border-amber-200/15 dark:bg-amber-200/15 dark:text-amber-200">
+              DEV
+            </Badge>
+            <span className="text-[0.82rem] font-semibold text-amber-900 dark:text-amber-200">
+              Demo admin login
+            </span>
           </div>
-          <dl className="demo-credentials-list">
-            <div className="demo-credentials-row">
-              <dt>Username</dt>
-              <dd>
-                <code>{DEMO_ADMIN_USERNAME}</code>
+          <dl className="flex flex-col gap-1">
+            <div className="flex items-baseline gap-2 text-[0.82rem]">
+              <dt className="w-[4.5rem] shrink-0 font-semibold text-amber-800 dark:text-amber-300">Username</dt>
+              <dd className="m-0">
+                <code className="rounded bg-amber-900/10 px-1.5 py-0.5 text-[0.82rem] dark:bg-amber-200/10">
+                  {DEMO_ADMIN_USERNAME}
+                </code>
               </dd>
             </div>
-            <div className="demo-credentials-row">
-              <dt>Password</dt>
-              <dd>
-                <code>{DEMO_ADMIN_PASSWORD}</code>
+            <div className="flex items-baseline gap-2 text-[0.82rem]">
+              <dt className="w-[4.5rem] shrink-0 font-semibold text-amber-800 dark:text-amber-300">Password</dt>
+              <dd className="m-0">
+                <code className="rounded bg-amber-900/10 px-1.5 py-0.5 text-[0.82rem] dark:bg-amber-200/10">
+                  {DEMO_ADMIN_PASSWORD}
+                </code>
               </dd>
             </div>
           </dl>
-          <button type="button" className="btn-link demo-credentials-fill" onClick={fillDemoAdminCredentials}>
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto self-start p-0 text-[0.8rem]"
+            onClick={fillDemoAdminCredentials}
+          >
             Fill in demo credentials
-          </button>
+          </Button>
         </div>
       )}
 
-      <div className="field">
-        <label htmlFor="login-username">Username</label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="login-username">Username</Label>
+        <Input
           id="login-username"
           name="username"
           type="text"
@@ -108,9 +131,9 @@ export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
         />
       </div>
 
-      <div className="field">
-        <label htmlFor="login-password">Password</label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="login-password">Password</Label>
+        <Input
           id="login-password"
           name="password"
           type="password"
@@ -122,14 +145,14 @@ export function LoginForm({ onLoginSuccess, initialUsername }: LoginFormProps) {
       </div>
 
       {state.kind === "error" && (
-        <p className="alert alert-error" role="alert">
-          {state.message}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{state.message}</AlertDescription>
+        </Alert>
       )}
 
-      <button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Logging in…" : "Log in"}
-      </button>
+      </Button>
     </form>
   );
 }

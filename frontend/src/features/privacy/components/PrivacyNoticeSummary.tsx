@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { fetchPrivacyNotice, isAbortError, type PrivacyNotice } from "./api/client";
+import { usePrivacyNotice } from "../hooks/usePrivacyNotice";
 
 /**
  * The privacy notice, shown where the data is collected.
@@ -30,66 +29,57 @@ import { fetchPrivacyNotice, isAbortError, type PrivacyNotice } from "./api/clie
  * would block a user over something they cannot act on.
  */
 export function PrivacyNoticeSummary() {
-  const [notice, setNotice] = useState<PrivacyNotice | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetchPrivacyNotice(controller.signal)
-      .then(setNotice)
-      .catch((error: unknown) => {
-        if (isAbortError(error)) return;
-        setNotice(null);
-      });
-
-    return () => controller.abort();
-  }, []);
+  const notice = usePrivacyNotice();
 
   return (
-    <div className="field-hint">
+    <div className="text-[0.78rem] text-muted-foreground">
       <p>
         We store your username and email address. Your email is used only to send a password reset link if you ask
         for one — never for marketing, and never shared.
       </p>
 
       {notice && (
-        <details>
-          <summary>What we collect, why, and how long we keep it</summary>
+        <details className="mt-1.5">
+          <summary className="cursor-pointer select-none text-foreground">
+            What we collect, why, and how long we keep it
+          </summary>
 
-          <p>
-            <strong>Why we can process this:</strong> {notice.lawfulBasis}
-          </p>
+          <div className="mt-2 flex flex-col gap-2">
+            <p>
+              <strong className="text-foreground">Why we can process this:</strong> {notice.lawfulBasis}
+            </p>
 
-          <p>
-            <strong>What we collect</strong>
-          </p>
-          <ul>
-            {notice.dataCollected.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+            <div>
+              <p className="font-semibold text-foreground">What we collect</p>
+              <ul className="ml-4 list-disc">
+                {notice.dataCollected.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
 
-          <p>
-            <strong>How long we keep it</strong>
-          </p>
-          <ul>
-            {notice.retention.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+            <div>
+              <p className="font-semibold text-foreground">How long we keep it</p>
+              <ul className="ml-4 list-disc">
+                {notice.retention.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
 
-          <p>
-            <strong>Your rights</strong>
-          </p>
-          <ul>
-            {notice.rights.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+            <div>
+              <p className="font-semibold text-foreground">Your rights</p>
+              <ul className="ml-4 list-disc">
+                {notice.rights.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
 
-          <p>
-            Contact: {notice.contact} ({notice.controller}). Last updated {notice.lastUpdated}.
-          </p>
+            <p>
+              Contact: {notice.contact} ({notice.controller}). Last updated {notice.lastUpdated}.
+            </p>
+          </div>
         </details>
       )}
     </div>

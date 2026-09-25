@@ -1,5 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { ApiError, confirmPasswordReset } from "./api/client";
+
+import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
+import { Label } from "@/common/components/ui/label";
+import { Alert, AlertDescription } from "@/common/components/ui/alert";
+import { ApiError } from "@/common/api/http";
+import { confirmPasswordReset } from "../api";
 
 const MIN_PASSWORD_LENGTH = 12;
 
@@ -49,24 +55,24 @@ export function ResetPasswordForm({ initialToken, onResetComplete }: ResetPasswo
   if (state.kind === "success") {
     return (
       <>
-        <h2>Reset password</h2>
-        <p className="alert alert-success" role="status">
-          {state.message}
-        </p>
-        <button type="button" className="btn-primary" onClick={onResetComplete}>
+        <h2 className="mb-4 text-[1.15rem] font-semibold">Reset password</h2>
+        <Alert variant="success" className="mb-4">
+          <AlertDescription>{state.message}</AlertDescription>
+        </Alert>
+        <Button type="button" onClick={onResetComplete}>
           Back to log in
-        </button>
+        </Button>
       </>
     );
   }
 
   return (
     <>
-      <h2>Reset password</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor="reset-token">Reset token</label>
-          <input
+      <h2 className="mb-4 text-[1.15rem] font-semibold">Reset password</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="reset-token">Reset token</Label>
+          <Input
             id="reset-token"
             name="token"
             type="text"
@@ -77,9 +83,9 @@ export function ResetPasswordForm({ initialToken, onResetComplete }: ResetPasswo
           />
         </div>
 
-        <div className="field">
-          <label htmlFor="reset-new-password">New password</label>
-          <input
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="reset-new-password">New password</Label>
+          <Input
             id="reset-new-password"
             name="newPassword"
             type="password"
@@ -90,27 +96,29 @@ export function ResetPasswordForm({ initialToken, onResetComplete }: ResetPasswo
             onChange={(e) => setNewPassword(e.target.value)}
             aria-describedby="reset-password-hint"
           />
-          <p id="reset-password-hint" className="field-hint">
+          <p id="reset-password-hint" className="text-[0.78rem] text-muted-foreground">
             At least {MIN_PASSWORD_LENGTH} characters.
           </p>
         </div>
 
         {state.kind === "error" && (
-          <div className="alert alert-error" role="alert">
-            <p>{state.message}</p>
-            {state.details.length > 0 && (
-              <ul>
-                {state.details.map((detail) => (
-                  <li key={detail}>{detail}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>
+              <p>{state.message}</p>
+              {state.details.length > 0 && (
+                <ul className="ml-4 list-disc">
+                  {state.details.map((detail) => (
+                    <li key={detail}>{detail}</li>
+                  ))}
+                </ul>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
 
-        <button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Resetting…" : "Reset password"}
-        </button>
+        </Button>
       </form>
     </>
   );

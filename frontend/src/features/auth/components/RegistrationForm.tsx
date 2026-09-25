@@ -1,6 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { ApiError, register, type RegistrationResponse } from "./api/client";
-import { PrivacyNoticeSummary } from "./PrivacyNoticeSummary";
+
+import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
+import { Label } from "@/common/components/ui/label";
+import { Alert, AlertDescription } from "@/common/components/ui/alert";
+import { ApiError } from "@/common/api/http";
+import { PrivacyNoticeSummary } from "@/features/privacy/components/PrivacyNoticeSummary";
+import { register, type RegistrationResponse } from "../api";
 
 const MIN_PASSWORD_LENGTH = 12;
 
@@ -49,20 +55,22 @@ export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
 
   if (state.kind === "success") {
     return (
-      <div className="alert alert-success" role="status">
-        <p>
-          Account <strong>{state.data.username}</strong> created successfully.
-        </p>
-        <p>You can now log in with your new credentials.</p>
-      </div>
+      <Alert variant="success">
+        <AlertDescription>
+          <p>
+            Account <strong>{state.data.username}</strong> created successfully.
+          </p>
+          <p>You can now log in with your new credentials.</p>
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="field">
-        <label htmlFor="username">Username</label>
-        <input
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="username">Username</Label>
+        <Input
           id="username"
           name="username"
           type="text"
@@ -80,14 +88,14 @@ export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
           onChange={(e) => setUsername(e.target.value)}
           aria-describedby="username-hint"
         />
-        <p id="username-hint" className="field-hint">
+        <p id="username-hint" className="text-[0.78rem] text-muted-foreground">
           Letters, digits, dots, underscores and hyphens.
         </p>
       </div>
 
-      <div className="field">
-        <label htmlFor="email">Email</label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="email">Email</Label>
+        <Input
           id="email"
           name="email"
           type="email"
@@ -98,9 +106,9 @@ export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
         />
       </div>
 
-      <div className="field">
-        <label htmlFor="password">Password</label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="password">Password</Label>
+        <Input
           id="password"
           name="password"
           type="password"
@@ -111,22 +119,24 @@ export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
           onChange={(e) => setPassword(e.target.value)}
           aria-describedby="password-hint"
         />
-        <p id="password-hint" className="field-hint">
+        <p id="password-hint" className="text-[0.78rem] text-muted-foreground">
           At least {MIN_PASSWORD_LENGTH} characters.
         </p>
       </div>
 
       {state.kind === "error" && (
-        <div className="alert alert-error" role="alert">
-          <p>{state.message}</p>
-          {state.details.length > 0 && (
-            <ul>
-              {state.details.map((detail) => (
-                <li key={detail}>{detail}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>
+            <p>{state.message}</p>
+            {state.details.length > 0 && (
+              <ul className="ml-4 list-disc">
+                {state.details.map((detail) => (
+                  <li key={detail}>{detail}</li>
+                ))}
+              </ul>
+            )}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/*
@@ -137,9 +147,9 @@ export function RegistrationForm({ onRegistered }: RegistrationFormProps) {
       */}
       <PrivacyNoticeSummary />
 
-      <button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Registering…" : "Register"}
-      </button>
+      </Button>
     </form>
   );
 }

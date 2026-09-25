@@ -1,64 +1,38 @@
-import { useEffect, useState } from "react";
-import { type LoginResponse } from "./api/client";
-import { RegistrationForm } from "./RegistrationForm";
-import { LoginForm } from "./LoginForm";
-import { ProtectedGreeting } from "./ProtectedGreeting";
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
-import { ResetPasswordForm } from "./ResetPasswordForm";
-import { DevToolsBanner } from "./DevToolsBanner";
+import { useState } from "react";
+
+import { Card, CardContent } from "@/common/components/ui/card";
+import { Button } from "@/common/components/ui/button";
+import { Alert, AlertDescription } from "@/common/components/ui/alert";
+import { cn } from "@/common/lib/utils";
+import { type LoginResponse } from "@/features/auth/api";
+import { useResetTokenFromUrl } from "@/features/auth/hooks/useResetTokenFromUrl";
+import { RegistrationForm } from "@/features/auth/components/RegistrationForm";
+import { LoginForm } from "@/features/auth/components/LoginForm";
+import { ForgotPasswordForm } from "@/features/auth/components/ForgotPasswordForm";
+import { ResetPasswordForm } from "@/features/auth/components/ResetPasswordForm";
+import { ProtectedGreeting } from "@/features/account/components/ProtectedGreeting";
+import { DevToolsBanner } from "@/features/devtools/components/DevToolsBanner";
 
 type View = "login" | "register" | "forgot-password" | "reset-password";
 
-/**
- * Reads the reset token out of the address bar. Called only from lazy state
- * initialisers, so the URL is sampled once per mount rather than on every
- * render — and always before the effect below erases it.
- */
-function readTokenFromUrl(): string | null {
-  // The fragment, not the query string: the browser never sends it to a
-  // server, so the token cannot reach this host's access logs the way a
-  // query parameter did before it could be stripped.
-  return new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token");
-}
-
 function App() {
   const [loggedInAs, setLoggedInAs] = useState<LoginResponse | null>(null);
-  const [resetToken, setResetToken] = useState<string | null>(readTokenFromUrl);
-  const [view, setView] = useState<View>(() => (readTokenFromUrl() ? "reset-password" : "login"));
+  const [resetToken, setResetToken] = useResetTokenFromUrl();
+  const [view, setView] = useState<View>(() => (resetToken ? "reset-password" : "login"));
   const [registeredUsername, setRegisteredUsername] = useState<string | null>(null);
-
-  /**
-   * Treat the reset token as one-shot: now that it lives in React state, take
-   * it out of the address bar. This keeps it out of browser history entries,
-   * and stops a page refresh from dropping the user back into the reset flow
-   * holding a token that has already been consumed.
-   *
-   * The token now arrives in the fragment, which the browser never transmits,
-   * so this is defence in depth rather than the primary control it was when
-   * the token came through the query string.
-   *
-   * This belongs in an effect rather than the render body: mutating browser
-   * history is a side effect, and the render phase can be re-entered or
-   * abandoned by the scheduler.
-   */
-  useEffect(() => {
-    if (new URLSearchParams(window.location.hash.replace(/^#/, "")).has("token")) {
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
 
   const isAuthView = view === "login" || view === "register";
 
   return (
     <>
       <DevToolsBanner />
-      <main className="app">
-        <div className="app-header">
-          <h1>Hello World Auth App</h1>
-          <p>A secure username/password reference implementation.</p>
+      <main className="flex min-h-screen flex-col items-center px-6 py-12">
+        <div className="mb-6 w-full max-w-[34rem] text-center">
+          <h1 className="mb-1.5 text-[1.75rem] font-semibold tracking-tight">Hello World Auth App</h1>
+          <p className="text-[0.9rem] text-muted-foreground">A secure username/password reference implementation.</p>
         </div>
 
-        <div className={`app-content${loggedInAs ? " is-wide" : ""}`}>
+        <div className={cn("flex w-full max-w-[26rem] flex-col gap-5", loggedInAs && "max-w-6xl")}>
           {loggedInAs && (
             <ProtectedGreeting
               username={loggedInAs.username}
@@ -71,81 +45,95 @@ function App() {
           )}
 
           {!loggedInAs && isAuthView && (
-            <div className="card">
-              <div className="tabs" role="tablist" aria-label="Authentication">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={view === "login"}
-                  className={view === "login" ? "is-active" : ""}
-                  onClick={() => setView("login")}
-                >
-                  Log in
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={view === "register"}
-                  className={view === "register" ? "is-active" : ""}
-                  onClick={() => {
-                    setRegisteredUsername(null);
-                    setView("register");
-                  }}
-                >
-                  Register
-                </button>
-              </div>
-
-              {view === "login" ? (
-                <>
-                  {registeredUsername && (
-                    <p className="alert alert-success" role="status">
-                      Account <strong>{registeredUsername}</strong> created successfully. Log in below to continue.
-                    </p>
-                  )}
-                  <LoginForm
-                    initialUsername={registeredUsername ?? undefined}
-                    onLoginSuccess={(result) => {
+            <Card>
+              <CardContent>
+                <div className="mb-5 flex gap-1 rounded-lg bg-muted p-[3px]" role="tablist" aria-label="Authentication">
+                  <Button
+                    type="button"
+                    role="tab"
+                    aria-selected={view === "login"}
+                    variant="ghost"
+                    className={cn(
+                      "flex-1 rounded-md",
+                      view === "login" && "bg-background text-foreground shadow-sm",
+                    )}
+                    onClick={() => setView("login")}
+                  >
+                    Log in
+                  </Button>
+                  <Button
+                    type="button"
+                    role="tab"
+                    aria-selected={view === "register"}
+                    variant="ghost"
+                    className={cn(
+                      "flex-1 rounded-md",
+                      view === "register" && "bg-background text-foreground shadow-sm",
+                    )}
+                    onClick={() => {
                       setRegisteredUsername(null);
-                      setLoggedInAs(result);
+                      setView("register");
+                    }}
+                  >
+                    Register
+                  </Button>
+                </div>
+
+                {view === "login" ? (
+                  <>
+                    {registeredUsername && (
+                      <Alert variant="success" className="mb-4">
+                        <AlertDescription>
+                          Account <strong>{registeredUsername}</strong> created successfully. Log in below to
+                          continue.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <LoginForm
+                      initialUsername={registeredUsername ?? undefined}
+                      onLoginSuccess={(result) => {
+                        setRegisteredUsername(null);
+                        setLoggedInAs(result);
+                      }}
+                    />
+                    <p className="mt-4 text-center text-[0.85rem] text-muted-foreground">
+                      <Button type="button" variant="link" className="h-auto p-0" onClick={() => setView("forgot-password")}>
+                        Forgot password?
+                      </Button>
+                    </p>
+                  </>
+                ) : (
+                  <RegistrationForm
+                    onRegistered={(data) => {
+                      setRegisteredUsername(data.username);
+                      setView("login");
                     }}
                   />
-                  <p className="form-footer">
-                    <button type="button" className="btn-link" onClick={() => setView("forgot-password")}>
-                      Forgot password?
-                    </button>
-                  </p>
-                </>
-              ) : (
-                <RegistrationForm
-                  onRegistered={(data) => {
-                    setRegisteredUsername(data.username);
-                    setView("login");
-                  }}
-                />
-              )}
-            </div>
+                )}
+              </CardContent>
+            </Card>
           )}
 
           {!loggedInAs && view === "forgot-password" && (
-            <div className="card">
-              <ForgotPasswordForm
-                onBackToLogin={() => setView("login")}
-                onHaveToken={() => setView("reset-password")}
-              />
-            </div>
+            <Card>
+              <CardContent>
+                <ForgotPasswordForm onBackToLogin={() => setView("login")} onHaveToken={() => setView("reset-password")} />
+              </CardContent>
+            </Card>
           )}
 
           {!loggedInAs && view === "reset-password" && (
-            <div className="card">
-              <ResetPasswordForm
-                initialToken={resetToken ?? ""}
-                onResetComplete={() => {
-                  setResetToken(null);
-                  setView("login");
-                }}
-              />
-            </div>
+            <Card>
+              <CardContent>
+                <ResetPasswordForm
+                  initialToken={resetToken ?? ""}
+                  onResetComplete={() => {
+                    setResetToken(null);
+                    setView("login");
+                  }}
+                />
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>

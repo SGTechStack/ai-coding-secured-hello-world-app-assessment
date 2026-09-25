@@ -1,5 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { ApiError, requestPasswordReset } from "./api/client";
+
+import { Button } from "@/common/components/ui/button";
+import { Input } from "@/common/components/ui/input";
+import { Label } from "@/common/components/ui/label";
+import { Alert, AlertDescription } from "@/common/components/ui/alert";
+import { ApiError } from "@/common/api/http";
+import { requestPasswordReset } from "../api";
 
 interface ForgotPasswordFormProps {
   onBackToLogin: () => void;
@@ -40,11 +46,11 @@ export function ForgotPasswordForm({ onBackToLogin, onHaveToken }: ForgotPasswor
 
   return (
     <>
-      <h2>Forgot password</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor="forgot-email">Email</label>
-          <input
+      <h2 className="mb-4 text-[1.15rem] font-semibold">Forgot password</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="forgot-email">Email</Label>
+          <Input
             id="forgot-email"
             name="email"
             type="email"
@@ -56,30 +62,30 @@ export function ForgotPasswordForm({ onBackToLogin, onHaveToken }: ForgotPasswor
         </div>
 
         {state.kind === "success" && (
-          <p className="alert alert-success" role="status">
-            {state.message}
-          </p>
+          <Alert variant="success">
+            <AlertDescription>{state.message}</AlertDescription>
+          </Alert>
         )}
 
         {state.kind === "error" && (
-          <p className="alert alert-error" role="alert">
-            {state.message}
-          </p>
+          <Alert variant="destructive">
+            <AlertDescription>{state.message}</AlertDescription>
+          </Alert>
         )}
 
-        <button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? "Sending…" : "Send reset link"}
-        </button>
+        </Button>
       </form>
 
-      <div className="form-footer btn-row">
-        <button type="button" className="btn-link" onClick={onBackToLogin}>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-center text-[0.85rem] text-muted-foreground">
+        <Button type="button" variant="link" className="h-auto p-0" onClick={onBackToLogin}>
           Back to log in
-        </button>
+        </Button>
         {state.kind === "success" && (
-          <button type="button" className="btn-link" onClick={onHaveToken}>
+          <Button type="button" variant="link" className="h-auto p-0" onClick={onHaveToken}>
             I have a reset token
-          </button>
+          </Button>
         )}
       </div>
     </>

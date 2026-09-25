@@ -293,6 +293,44 @@ describe("/admin/users (admin user list)", () => {
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     });
 
+    it("retries an action once with a fresh CSRF token after a 403", async () => {
+      const { sent } = fakeAdminApi();
+      let attempts = 0;
+      let primes = 0;
+      server.use(
+        http.get(api("/api/v1/auth/csrf"), () => {
+          primes += 1;
+          return HttpResponse.json({
+            headerName: "X-XSRF-TOKEN",
+            token: `token-${primes}`,
+          });
+        }),
+        http.patch(api("/api/v1/admin/users/:id/status"), ({ request }) => {
+          attempts += 1;
+          if (attempts === 1)
+            return HttpResponse.json({ message: "Forbidden" }, { status: 403 });
+          sent.push({
+            method: request.method,
+            path: new URL(request.url).pathname,
+            body: undefined,
+            csrf: request.headers.get("X-XSRF-TOKEN"),
+          });
+          return HttpResponse.json({ ...adminUsers[0]!, enabled: false });
+        }),
+      );
+      const { user } = await openAsAdmin();
+
+      await user.click(
+        within(rowOf("johndoe")).getByRole("button", { name: "Disable" }),
+      );
+
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(attempts).toBe(2);
+      expect(primes).toBe(2);
+      expect(sent[0]?.csrf).toBe("token-2");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+
     it("sends nothing when the delete is cancelled", async () => {
       const { sent } = fakeAdminApi();
       const { user } = await openAsAdmin();

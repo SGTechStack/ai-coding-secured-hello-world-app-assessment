@@ -106,6 +106,21 @@ export function dropCsrfToken(): void {
   csrfToken = undefined;
 }
 
+/**
+ * Runs `request`; on a `403` (a missing or stale CSRF token), drops the token and runs it once
+ * more, which fetches a fresh one. Any other error, e.g. a `400`, `409` or `429`, is not retried:
+ * resending would not change the answer. Every state-changing call goes through this.
+ */
+export async function withCsrfRetry<T>(request: () => Promise<T>): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    if (!(error instanceof ApiError && error.status === 403)) throw error;
+    dropCsrfToken();
+    return request();
+  }
+}
+
 function currentCsrfToken(): Promise<string> {
   if (!csrfToken) {
     const pending = fetchCsrfToken();

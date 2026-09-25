@@ -34,8 +34,9 @@ import org.springframework.stereotype.Component;
  *
  * <p>A wrong password counts towards the account's lockout ({@link LoginAttempts}); the failure
  * that sets the lock is audited as {@code ACCOUNT_LOCKED}. A correct password for a locked or
- * disabled account is rejected with the same {@code 401} but doesn't count. A success resets the
- * count before the session is created.
+ * disabled account is rejected with a {@code 401} (the generic one when locked, {@code
+ * ACCOUNT_DISABLED} when disabled) but doesn't count. A success resets the count before the
+ * session is created.
  */
 @Component
 class LoginService {

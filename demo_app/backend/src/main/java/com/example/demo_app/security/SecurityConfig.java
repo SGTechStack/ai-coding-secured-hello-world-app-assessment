@@ -319,7 +319,8 @@ class SecurityConfig {
    * <strong>after</strong> the password comparison (the provider's default is before), so a locked
    * or disabled account costs the same BCrypt comparison as any other login, and an unknown
    * username costs the provider's dummy-hash comparison. Timing doesn't reveal the account's
-   * state, and every failure is rendered as the same {@code 401 INVALID_CREDENTIALS}.
+   * state, and every failure is rendered as the same {@code 401 INVALID_CREDENTIALS}, except a
+   * disabled account with the correct password, which gets {@code 401 ACCOUNT_DISABLED}.
    */
   @Bean
   AuthenticationManager authenticationManager(

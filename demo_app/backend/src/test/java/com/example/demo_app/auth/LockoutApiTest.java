@@ -172,13 +172,25 @@ class LockoutApiTest {
   }
 
   @Test
-  void aDisabledAccountGetsTheIdentical401() throws Exception {
+  void aDisabledAccountWithTheCorrectPasswordIsToldItIsDisabled() throws Exception {
     setEnabled(mvc, username, false);
 
     JsonNode disabled = unauthorized(login(PASSWORD));
-    JsonNode wrongPassword = unauthorized(login("wrong password"));
 
-    assertThat(disabled).isEqualTo(wrongPassword);
+    assertThat(disabled.get("code").asText()).isEqualTo("ACCOUNT_DISABLED");
+    assertThat(disabled.get("message").asText())
+        .isEqualTo("Your account has been disabled. Please contact an admin.");
+  }
+
+  @Test
+  void aDisabledAccountWithAWrongPasswordGetsTheGeneric401() throws Exception {
+    JsonNode enabledWrongPassword = unauthorized(login("wrong password"));
+    setEnabled(mvc, username, false);
+
+    JsonNode disabledWrongPassword = unauthorized(login("wrong password"));
+
+    assertThat(disabledWrongPassword).isEqualTo(enabledWrongPassword);
+    assertThat(disabledWrongPassword.get("code").asText()).isEqualTo("INVALID_CREDENTIALS");
   }
 
   /**

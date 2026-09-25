@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -35,9 +36,10 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
   private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
   /**
-   * Every authentication failure (unknown user, wrong password, disabled account) gets the same
+   * Every authentication failure (unknown user, wrong password, locked account) gets the same
    * status and body so the response cannot be used to enumerate usernames; {@code
-   * DaoAuthenticationProvider} already equalises timing for unknown users.
+   * DaoAuthenticationProvider} already equalises timing for unknown users. A disabled account is
+   * the one exception, handled below.
    */
   @ExceptionHandler(AuthenticationException.class)
   ResponseEntity<ApiError> invalidCredentials(HttpServletRequest request) {
@@ -46,6 +48,21 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatus.UNAUTHORIZED,
             "INVALID_CREDENTIALS",
             "Invalid username or password",
+            request));
+  }
+
+  /**
+   * A disabled account with the <strong>correct</strong> password: the enabled check runs only
+   * after the password comparison, so a wrong password still gets the generic {@code 401} above,
+   * and only someone who knows the password learns that the account is disabled.
+   */
+  @ExceptionHandler(DisabledException.class)
+  ResponseEntity<ApiError> accountDisabled(HttpServletRequest request) {
+    return json(
+        ApiError.of(
+            HttpStatus.UNAUTHORIZED,
+            "ACCOUNT_DISABLED",
+            "Your account has been disabled. Please contact an admin.",
             request));
   }
 

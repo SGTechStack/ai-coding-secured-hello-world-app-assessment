@@ -24,6 +24,18 @@ export const API_BASE_URL = apiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 export type ApiErrorKind =
   "unauthorized" | "throttled" | "rejected" | "unavailable";
 
+/**
+ * The API error codes the UI branches on. Compare through `hasCode`, so a misspelt code is a type
+ * error rather than a branch that never runs.
+ */
+export type ApiErrorCode =
+  "INVALID_RESET_TOKEN" | "USER_NOT_FOUND" | "SELF_ACTION_NOT_ALLOWED";
+
+/** Whether `error` is an ApiError carrying `code`. */
+export function hasCode(error: unknown, code: ApiErrorCode): error is ApiError {
+  return error instanceof ApiError && error.code === code;
+}
+
 /** One problem with one request field, as the API reports it. */
 export type FieldError = { field: string; message: string };
 

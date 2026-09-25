@@ -10,7 +10,7 @@ import {
   type AdminUser,
 } from "../api/admin";
 import { meQueryOptions } from "../api/auth";
-import { ApiError } from "../api/client";
+import { hasCode } from "../api/client";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -155,12 +155,8 @@ function UserRow({
 
 /** What an admin sees when an action fails. */
 function actionFailureMessage(error: Error, username: string): string {
-  if (error instanceof ApiError && error.code === "USER_NOT_FOUND") {
-    return `${username} no longer exists.`;
-  }
-  if (error instanceof ApiError && error.code === "SELF_ACTION_NOT_ALLOWED") {
-    return SELF_ACTION_NOTE;
-  }
+  if (hasCode(error, "USER_NOT_FOUND")) return `${username} no longer exists.`;
+  if (hasCode(error, "SELF_ACTION_NOT_ALLOWED")) return SELF_ACTION_NOTE;
   return `Unable to change ${username}. Please try again later.`;
 }
 

@@ -14,13 +14,17 @@ import {
 } from "@/components/ui/card";
 import { settleNoSoonerThan } from "@/lib/timing";
 import { login, meQueryOptions, type Credentials } from "../api/auth";
-import { ApiError } from "../api/client";
+import { bannerMessage } from "./bannerMessage";
 import { loginNoticeText } from "./loginNotice";
 
 /** The loading state is shown for at least this long so it never flickers. */
 const MIN_SUBMITTING_MS = 400;
 
-const UNAVAILABLE = "Unable to connect to the server. Please try again later.";
+/**
+ * Never says which credential was wrong: every 401 gets this one message. Any other failure that
+ * survives the CSRF retry is "can't connect" (see `bannerMessage`).
+ */
+const INVALID_CREDENTIALS = "Invalid username or password";
 
 type FieldName = keyof Credentials;
 type FieldErrors = Partial<Record<FieldName, string>>;
@@ -85,7 +89,11 @@ export function LoginPage() {
         )}
         {/* The banner sits above the form, outside the <form> element. */}
         {loginMutation.isError && (
-          <ErrorAlert>{bannerMessage(loginMutation.error)}</ErrorAlert>
+          <ErrorAlert>
+            {bannerMessage(loginMutation.error, {
+              unauthorized: INVALID_CREDENTIALS,
+            })}
+          </ErrorAlert>
         )}
         <form
           className="flex flex-col gap-5"
@@ -152,23 +160,6 @@ export function LoginPage() {
       </CardContent>
     </Card>
   );
-}
-
-/**
- * Never says which credential was wrong: a 401 gets one generic message. A 429 means this network
- * is throttled, not that the password is wrong. Anything else that still fails (after the CSRF
- * retry on a 403), a 5xx or a network error, is "can't connect".
- */
-function bannerMessage(error: Error): string {
-  if (!(error instanceof ApiError)) return UNAVAILABLE;
-  switch (error.kind) {
-    case "unauthorized":
-      return "Invalid username or password";
-    case "throttled":
-      return "Too many attempts. Please try again later.";
-    default:
-      return UNAVAILABLE;
-  }
 }
 
 /**

@@ -5,7 +5,7 @@ import {
   ADMIN_USERS_PATH,
   INVALID_CREDENTIALS,
   JOHN,
-  adminLink,
+  manageUsersLink,
   loginForm,
   logoutButton,
   logInThroughUi,
@@ -24,7 +24,7 @@ const OWN_ACCOUNT_NOTE = "You can't change your own account.";
 async function adminWithFreshUser(page: Page, user: NewUser) {
   await registerThroughUi(page, user);
   await logInThroughUi(page, ADMIN);
-  await adminLink(page).click();
+  await manageUsersLink(page).click();
   await expect(userRow(page, user.username)).toBeVisible();
 }
 
@@ -59,7 +59,7 @@ test.describe("Story 7: Admin", () => {
         new URL(response.url()).pathname === ADMIN_USERS_PATH &&
         response.request().method() === "GET",
     );
-    await adminLink(page).click();
+    await manageUsersLink(page).click();
     await expect(page).toHaveURL("/admin/users");
 
     const table = page.getByRole("table", { name: "Users" });
@@ -139,7 +139,7 @@ test.describe("Story 7: Admin", () => {
     const target = await otherBrowser(browser);
     try {
       await logInThroughUi(target.page, user);
-      await expect(adminLink(target.page)).toHaveCount(0);
+      await expect(manageUsersLink(target.page)).toHaveCount(0);
 
       const row = userRow(page, user.username);
       await row.getByRole("button", { name: "Make admin" }).click();
@@ -149,8 +149,8 @@ test.describe("Story 7: Admin", () => {
       ).toBeVisible();
 
       await logInThroughUi(target.page, user);
-      await expect(adminLink(target.page)).toBeVisible();
-      await adminLink(target.page).click();
+      await expect(manageUsersLink(target.page)).toBeVisible();
+      await manageUsersLink(target.page).click();
       await expect(target.page).toHaveURL("/admin/users");
       await expect(
         target.page.getByRole("table", { name: "Users" }),
@@ -201,7 +201,7 @@ test.describe("Story 7: Admin", () => {
     page,
   }) => {
     await logInThroughUi(page, ADMIN);
-    await adminLink(page).click();
+    await manageUsersLink(page).click();
 
     const own = userRow(page, ADMIN.username);
     const controls = own.getByRole("button");
@@ -217,7 +217,7 @@ test.describe("Story 7: Admin", () => {
     page,
   }) => {
     await logInThroughUi(page, JOHN);
-    await expect(adminLink(page)).toHaveCount(0);
+    await expect(manageUsersLink(page)).toHaveCount(0);
 
     await page.goto("/admin/users");
     await expect(page).toHaveURL("/");
@@ -240,7 +240,7 @@ test.describe("Story 7: Admin", () => {
 
     await registerThroughUi(page, user);
     await logInThroughUi(page, ADMIN);
-    await adminLink(page).click();
+    await manageUsersLink(page).click();
 
     const row = userRow(page, user.username);
     await expect(row.getByRole("cell", { name: firstName })).toBeVisible();

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { LockKeyhole, UsersRound } from "lucide-react";
+import { LockKeyhole, ShieldCheck, UsersRound } from "lucide-react";
 import { logout, meQueryOptions } from "../api/auth";
 import { ErrorAlert } from "./ErrorAlert";
 import { LogoutButton } from "./LogoutButton";
@@ -8,10 +8,11 @@ import { ModeToggle } from "./mode-toggle";
 import { Button } from "@/components/ui/button";
 
 /**
- * Every page: a slim header with the brand on the left and, on the right, Admin (only when the
- * cached profile is an admin's) and Log out (only while a session profile is cached) next to the
- * theme toggle; content centred below. A failed logout
- * leaves the user where they are, with an alert directly below the header until they try again.
+ * Every page: a slim header with the brand and Manage users (the user list) on the left and, on
+ * the right, Admin (back to the landing page) and Log out next to the theme toggle. Both admin
+ * links show only when the cached profile is an admin's, and Log out only while a session profile
+ * is cached; content centred below. A failed logout leaves the user where they are, with an alert
+ * directly below the header until they try again.
  */
 export function AppShell() {
   const navigate = useNavigate();
@@ -30,17 +31,27 @@ export function AppShell() {
   return (
     <div className="flex min-h-svh flex-col bg-muted/40">
       <header className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <LockKeyhole className="size-4" />
-          </span>
-          Simple Login
-        </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <LockKeyhole className="size-4" />
+            </span>
+            Demo App
+          </div>
           {me?.role === "ADMIN" && (
             <Button variant="ghost" asChild>
               <Link to="/admin/users">
                 <UsersRound aria-hidden />
+                Manage users
+              </Link>
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {me?.role === "ADMIN" && (
+            <Button variant="ghost" className="has-[>svg]:px-2" asChild>
+              <Link to="/">
+                <ShieldCheck aria-hidden />
                 Admin
               </Link>
             </Button>

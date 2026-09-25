@@ -253,15 +253,15 @@ describe("navbar Log out, pending and failure", () => {
   );
 });
 
-describe("navbar Admin link", () => {
-  it("is shown to an admin and opens the user list", async () => {
+describe("navbar admin links", () => {
+  it("shows an admin a Manage users link that opens the user list", async () => {
     server.use(
       http.get(api("/api/v1/auth/me"), () => HttpResponse.json(adminProfile)),
     );
     const { user, router } = renderApp("/");
     await screen.findByRole("heading", { name: "Hello, Admin!" });
 
-    await user.click(screen.getByRole("link", { name: "Admin" }));
+    await user.click(screen.getByRole("link", { name: "Manage users" }));
 
     expect(
       await screen.findByRole("table", { name: "Users" }),
@@ -269,7 +269,22 @@ describe("navbar Admin link", () => {
     expect(router.state.location.pathname).toBe("/admin/users");
   });
 
-  it("is not shown to a signed-in user who is not an admin", async () => {
+  it("shows an admin an Admin link that goes back to the hello page", async () => {
+    server.use(
+      http.get(api("/api/v1/auth/me"), () => HttpResponse.json(adminProfile)),
+    );
+    const { user, router } = renderApp("/admin/users");
+    await screen.findByRole("table", { name: "Users" });
+
+    await user.click(screen.getByRole("link", { name: "Admin" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Hello, Admin!" }),
+    ).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("are not shown to a signed-in user who is not an admin", async () => {
     server.use(
       http.get(api("/api/v1/auth/me"), () => HttpResponse.json(demoUser)),
     );
@@ -279,18 +294,24 @@ describe("navbar Admin link", () => {
     expect(
       screen.queryByRole("link", { name: "Admin" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Manage users" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("is not shown to an anonymous visitor", async () => {
+  it("are not shown to an anonymous visitor", async () => {
     renderApp("/login");
 
     expect(await screen.findByLabelText("Username")).toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: "Admin" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Manage users" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("disappears after the admin logs out", async () => {
+  it("disappear after the admin logs out", async () => {
     server.use(
       http.get(api("/api/v1/auth/me"), () => HttpResponse.json(adminProfile)),
     );
@@ -308,6 +329,9 @@ describe("navbar Admin link", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(
       screen.queryByRole("link", { name: "Admin" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Manage users" }),
     ).not.toBeInTheDocument();
   });
 });

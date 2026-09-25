@@ -53,9 +53,9 @@ export function logoutButton(page: Page) {
   return page.getByRole("button", { name: /^Log(ging)? out/ });
 }
 
-/** The navbar's Admin link, shown only to admins. */
-export function adminLink(page: Page) {
-  return page.getByRole("link", { name: "Admin", exact: true });
+/** The navbar's Manage users link to the user list, shown only to admins. */
+export function manageUsersLink(page: Page) {
+  return page.getByRole("link", { name: "Manage users", exact: true });
 }
 
 /** The admin user list's row for `username` (its row header). */

@@ -18,13 +18,14 @@ import {
 } from "@/components/ui/card";
 import { settleNoSoonerThan } from "@/lib/timing";
 import { confirmPasswordReset } from "../api/auth";
-import { ApiError } from "../api/client";
+import { ApiError, hasCode } from "../api/client";
+import { bannerMessage } from "./bannerMessage";
+import { PASSWORD_HINT, passwordProblem } from "./passwordRule";
 
 /** The loading state is shown for at least this long so it never flickers. */
 const MIN_SUBMITTING_MS = 400;
 
 export const INVALID_LINK = "This reset link is invalid or has expired.";
-const UNAVAILABLE = "Unable to connect to the server. Please try again later.";
 
 type Form = { newPassword: string; confirmPassword: string };
 type FieldName = keyof Form;
@@ -33,11 +34,8 @@ type FieldErrors = Partial<Record<FieldName, string>>;
 /** Submit-time validation; the API remains the authority (e.g. for the common-password list). */
 function validate({ newPassword, confirmPassword }: Form): FieldErrors {
   const errors: FieldErrors = {};
-  // Characters, not UTF-16 units, as the API counts them.
-  const length = [...newPassword].length;
-  if (!newPassword) errors.newPassword = "Password is required";
-  else if (length < 12 || length > 64)
-    errors.newPassword = "Password must be 12 to 64 characters.";
+  const password = passwordProblem(newPassword);
+  if (password) errors.newPassword = password;
   if (!confirmPassword) errors.confirmPassword = "Please confirm your password";
   else if (confirmPassword !== newPassword)
     errors.confirmPassword = "Passwords do not match";
@@ -83,11 +81,11 @@ export function ResetPasswordPage() {
     onSuccess: () =>
       navigate({ to: "/login", search: { notice: "password-updated" } }),
     onError: (error) => {
-      if (!(error instanceof ApiError)) return;
-      if (error.code === "INVALID_RESET_TOKEN") {
+      if (hasCode(error, "INVALID_RESET_TOKEN")) {
         setInvalidLink(true);
         return;
       }
+      if (!(error instanceof ApiError)) return;
       const problem = error.fieldErrors.find(
         ({ field }) => field === "newPassword",
       );
@@ -121,7 +119,7 @@ export function ResetPasswordPage() {
   const submitting = confirmation.isPending;
   const banner =
     confirmation.isError && Object.keys(fieldErrors).length === 0
-      ? bannerMessage(confirmation.error)
+      ? bannerMessage(confirmation.error, { showRejections: true })
       : undefined;
 
   return (
@@ -130,9 +128,7 @@ export function ResetPasswordPage() {
         <h1 className="text-2xl font-semibold tracking-tight">
           Set a new password
         </h1>
-        <CardDescription>
-          Choose a password of at least 12 characters.
-        </CardDescription>
+        <CardDescription>Choose {PASSWORD_HINT}.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {invalidLink ? (
@@ -199,13 +195,4 @@ export function ResetPasswordPage() {
 /** Moves focus to a field once it is enabled again, so its error is announced. */
 function focus(field: FieldName) {
   setTimeout(() => document.getElementById(field)?.focus());
-}
-
-/** For failures without a field to point at. */
-function bannerMessage(error: Error): string {
-  if (error instanceof ApiError && error.kind === "rejected")
-    return error.message;
-  if (error instanceof ApiError && error.kind === "throttled")
-    return "Too many attempts. Please try again later.";
-  return UNAVAILABLE;
 }

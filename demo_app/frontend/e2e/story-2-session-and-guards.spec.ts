@@ -1,11 +1,11 @@
 import { expect, test } from "./fixtures";
-import { logInAsJohn, loginForm } from "./support";
+import { loginForm, logInThroughUi, JOHN } from "./support";
 
 test.describe("Story 2: Session Persistence & Protected Route Access", () => {
   test("Scenario 1: Authenticated user is greeted by first name upon landing", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
 
     await expect(page).toHaveURL("/");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -16,7 +16,7 @@ test.describe("Story 2: Session Persistence & Protected Route Access", () => {
   test("Scenario 2: Authenticated session persists upon browser reload via session cookie", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
 
     // A reload drops all in-memory state, so the greeting can only come from the server session.
     const me = page.waitForResponse(
@@ -45,7 +45,7 @@ test.describe("Story 2: Session Persistence & Protected Route Access", () => {
   test("Scenario 4: Authenticated user navigating to login page is redirected to landing page", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
 
     await page.goto("/login");
 

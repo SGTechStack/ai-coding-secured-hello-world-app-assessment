@@ -1,31 +1,14 @@
 package com.example.demo_app.auth;
 
-import com.example.demo_app.audit.AuditEvent;
-import com.example.demo_app.audit.AuditLog;
-import com.example.demo_app.security.IpThrottle;
 import com.example.demo_app.user.AccountUserDetails;
-import com.example.demo_app.user.LoginAttempts;
-import com.example.demo_app.user.UserAccount;
 import com.example.demo_app.web.ApiError;
-import com.example.demo_app.web.TooManyRequestsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
-import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -35,32 +18,18 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * The session endpoints the SPA calls: the CSRF token, the signed-in profile and login. Login
+ * itself is {@link LoginService}; logout is the filter chain's (see {@code SecurityConfig}).
+ */
 @RestController
 @RequestMapping("/api/v1/auth")
 class AuthController {
 
-  private final SecurityContextHolderStrategy contextHolder =
-      SecurityContextHolder.getContextHolderStrategy();
-  private final AuthenticationManager authenticationManager;
-  private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
-  private final SecurityContextRepository securityContextRepository;
-  private final AuditLog auditLog;
-  private final IpThrottle loginThrottle;
-  private final LoginAttempts loginAttempts;
+  private final LoginService loginService;
 
-  AuthController(
-      AuthenticationManager authenticationManager,
-      SessionAuthenticationStrategy sessionAuthenticationStrategy,
-      SecurityContextRepository securityContextRepository,
-      AuditLog auditLog,
-      @Qualifier("loginThrottle") IpThrottle loginThrottle,
-      LoginAttempts loginAttempts) {
-    this.authenticationManager = authenticationManager;
-    this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
-    this.securityContextRepository = securityContextRepository;
-    this.auditLog = auditLog;
-    this.loginThrottle = loginThrottle;
-    this.loginAttempts = loginAttempts;
+  AuthController(LoginService loginService) {
+    this.loginService = loginService;
   }
 
   /**
@@ -83,19 +52,9 @@ class AuthController {
   }
 
   /**
-   * Authenticates and binds the result to the {@code HttpSession}. Failures propagate as {@code
-   * AuthenticationException} and a blank field is rejected before authentication; the global
-   * {@code ApiExceptionHandler} renders both. Each attempt that reaches authentication is audited
-   * as {@code LOGIN_SUCCESS} or {@code LOGIN_FAILURE}, with the submitted username as the actor.
-   *
-   * <p>An IP with too many recent failures gets {@code 429} ({@code LOGIN_THROTTLED}) before the
-   * credentials are looked at, so even correct ones are refused and no account state changes. Only
-   * failures count, so a network of legitimate users isn't throttled by its own successful logins.
-   *
-   * <p>A wrong password counts towards the account's lockout ({@link LoginAttempts}); the failure
-   * that sets the lock is audited as {@code ACCOUNT_LOCKED}. A correct password for a locked or
-   * disabled account is rejected with the same {@code 401} but doesn't count. A success resets the
-   * count before the session is created.
+   * Logs in and binds the result to the {@code HttpSession} ({@link LoginService}). A refused login
+   * propagates as {@code AuthenticationException} or {@code TooManyRequestsException}, and a blank
+   * field is rejected before authentication; the global {@code ApiExceptionHandler} renders them.
    */
   @PostMapping(
       value = "/login",
@@ -105,38 +64,7 @@ class AuthController {
       @Valid @RequestBody LoginRequest body,
       HttpServletRequest request,
       HttpServletResponse response) {
-    try {
-      loginThrottle.check(request);
-    } catch (TooManyRequestsException e) {
-      auditLog.record(AuditEvent.LOGIN_THROTTLED, body.username(), request);
-      throw e;
-    }
-
-    Authentication authentication;
-    try {
-      authentication =
-          authenticationManager.authenticate(
-              UsernamePasswordAuthenticationToken.unauthenticated(
-                  body.username(), body.password()));
-    } catch (AuthenticationException e) {
-      loginThrottle.recordAttempt(request);
-      auditLog.record(AuditEvent.LOGIN_FAILURE, body.username(), request);
-      if (e instanceof BadCredentialsException && loginAttempts.recordFailure(body.username())) {
-        auditLog.record(
-            AuditEvent.ACCOUNT_LOCKED, UserAccount.normaliseUsername(body.username()), request);
-      }
-      throw e;
-    }
-
-    loginAttempts.recordSuccess(authentication.getName());
-    sessionAuthenticationStrategy.onAuthentication(authentication, request, response);
-    SecurityContext context = contextHolder.createEmptyContext();
-    context.setAuthentication(authentication);
-    contextHolder.setContext(context);
-    securityContextRepository.saveContext(context, request, response);
-    auditLog.record(AuditEvent.LOGIN_SUCCESS, authentication.getName(), request);
-
-    return UserProfile.of((AccountUserDetails) authentication.getPrincipal());
+    return UserProfile.of(loginService.logIn(body, request, response));
   }
 
   /**

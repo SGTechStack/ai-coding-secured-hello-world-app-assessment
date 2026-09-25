@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { ApiError, apiRequest, dropCsrfToken } from "./client";
+import { ApiError, apiRequest, dropCsrfToken, withCsrfRetry } from "./client";
 
 export type Credentials = { username: string; password: string };
 
@@ -98,21 +98,6 @@ export async function confirmPasswordReset(
     }),
   );
   dropCsrfToken();
-}
-
-/**
- * Runs `request`; on a `403` (a missing or stale CSRF token), drops the token and runs it once
- * more, which fetches a fresh one. Any other error, e.g. a `400`, `409` or `429`, is not retried:
- * resending would not change the answer.
- */
-async function withCsrfRetry<T>(request: () => Promise<T>): Promise<T> {
-  try {
-    return await request();
-  } catch (error) {
-    if (!(error instanceof ApiError && error.status === 403)) throw error;
-    dropCsrfToken();
-    return request();
-  }
 }
 
 export function fetchMe(): Promise<UserProfile> {

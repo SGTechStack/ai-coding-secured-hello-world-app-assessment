@@ -14,11 +14,11 @@ import {
 import { settleNoSoonerThan } from "@/lib/timing";
 import { register, type Registration } from "../api/auth";
 import { ApiError } from "../api/client";
+import { bannerMessage } from "./bannerMessage";
+import { PASSWORD_HINT, passwordProblem } from "./passwordRule";
 
 /** The loading state is shown for at least this long so it never flickers. */
 const MIN_SUBMITTING_MS = 400;
-
-const UNAVAILABLE = "Unable to connect to the server. Please try again later.";
 
 type Form = Registration & { confirmPassword: string };
 type FieldName = keyof Form;
@@ -45,7 +45,6 @@ const EMPTY: Form = {
 // remains the authority, e.g. for the common-password list and taken usernames.
 const USERNAME = /^[A-Za-z0-9._-]{3,50}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+$/;
-const PASSWORD_LENGTH = "Password must be 12 to 64 characters.";
 
 /** Submit-time validation, one message per field. */
 function validate(form: Form): FieldErrors {
@@ -65,11 +64,8 @@ function validate(form: Form): FieldErrors {
   else if (firstName.length > 100)
     errors.firstName = "First name must be 1 to 100 characters.";
 
-  // Characters, not UTF-16 units, as the API counts them.
-  const passwordLength = [...form.password].length;
-  if (!form.password) errors.password = "Password is required";
-  else if (passwordLength < 12 || passwordLength > 64)
-    errors.password = PASSWORD_LENGTH;
+  const password = passwordProblem(form.password);
+  if (password) errors.password = password;
 
   if (!form.confirmPassword)
     errors.confirmPassword = "Please confirm your password";
@@ -128,7 +124,7 @@ export function RegisterPage() {
   // A failure that named no field of this form still needs saying.
   const banner =
     registration.isError && Object.keys(fieldErrors).length === 0
-      ? bannerMessage(registration.error)
+      ? bannerMessage(registration.error, { showRejections: true })
       : undefined;
 
   function field(
@@ -156,7 +152,7 @@ export function RegisterPage() {
           Create an account
         </h1>
         <CardDescription>
-          Choose a username and a password of at least 12 characters.
+          Choose a username and {PASSWORD_HINT}.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
@@ -214,22 +210,6 @@ function fieldErrorsFrom(error: Error): FieldErrors {
     if (known && !errors[known]) errors[known] = message;
   }
   return errors;
-}
-
-/**
- * For failures without a field to point at: the throttle, another rejection (with the API's own
- * message, which is written to be shown), or no usable answer at all.
- */
-function bannerMessage(error: Error): string {
-  if (!(error instanceof ApiError)) return UNAVAILABLE;
-  switch (error.kind) {
-    case "throttled":
-      return "Too many attempts. Please try again later.";
-    case "rejected":
-      return error.message;
-    default:
-      return UNAVAILABLE;
-  }
 }
 
 /**

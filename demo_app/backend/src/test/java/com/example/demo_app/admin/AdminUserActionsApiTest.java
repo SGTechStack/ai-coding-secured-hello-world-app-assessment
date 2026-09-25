@@ -10,6 +10,7 @@ import static com.example.demo_app.auth.SpaAuthFlow.uniqueIp;
 import static com.example.demo_app.auth.SpaAuthFlow.userId;
 import static com.example.demo_app.auth.SpaAuthFlow.withCsrf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -18,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -153,7 +155,8 @@ class AdminUserActionsApiTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\": \"" + target + "@example.com\"}"))
         .andExpect(status().isAccepted());
-    assertThat(resetTokensOf(targetId)).isEqualTo(1);
+    // The token is issued off the request thread.
+    await().atMost(Duration.ofSeconds(5)).until(() -> resetTokensOf(targetId) == 1);
 
     deleteUser(targetId, admin).andExpect(status().isNoContent()).andExpect(content().string(""));
 

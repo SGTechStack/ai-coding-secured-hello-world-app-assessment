@@ -15,13 +15,13 @@ import {
 import { settleNoSoonerThan } from "@/lib/timing";
 import { requestPasswordReset } from "../api/auth";
 import { ApiError } from "../api/client";
+import { UNAVAILABLE } from "./bannerMessage";
 
 /** The loading state is shown for at least this long so it never flickers. */
 const MIN_SUBMITTING_MS = 400;
 
 export const RESET_REQUESTED =
   "If an account exists for that email, we've sent a reset link.";
-const UNAVAILABLE = "Unable to connect to the server. Please try again later.";
 
 /**
  * Asks for a reset link. Whatever the API answers (the empty `202`, or any error status, a `429`

@@ -1,5 +1,6 @@
 package com.example.demo_app.auth;
 
+import com.example.demo_app.audit.Actor;
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.security.IpThrottle;
@@ -61,7 +62,7 @@ class RegistrationController {
       registrationThrottle.acquire(request);
     } catch (TooManyRequestsException e) {
       auditLog.record(
-          AuditEvent.REQUEST_THROTTLED, null, request, Map.of("endpoint", "register"));
+          AuditEvent.REQUEST_THROTTLED, Actor.anonymous(request), Map.of("endpoint", "register"));
       throw e;
     }
     if (validation.hasErrors()) {
@@ -69,7 +70,7 @@ class RegistrationController {
     }
 
     UserAccount account = registration.register(body.toNewAccount(), Role.USER);
-    auditLog.record(AuditEvent.USER_REGISTERED, account.getUsername(), request);
+    auditLog.record(AuditEvent.USER_REGISTERED, Actor.of(account.getUsername(), request));
     return ResponseEntity.status(HttpStatus.CREATED).body(UserProfile.of(account));
   }
 }

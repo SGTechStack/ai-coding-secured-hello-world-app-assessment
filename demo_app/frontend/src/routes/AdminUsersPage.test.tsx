@@ -291,6 +291,48 @@ describe("/admin/users (admin user list)", () => {
         },
       ]);
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      // The deleted row's controls are gone: focus lands on the page heading, not the body.
+      await waitFor(() =>
+        expect(screen.getByRole("heading", { name: "Users" })).toHaveFocus(),
+      );
+    });
+
+    it("retries an action once with a fresh CSRF token after a 403", async () => {
+      const { sent } = fakeAdminApi();
+      let attempts = 0;
+      let primes = 0;
+      server.use(
+        http.get(api("/api/v1/auth/csrf"), () => {
+          primes += 1;
+          return HttpResponse.json({
+            headerName: "X-XSRF-TOKEN",
+            token: `token-${primes}`,
+          });
+        }),
+        http.patch(api("/api/v1/admin/users/:id/status"), ({ request }) => {
+          attempts += 1;
+          if (attempts === 1)
+            return HttpResponse.json({ message: "Forbidden" }, { status: 403 });
+          sent.push({
+            method: request.method,
+            path: new URL(request.url).pathname,
+            body: undefined,
+            csrf: request.headers.get("X-XSRF-TOKEN"),
+          });
+          return HttpResponse.json({ ...adminUsers[0]!, enabled: false });
+        }),
+      );
+      const { user } = await openAsAdmin();
+
+      await user.click(
+        within(rowOf("johndoe")).getByRole("button", { name: "Disable" }),
+      );
+
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(attempts).toBe(2);
+      expect(primes).toBe(2);
+      expect(sent[0]?.csrf).toBe("token-2");
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
     it("sends nothing when the delete is cancelled", async () => {
@@ -398,6 +440,58 @@ describe("/admin/users (admin user list)", () => {
         expect(button).toBeEnabled();
         expect(button).not.toHaveAccessibleDescription();
       }
+    });
+  });
+
+  describe("a session the server has ended", () => {
+    it("sends the admin to /login when the list answers 401", async () => {
+      signedInAs(adminProfile);
+      server.use(
+        http.get(api("/api/v1/admin/users"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+      );
+      const { router } = renderApp("/admin/users");
+      // The session is gone: /me answers 401 from now on.
+      server.use(
+        http.get(api("/api/v1/auth/me"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+      );
+
+      expect(await screen.findByLabelText("Username")).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe("/login");
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: /^Log out/ }),
+        ).not.toBeInTheDocument(),
+      );
+    });
+
+    it("sends the admin to /login when an action answers 401", async () => {
+      fakeAdminApi();
+      const { user, router } = await openAsAdmin();
+      server.use(
+        http.patch(api("/api/v1/admin/users/:id/role"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+        http.get(api("/api/v1/auth/me"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+      );
+
+      await user.click(
+        within(rowOf("johndoe")).getByRole("button", { name: "Make admin" }),
+      );
+
+      expect(await screen.findByLabelText("Username")).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe("/login");
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: /^Log out/ }),
+        ).not.toBeInTheDocument(),
+      );
     });
   });
 

@@ -1,5 +1,6 @@
 package com.example.demo_app.security;
 
+import com.example.demo_app.audit.Actor;
 import com.example.demo_app.audit.AuditEvent;
 import com.example.demo_app.audit.AuditLog;
 import com.example.demo_app.web.RequestBodyLimitFilter;
@@ -197,8 +198,9 @@ class SecurityConfig {
                         (request, response, authentication) ->
                             auditLog.record(
                                 AuditEvent.LOGOUT,
-                                authentication == null ? null : authentication.getName(),
-                                request))
+                                Actor.of(
+                                    authentication == null ? null : authentication.getName(),
+                                    request)))
                     .addLogoutHandler(new CookieClearingLogoutHandler(expiredSessionCookie))
                     .logoutSuccessHandler(
                         new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))

@@ -188,6 +188,8 @@ test.describe("Story 7: Admin", () => {
     await dialog.getByRole("button", { name: "Delete" }).click();
     await expect(dialog).toBeHidden();
     await expect(row).toHaveCount(0);
+    // The deleted row's controls are gone; focus moves to the page heading, not the body.
+    await expect(page.getByRole("heading", { name: "Users" })).toBeFocused();
 
     await test.step("the deleted user can't log in", async () => {
       await logoutButton(page).click();

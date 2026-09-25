@@ -291,6 +291,10 @@ describe("/admin/users (admin user list)", () => {
         },
       ]);
       expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      // The deleted row's controls are gone: focus lands on the page heading, not the body.
+      await waitFor(() =>
+        expect(screen.getByRole("heading", { name: "Users" })).toHaveFocus(),
+      );
     });
 
     it("retries an action once with a fresh CSRF token after a 403", async () => {

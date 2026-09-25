@@ -3,10 +3,18 @@ import { readFile } from "node:fs/promises";
 import { expect } from "./fixtures";
 
 /** The demo account the backend seeds in its dev profile. */
-export const JOHN = { username: "johndoe", password: "Password123!" };
+export const JOHN = {
+  username: "johndoe",
+  password: "Password123!",
+  firstName: "John",
+};
 
 /** The bootstrap admin the backend creates in its dev profile (`app.admin.*`). */
-export const ADMIN = { username: "admin", password: "Dev-Admin-Passw0rd!" };
+export const ADMIN = {
+  username: "admin",
+  password: "Dev-Admin-Passw0rd!",
+  firstName: "Admin",
+};
 
 export const LOGIN_API = "**/api/v1/auth/login";
 export const ADMIN_USERS_PATH = "/api/v1/admin/users";
@@ -43,30 +51,6 @@ export function loginForm(page: Page) {
 /** The navbar's Log out button. Its name changes to "Logging out..." while in flight. */
 export function logoutButton(page: Page) {
   return page.getByRole("button", { name: /^Log(ging)? out/ });
-}
-
-/** Signs in as John through the UI and waits for the landing page. */
-export async function logInAsJohn(page: Page) {
-  await page.goto("/login");
-  const form = loginForm(page);
-  await form.username.fill(JOHN.username);
-  await form.password.fill(JOHN.password);
-  await form.submit.click();
-  await expect(
-    page.getByRole("heading", { name: "Hello, John!" }),
-  ).toBeVisible();
-}
-
-/** Signs in as the bootstrap admin through the UI and waits for the landing page. */
-export async function logInAsAdmin(page: Page) {
-  await page.goto("/login");
-  const form = loginForm(page);
-  await form.username.fill(ADMIN.username);
-  await form.password.fill(ADMIN.password);
-  await form.submit.click();
-  await expect(
-    page.getByRole("heading", { name: "Hello, Admin!" }),
-  ).toBeVisible();
 }
 
 /** The navbar's Admin link, shown only to admins. */
@@ -170,10 +154,17 @@ export async function registerThroughUi(page: Page, user: NewUser) {
 
 export const REGISTERED_NOTICE = "Account created. Please log in.";
 
-/** Logs in through the UI and waits for the greeting. */
+/**
+ * Logs in through the UI and waits for the landing page's greeting, e.g. as `JOHN`, `ADMIN` or a
+ * freshly registered user.
+ */
 export async function logInThroughUi(
   page: Page,
-  { username, password, firstName }: NewUser,
+  {
+    username,
+    password,
+    firstName,
+  }: Pick<NewUser, "username" | "password" | "firstName">,
 ) {
   await page.goto("/login");
   const form = loginForm(page);

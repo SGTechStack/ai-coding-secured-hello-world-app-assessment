@@ -5,9 +5,9 @@ import {
   JOHN,
   LOGOUT_API,
   ME_PATH,
-  logInAsJohn,
   loginForm,
   logoutButton,
+  logInThroughUi,
 } from "./support";
 
 const LOGOUT_FAILED = "Unable to log out. Please try again.";
@@ -28,7 +28,7 @@ test.describe("Story 3: Logout", () => {
   test("Scenario 1: Authenticated user sees the Log out button in the navbar", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
 
     await expect(page).toHaveURL("/");
     await expect(
@@ -48,7 +48,7 @@ test.describe("Story 3: Logout", () => {
   test("Scenario 3: Logging out ends the session and returns to login", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
 
     await logOut(page);
 
@@ -60,7 +60,7 @@ test.describe("Story 3: Logout", () => {
   test("Scenario 4: Logged-out session does not survive Back or reload", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
     await logOut(page);
 
     await test.step("Back", async () => {
@@ -87,7 +87,7 @@ test.describe("Story 3: Logout", () => {
   test("Scenario 5: User can log in again after logging out", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
     await logOut(page);
 
     // Same page, no reload: nothing cached from the old session may get in the way.
@@ -106,7 +106,7 @@ test.describe("Story 3: Logout", () => {
   test("Scenario 6: Logout failure keeps the user signed in and explains why", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
     const alert = page.getByRole("alert");
 
     await test.step("500 Internal Server Error", async () => {

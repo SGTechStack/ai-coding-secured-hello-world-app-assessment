@@ -9,8 +9,6 @@ import {
   loginForm,
   logoutButton,
   logInThroughUi,
-  logInAsAdmin,
-  logInAsJohn,
   registerThroughUi,
   uniqueUser,
   userRow,
@@ -25,7 +23,7 @@ const OWN_ACCOUNT_NOTE = "You can't change your own account.";
  */
 async function adminWithFreshUser(page: Page, user: NewUser) {
   await registerThroughUi(page, user);
-  await logInAsAdmin(page);
+  await logInThroughUi(page, ADMIN);
   await adminLink(page).click();
   await expect(userRow(page, user.username)).toBeVisible();
 }
@@ -54,7 +52,7 @@ test.describe("Story 7: Admin", () => {
   test("Scenario 1: The bootstrap admin sees the Admin link and the user list including johndoe, with no password data", async ({
     page,
   }) => {
-    await logInAsAdmin(page);
+    await logInThroughUi(page, ADMIN);
 
     const listed = page.waitForResponse(
       (response) =>
@@ -200,7 +198,7 @@ test.describe("Story 7: Admin", () => {
   test("Scenario 5: The admin's own row has its controls disabled", async ({
     page,
   }) => {
-    await logInAsAdmin(page);
+    await logInThroughUi(page, ADMIN);
     await adminLink(page).click();
 
     const own = userRow(page, ADMIN.username);
@@ -216,7 +214,7 @@ test.describe("Story 7: Admin", () => {
   test("Scenario 6: johndoe has no Admin link, and /admin/users lands on /", async ({
     page,
   }) => {
-    await logInAsJohn(page);
+    await logInThroughUi(page, JOHN);
     await expect(adminLink(page)).toHaveCount(0);
 
     await page.goto("/admin/users");
@@ -239,7 +237,7 @@ test.describe("Story 7: Admin", () => {
     });
 
     await registerThroughUi(page, user);
-    await logInAsAdmin(page);
+    await logInThroughUi(page, ADMIN);
     await adminLink(page).click();
 
     const row = userRow(page, user.username);

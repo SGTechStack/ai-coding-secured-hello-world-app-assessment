@@ -439,6 +439,58 @@ describe("/admin/users (admin user list)", () => {
     });
   });
 
+  describe("a session the server has ended", () => {
+    it("sends the admin to /login when the list answers 401", async () => {
+      signedInAs(adminProfile);
+      server.use(
+        http.get(api("/api/v1/admin/users"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+      );
+      const { router } = renderApp("/admin/users");
+      // The session is gone: /me answers 401 from now on.
+      server.use(
+        http.get(api("/api/v1/auth/me"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+      );
+
+      expect(await screen.findByLabelText("Username")).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe("/login");
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: /^Log out/ }),
+        ).not.toBeInTheDocument(),
+      );
+    });
+
+    it("sends the admin to /login when an action answers 401", async () => {
+      fakeAdminApi();
+      const { user, router } = await openAsAdmin();
+      server.use(
+        http.patch(api("/api/v1/admin/users/:id/role"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+        http.get(api("/api/v1/auth/me"), () =>
+          HttpResponse.json({ message: "Unauthorized" }, { status: 401 }),
+        ),
+      );
+
+      await user.click(
+        within(rowOf("johndoe")).getByRole("button", { name: "Make admin" }),
+      );
+
+      expect(await screen.findByLabelText("Username")).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe("/login");
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: /^Log out/ }),
+        ).not.toBeInTheDocument(),
+      );
+    });
+  });
+
   describe("guard", () => {
     it("sends a non-admin to / without asking for the list", async () => {
       let listRequests = 0;

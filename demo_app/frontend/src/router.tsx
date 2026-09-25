@@ -7,6 +7,7 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 import { meQueryOptions, type UserProfile } from "./api/auth";
+import { watchForEndedSession } from "./api/session";
 import { AppShell } from "./components/AppShell";
 import { AdminUsersPage } from "./routes/AdminUsersPage";
 import { LandingPage } from "./routes/LandingPage";
@@ -107,6 +108,10 @@ const routeTree = rootRoute.addChildren([
   resetPasswordRoute,
 ]);
 
+/**
+ * The app's router over `queryClient`. A request that finds the session ended server-side (a
+ * `401`) sends the user to `/login`, from whichever page made it (see `watchForEndedSession`).
+ */
 export function createAppRouter({
   queryClient,
   history,
@@ -114,7 +119,11 @@ export function createAppRouter({
   queryClient: QueryClient;
   history?: RouterHistory;
 }) {
-  return createRouter({ routeTree, context: { queryClient }, history });
+  const router = createRouter({ routeTree, context: { queryClient }, history });
+  watchForEndedSession(queryClient, () => {
+    void router.navigate({ to: "/login", replace: true });
+  });
+  return router;
 }
 
 export type AppRouter = ReturnType<typeof createAppRouter>;

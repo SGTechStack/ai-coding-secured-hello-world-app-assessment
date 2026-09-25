@@ -52,7 +52,7 @@ From the user's side:
 
 15. As a registered user, I want to log in with my username and password, so that I can reach my greeting.
 16. As a registered user, I want a successful login to reset my failed-attempt count, so that old typos don't bring me closer to a lockout.
-17. As a registered user, I want the same "Invalid username or password" message for a wrong password, an unknown username, a locked account and a disabled account, so that an attacker can't tell which one it was.
+17. As a registered user, I want the same "Invalid username or password" message for a wrong password, an unknown username and a locked account, so that an attacker can't tell which one it was. The one exception is a disabled account with the **correct** password, which is told "Your account has been disabled. Please contact an admin." (see `docs/adr/0001-tell-disabled-accounts-after-a-correct-password.md`).
 18. As a security-conscious operator, I want an account locked for 15 minutes after 5 consecutive failed logins, so that online password guessing against one account stops paying off.
 19. As a locked-out user, I want to log in normally once the 15 minutes are up, so that a lockout never needs an admin to clear it.
 20. As a locked-out user, I want failed attempts during the lockout not to extend it, so that an attacker can't keep me locked out for ever.
@@ -232,7 +232,7 @@ New table `password_reset_token`: `id` (bigint identity PK), `user_id` (FK to `u
 - **Login and lockout.**
   - `POST /api/v1/auth/login` keeps its contract. A lookup is now case-insensitive.
   - Lockout: 5 consecutive failures (`app.security.lockout.max-failures`) set `locked_until = now + 15m` (`app.security.lockout.duration`).
-  - A locked or disabled account is rejected with the existing `401 INVALID_CREDENTIALS` body.
+  - A locked account is rejected with the existing `401 INVALID_CREDENTIALS` body. A disabled account with the correct password gets `401 ACCOUNT_DISABLED` ("Your account has been disabled. Please contact an admin."); with a wrong password it gets the generic body like anyone else.
   - The password comparison always runs, even for locked or disabled accounts, and so does the dummy-hash comparison for unknown users (already done by `DaoAuthenticationProvider`). This keeps timing uniform: the lock and enabled checks run **after** the password check.
   - Failures while locked neither increment the counter nor extend the lock.
   - Success resets `failed_login_attempts` to 0 and clears `locked_until`.
@@ -352,7 +352,7 @@ Reuse the existing seams. The only new one is the `Clock` bean.
     - The 5th failure locks the account. The correct password while locked gets the identical `401`.
     - Failures while locked don't extend the lock.
     - After the clock moves past 15 minutes, the correct password succeeds and the counter is reset: 4 more failures don't lock.
-    - A disabled account gets the identical `401`.
+    - A disabled account with the correct password gets `401 ACCOUNT_DISABLED`; with a wrong password, the identical generic `401`.
   - IP throttle:
     - 20 failures across many usernames from one IP lead to `429` with `Retry-After`, even with correct credentials, while the target account is **not** locked.
     - Another IP is unaffected.
@@ -478,7 +478,7 @@ These continue the story numbering of the existing e2e suite: Stories 1–3 are 
 
 **Story 7: Admin**
 1. The bootstrap admin logs in, sees the "Admin" link and the user list including `johndoe`, and sees no password data.
-2. The admin disables a freshly registered user. That user can no longer log in. The admin re-enables them and they can.
+2. The admin disables a freshly registered user. That user can no longer log in, and is told "Your account has been disabled. Please contact an admin." The admin re-enables them and they can.
 3. The admin promotes a user to `ADMIN`. After that user logs in again, they see the "Admin" link.
 4. The admin deletes a user after confirming, and the row disappears.
 5. The admin's own row has its controls disabled.

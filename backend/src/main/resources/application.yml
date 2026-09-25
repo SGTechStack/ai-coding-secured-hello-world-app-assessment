@@ -255,7 +255,9 @@ spring:
       # just queues inside the engine instead of in Hikari.
       maximum-pool-size: ${APP_DB_POOL_MAX:10}
       minimum-idle: ${APP_DB_POOL_MIN_IDLE:2}
-      connection-timeout: 10s
+      # Milliseconds: Hikari binds this property as a plain long, not a
+      # Spring Duration, so a unit suffix like "10s" fails at startup.
+      connection-timeout: 10000
   jpa:
     hibernate:
       # validate, never update: schema drift fails deployment instead of

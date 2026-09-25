@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.Instant;
 
 /**
  * On successful login: resets the failed-attempt counter and any active
@@ -63,6 +64,8 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         // Clear the streak marker too, so a stale timestamp can't make the next
         // failure look like a continuation of a streak that has been resolved.
         user.setLastFailedLoginAt(null);
+        user.setSuccessfulLoginCount(user.getSuccessfulLoginCount() + 1);
+        user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
         ipLoginThrottle.recordSuccess(clientIpResolver.resolve(request));

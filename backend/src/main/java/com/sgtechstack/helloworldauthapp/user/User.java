@@ -57,6 +57,23 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    /**
+     * Count of successful authentications, incremented by
+     * {@code LoginSuccessHandler} on every login. Admin-facing only (see
+     * {@code UserSummaryResponse}); nothing in access control reads it.
+     */
+    @Column(name = "successful_login_count", nullable = false)
+    private int successfulLoginCount;
+
+    /**
+     * When this account last logged in successfully, set by
+     * {@code LoginSuccessHandler}. Null for an account that has never
+     * logged in. Admin-facing only, same as {@link #successfulLoginCount};
+     * nothing in access control or throttling reads it.
+     */
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
     protected User() {
         // required by JPA
     }
@@ -68,6 +85,7 @@ public class User {
         this.role = role;
         this.enabled = enabled;
         this.failedLoginAttempts = 0;
+        this.successfulLoginCount = 0;
         this.createdAt = Instant.now();
     }
 
@@ -133,5 +151,21 @@ public class User {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public int getSuccessfulLoginCount() {
+        return successfulLoginCount;
+    }
+
+    public void setSuccessfulLoginCount(int successfulLoginCount) {
+        this.successfulLoginCount = successfulLoginCount;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(Instant lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 }

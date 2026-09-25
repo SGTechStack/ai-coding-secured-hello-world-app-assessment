@@ -30,7 +30,16 @@ public class IpLoginThrottle {
     private static final Logger log = LoggerFactory.getLogger(IpLoginThrottle.class);
 
     public static final int MAX_FAILED_ATTEMPTS_PER_IP = 10;
-    public static final Duration WINDOW = Duration.ofMinutes(15);
+
+    /**
+     * Deliberately much shorter than {@link LockoutPolicy#LOCKOUT_DURATION}.
+     * This control exists to blunt a burst of rapid-fire requests from one
+     * address (e.g. a spray script), not to ban that address for as long as a
+     * targeted account stays locked. A short cooldown also limits collateral
+     * impact on legitimate users who happen to share the address (NAT,
+     * corporate proxy, CGNAT) with whoever tripped it.
+     */
+    public static final Duration WINDOW = Duration.ofSeconds(5);
 
     /**
      * Ceiling on how many source addresses are tracked at once. Reached only

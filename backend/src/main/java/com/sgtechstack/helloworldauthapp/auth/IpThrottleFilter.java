@@ -24,7 +24,12 @@ public class IpThrottleFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(IpThrottleFilter.class);
     private static final String LOGIN_PATH = "/api/auth/login";
-    private static final String THROTTLED_MESSAGE = "Too many failed login attempts. Try again later.";
+    // Deliberately distinct from LockoutPolicy/LoginFailureHandler's wording:
+    // this is a per-IP rate limit, not an account lockout, and it doesn't name
+    // any account, so saying "this IP" openly can't be used to enumerate
+    // accounts the way revealing account-lockout state could.
+    private static final String THROTTLED_MESSAGE =
+            "Too many failed login attempts from this network. Try again shortly.";
 
     private final IpLoginThrottle ipLoginThrottle;
     private final ObjectMapper objectMapper;

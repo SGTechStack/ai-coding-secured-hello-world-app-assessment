@@ -142,7 +142,8 @@ class LockoutAndThrottlingTest {
                         .param("username", USERNAME)
                         .param("password", PASSWORD))
                 .andExpect(status().is(429))
-                .andExpect(jsonPath("$.message").value("Too many failed login attempts. Try again later."));
+                .andExpect(jsonPath("$.message")
+                        .value("Too many failed login attempts from this network. Try again shortly."));
 
         // Confirm the account itself was never locked by this.
         User user = userRepository.findByUsernameIgnoreCase(USERNAME).orElseThrow();

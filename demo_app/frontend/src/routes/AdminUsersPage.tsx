@@ -224,9 +224,11 @@ function RowActions({
         >
           {user.enabled ? "Disable" : "Enable"}
         </Button>
+        {/* Fixed width so the button doesn't resize between "Make user" and "Make admin". */}
         <Button
           size="sm"
           variant="outline"
+          className="w-28"
           disabled={disabled}
           aria-describedby={describedBy}
           onClick={() =>

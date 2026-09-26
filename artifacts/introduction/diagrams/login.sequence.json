@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "One successful login, step by step",
+    "viewBox": [1080, 620],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "spa", "type": "frontend", "label": "React SPA", "sublabel": "login form" },
+    { "id": "ctrl", "type": "backend", "label": "AuthController", "sublabel": "/api/auth/login" },
+    { "id": "svc", "type": "backend", "label": "LoginService", "sublabel": "ordered checks" },
+    { "id": "throttle", "type": "security", "label": "IP throttle", "sublabel": "per source IP" },
+    { "id": "authm", "type": "security", "label": "Password check", "sublabel": "BCrypt" },
+    { "id": "store", "type": "database", "label": "Session store", "sublabel": "Spring Session JDBC" }
+  ],
+  "segments": [
+    { "from": 160, "to": 362, "label": "1 · Check" },
+    { "from": 372, "to": 428, "label": "2 · Create session" },
+    { "from": 445, "to": 510, "label": "3 · Refresh CSRF" }
+  ],
+  "messages": [
+    { "id": "post-login", "from": "spa", "to": "ctrl", "y": 170, "label": "POST /login + CSRF header", "variant": "emphasis" },
+    { "id": "call-login", "from": "ctrl", "to": "svc", "y": 200, "label": "login(user, pw, IP)", "variant": "default" },
+    { "id": "ip-check", "from": "svc", "to": "throttle", "y": 230, "label": "fewer than 4 failures?", "variant": "security" },
+    { "id": "ip-ok", "from": "throttle", "to": "svc", "y": 260, "label": "yes", "variant": "return" },
+    { "id": "pw-check", "from": "svc", "to": "authm", "y": 290, "label": "account unlocked → verify", "variant": "security" },
+    { "id": "pw-ok", "from": "authm", "to": "svc", "y": 320, "label": "match", "variant": "return" },
+    { "id": "auth-back", "from": "svc", "to": "ctrl", "y": 350, "label": "authenticated", "variant": "return" },
+    { "id": "save", "from": "ctrl", "to": "store", "y": 385, "label": "new session ID + save user", "variant": "emphasis" },
+    { "id": "ok", "from": "ctrl", "to": "spa", "y": 412, "label": "200 + SESSION cookie", "variant": "return" },
+    { "id": "csrf-again", "from": "spa", "to": "ctrl", "y": 465, "label": "GET /api/auth/csrf", "variant": "default" },
+    { "id": "csrf-new", "from": "ctrl", "to": "spa", "y": 495, "label": "new token (JSON)", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "ctrl", "from": 165, "to": 417, "type": "backend" },
+    { "participant": "svc", "from": 195, "to": 355, "type": "backend" },
+    { "participant": "throttle", "from": 225, "to": 265, "type": "security" },
+    { "participant": "authm", "from": 285, "to": 325, "type": "security" },
+    { "participant": "store", "from": 380, "to": 395, "type": "database" }
+  ],
+  "cards": [
+    { "dot": "amber", "title": "Order matters", "items": ["IP throttle first → 429", "Then account lock", "Then password → generic 401"] },
+    { "dot": "emerald", "title": "Session fixation defence", "items": ["Session ID changes on login", "Old session token is thrown away", "SPA fetches a fresh token"] },
+    { "dot": "cyan", "title": "Logout", "items": ["POST /api/auth/logout", "Deletes the session row", "Old cookie no longer works"] }
+  ]
+}

@@ -1,0 +1,37 @@
+[
+  [
+    "Java",
+    "21 declared target",
+    "Backend language; installed runtime not established"
+  ],
+  [
+    "Spring Boot",
+    "4.1.1 declared parent",
+    "MVC, external configuration and auto-configuration"
+  ],
+  [
+    "Spring Security",
+    "BOM-managed; resolved version not verified",
+    "Filter chain, BCrypt, authentication and CSRF"
+  ],
+  [
+    "Spring Session JDBC",
+    "BOM-managed; resolved version not verified",
+    "Server-side session persistence; configured in application.yml"
+  ],
+  [
+    "Caffeine",
+    "BOM-managed; resolved version not verified",
+    "Process-local IP budgets in IpThrottleService"
+  ],
+  [
+    "Liquibase / Hibernate",
+    "BOM-managed; resolved versions not verified",
+    "Migration and schema-validation configuration"
+  ],
+  [
+    "React / Vite",
+    "19.3.0 / 8.3.0 lockfile",
+    "AuthContext UI state / build-time API address"
+  ]
+]

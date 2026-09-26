@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-26",
+  "result": "passed",
+  "checks": [
+    "30 source anchors checked by build",
+    "local links and image paths",
+    "10 chapter targets",
+    "search / clear / no results",
+    "navigation resets search",
+    "source expansion with mouse and keyboard",
+    "13 routes / 4 ADMIN rows",
+    "no page errors",
+    "no document overflow at 390, 760, 1024 and 1440 pixels"
+  ],
+  "limitations": [
+    "Backend tests not executed",
+    "No live proxy or database checks",
+    "Screenshots require separate visual inspection"
+  ]
+}

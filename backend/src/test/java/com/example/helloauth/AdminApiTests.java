@@ -101,10 +101,7 @@ class AdminApiTests extends ApiTestSupport {
         // (never a redirect), matching every other protected endpoint.
         mockMvc.perform(get("/api/admin/users"))
             .andExpect(status().isUnauthorized());
-        Cookie csrf = csrfToken();
-        mockMvc.perform(delete("/api/admin/users/1")
-                .cookie(csrf)
-                .header("X-XSRF-TOKEN", csrf.getValue()))
+        mockMvc.perform(withCsrf(delete("/api/admin/users/1")))
             .andExpect(status().isUnauthorized());
     }
 

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "CSRF: synchronizer token held in the session",
+    "viewBox": [1080, 600],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "evil", "type": "external", "label": "Other website", "sublabel": "attacker page" },
+    { "id": "spa", "type": "frontend", "label": "React SPA", "sublabel": "token in memory" },
+    { "id": "filter", "type": "security", "label": "CSRF filter", "sublabel": "Spring Security" },
+    { "id": "store", "type": "database", "label": "Session store", "sublabel": "token lives here" },
+    { "id": "ctrl", "type": "backend", "label": "Controller", "sublabel": "business logic" }
+  ],
+  "segments": [
+    { "from": 160, "to": 250, "label": "1 · Get a token" },
+    { "from": 262, "to": 400, "label": "2 · Send a change" },
+    { "from": 412, "to": 480, "label": "3 · Forged request" }
+  ],
+  "messages": [
+    { "id": "get-csrf", "from": "spa", "to": "filter", "y": 170, "label": "GET /api/auth/csrf", "variant": "default" },
+    { "id": "save-token", "from": "filter", "to": "store", "y": 200, "label": "save random token", "variant": "security" },
+    { "id": "token-body", "from": "filter", "to": "spa", "y": 230, "label": "JSON {token} + SESSION", "variant": "return" },
+    { "id": "post-change", "from": "spa", "to": "filter", "y": 275, "label": "POST + X-XSRF-TOKEN header", "variant": "emphasis" },
+    { "id": "load-token", "from": "filter", "to": "store", "y": 305, "label": "load session token", "variant": "dashed" },
+    { "id": "allow", "from": "filter", "to": "ctrl", "y": 340, "label": "header matches", "variant": "security" },
+    { "id": "ok", "from": "ctrl", "to": "spa", "y": 380, "label": "200 OK", "variant": "return" },
+    { "id": "forged", "from": "evil", "to": "filter", "y": 425, "label": "POST, cookie but no token", "variant": "dashed" },
+    { "id": "reject", "from": "filter", "to": "evil", "y": 462, "label": "403 Invalid CSRF token", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "filter", "from": 165, "to": 235, "type": "security" },
+    { "participant": "filter", "from": 270, "to": 345, "type": "security" },
+    { "participant": "ctrl", "from": 335, "to": 385, "type": "backend" },
+    { "participant": "filter", "from": 420, "to": 467, "type": "security" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "SESSION cookie", "items": ["The only cookie", "HttpOnly: JavaScript cannot read it", "Prod: Secure + SameSite=Strict"] },
+    { "dot": "amber", "title": "CSRF token", "items": ["Stored in the server session", "SPA keeps it in memory, never a cookie", "Replaced on login, cleared on logout"] },
+    { "dot": "rose", "title": "Why it works", "items": ["Other sites cannot read the token", "Planting a cookie does not help", "Missing or wrong header → 403"] }
+  ]
+}

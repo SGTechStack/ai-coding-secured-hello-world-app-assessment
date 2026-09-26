@@ -2,35 +2,68 @@
  * Fetch wrapper for the Spring Boot API on the second origin.
  *
  * Always sends cookies (`credentials: 'include'`) — the session id lives in an
- * HttpOnly cookie. Mutating requests must also carry the CSRF token read from
- * the `XSRF-TOKEN` cookie into the `X-XSRF-TOKEN` header. The token is lazily
- * emitted by the server, so {@link bootstrapCsrf} must run at app start and
- * again after login/logout (both rotate the token).
+ * HttpOnly cookie. CSRF uses the Synchronizer Token pattern: the token is held
+ * in the server-side session and delivered only in the JSON body of
+ * `GET /api/auth/csrf`. It is kept here in memory (never in a cookie or
+ * storage) and sent as the `X-XSRF-TOKEN` header on every mutating request.
+ * Login and logout rotate/clear the server copy, so both re-bootstrap.
  */
 export const API_BASE: string =
   import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
 
-function readCookie(name: string): string | undefined {
-  return document.cookie
-    .split('; ')
-    .find((row) => row.startsWith(`${name}=`))
-    ?.split('=')[1]
+/** In-memory CSRF token for the current server session; null until fetched. */
+let csrfToken: string | null = null
+
+/** Problem title the API uses for a missing/invalid CSRF token (403). */
+const CSRF_REJECTED_TITLE = 'Invalid CSRF token'
+
+function isMutating(method: string): boolean {
+  return method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS'
 }
 
-export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+/** True when a 403 is the API's CSRF rejection, not an authorization denial. */
+async function isCsrfRejection(response: Response): Promise<boolean> {
+  if (response.status !== 403) {
+    return false
+  }
+  try {
+    const body = (await response.clone().json()) as { title?: string }
+    return body.title === CSRF_REJECTED_TITLE
+  } catch {
+    return false
+  }
+}
+
+function send(path: string, init: RequestInit, method: string): Promise<Response> {
   const headers = new Headers(init.headers)
-  const method = (init.method ?? 'GET').toUpperCase()
-  if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-    const csrfToken = readCookie('XSRF-TOKEN')
-    if (csrfToken) {
-      headers.set('X-XSRF-TOKEN', decodeURIComponent(csrfToken))
-    }
+  if (isMutating(method) && csrfToken) {
+    headers.set('X-XSRF-TOKEN', csrfToken)
   }
   return fetch(`${API_BASE}${path}`, {
     credentials: 'include',
     ...init,
     headers,
   })
+}
+
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const method = (init.method ?? 'GET').toUpperCase()
+  if (!isMutating(method)) {
+    return send(path, init, method)
+  }
+  if (!csrfToken) {
+    await bootstrapCsrf()
+  }
+  const response = await send(path, init, method)
+  // The server-side token disappears with its session (idle expiry, a
+  // restart, an admin action). The request was rejected by the CSRF filter
+  // before any handler ran, so fetching a fresh token and retrying once is
+  // safe.
+  if (await isCsrfRejection(response)) {
+    await bootstrapCsrf()
+    return send(path, init, method)
+  }
+  return response
 }
 
 /** Error carrying the RFC 7807 detail message when the API provides one. */
@@ -83,14 +116,28 @@ export interface HelloResponse {
 }
 
 /**
- * Forces the server to emit the `XSRF-TOKEN` cookie. Called at app start and
- * after login/logout — the token is rotated on each.
+ * Fetches a CSRF token for the current server session and keeps it in memory.
+ * Called at app start and after login/logout — the token is rotated on each —
+ * and automatically by {@link apiFetch} when the server rejects a stale one.
  */
 export async function bootstrapCsrf(): Promise<void> {
-  const response = await apiFetch('/api/auth/csrf')
+  // Share one in-flight fetch: concurrent first requests would otherwise
+  // each create a server session and race for the SESSION cookie.
+  csrfBootstrap ??= fetchCsrfToken().finally(() => {
+    csrfBootstrap = null
+  })
+  return csrfBootstrap
+}
+
+let csrfBootstrap: Promise<void> | null = null
+
+async function fetchCsrfToken(): Promise<void> {
+  csrfToken = null
+  const response = await fetch(`${API_BASE}/api/auth/csrf`, { credentials: 'include' })
   if (!response.ok) {
     throw new ApiError(response.status, `CSRF bootstrap failed (${response.status})`)
   }
+  csrfToken = ((await response.json()) as { token: string }).token
 }
 
 /** Session probe — null when anonymous (401), the principal otherwise. */

@@ -2,6 +2,7 @@ package com.example.helloauth.config;
 
 import jakarta.servlet.DispatcherType;
 import java.time.Clock;
+import java.util.LinkedHashMap;
 import java.util.List;
 import org.springframework.boot.security.autoconfigure.web.servlet.PathRequest;
 import org.springframework.boot.session.autoconfigure.DefaultCookieSerializerCustomizer;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
@@ -30,10 +32,16 @@ import org.springframework.security.web.authentication.session.CompositeSessionA
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.access.DelegatingAccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfLogoutHandler;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -43,9 +51,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * The ratified security chain (ticket 01 findings):
  *
  * <ul>
- *   <li>{@code csrf.spa()} — cookie-backed token ({@code XSRF-TOKEN},
- *       JS-readable) + BREACH-aware request handler. Tokens are deferred, so
- *       {@code GET /api/auth/csrf} exists to force emission.</li>
+ *   <li>CSRF uses the OWASP <em>Synchronizer Token</em> pattern: the token
+ *       lives only in the server-side session
+ *       ({@link HttpSessionCsrfTokenRepository}), never in a cookie. The SPA
+ *       reads it from the {@code GET /api/auth/csrf} JSON body, keeps it in
+ *       memory and echoes it in {@code X-XSRF-TOKEN}. The XOR request
+ *       handler masks each emitted copy (BREACH). Tokens are deferred, so
+ *       the endpoint exists to force generation.</li>
  *   <li>The anonymous-facing endpoints are permit-all by explicit path —
  *       not {@code /api/auth/**}, so a future route under that prefix can't
  *       ship unauthenticated by accident. {@code /api/admin/**} is
@@ -70,14 +82,14 @@ public class SecurityConfig {
             SecurityContextRepository securityContextRepository) throws Exception {
         http
             .cors(Customizer.withDefaults())
-            .csrf(csrf -> {
-                csrf.spa();
-                // spa() unconditionally overwrites a previously-set repository
-                // (gh-18718), so the explicit set must come after it. The bean
-                // is the identical withHttpOnlyFalse() config — declaring it
-                // lets CsrfAuthenticationStrategy share the same repository.
-                csrf.csrfTokenRepository(csrfTokenRepository);
-            })
+            // Synchronizer Token pattern (OWASP CSRF cheat sheet): the token
+            // is stored in the session and compared against the header. Not
+            // csrf.spa() — that installs the cookie (naive double-submit)
+            // repository. The repository bean is shared with
+            // CsrfAuthenticationStrategy and CsrfLogoutHandler.
+            .csrf(csrf -> csrf
+                .csrfTokenRepository(csrfTokenRepository)
+                .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler()))
             .securityContext(context ->
                 context.securityContextRepository(securityContextRepository))
             // Defense-in-depth headers (security-review F-01). This is a
@@ -111,7 +123,8 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(handling -> handling
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                .accessDeniedHandler(accessDeniedHandler()))
             // POST /api/auth/logout (ticket 10). CSRF stays on — with CSRF
             // enabled logoutUrl() matches POST only. The default handlers run:
             // SecurityContextLogoutHandler clears the context and invalidates
@@ -220,26 +233,46 @@ public class SecurityConfig {
     }
 
     /**
-     * Same configuration {@code csrf.spa()} installs internally — declared as
-     * a bean so {@link #sessionAuthenticationStrategy} shares the instance.
+     * Session-backed CSRF token store (Synchronizer Token pattern). The token
+     * is a random value kept in the Spring Session row and never written to a
+     * cookie, so cookie injection from a sibling subdomain or plain-HTTP
+     * network cannot plant a matching value (the weakness OWASP cites for the
+     * naive double-submit cookie). The header name stays {@code X-XSRF-TOKEN}
+     * so the CORS allow-list and the SPA contract are unchanged.
      *
-     * <p>The cookie customizer adds {@code SameSite=Strict} (security-review
-     * F-06): {@code CookieCsrfTokenRepository} emits no SameSite on its own,
-     * and the attribute is free defense-in-depth alongside the real control
-     * (the {@code X-XSRF-TOKEN} header requirement). Strict over Lax costs
-     * nothing on an API-only backend — no legitimate cross-site top-level
-     * navigation ever needs this cookie. {@code secure} is
-     * deliberately <em>not</em> forced — the repository already derives it
-     * from {@code request.isSecure()}, which is correct for both the
-     * TLS-terminating-proxy deployment (forwarded headers make the request
-     * secure) and plain-HTTP local dev.
+     * <p>Declared as a bean so {@link #sessionAuthenticationStrategy} (rotate
+     * on login) and the logout handler (clear on logout) share the instance.
      */
     @Bean
     CsrfTokenRepository csrfTokenRepository() {
-        CookieCsrfTokenRepository repository =
-            CookieCsrfTokenRepository.withHttpOnlyFalse();
-        repository.setCookieCustomizer(cookie -> cookie.sameSite("Strict"));
+        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
+        repository.setHeaderName(CSRF_HEADER_NAME);
         return repository;
+    }
+
+    /** Header the SPA echoes the token in; also on the CORS allow-list. */
+    static final String CSRF_HEADER_NAME = "X-XSRF-TOKEN";
+
+    /** Problem title that marks a CSRF rejection; the SPA retries once on it. */
+    static final String CSRF_REJECTED_TITLE = "Invalid CSRF token";
+
+    /**
+     * CSRF failures get a distinguishable RFC 7807 body so the SPA can tell
+     * "token missing or stale" (for example the session expired, taking the
+     * token with it) apart from an authorization denial, fetch a fresh token
+     * and retry once. Every other access denial keeps the default bare 403.
+     */
+    static AccessDeniedHandler accessDeniedHandler() {
+        LinkedHashMap<Class<? extends AccessDeniedException>, AccessDeniedHandler> handlers =
+            new LinkedHashMap<>();
+        handlers.put(CsrfException.class, (request, response, ex) -> {
+            response.setStatus(HttpStatus.FORBIDDEN.value());
+            response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+            response.getWriter().write("{\"type\":\"about:blank\",\"title\":\""
+                + CSRF_REJECTED_TITLE + "\",\"status\":403,"
+                + "\"detail\":\"Missing or invalid CSRF token.\"}");
+        });
+        return new DelegatingAccessDeniedHandler(handlers, new AccessDeniedHandlerImpl());
     }
 
     /**

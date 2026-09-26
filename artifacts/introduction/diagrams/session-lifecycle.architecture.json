@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Cookie and session lifecycle",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "anon", "type": "external", "label": "Anonymous", "sublabel": "no session yet", "pos": [40, 80], "size": [150, 64], "tag": "page load" },
+    { "id": "token", "type": "security", "label": "CSRF ready", "sublabel": "token in session", "pos": [270, 80], "size": [150, 64], "tag": "GET /api/auth/csrf" },
+    { "id": "signed", "type": "backend", "label": "Signed in", "sublabel": "new SESSION + token", "pos": [500, 80], "size": [150, 64], "tag": "POST /api/auth/login" },
+    { "id": "using", "type": "frontend", "label": "Using the app", "sublabel": "cookie + token header", "pos": [730, 80], "size": [150, 64], "tag": "every change" },
+    { "id": "out", "type": "database", "label": "Signed out", "sublabel": "session row deleted", "pos": [960, 80], "size": [150, 64], "tag": "POST /api/auth/logout" },
+    { "id": "expired", "type": "external", "label": "Expired", "sublabel": "30 min without requests", "pos": [500, 260], "size": [150, 64] },
+    { "id": "revoked", "type": "security", "label": "Revoked", "sublabel": "reset or admin action", "pos": [730, 260], "size": [150, 64] }
+  ],
+  "connections": [
+    { "id": "t-token", "from": "anon", "to": "token", "label": "get token" },
+    { "id": "t-login", "from": "token", "to": "signed", "label": "log in", "variant": "emphasis" },
+    { "id": "t-use", "from": "signed", "to": "using", "label": "use" },
+    { "id": "t-out", "from": "using", "to": "out", "label": "log out", "variant": "emphasis" },
+    { "id": "t-idle", "from": "signed", "to": "expired", "label": "idle", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [575, 202] },
+    { "id": "t-revoke", "from": "using", "to": "revoked", "label": "server deletes", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [805, 202] }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Normal path", "items": ["Get a CSRF token before any change", "Login swaps in a new session ID and a new token", "Logout deletes the session, and its token, on the server"] },
+    { "dot": "rose", "title": "Early endings", "items": ["30 minutes idle expires the session and its token; the SPA re-fetches a token", "Password reset, or an admin disabling, deleting or demoting a user, removes that user's sessions"] }
+  ]
+}

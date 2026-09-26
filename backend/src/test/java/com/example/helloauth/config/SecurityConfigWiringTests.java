@@ -32,9 +32,12 @@ import org.springframework.security.web.authentication.session.CompositeSessionA
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.web.cors.CorsConfiguration;
@@ -94,33 +97,47 @@ class SecurityConfigWiringTests {
     }
 
     @Test
-    void csrfTokenRepositoryIsCookieBacked() {
+    void csrfTokenRepositoryIsSessionBacked() {
         assertThat(new SecurityConfig().csrfTokenRepository())
-            .isInstanceOf(CookieCsrfTokenRepository.class);
+            .isInstanceOf(HttpSessionCsrfTokenRepository.class);
     }
 
     @Test
-    void csrfTokenCookieIsEmittedWithSameSiteStrict() {
-        // The cookie customizer's observable effect (F-06): save a token the
-        // way the filter does and inspect the emitted cookie — SameSite is
-        // a Servlet 6.1 cookie attribute, which a real container renders
-        // into Set-Cookie (the mock response's header string doesn't
-        // serialize attributes for plain Cookies). Secure is deliberately
-        // not forced: the repository derives it from request.isSecure(), so
-        // a plain-HTTP request must not set it.
+    void csrfTokenIsStoredInTheSessionAndNeverInACookie() {
+        // Synchronizer Token pattern: saving a token writes a session
+        // attribute and no Set-Cookie at all; loading reads it back from the
+        // same session only.
         CsrfTokenRepository repository = new SecurityConfig().csrfTokenRepository();
+        MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
-        repository.saveToken(new DefaultCsrfToken(
-            "X-XSRF-TOKEN", "_csrf", "test-token-value"),
-            new MockHttpServletRequest(), response);
+        CsrfToken token = repository.generateToken(request);
+        repository.saveToken(token, request, response);
 
-        jakarta.servlet.http.Cookie cookie = response.getCookie("XSRF-TOKEN");
-        assertThat(cookie).isNotNull();
-        assertThat(cookie.getAttribute("SameSite")).isEqualTo("Strict");
-        // httpOnly(false) must survive the customizer — the SPA's JS reads
-        // this cookie — and Secure stays request-derived (absent over HTTP).
-        assertThat(cookie.isHttpOnly()).isFalse();
-        assertThat(cookie.getSecure()).isFalse();
+        assertThat(token.getHeaderName()).isEqualTo("X-XSRF-TOKEN");
+        assertThat(response.getCookies()).isEmpty();
+        assertThat(response.getHeaders(HttpHeaders.SET_COOKIE)).isEmpty();
+        assertThat(repository.loadToken(request).getToken()).isEqualTo(token.getToken());
+
+        MockHttpServletRequest otherSession = new MockHttpServletRequest();
+        assertThat(repository.loadToken(otherSession)).isNull();
+    }
+
+    @Test
+    void csrfRejectionIsAMarkedProblemDetailOtherDenialsStayBare() throws Exception {
+        AccessDeniedHandler handler = SecurityConfig.accessDeniedHandler();
+
+        MockHttpServletResponse csrf = new MockHttpServletResponse();
+        handler.handle(new MockHttpServletRequest(), csrf,
+            new MissingCsrfTokenException(null));
+        assertThat(csrf.getStatus()).isEqualTo(403);
+        assertThat(csrf.getContentType()).isEqualTo("application/problem+json");
+        assertThat(csrf.getContentAsString()).contains("\"title\":\"Invalid CSRF token\"");
+
+        MockHttpServletResponse role = new MockHttpServletResponse();
+        handler.handle(new MockHttpServletRequest(), role,
+            new AccessDeniedException("not an admin"));
+        assertThat(role.getStatus()).isEqualTo(403);
+        assertThat(role.getContentAsString()).doesNotContain("CSRF");
     }
 
     @Test

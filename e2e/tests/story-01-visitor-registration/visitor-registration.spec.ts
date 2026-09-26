@@ -45,6 +45,23 @@ const AC3_DESCRIPTION =
 const AC4_DESCRIPTION =
   'AC4: Given any registration attempt, when handled, then the plaintext password is never logged or stored.'
 
+/**
+ * Opens /register and waits until the SPA holds a CSRF token. Synchronizer
+ * Token pattern: the token arrives in the GET /api/auth/csrf JSON body and
+ * stays in memory, so readiness is that response — and no CSRF cookie may
+ * ever be set.
+ */
+async function openRegisterPage(page: Page): Promise<void> {
+  const csrfReady = page.waitForResponse(
+    (res) => res.url().includes('/api/auth/csrf') && res.ok(),
+  )
+  await page.goto('/register', { waitUntil: 'domcontentloaded' })
+  await expect(page.locator('#username')).toBeVisible()
+  await csrfReady
+  const cookies = await page.context().cookies()
+  expect(cookies.filter((c) => c.name.toUpperCase().includes('XSRF'))).toEqual([])
+}
+
 function isolationTag(): string {
   return `isolated E2E lifecycle (in-memory H2, create-drop); isolation_id=${process.env.E2E_ISOLATION_ID ?? 'shared'}`
 }
@@ -164,9 +181,7 @@ test.describe('Story 1 — visitor registration', () => {
     const email = `${username}@example.com`
     const password = 'Valid-pass12' // exactly 12 characters — the story boundary value
 
-    await page.goto('/register', { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('#username')).toBeVisible()
-    await page.waitForFunction(() => document.cookie.includes('XSRF-TOKEN='))
+    await openRegisterPage(page)
 
     const [registerResponse] = await Promise.all([
       page.waitForResponse(
@@ -300,9 +315,7 @@ test.describe('Story 1 — visitor registration', () => {
     const uniqueUsername = `e2e-ac2-${run}`
     const password = 'Valid-pass12'
 
-    await page.goto('/register', { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('#username')).toBeVisible()
-    await page.waitForFunction(() => document.cookie.includes('XSRF-TOKEN='))
+    await openRegisterPage(page)
     const alert = page.getByRole('alert')
 
     const [usernameConflict] = await Promise.all([
@@ -409,9 +422,7 @@ test.describe('Story 1 — visitor registration', () => {
     const email = `${username}@example.com`
     const shortPassword = 'shortpass11' // 11 characters — one under the policy
 
-    await page.goto('/register', { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('#username')).toBeVisible()
-    await page.waitForFunction(() => document.cookie.includes('XSRF-TOKEN='))
+    await openRegisterPage(page)
 
     let registerRequests = 0
     page.on('response', (res) => {
@@ -532,9 +543,7 @@ test.describe('Story 1 — visitor registration', () => {
     const email = `${username}@example.com`
     const password = `${run}sentinelpw`.slice(0, 12) // unique 12-char sentinel plaintext
 
-    await page.goto('/register', { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('#username')).toBeVisible()
-    await page.waitForFunction(() => document.cookie.includes('XSRF-TOKEN='))
+    await openRegisterPage(page)
     await submitRegistration(page, username, email, password)
     await expect(
       page.getByText('Protected hello', { exact: true }),

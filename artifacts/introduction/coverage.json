@@ -1,0 +1,66 @@
+{
+  "scope": "A guided introduction, not a full audit. Reviewed against the current working tree, including uncommitted changes, based on the recorded HEAD revision. We start from SecurityConfig.java and application-prod.yml, then follow the code they drive. Official standards and guidance were checked online; no production system was exercised. The standards mappings below are assessments, not certifications.",
+  "date": "2026-09-27",
+  "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+  "initialDirtyState": "Review used the current working tree including existing uncommitted application and documentation changes; revision identifies base HEAD only.",
+  "inspectedFiles": [
+    "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "backend/src/main/resources/application-prod.yml",
+    "backend/src/main/resources/application.yml",
+    "backend/src/main/java/com/example/helloauth/config/AppProperties.java",
+    "backend/src/main/java/com/example/helloauth/HelloAuthApplication.java",
+    "backend/src/main/java/com/example/helloauth/auth/AuthController.java",
+    "frontend/src/lib/api.ts",
+    "frontend/src/auth/auth-context.tsx",
+    "backend/src/main/java/com/example/helloauth/auth/LoginService.java",
+    "backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java",
+    "backend/src/main/java/com/example/helloauth/config/ProdAdminCredentialsValidator.java",
+    "backend/src/main/java/com/example/helloauth/config/SecurityTunablesValidator.java",
+    "backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java",
+    "backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java",
+    "backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetService.java",
+    "backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java",
+    "backend/src/main/java/com/example/helloauth/admin/AdminService.java",
+    "backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java",
+    "backend/src/main/java/com/example/helloauth/HelloController.java",
+    "backend/src/test/java/com/example/helloauth/ProdProfileTests.java",
+    "backend/src/test/java/com/example/helloauth/StartupConfigValidationTests.java",
+    "backend/src/main/java/com/example/helloauth/admin/AdminController.java",
+    "backend/pom.xml",
+    "frontend/package.json",
+    "frontend/package-lock.json",
+    "frontend/vite.config.ts",
+    "backend/src/main/resources/application-dev.yml"
+  ],
+  "coverage": [
+    {
+      "area": "Security chain, profiles, startup validators",
+      "status": "inspected"
+    },
+    {
+      "area": "Login, admin guards, reset, browser cookie transport",
+      "status": "partial",
+      "reason": "Representative paths inspected for this introduction; not a full audit."
+    },
+    {
+      "area": "Tests",
+      "status": "partial",
+      "reason": "ProdProfileTests and StartupConfigValidationTests read, not executed."
+    },
+    {
+      "area": "Infrastructure, live proxy, production database, frontend host headers",
+      "status": "not-inspected",
+      "reason": "Deployment not exercised; no runtime security claims."
+    },
+    {
+      "area": "Remaining nine-topic playbook scope",
+      "status": "not-applicable",
+      "reason": "User requested an enhanced security/configuration introduction, not a complete playbook."
+    }
+  ],
+  "exclusions": [
+    "Vendor dependencies, build output and historical assessment artifacts were not audited."
+  ],
+  "routeCoverage": "Static inventory of application controller methods plus configured logout and health; H2 dev servlet is separate. Not a runtime route dump.",
+  "verification": "Source anchors checked during generation. Backend tests not run for this documentation-only change."
+}

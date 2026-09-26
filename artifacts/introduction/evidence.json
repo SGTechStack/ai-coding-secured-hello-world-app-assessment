@@ -1,0 +1,410 @@
+[
+  {
+    "id": "chain",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": "SecurityFilterChain securityFilterChain(",
+    "start": 80,
+    "end": 96,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    SecurityFilterChain securityFilterChain(HttpSecurity http,\n            CsrfTokenRepository csrfTokenRepository,\n            SecurityContextRepository securityContextRepository) throws Exception {\n        http\n            .cors(Customizer.withDefaults())\n            // Synchronizer Token pattern (OWASP CSRF cheat sheet): the token\n            // is stored in the session and compared against the header. Not\n            // csrf.spa() — that installs the cookie (naive double-submit)\n            // repository. The repository bean is shared with\n            // CsrfAuthenticationStrategy and CsrfLogoutHandler.\n            .csrf(csrf -> csrf\n                .csrfTokenRepository(csrfTokenRepository)\n                .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler()))\n            .securityContext(context ->\n                context.securityContextRepository(securityContextRepository))\n            // Defense-in-depth headers (security-review F-01). This is a\n            // JSON-only API — no HTML, script, or frame rendering — so the",
+    "supports": [
+      "boundary",
+      "filters"
+    ]
+  },
+  {
+    "id": "access",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": ".authorizeHttpRequests(auth -> auth",
+    "start": 110,
+    "end": 127,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "            .authorizeHttpRequests(auth -> auth\n                // Security 7 authorizes every dispatcher type, including\n                // ERROR — permit it so anonymous requests that hit the\n                // container error dispatch (e.g. a 404 on a permitted path)\n                // surface the real status instead of a blanket 401.\n                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()\n                .requestMatchers(\"/api/auth/register\", \"/api/auth/login\",\n                    \"/api/auth/csrf\", \"/api/auth/me\",\n                    \"/api/auth/password-reset/**\").permitAll()\n                .requestMatchers(\"/api/admin/**\").hasRole(\"ADMIN\")\n                // The operator health probe must answer without credentials\n                // (ticket-08 AC); \"everything else authenticated\" would make\n                // the uptime check useless.\n                .requestMatchers(\"/actuator/health\").permitAll()\n                .anyRequest().authenticated())\n            .exceptionHandling(handling -> handling\n                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))\n                .accessDeniedHandler(accessDeniedHandler()))",
+    "supports": [
+      "access"
+    ]
+  },
+  {
+    "id": "csrf",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": "CsrfTokenRepository csrfTokenRepository()",
+    "start": 247,
+    "end": 253,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    CsrfTokenRepository csrfTokenRepository() {\n        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();\n        repository.setHeaderName(CSRF_HEADER_NAME);\n        return repository;\n    }\n\n    /** Header the SPA echoes the token in; also on the CORS allow-list. */",
+    "supports": [
+      "filters",
+      "cookies"
+    ]
+  },
+  {
+    "id": "serializer",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": "DefaultCookieSerializerCustomizer sessionCookieCustomizer(",
+    "start": 288,
+    "end": 318,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    DefaultCookieSerializerCustomizer sessionCookieCustomizer(\n            ServerProperties serverProperties) {\n        org.springframework.boot.web.server.Cookie cookie =\n            serverProperties.getServlet().getSession().getCookie();\n        return serializer -> {\n            if (cookie.getName() != null) {\n                serializer.setCookieName(cookie.getName());\n            }\n            if (cookie.getPath() != null) {\n                serializer.setCookiePath(cookie.getPath());\n            }\n            if (cookie.getDomain() != null) {\n                serializer.setDomainName(cookie.getDomain());\n            }\n            if (cookie.getMaxAge() != null) {\n                serializer.setCookieMaxAge((int) cookie.getMaxAge().getSeconds());\n            }\n            if (cookie.getHttpOnly() != null) {\n                serializer.setUseHttpOnlyCookie(cookie.getHttpOnly());\n            }\n            if (cookie.getSecure() != null) {\n                serializer.setUseSecureCookie(cookie.getSecure());\n            }\n            if (cookie.getSameSite() != null) {\n                serializer.setSameSite(cookie.getSameSite().attributeValue());\n            }\n        };\n    }\n\n    /**\n     * Injected wherever lockout/expiry time math happens — tests control time",
+    "supports": [
+      "cookies"
+    ]
+  },
+  {
+    "id": "devchain",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": "@Profile(\"dev\")",
+    "start": 155,
+    "end": 165,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    @Profile(\"dev\")\n    @Order(1)\n    SecurityFilterChain h2ConsoleSecurityFilterChain(HttpSecurity http) throws Exception {\n        http\n            .securityMatcher(PathRequest.toH2Console())\n            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())\n            .csrf(csrf -> csrf.ignoringRequestMatchers(PathRequest.toH2Console()))\n            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));\n        return http.build();\n    }\n",
+    "supports": [
+      "filters",
+      "configuration"
+    ]
+  },
+  {
+    "id": "headers",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": ".headers(headers -> headers",
+    "start": 103,
+    "end": 109,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "            .headers(headers -> headers\n                .contentSecurityPolicy(csp -> csp.policyDirectives(\n                    \"default-src 'none'; frame-ancestors 'none'\"))\n                .referrerPolicy(referrer -> referrer.policy(\n                    ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))\n                .permissionsPolicy(permissions -> permissions.policy(\n                    \"camera=(), microphone=(), geolocation=()\")))",
+    "supports": [
+      "headers"
+    ]
+  },
+  {
+    "id": "provider",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": "AuthenticationManager authenticationManager(",
+    "start": 201,
+    "end": 209,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    AuthenticationManager authenticationManager(UserDetailsService userDetailsService,\n            PasswordEncoder passwordEncoder, AuthenticationEventPublisher eventPublisher) {\n        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);\n        provider.setPasswordEncoder(passwordEncoder);\n        ProviderManager providerManager = new ProviderManager(provider);\n        providerManager.setAuthenticationEventPublisher(eventPublisher);\n        return providerManager;\n    }\n",
+    "supports": [
+      "journey"
+    ]
+  },
+  {
+    "id": "strategy",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": "SessionAuthenticationStrategy sessionAuthenticationStrategy(",
+    "start": 223,
+    "end": 228,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    SessionAuthenticationStrategy sessionAuthenticationStrategy(\n            CsrfTokenRepository csrfTokenRepository) {\n        return new CompositeSessionAuthenticationStrategy(List.of(\n            new CsrfAuthenticationStrategy(csrfTokenRepository),\n            new ChangeSessionIdAuthenticationStrategy()));\n    }",
+    "supports": [
+      "journey"
+    ]
+  },
+  {
+    "id": "logout",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityConfig.java",
+    "symbol": ".logout(logout -> logout",
+    "start": 133,
+    "end": 144,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "            .logout(logout -> logout\n                .logoutUrl(\"/api/auth/logout\")\n                // Clears the CSRF token (the SPA re-bootstraps after logout).\n                // Added explicitly even though the configurer may wire one\n                // itself — a duplicate clear is idempotent.\n                .addLogoutHandler(new CsrfLogoutHandler(csrfTokenRepository))\n                // Belt-and-suspenders: invalidation already expires the Spring\n                // Session cookie, this also sends the clearing Set-Cookie.\n                .deleteCookies(\"SESSION\")\n                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler()));\n        return http.build();\n    }",
+    "supports": [
+      "journey"
+    ]
+  },
+  {
+    "id": "prod",
+    "path": "backend/src/main/resources/application-prod.yml",
+    "symbol": "spring:",
+    "start": 34,
+    "end": 79,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "configuration",
+    "excerpt": "spring:\n  # No embedded fallback. Use jdbc:postgresql://... or jdbc:mysql://... .\n  # The JDBC driver and Hibernate dialect are inferred from the URL.\n  datasource:\n    embedded-database-connection: none\n    url: ${DB_URL}\n    username: ${DB_USERNAME}\n    password: ${DB_PASSWORD}\n  jpa:\n    hibernate:\n      ddl-auto: validate\n  liquibase:\n    enabled: true\n    change-log: classpath:db/changelog/db.changelog-master.yaml\n  session:\n    jdbc:\n      initialize-schema: never\n  sql:\n    init:\n      mode: never\n  h2:\n    console:\n      enabled: false\n\nserver:\n  forward-headers-strategy: framework\n  servlet:\n    session:\n      cookie:\n        secure: true\n        http-only: true\n        same-site: strict\n\napp:\n  cors:\n    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}\n  password-reset:\n    log-reset-link: false\n    # No localhost fallback — the day a real EmailService replaces the stub,\n    # an unset value must not silently emit reset links pointing at\n    # localhost:3000.\n    link-base-url: ${APP_RESET_LINK_BASE_URL:}\n  admin:\n    username: ${APP_ADMIN_USERNAME:}\n    password: ${APP_ADMIN_PASSWORD:}\n    email: ${APP_ADMIN_EMAIL:admin@localhost}",
+    "supports": [
+      "boundary",
+      "configuration",
+      "startup",
+      "proxy",
+      "reset"
+    ]
+  },
+  {
+    "id": "base",
+    "path": "backend/src/main/resources/application.yml",
+    "symbol": "spring:",
+    "start": 1,
+    "end": 96,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "configuration",
+    "excerpt": "spring:\n  application:\n    name: hello-auth\n  datasource:\n    url: jdbc:h2:mem:helloauth\n    username: sa\n    password: \"\"\n  jpa:\n    hibernate:\n      ddl-auto: validate\n  liquibase:\n    change-log: classpath:db/changelog/db.changelog-master.yaml\n  sql:\n    init:\n      mode: never\n  session:\n    # Spring Session JDBC over H2 — the ratified store (ticket 02). Sessions\n    # persist in SPRING_SESSION, enabling true invalidation and per-user\n    # session enumeration (findByPrincipalName) for later tickets.\n    store-type: jdbc\n    # Pinned idle timeout (security-review F-08): 30m is also the framework\n    # default — set explicitly so the value survives default changes and the\n    # session-lifetime contract is visible in config, not implied.\n    timeout: 30m\n    jdbc:\n      initialize-schema: never\n  mvc:\n    problemdetails:\n      enabled: true\n\nserver:\n  port: 8080\n  servlet:\n    session:\n      cookie:\n        http-only: true\n        # Set explicitly — a Boot 4.1 regression can otherwise leave SameSite\n        # unset instead of Lax (spring-boot#48830). secure=true only in the\n        # prod profile (hardening ticket).\n        same-site: lax\n        secure: false\n\nmanagement:\n  endpoints:\n    web:\n      exposure:\n        include: health\n\n# Externalized security tunables (ticket 06 decision).\napp:\n  password-min-length: 12\n  # Two-layer brute-force defense (ticket 11). ip-throttle.max-failures stays\n  # below lockout.max-failures so a single source IP can never record enough\n  # failures to lock an account — the literal anti-DoS guarantee.\n  lockout:\n    max-failures: 5\n    window: 10m\n    cooldown: 15m\n  ip-throttle:\n    max-failures: 4\n    # anon-max-requests (security-review F-04): per-IP budget for the\n    # unauthenticated mutations (register, password-reset/request) — a\n    # second, independent bucket counting every hit, sharing the window\n    # and max-entries below.\n    anon-max-requests: 20\n    window: 10m\n    max-entries: 10000\n  # Single-use reset tokens (ticket 12): 32-byte SecureRandom, only the\n  # SHA-256 hash is stored, lifetime inside the spec's 15–30 min bound. The\n  # stubbed EmailService logs link-base-url?token=<token> — no SMTP exists.\n  # cleanup-interval (ticket 14): cadence of the scheduled purge that deletes\n  # consumed/expired token rows. log-reset-link (security-review F-02): the\n  # link line carries the plaintext token — a live bearer credential — so\n  # the prod profile sets it false and the stub logs a token-free\n  # suppressed-delivery line instead.\n  password-reset:\n    token-ttl: 15m\n    link-base-url: http://localhost:3000/reset-password\n    cleanup-interval: 1h\n    log-reset-link: true\n  # Initial-admin bootstrap (ticket 13). Credentials come from the\n  # APP_ADMIN_* env vars; blank means \"not configured\" and nothing is\n  # seeded. The dev profile ships documented defaults; the prod profile\n  # (ticket 14) requires the env vars outright so a missing config fails\n  # fast rather than leaving no way into /api/admin/**.\n  admin:\n    username: ${APP_ADMIN_USERNAME:}\n    password: ${APP_ADMIN_PASSWORD:}\n    email: ${APP_ADMIN_EMAIL:admin@localhost}\n  # CORS allow-list for the credentialed SPA origin(s) (ticket 14). The\n  # dev/local default is the Vite origin; the prod profile binds\n  # APP_CORS_ALLOWED_ORIGINS (comma-separated) with a blank default —\n  # an unset list permits no origins (fail-closed).\n  cors:\n    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}\n",
+    "supports": [
+      "cookies",
+      "configuration",
+      "proxy"
+    ]
+  },
+  {
+    "id": "properties",
+    "path": "backend/src/main/java/com/example/helloauth/config/AppProperties.java",
+    "symbol": "@ConfigurationProperties(prefix = \"app\")",
+    "start": 12,
+    "end": 24,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "@ConfigurationProperties(prefix = \"app\")\npublic class AppProperties {\n\n    /** Minimum password length — the only password policy rule (ticket 07). */\n    private int passwordMinLength = 12;\n\n    private final Lockout lockout = new Lockout();\n    private final IpThrottle ipThrottle = new IpThrottle();\n    private final PasswordReset passwordReset = new PasswordReset();\n    private final Admin admin = new Admin();\n    private final Cors cors = new Cors();\n\n    public int getPasswordMinLength() {",
+    "supports": [
+      "configuration"
+    ]
+  },
+  {
+    "id": "startup",
+    "path": "backend/src/main/java/com/example/helloauth/HelloAuthApplication.java",
+    "symbol": "@SpringBootApplication",
+    "start": 8,
+    "end": 18,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "@SpringBootApplication\n@ConfigurationPropertiesScan\n// Ticket-14 token housekeeping: the password-reset janitor's @Scheduled purge.\n@EnableScheduling\npublic class HelloAuthApplication {\n\n    public static void main(String[] args) {\n        SpringApplication.run(HelloAuthApplication.class, args);\n    }\n}\n",
+    "supports": [
+      "configuration"
+    ]
+  },
+  {
+    "id": "login",
+    "path": "backend/src/main/java/com/example/helloauth/auth/AuthController.java",
+    "symbol": "@PostMapping(\"/login\")",
+    "start": 89,
+    "end": 122,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    @PostMapping(\"/login\")\n    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request,\n            HttpServletRequest servletRequest, HttpServletResponse servletResponse) {\n        Authentication authentication;\n        try {\n            // LoginService runs the ordered two-layer defense: IP-throttle →\n            // account-lock → credentials (ticket 11). A throttled source gets\n            // LoginThrottledException — not an AuthenticationException — so it\n            // falls through to the 429 handler in ApiExceptionHandler.\n            authentication = loginService.login(\n                request.username(), request.password(), servletRequest.getRemoteAddr());\n        } catch (AuthenticationException ex) {\n            // One generic message for every failure mode — bad credentials,\n            // locked, disabled — so account existence can't be inferred\n            // (enumeration resistance is a security AC, not a nicety).\n            ProblemDetail problem = ProblemDetail.forStatusAndDetail(\n                HttpStatus.UNAUTHORIZED, \"Invalid username or password.\");\n            problem.setTitle(\"Login failed\");\n            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);\n        }\n\n        sessionAuthenticationStrategy.onAuthentication(\n            authentication, servletRequest, servletResponse);\n\n        SecurityContext context = securityContextHolderStrategy.createEmptyContext();\n        context.setAuthentication(authentication);\n        securityContextHolderStrategy.setContext(context);\n        securityContextRepository.saveContext(context, servletRequest, servletResponse);\n\n        return ResponseEntity.ok(\n            new PrincipalResponse(authentication.getName(), roleOf(authentication)));\n    }\n\n    /**",
+    "supports": [
+      "boundary",
+      "journey"
+    ]
+  },
+  {
+    "id": "me",
+    "path": "backend/src/main/java/com/example/helloauth/auth/AuthController.java",
+    "symbol": "@GetMapping(\"/me\")",
+    "start": 138,
+    "end": 147,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    @GetMapping(\"/me\")\n    public ResponseEntity<PrincipalResponse> me(Authentication authentication) {\n        if (authentication == null || !authentication.isAuthenticated()\n                || authentication instanceof AnonymousAuthenticationToken) {\n            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();\n        }\n        return ResponseEntity.ok(\n            new PrincipalResponse(authentication.getName(), roleOf(authentication)));\n    }\n",
+    "supports": [
+      "access"
+    ]
+  },
+  {
+    "id": "client",
+    "path": "frontend/src/lib/api.ts",
+    "symbol": "export const API_BASE:",
+    "start": 11,
+    "end": 38,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "export const API_BASE: string =\n  import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'\n\n/** In-memory CSRF token for the current server session; null until fetched. */\nlet csrfToken: string | null = null\n\n/** Problem title the API uses for a missing/invalid CSRF token (403). */\nconst CSRF_REJECTED_TITLE = 'Invalid CSRF token'\n\nfunction isMutating(method: string): boolean {\n  return method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS'\n}\n\n/** True when a 403 is the API's CSRF rejection, not an authorization denial. */\nasync function isCsrfRejection(response: Response): Promise<boolean> {\n  if (response.status !== 403) {\n    return false\n  }\n  try {\n    const body = (await response.clone().json()) as { title?: string }\n    return body.title === CSRF_REJECTED_TITLE\n  } catch {\n    return false\n  }\n}\n\nfunction send(path: string, init: RequestInit, method: string): Promise<Response> {\n  const headers = new Headers(init.headers)",
+    "supports": [
+      "boundary",
+      "cookies",
+      "configuration"
+    ]
+  },
+  {
+    "id": "authcontext",
+    "path": "frontend/src/auth/auth-context.tsx",
+    "symbol": "const signOut = useCallback(",
+    "start": 80,
+    "end": 91,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "  const signOut = useCallback(async () => {\n    try {\n      // POST /api/auth/logout (with CSRF) kills the server-side session row\n      // and re-bootstraps the CSRF token the server cleared.\n      await apiLogout()\n    } finally {\n      // Drop local state even if the call failed — the route guards then\n      // land the user on /login. A failed call leaves the server session\n      // alive, but it still expires on its own.\n      setUser(null)\n    }\n  }, [])",
+    "supports": [
+      "journey"
+    ]
+  },
+  {
+    "id": "loginservice",
+    "path": "backend/src/main/java/com/example/helloauth/auth/LoginService.java",
+    "symbol": "public Authentication login(",
+    "start": 80,
+    "end": 116,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    public Authentication login(String username, String rawPassword, String remoteAddr) {\n        // (1) IP throttle first — before even the user lookup.\n        if (remoteAddr != null && ipThrottle.isThrottled(remoteAddr)) {\n            // No authentication event can fire for a rejection before\n            // authenticate() runs — the audit emission is direct (ticket 14).\n            audit.loginThrottled(username, remoteAddr);\n            throw new LoginThrottledException();\n        }\n\n        // (2) Account lock — before credentials, so a locked attempt can't\n        //     re-arm locked_until or count at either layer.\n        User user = users.findByUsername(username).orElse(null);\n        Instant now = clock.instant();\n        if (isLocked(user, now)) {\n            audit.loginFailed(username, AuditLogger.Reasons.LOCKED);\n            throw new LockedException(\"Account is locked\");\n        }\n\n        // (3) Credential verification.\n        try {\n            Authentication authentication = authenticationManager.authenticate(\n                UsernamePasswordAuthenticationToken.unauthenticated(\n                    username, rawPassword));\n            resetFailureState(user);\n            return authentication;\n        } catch (BadCredentialsException | UsernameNotFoundException ex) {\n            // Unknown usernames record only at the IP layer — no phantom\n            // counters, and the response stays identical either way.\n            if (user != null) {\n                recordFailure(user, now);\n            }\n            if (remoteAddr != null) {\n                ipThrottle.recordFailure(remoteAddr);\n            }\n            throw ex;\n        }\n    }",
+    "supports": [
+      "journey",
+      "proxy"
+    ]
+  },
+  {
+    "id": "throttle",
+    "path": "backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java",
+    "symbol": "private final Cache<String, SlidingWindowBucket> failureBuckets;",
+    "start": 54,
+    "end": 73,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    private final Cache<String, SlidingWindowBucket> failureBuckets;\n    private final Cache<String, SlidingWindowBucket> anonBuckets;\n    private final Clock clock;\n    private final AppProperties properties;\n\n    public IpThrottleService(Clock clock, AppProperties properties) {\n        this.clock = clock;\n        this.properties = properties;\n        this.failureBuckets = newBucketCache(properties);\n        this.anonBuckets = newBucketCache(properties);\n    }\n\n    private static Cache<String, SlidingWindowBucket> newBucketCache(\n            AppProperties properties) {\n        return Caffeine.newBuilder()\n            .maximumSize(properties.getIpThrottle().getMaxEntries())\n            .expireAfterAccess(properties.getIpThrottle().getWindow().multipliedBy(2))\n            .build();\n    }\n",
+    "supports": [
+      "proxy"
+    ]
+  },
+  {
+    "id": "adminvalidator",
+    "path": "backend/src/main/java/com/example/helloauth/config/ProdAdminCredentialsValidator.java",
+    "symbol": "public ProdAdminCredentialsValidator(",
+    "start": 25,
+    "end": 48,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    public ProdAdminCredentialsValidator(AppProperties properties) {\n        AppProperties.Admin admin = properties.getAdmin();\n        if (isBlank(admin.getUsername()) || isBlank(admin.getPassword())) {\n            throw new IllegalStateException(\n                \"The prod profile requires APP_ADMIN_USERNAME and \"\n                    + \"APP_ADMIN_PASSWORD environment variables — without \"\n                    + \"them no admin account can be seeded and /api/admin/** \"\n                    + \"stays unreachable.\");\n        }\n        // Presence isn't enough: AdminSeeder treats a sub-minimum password\n        // as warn-only, which suits dev but would let a prod admin ship\n        // below the registered-account floor. Prod fails fast instead.\n        if (admin.getPassword().length() < properties.getPasswordMinLength()) {\n            throw new IllegalStateException(\n                \"APP_ADMIN_PASSWORD is shorter than app.password-min-length (\"\n                    + properties.getPasswordMinLength() + \" characters).\");\n        }\n    }\n\n    private static boolean isBlank(String value) {\n        return value == null || value.isBlank();\n    }\n}\n",
+    "supports": [
+      "startup"
+    ]
+  },
+  {
+    "id": "tunables",
+    "path": "backend/src/main/java/com/example/helloauth/config/SecurityTunablesValidator.java",
+    "symbol": "public SecurityTunablesValidator(",
+    "start": 22,
+    "end": 35,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    public SecurityTunablesValidator(AppProperties properties) {\n        int throttleMax = properties.getIpThrottle().getMaxFailures();\n        int lockoutMax = properties.getLockout().getMaxFailures();\n        if (throttleMax >= lockoutMax) {\n            throw new IllegalStateException(\n                \"app.ip-throttle.max-failures (\" + throttleMax\n                    + \") must be less than app.lockout.max-failures (\"\n                    + lockoutMax + \") — otherwise a single source IP can \"\n                    + \"record enough failures to lock an account, breaking \"\n                    + \"the anti-DoS guarantee.\");\n        }\n    }\n}\n",
+    "supports": [
+      "startup",
+      "proxy"
+    ]
+  },
+  {
+    "id": "seeder",
+    "path": "backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java",
+    "symbol": "public void seedAdminIfAbsent()",
+    "start": 54,
+    "end": 87,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    public void seedAdminIfAbsent() {\n        if (users.existsByRole(Role.ADMIN)) {\n            return;\n        }\n        AppProperties.Admin admin = properties.getAdmin();\n        String username = admin.getUsername();\n        String password = admin.getPassword();\n        if (isBlank(username) || isBlank(password)) {\n            log.warn(\"No ADMIN account exists and app.admin.username/\"\n                + \"app.admin.password are unset — skipping initial-admin \"\n                + \"seed. The admin module stays unreachable until an admin \"\n                + \"account exists.\");\n            return;\n        }\n        if (users.existsByUsername(username)) {\n            // A USER row already holds the configured name — an INSERT\n            // would die on the unique constraint; surface it as a clear\n            // operator-facing message instead.\n            log.warn(\"app.admin.username '{}' is already taken by a \"\n                + \"non-admin account — skipping initial-admin seed.\",\n                username);\n            return;\n        }\n        String email = admin.getEmail();\n        if (users.existsByEmail(email)) {\n            // users.email is unique + non-null too — a registered\n            // non-admin row holding the configured address would crash\n            // the INSERT (and startup) the same way.\n            log.warn(\"app.admin.email '{}' is already taken by a \"\n                + \"non-admin account — skipping initial-admin seed.\",\n                email);\n            return;\n        }\n        int minLength = properties.getPasswordMinLength();",
+    "supports": [
+      "startup"
+    ]
+  },
+  {
+    "id": "email",
+    "path": "backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java",
+    "symbol": "public void sendPasswordResetLink(",
+    "start": 39,
+    "end": 49,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    public void sendPasswordResetLink(String toEmail, String token) {\n        if (properties.getPasswordReset().isLogResetLink()) {\n            String link = properties.getPasswordReset().getLinkBaseUrl()\n                + \"?token=\" + token;\n            log.info(\"Password reset link for {}: {}\", toEmail, link);\n        } else {\n            log.info(\"Password reset requested for {} — no email adapter \"\n                + \"configured; reset link suppressed\", toEmail);\n        }\n    }\n}",
+    "supports": [
+      "startup",
+      "headers",
+      "reset"
+    ]
+  },
+  {
+    "id": "resetservice",
+    "path": "backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetService.java",
+    "symbol": "public void confirmReset(",
+    "start": 109,
+    "end": 145,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    public void confirmReset(String token, String newPassword) {\n        String tokenHash = hashToken(token);\n        PasswordResetToken resetToken = tokens.findByTokenHash(tokenHash)\n            .orElseThrow(InvalidResetTokenException::new);\n\n        // Unknown, spent, or expired — one generic rejection for all three\n        // (the token is a credential; its state is not public information).\n        Instant now = clock.instant();\n        if (resetToken.getUsedAt() != null\n                || !resetToken.getExpiresAt().isAfter(now)) {\n            throw new InvalidResetTokenException();\n        }\n\n        // Same length-only policy as registration — enforced before the\n        // token is spent, so a typo'd password doesn't burn the link.\n        int minLength = properties.getPasswordMinLength();\n        if (newPassword == null || newPassword.length() < minLength) {\n            throw new RegistrationException.PasswordTooShort(minLength);\n        }\n\n        // The atomic claim — the row the read just validated may already be\n        // spent by a racing confirm; a 0-row update is the generic rejection.\n        if (tokens.consumeIfUnused(tokenHash, now) == 0) {\n            throw new InvalidResetTokenException();\n        }\n\n        User user = resetToken.getUser();\n        user.setPasswordHash(passwordEncoder.encode(newPassword));\n        users.save(user);\n\n        // One live token: links minted alongside the consumed one die too —\n        // otherwise an attacker who requested a second link before the\n        // victim reset could still pivot through it afterwards.\n        tokens.invalidateOutstandingForUser(user, now);\n\n        sessionInvalidation.invalidateAllFor(user.getUsername());\n        audit.passwordResetCompleted(user.getUsername());",
+    "supports": [
+      "reset"
+    ]
+  },
+  {
+    "id": "resetcontroller",
+    "path": "backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java",
+    "symbol": "@RequestMapping(\"/api/auth/password-reset\")",
+    "start": 19,
+    "end": 36,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "@RequestMapping(\"/api/auth/password-reset\")\npublic class PasswordResetController {\n\n    /**\n     * The ratified enumeration-resistant wording (ticket 07) — returned\n     * verbatim whether or not the email matches an account. The wording is a\n     * security control: keep it in one place and never vary it.\n     */\n    static final String REQUEST_RESPONSE_MESSAGE =\n        \"If an account with that email exists, we've sent a reset link.\";\n\n    private final PasswordResetService passwordResetService;\n    private final IpThrottleService ipThrottle;\n\n    public PasswordResetController(PasswordResetService passwordResetService,\n            IpThrottleService ipThrottle) {\n        this.passwordResetService = passwordResetService;\n        this.ipThrottle = ipThrottle;",
+    "supports": [
+      "access",
+      "reset"
+    ]
+  },
+  {
+    "id": "admin",
+    "path": "backend/src/main/java/com/example/helloauth/admin/AdminService.java",
+    "symbol": "public AdminUserResponse setEnabled(",
+    "start": 62,
+    "end": 77,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    public AdminUserResponse setEnabled(String actorUsername, Long id, boolean enabled) {\n        User target = requireOtherAccount(actorUsername, id, \"change the status of\");\n        boolean changed = target.isEnabled() != enabled;\n        target.setEnabled(enabled);\n        users.save(target);\n        if (!enabled) {\n            sessionInvalidation.invalidateAllFor(target.getUsername());\n        }\n        // Audit only a real change — a no-op PATCH asserting \"changed\" would\n        // be a false event (and it still lands afterCommit via AuditLogger).\n        if (changed) {\n            audit.adminStatusChanged(actorUsername, target.getUsername(), enabled);\n        }\n        return AdminUserResponse.from(target);\n    }\n",
+    "supports": [
+      "access"
+    ]
+  },
+  {
+    "id": "errors",
+    "path": "backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java",
+    "symbol": "@ExceptionHandler(LoginThrottledException.class)",
+    "start": 86,
+    "end": 91,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    @ExceptionHandler(LoginThrottledException.class)\n    ProblemDetail loginThrottled(LoginThrottledException ex) {\n        return ProblemDetail.forStatusAndDetail(\n            HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());\n    }\n}",
+    "supports": [
+      "access",
+      "journey"
+    ]
+  },
+  {
+    "id": "hello",
+    "path": "backend/src/main/java/com/example/helloauth/HelloController.java",
+    "symbol": "@GetMapping(\"/api/hello\")",
+    "start": 16,
+    "end": 20,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "implementation",
+    "excerpt": "    @GetMapping(\"/api/hello\")\n    public Map<String, String> hello(Authentication authentication) {\n        return Map.of(\"message\", \"Hello, \" + authentication.getName());\n    }\n}",
+    "supports": [
+      "journey"
+    ]
+  },
+  {
+    "id": "prodtest",
+    "path": "backend/src/test/java/com/example/helloauth/ProdProfileTests.java",
+    "symbol": "@SpringBootTest(properties = {",
+    "start": 29,
+    "end": 37,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "test",
+    "excerpt": "@SpringBootTest(properties = {\n    \"DB_URL=jdbc:h2:mem:prod-profile-tests\",\n    \"DB_USERNAME=sa\",\n    \"DB_PASSWORD=\",\n    \"APP_ADMIN_USERNAME=prod-root\",\n    \"APP_ADMIN_PASSWORD=prod-root-password-1\",\n    \"APP_ADMIN_EMAIL=prod-root@example.com\",\n    \"APP_CORS_ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com\"})\n@AutoConfigureMockMvc",
+    "supports": [
+      "startup"
+    ]
+  },
+  {
+    "id": "startuptest",
+    "path": "backend/src/test/java/com/example/helloauth/StartupConfigValidationTests.java",
+    "symbol": "void equalThrottleAndLockoutThresholdsRefuseToStart()",
+    "start": 34,
+    "end": 46,
+    "revision": "01efc8ed1560e409ba66a89ff835391ac6c4e101",
+    "kind": "test",
+    "excerpt": "    void equalThrottleAndLockoutThresholdsRefuseToStart() {\n        // The boundary itself: >= is the breaking condition, so equality\n        // must already fail.\n        assertThatThrownBy(() -> new SpringApplicationBuilder(\n                HelloAuthApplication.class)\n            .run(\n                \"--server.port=0\",\n                \"--app.ip-throttle.max-failures=5\",\n                \"--app.lockout.max-failures=5\"))\n        .hasStackTraceContaining(\"app.ip-throttle.max-failures\")\n        .hasStackTraceContaining(\"app.lockout.max-failures\");\n    }\n",
+    "supports": [
+      "startup"
+    ]
+  }
+]

@@ -16,6 +16,7 @@ import com.example.helloauth.passwordreset.PasswordResetTokenRepository;
 import com.example.helloauth.user.Role;
 import com.example.helloauth.user.User;
 import com.example.helloauth.user.UserRepository;
+import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import org.mockito.ArgumentCaptor;
@@ -25,13 +26,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 /**
  * Shared HTTP-seam fixture for the {@code @SpringBootTest} + MockMvc suites
  * (extracted in the ticket-14 correction pass — the same helper block had
  * been copy-pasted into eight test classes since ticket 10 and the copies
  * had started to drift). Every method drives the API exactly like the SPA:
- * CSRF bootstrap via {@code GET /api/auth/csrf}, {@code X-XSRF-TOKEN} on
+ * CSRF bootstrap via {@code GET /api/auth/csrf} (token from the JSON body,
+ * held by the returned session), {@code X-XSRF-TOKEN} on
  * every mutation, session cookie from a real login. Fixtures are seeded
  * through the repositories per the ratified strategy (ticket 05).
  *
@@ -92,46 +95,86 @@ abstract class ApiTestSupport {
     }
 
     // ------------------------------------------------------------------
-    // CSRF bootstrap
+    // CSRF bootstrap (Synchronizer Token: the token lives in the session)
     // ------------------------------------------------------------------
 
-    /** GET /api/auth/csrf and return the emitted XSRF-TOKEN cookie. */
-    protected Cookie csrfToken() throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/auth/csrf"))
+    /** The header the SPA echoes the token in. */
+    protected static final String CSRF_HEADER = "X-XSRF-TOKEN";
+
+    /**
+     * A CSRF token plus the SESSION cookie of the server session that holds
+     * it. The two only work together: the token is compared against the
+     * copy stored in that session, so neither is valid on its own.
+     */
+    protected record CsrfSession(String token, Cookie session) {}
+
+    /**
+     * GET /api/auth/csrf anonymously, exactly like the SPA on page load:
+     * the token comes from the JSON body (never a cookie) and a new
+     * server-side session is created to hold it.
+     */
+    protected CsrfSession csrfToken() throws Exception {
+        return csrfToken(null);
+    }
+
+    /**
+     * GET /api/auth/csrf inside an existing session (e.g. after login). The
+     * token is generated into that session; the cookie stays the same unless
+     * the server issued a new one.
+     */
+    protected CsrfSession csrfToken(Cookie session) throws Exception {
+        MockHttpServletRequestBuilder request = get("/api/auth/csrf");
+        if (session != null) {
+            request.cookie(session);
+        }
+        MvcResult result = mockMvc.perform(request)
             .andExpect(status().isOk())
             .andReturn();
-        Cookie token = result.getResponse().getCookie("XSRF-TOKEN");
-        assertNotNull(token, "CSRF bootstrap must emit the XSRF-TOKEN cookie");
-        return token;
+        String token = JsonPath.read(
+            result.getResponse().getContentAsString(), "$.token");
+        assertNotNull(token, "CSRF bootstrap must return the token in the body");
+        Cookie issued = result.getResponse().getCookie("SESSION");
+        Cookie owner = issued != null ? issued : session;
+        assertNotNull(owner, "the CSRF token must be held by a server session");
+        return new CsrfSession(token, owner);
+    }
+
+    /** Adds a fresh anonymous-session CSRF token (cookie + header) to {@code request}. */
+    protected MockHttpServletRequestBuilder withCsrf(
+            MockHttpServletRequestBuilder request) throws Exception {
+        CsrfSession csrf = csrfToken();
+        return request.cookie(csrf.session()).header(CSRF_HEADER, csrf.token());
+    }
+
+    /** Adds a CSRF token generated inside {@code session} to {@code request}. */
+    protected MockHttpServletRequestBuilder withCsrf(
+            MockHttpServletRequestBuilder request, Cookie session) throws Exception {
+        CsrfSession csrf = csrfToken(session);
+        return request.cookie(csrf.session()).header(CSRF_HEADER, csrf.token());
     }
 
     // ------------------------------------------------------------------
     // Login — raw attempts (assert the outcome yourself) and the session
     // ------------------------------------------------------------------
 
+    private MockHttpServletRequestBuilder loginRequest(String username, String password) {
+        return post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"username\":\"" + username + "\",\"password\":\""
+                + password + "\"}");
+    }
+
     /** POST login (with CSRF) without asserting the outcome. */
     protected ResultActions login(String username, String password)
             throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post("/api/auth/login")
-            .cookie(csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"username\":\"" + username + "\",\"password\":\""
-                + password + "\"}"));
+        return mockMvc.perform(withCsrf(loginRequest(username, password)));
     }
 
     /** POST login (with CSRF) from a specific source IP. */
     protected ResultActions login(String username, String password,
             String remoteAddr) throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post("/api/auth/login")
-            .cookie(csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
-            .remoteAddress(remoteAddr)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"username\":\"" + username + "\",\"password\":\""
-                + password + "\"}"));
+        return mockMvc.perform(withCsrf(loginRequest(username, password))
+            .remoteAddress(remoteAddr));
     }
 
     /**
@@ -140,15 +183,9 @@ abstract class ApiTestSupport {
      */
     protected ResultActions loginWithXff(String username, String password,
             String remoteAddr, String xff) throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post("/api/auth/login")
-            .cookie(csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
+        return mockMvc.perform(withCsrf(loginRequest(username, password))
             .header("X-Forwarded-For", xff)
-            .remoteAddress(remoteAddr)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"username\":\"" + username + "\",\"password\":\""
-                + password + "\"}"));
+            .remoteAddress(remoteAddr));
     }
 
     /** POST login (with CSRF) and return the issued SESSION cookie. */
@@ -168,10 +205,7 @@ abstract class ApiTestSupport {
     /** POST {@code json} to {@code url} with a fresh CSRF token. */
     protected ResultActions postWithCsrf(String url, String json)
             throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post(url)
-            .cookie(csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
+        return mockMvc.perform(withCsrf(post(url))
             .contentType(MediaType.APPLICATION_JSON)
             .content(json));
     }
@@ -183,10 +217,7 @@ abstract class ApiTestSupport {
      */
     protected ResultActions postWithCsrf(String url, String json,
             String remoteAddr) throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post(url)
-            .cookie(csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
+        return mockMvc.perform(withCsrf(post(url))
             .remoteAddress(remoteAddr)
             .contentType(MediaType.APPLICATION_JSON)
             .content(json));
@@ -195,10 +226,7 @@ abstract class ApiTestSupport {
     /** PATCH {@code json} to {@code url} as the holder of {@code session}. */
     protected ResultActions patchWithCsrf(
             String url, Cookie session, String json) throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(patch(url)
-            .cookie(session, csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
+        return mockMvc.perform(withCsrf(patch(url), session)
             .contentType(MediaType.APPLICATION_JSON)
             .content(json));
     }
@@ -206,10 +234,7 @@ abstract class ApiTestSupport {
     /** DELETE {@code url} as the holder of {@code session}. */
     protected ResultActions deleteWithCsrf(String url, Cookie session)
             throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(delete(url)
-            .cookie(session, csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue()));
+        return mockMvc.perform(withCsrf(delete(url), session));
     }
 
     // ------------------------------------------------------------------
@@ -218,24 +243,16 @@ abstract class ApiTestSupport {
 
     /** POST a reset request for {@code email} (with CSRF). */
     protected ResultActions requestReset(String email) throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post("/api/auth/password-reset/request")
-            .cookie(csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"email\":\"" + email + "\"}"));
+        return postWithCsrf("/api/auth/password-reset/request",
+            "{\"email\":\"" + email + "\"}");
     }
 
     /** POST a reset confirm for {@code token} (with CSRF). */
     protected ResultActions confirmReset(String token, String newPassword)
             throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post("/api/auth/password-reset/confirm")
-            .cookie(csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue())
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"token\":\"" + token + "\",\"newPassword\":\""
-                + newPassword + "\"}"));
+        return postWithCsrf("/api/auth/password-reset/confirm",
+            "{\"token\":\"" + token + "\",\"newPassword\":\""
+                + newPassword + "\"}");
     }
 
     /**

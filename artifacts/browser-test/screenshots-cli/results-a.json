@@ -1,0 +1,97 @@
+[
+  {
+    "id": "guard-anon",
+    "status": "PASS",
+    "note": "landed on http://localhost:3000/login"
+  },
+  {
+    "id": "S1-register",
+    "status": "PASS",
+    "note": "greeting shown, signed in as USER"
+  },
+  {
+    "id": "seed-carol_chrome",
+    "status": "PASS",
+    "note": "register carol_chrome -> 201"
+  },
+  {
+    "id": "seed-victim_user",
+    "status": "PASS",
+    "note": "register victim_user -> 201"
+  },
+  {
+    "id": "S5-anon-hello-401",
+    "status": "PASS",
+    "note": "GET /api/hello anon -> 401"
+  },
+  {
+    "id": "S4-cookie-replay",
+    "status": "PASS",
+    "note": "replayed SESSION -> 401"
+  },
+  {
+    "id": "S1-dup-username",
+    "status": "PASS",
+    "note": "Username 'carol_chrome' is already taken."
+  },
+  {
+    "id": "S1-dup-email",
+    "status": "PASS",
+    "note": "Email 'carol_chrome@example.com' is already registered."
+  },
+  {
+    "id": "S1-weak-pw",
+    "status": "PASS",
+    "note": "client blocked: Please lengthen this text to 12 characters or more (you are currently using 5 characters)."
+  },
+  {
+    "id": "CSRF-no-token",
+    "status": "PASS",
+    "note": "POST register w/o token -> 403"
+  },
+  {
+    "id": "guard-authed-login",
+    "status": "PASS",
+    "note": "authed /login -> http://localhost:3000/"
+  },
+  {
+    "id": "guard-user-admin",
+    "status": "PASS",
+    "note": "USER /admin -> http://localhost:3000/"
+  },
+  {
+    "id": "S5-persistence",
+    "status": "PASS",
+    "note": "reload keeps session"
+  },
+  {
+    "id": "S8-user-403",
+    "status": "PASS",
+    "note": "USER GET /api/admin/users -> 403"
+  },
+  {
+    "id": "S9-11-self-guard",
+    "status": "PASS",
+    "note": "3 self-row buttons disabled"
+  },
+  {
+    "id": "S9-disable-enable",
+    "status": "PASS",
+    "note": "row=true disabled-login-generic=true reenabled-login=true"
+  },
+  {
+    "id": "S10-role-change",
+    "status": "PASS",
+    "note": "->ADMIN true, back to USER true"
+  },
+  {
+    "id": "S11-delete",
+    "status": "PASS",
+    "note": "victim_user row removed after confirm"
+  },
+  {
+    "id": "S6-generic-reset",
+    "status": "PASS",
+    "note": "identical=true: \"HELLO WORLD AUTH Reset password Enter the email on your account and we'll send a reset link. If an account with that ema\""
+  }
+]

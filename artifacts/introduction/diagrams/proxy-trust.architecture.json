@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Why the proxy must be trusted",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "user", "type": "frontend", "label": "Real user", "sublabel": "HTTPS request", "pos": [40, 60], "size": [150, 64] },
+    { "id": "attacker", "type": "external", "label": "Attacker", "sublabel": "fake X-Forwarded-For", "pos": [40, 280], "size": [150, 64] },
+    { "id": "proxy", "type": "cloud", "label": "Trusted proxy", "sublabel": "drops client headers", "pos": [320, 170], "size": [160, 64], "tag": "sets real X-Forwarded-*" },
+    { "id": "api", "type": "backend", "label": "Spring Boot API", "sublabel": "forward-headers: framework", "pos": [610, 170], "size": [170, 64] },
+    { "id": "throttle", "type": "security", "label": "IP throttle", "sublabel": "keyed by real client IP", "pos": [900, 60], "size": [170, 64] },
+    { "id": "secure", "type": "security", "label": "HTTPS-only behaviour", "sublabel": "HSTS + Secure cookies", "pos": [900, 280], "size": [170, 64] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Only the proxy can reach the API", "wraps": ["proxy", "api"] }
+  ],
+  "connections": [
+    { "id": "user-proxy", "from": "user", "to": "proxy", "label": "request", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "attacker-proxy", "from": "attacker", "to": "proxy", "label": "spoofed header", "variant": "dashed", "fromSide": "right", "toSide": "left" },
+    { "id": "proxy-api", "from": "proxy", "to": "api", "label": "clean", "variant": "security" },
+    { "id": "api-throttle", "from": "api", "to": "throttle", "label": "getRemoteAddr()", "fromSide": "right", "toSide": "left" },
+    { "id": "api-secure", "from": "api", "to": "secure", "label": "isSecure()", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "What the proxy does", "items": ["Terminates HTTPS", "Removes any X-Forwarded-* sent by the client", "Writes the true client IP and scheme"] },
+    { "dot": "rose", "title": "If it does not", "items": ["An attacker can pick a new fake IP per request and never hit the throttle", "Or every user shares the proxy IP and gets throttled together"] }
+  ]
+}

@@ -1,0 +1,1174 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>Hello Auth — Security, panel by panel</title><link rel="stylesheet" href="reader.css"></head><body>
+<a class="skip" href="#chapters">Skip to the comic</a>
+<header class="masthead"><a href="#top" class="brand">HELLO AUTH<span> / FIELD NOTES</span></a><span>ISSUE 01 · SECURITY & CONFIGURATION</span><button id="print" type="button">Print / Save PDF</button></header>
+<div class="shell"><aside><p class="eyebrow">Inside this issue</p><nav aria-label="Chapters"><a href="#boundary"><span>01</span>Start with the big picture</a><a href="#filters"><span>02</span>Config order is not filter order</a><a href="#access"><span>03</span>Public does not mean unchecked</a><a href="#cookies"><span>04</span>One cookie, one token in memory</a><a href="#journey"><span>05</span>Follow one login</a><a href="#configuration"><span>06</span>Prod is a profile, not a guarantee</a><a href="#startup"><span>07</span>Missing settings fail in different ways</a><a href="#proxy"><span>08</span>The proxy must be trusted</a><a href="#headers"><span>09</span>Headers only protect their own response</a><a href="#reset"><span>10</span>&quot;Link sent&quot; does not mean an email was sent</a><a href="#reference"><span>11</span>Configuration & access</a><a href="#coverage"><span>12</span>Sources & coverage</a></nav><div class="side-note">Read the policy.<br>Follow the mechanism.<br><strong>Check the boundary.</strong></div></aside>
+<main id="top"><section class="hero"><div class="hero-copy"><p class="eyebrow">A conversation in ten panels</p><h1>Two files.<br>A bigger<br><em>security story.</em></h1><p>A senior and a junior developer walk through how Hello Auth's React frontend and Spring Boot backend keep logins, cookies and requests safe.</p><a class="start" href="#boundary">Start the conversation <span>↗</span></a></div><figure><img src="developers.png" alt="Senior developer in mustard explaining a security review to a junior developer in teal" width="1536" height="1024"><figcaption><span>THE SENIOR · connect the mechanisms</span><span>THE JUNIOR · question the assumptions</span></figcaption></figure></section>
+<div class="snapshot"><span>INSPECTED 2026-09-27</span><span>REV 01efc8ed1560</span><span>SOURCE REVIEW · NO LIVE AUDIT</span></div>
+<div class="scope"><strong>The boundary of this story</strong><p>A guided introduction, not a full audit. Reviewed against the current working tree, including uncommitted changes, based on the recorded HEAD revision. We start from SecurityConfig.java and application-prod.yml, then follow the code they drive. Official standards and guidance were checked online; no production system was exercised. The standards mappings below are assessments, not certifications.</p></div>
+<form class="search" role="search" onsubmit="return false"><label for="search">Find a concept</label><input id="search" type="search" placeholder="Try cookies, proxy, APP_ADMIN or 401…" aria-describedby="search-status"><button id="clear" type="button">Clear</button></form><p id="search-status" class="search-status" role="status" aria-live="polite">10 panels · source excerpts expand below each panel</p><p id="no-results" hidden>No matching panel. Try “CSRF”, “profile” or “proxy”, or clear the search.</p>
+<div id="chapters"><article class="panel" id="boundary"><div class="panel-heading"><span class="number">01</span><div><p class="eyebrow">Orientation</p><h2>Start with the big picture</h2></div><a class="permalink" href="#boundary" aria-label="Link to Start with the big picture">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Can two config files tell us if the app is secure?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>They tell us the rules, not the whole story. The React app runs in the browser and sends cookies to the Spring Boot API. Spring Security filters every request first. Then controllers and services do the real work: login, throttling, password reset and admin actions. Sessions live in the database.</p></div></div><figure class="diagram"><a href="diagrams/trust-boundaries.html" aria-label="Open interactive diagram: How a request travels from the browser to the database"><img src="img/trust-boundaries.png" alt="How a request travels from the browser to the database" width="3072" height="1528" loading="lazy"></a><figcaption><span>How a request travels from the browser to the database</span><a href="diagrams/trust-boundaries.html">Open interactive diagram ↗</a></figcaption></figure><div class="notes"><p><strong>In the code:</strong> SecurityConfig sets up the filters. AuthController saves the login. application-prod.yml overrides the defaults when the prod profile is on.</p><p><strong>Not covered by these files:</strong> the proxy, database permissions and the headers sent by whatever hosts the frontend. Those need their own checks.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Treat the config as a map, not a certificate. A comment in the code explains intent; it does not prove the deployed system matches it.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>SecurityConfig.java · L80–96</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    SecurityFilterChain securityFilterChain(HttpSecurity http,
+            CsrfTokenRepository csrfTokenRepository,
+            SecurityContextRepository securityContextRepository) throws Exception {
+        http
+            .cors(Customizer.withDefaults())
+            // Synchronizer Token pattern (OWASP CSRF cheat sheet): the token
+            // is stored in the session and compared against the header. Not
+            // csrf.spa() — that installs the cookie (naive double-submit)
+            // repository. The repository bean is shared with
+            // CsrfAuthenticationStrategy and CsrfLogoutHandler.
+            .csrf(csrf -&gt; csrf
+                .csrfTokenRepository(csrfTokenRepository)
+                .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler()))
+            .securityContext(context -&gt;
+                context.securityContextRepository(securityContextRepository))
+            // Defense-in-depth headers (security-review F-01). This is a
+            // JSON-only API — no HTML, script, or frame rendering — so the</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>application-prod.yml · L34–79</summary><p>configuration · backend/src/main/resources/application-prod.yml · 01efc8ed1560</p><pre><code>spring:
+  # No embedded fallback. Use jdbc:postgresql://... or jdbc:mysql://... .
+  # The JDBC driver and Hibernate dialect are inferred from the URL.
+  datasource:
+    embedded-database-connection: none
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  session:
+    jdbc:
+      initialize-schema: never
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: strict
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  password-reset:
+    log-reset-link: false
+    # No localhost fallback — the day a real EmailService replaces the stub,
+    # an unset value must not silently emit reset links pointing at
+    # localhost:3000.
+    link-base-url: ${APP_RESET_LINK_BASE_URL:}
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}</code></pre><a href="../../backend/src/main/resources/application-prod.yml">Open full source file</a></details><details class="source"><summary>AuthController.java · L89–122</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/AuthController.java · 01efc8ed1560</p><pre><code>    @PostMapping(&quot;/login&quot;)
+    public ResponseEntity&lt;?&gt; login(@Valid @RequestBody LoginRequest request,
+            HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        Authentication authentication;
+        try {
+            // LoginService runs the ordered two-layer defense: IP-throttle →
+            // account-lock → credentials (ticket 11). A throttled source gets
+            // LoginThrottledException — not an AuthenticationException — so it
+            // falls through to the 429 handler in ApiExceptionHandler.
+            authentication = loginService.login(
+                request.username(), request.password(), servletRequest.getRemoteAddr());
+        } catch (AuthenticationException ex) {
+            // One generic message for every failure mode — bad credentials,
+            // locked, disabled — so account existence can't be inferred
+            // (enumeration resistance is a security AC, not a nicety).
+            ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, &quot;Invalid username or password.&quot;);
+            problem.setTitle(&quot;Login failed&quot;);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+        }
+
+        sessionAuthenticationStrategy.onAuthentication(
+            authentication, servletRequest, servletResponse);
+
+        SecurityContext context = securityContextHolderStrategy.createEmptyContext();
+        context.setAuthentication(authentication);
+        securityContextHolderStrategy.setContext(context);
+        securityContextRepository.saveContext(context, servletRequest, servletResponse);
+
+        return ResponseEntity.ok(
+            new PrincipalResponse(authentication.getName(), roleOf(authentication)));
+    }
+
+    /**</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/AuthController.java">Open full source file</a></details><details class="source"><summary>api.ts · L11–38</summary><p>implementation · frontend/src/lib/api.ts · 01efc8ed1560</p><pre><code>export const API_BASE: string =
+  import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
+
+/** In-memory CSRF token for the current server session; null until fetched. */
+let csrfToken: string | null = null
+
+/** Problem title the API uses for a missing/invalid CSRF token (403). */
+const CSRF_REJECTED_TITLE = 'Invalid CSRF token'
+
+function isMutating(method: string): boolean {
+  return method !== 'GET' &amp;&amp; method !== 'HEAD' &amp;&amp; method !== 'OPTIONS'
+}
+
+/** True when a 403 is the API's CSRF rejection, not an authorization denial. */
+async function isCsrfRejection(response: Response): Promise&lt;boolean&gt; {
+  if (response.status !== 403) {
+    return false
+  }
+  try {
+    const body = (await response.clone().json()) as { title?: string }
+    return body.title === CSRF_REJECTED_TITLE
+  } catch {
+    return false
+  }
+}
+
+function send(path: string, init: RequestInit, method: string): Promise&lt;Response&gt; {
+  const headers = new Headers(init.headers)</code></pre><a href="../../frontend/src/lib/api.ts">Open full source file</a></details></div></article><article class="panel" id="filters"><div class="panel-heading"><span class="number">02</span><div><p class="eyebrow">Security</p><h2>Config order is not filter order</h2></div><a class="permalink" href="#filters" aria-label="Link to Config order is not filter order">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Do the HttpSecurity calls run top to bottom, like a pipeline?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>No. Each call configures a block, and Spring Security decides where each filter goes. Moving cors() above headers() changes nothing at runtime. What matters: a bad CSRF token is rejected before your controller ever runs.</p></div></div><div class="flow" aria-label="Conceptual flow"><div><span>1</span>Pick the matching filter chain</div><div><span>2</span>Run security filters</div><div><span>3</span>Check access rules</div><div><span>4</span>Controller (only if allowed)</div></div><p class="caption">Simplified view, not a runtime trace.</p><div class="notes"><p><strong>In the code:</strong> the main chain turns on CORS, SPA-style CSRF, security headers, path rules and logout. A separate dev-only chain for the H2 console runs first.</p><p><strong>Good to know:</strong> only the first chain that matches a request handles it.</p><p><strong>In the code:</strong> the CSRF block sets a session-backed token repository and the XOR request handler. The same repository bean is shared with login (rotate) and logout (clear).</p></div><div class="preserve"><strong>Keep this intact</strong><p>Do not switch to csrf.spa(): it swaps in the cookie-based repository. When you add filters, check the real filter list (for example with Spring Security debug logging) instead of guessing from code order.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>SecurityConfig.java · L80–96</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    SecurityFilterChain securityFilterChain(HttpSecurity http,
+            CsrfTokenRepository csrfTokenRepository,
+            SecurityContextRepository securityContextRepository) throws Exception {
+        http
+            .cors(Customizer.withDefaults())
+            // Synchronizer Token pattern (OWASP CSRF cheat sheet): the token
+            // is stored in the session and compared against the header. Not
+            // csrf.spa() — that installs the cookie (naive double-submit)
+            // repository. The repository bean is shared with
+            // CsrfAuthenticationStrategy and CsrfLogoutHandler.
+            .csrf(csrf -&gt; csrf
+                .csrfTokenRepository(csrfTokenRepository)
+                .csrfTokenRequestHandler(new XorCsrfTokenRequestAttributeHandler()))
+            .securityContext(context -&gt;
+                context.securityContextRepository(securityContextRepository))
+            // Defense-in-depth headers (security-review F-01). This is a
+            // JSON-only API — no HTML, script, or frame rendering — so the</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>SecurityConfig.java · L247–253</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    CsrfTokenRepository csrfTokenRepository() {
+        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
+        repository.setHeaderName(CSRF_HEADER_NAME);
+        return repository;
+    }
+
+    /** Header the SPA echoes the token in; also on the CORS allow-list. */</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>SecurityConfig.java · L155–165</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    @Profile(&quot;dev&quot;)
+    @Order(1)
+    SecurityFilterChain h2ConsoleSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher(PathRequest.toH2Console())
+            .authorizeHttpRequests(auth -&gt; auth.anyRequest().permitAll())
+            .csrf(csrf -&gt; csrf.ignoringRequestMatchers(PathRequest.toH2Console()))
+            .headers(headers -&gt; headers.frameOptions(frame -&gt; frame.sameOrigin()));
+        return http.build();
+    }
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details></div></article><article class="panel" id="access"><div class="panel-heading"><span class="number">03</span><div><p class="eyebrow">Security</p><h2>Public does not mean unchecked</h2></div><a class="permalink" href="#access" aria-label="Link to Public does not mean unchecked">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>If an endpoint is permitAll, what can still reject me?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>CSRF, input validation and service rules still apply. The public list is short: register, login, csrf, me, and everything under /api/auth/password-reset/**. /api/admin/** needs the ADMIN role. /actuator/health is public. Everything else needs a login.</p></div></div><div class="notes"><p><strong>In the code:</strong> /api/auth/me is public at the filter level, but the controller itself returns 401 if you are not signed in.</p><p><strong>Watch out:</strong> /api/auth/password-reset/** is a wildcard. Any new endpoint added under it is public automatically.</p><p><strong>In the code:</strong> AdminService adds its own rules. Admins cannot change their own account, and disabling, deleting or demoting a user ends that user's sessions.</p><p><strong>In the code:</strong> ERROR dispatches are explicitly permitted. The fallback is authenticated(), not denyAll(): new routes allow any signed-in user unless given a narrower rule.</p></div><div class="preserve"><strong>Keep this intact</strong><p>When adding a route, check both the filter rules and the service rules. Never widen the public list to /api/auth/**.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>SecurityConfig.java · L110–127</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>            .authorizeHttpRequests(auth -&gt; auth
+                // Security 7 authorizes every dispatcher type, including
+                // ERROR — permit it so anonymous requests that hit the
+                // container error dispatch (e.g. a 404 on a permitted path)
+                // surface the real status instead of a blanket 401.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                .requestMatchers(&quot;/api/auth/register&quot;, &quot;/api/auth/login&quot;,
+                    &quot;/api/auth/csrf&quot;, &quot;/api/auth/me&quot;,
+                    &quot;/api/auth/password-reset/**&quot;).permitAll()
+                .requestMatchers(&quot;/api/admin/**&quot;).hasRole(&quot;ADMIN&quot;)
+                // The operator health probe must answer without credentials
+                // (ticket-08 AC); &quot;everything else authenticated&quot; would make
+                // the uptime check useless.
+                .requestMatchers(&quot;/actuator/health&quot;).permitAll()
+                .anyRequest().authenticated())
+            .exceptionHandling(handling -&gt; handling
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                .accessDeniedHandler(accessDeniedHandler()))</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>AuthController.java · L138–147</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/AuthController.java · 01efc8ed1560</p><pre><code>    @GetMapping(&quot;/me&quot;)
+    public ResponseEntity&lt;PrincipalResponse&gt; me(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(
+            new PrincipalResponse(authentication.getName(), roleOf(authentication)));
+    }
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/AuthController.java">Open full source file</a></details><details class="source"><summary>AdminService.java · L62–77</summary><p>implementation · backend/src/main/java/com/example/helloauth/admin/AdminService.java · 01efc8ed1560</p><pre><code>    public AdminUserResponse setEnabled(String actorUsername, Long id, boolean enabled) {
+        User target = requireOtherAccount(actorUsername, id, &quot;change the status of&quot;);
+        boolean changed = target.isEnabled() != enabled;
+        target.setEnabled(enabled);
+        users.save(target);
+        if (!enabled) {
+            sessionInvalidation.invalidateAllFor(target.getUsername());
+        }
+        // Audit only a real change — a no-op PATCH asserting &quot;changed&quot; would
+        // be a false event (and it still lands afterCommit via AuditLogger).
+        if (changed) {
+            audit.adminStatusChanged(actorUsername, target.getUsername(), enabled);
+        }
+        return AdminUserResponse.from(target);
+    }
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/admin/AdminService.java">Open full source file</a></details><details class="source"><summary>PasswordResetController.java · L19–36</summary><p>implementation · backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java · 01efc8ed1560</p><pre><code>@RequestMapping(&quot;/api/auth/password-reset&quot;)
+public class PasswordResetController {
+
+    /**
+     * The ratified enumeration-resistant wording (ticket 07) — returned
+     * verbatim whether or not the email matches an account. The wording is a
+     * security control: keep it in one place and never vary it.
+     */
+    static final String REQUEST_RESPONSE_MESSAGE =
+        &quot;If an account with that email exists, we've sent a reset link.&quot;;
+
+    private final PasswordResetService passwordResetService;
+    private final IpThrottleService ipThrottle;
+
+    public PasswordResetController(PasswordResetService passwordResetService,
+            IpThrottleService ipThrottle) {
+        this.passwordResetService = passwordResetService;
+        this.ipThrottle = ipThrottle;</code></pre><a href="../../backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java">Open full source file</a></details><details class="source"><summary>ApiExceptionHandler.java · L86–91</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java · 01efc8ed1560</p><pre><code>    @ExceptionHandler(LoginThrottledException.class)
+    ProblemDetail loginThrottled(LoginThrottledException ex) {
+        return ProblemDetail.forStatusAndDetail(
+            HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+}</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java">Open full source file</a></details></div></article><article class="panel" id="cookies"><div class="panel-heading"><span class="number">04</span><div><p class="eyebrow">Security</p><h2>One cookie, one token in memory</h2></div><a class="permalink" href="#cookies" aria-label="Link to One cookie, one token in memory">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Where does the CSRF token live, and why not in a cookie?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>The application session cookie is SESSION, an opaque identifier that JavaScript cannot read. It identifies anonymous sessions as well as signed-in ones. The CSRF secret lives in the server session. GET /api/auth/csrf returns an XOR-masked representation; the SPA keeps it in memory and echoes it as X-XSRF-TOKEN on changes. Spring unmasks and validates it against the stored secret. This implements OWASP’s Synchronizer Token pattern. Untrusted origins cannot read the token through the browser’s origin controls; XSS or an overly permissive CORS policy can defeat that boundary.</p></div></div><figure class="diagram"><a href="diagrams/csrf-cookies.html" aria-label="Open interactive diagram: Synchronizer token: fetched from the session, held in memory, sent in a header"><img src="img/csrf-cookies.png" alt="Synchronizer token: fetched from the session, held in memory, sent in a header" width="2584" height="1892" loading="lazy"></a><figcaption><span>Synchronizer token: fetched from the session, held in memory, sent in a header</span><a href="diagrams/csrf-cookies.html">Open interactive diagram ↗</a></figcaption></figure><figure class="diagram"><a href="diagrams/session-lifecycle.html" aria-label="Open interactive diagram: What happens to the session and its CSRF token over time"><img src="img/session-lifecycle.png" alt="What happens to the session and its CSRF token over time" width="3072" height="1536" loading="lazy"></a><figcaption><span>What happens to the session and its CSRF token over time</span><a href="diagrams/session-lifecycle.html">Open interactive diagram ↗</a></figcaption></figure><div class="notes"><p><strong>In the code:</strong> in prod, SESSION is Secure, HttpOnly and SameSite=Strict. The default (non-prod) setting is Secure=false and SameSite=Lax. Sessions expire after 30 minutes without a request.</p><p><strong>Why not a cookie:</strong> with a token cookie (naive double-submit), an attacker who can write cookies on your domain, for example from a sibling subdomain, could plant a known value. A token kept only on the server cannot be planted. HttpOnly still does not stop injected script from sending requests, so preventing XSS still matters.</p><p><strong>In the code:</strong> an expired session loses its token. A mutation with a stale token gets 403 &quot;Invalid CSRF token&quot;; the SPA fetches a token and retries once. Authentication is not restored: protected routes can then return 401. GET /api/auth/csrf creates an anonymous session when needed.</p><p><strong>Deployment:</strong> SameSite=Strict blocks cross-site cookies even when CORS allows the origin and fetch includes credentials. Separate HTTPS subdomains can be cross-origin but same-site; a frontend on a different site will not work with this cookie policy.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Keep the token out of cookies, localStorage and URLs. Test HTTPS, SameSite and credentialed CORS together, because the SESSION cookie must still reach the API.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>SecurityConfig.java · L247–253</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    CsrfTokenRepository csrfTokenRepository() {
+        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
+        repository.setHeaderName(CSRF_HEADER_NAME);
+        return repository;
+    }
+
+    /** Header the SPA echoes the token in; also on the CORS allow-list. */</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>SecurityConfig.java · L288–318</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    DefaultCookieSerializerCustomizer sessionCookieCustomizer(
+            ServerProperties serverProperties) {
+        org.springframework.boot.web.server.Cookie cookie =
+            serverProperties.getServlet().getSession().getCookie();
+        return serializer -&gt; {
+            if (cookie.getName() != null) {
+                serializer.setCookieName(cookie.getName());
+            }
+            if (cookie.getPath() != null) {
+                serializer.setCookiePath(cookie.getPath());
+            }
+            if (cookie.getDomain() != null) {
+                serializer.setDomainName(cookie.getDomain());
+            }
+            if (cookie.getMaxAge() != null) {
+                serializer.setCookieMaxAge((int) cookie.getMaxAge().getSeconds());
+            }
+            if (cookie.getHttpOnly() != null) {
+                serializer.setUseHttpOnlyCookie(cookie.getHttpOnly());
+            }
+            if (cookie.getSecure() != null) {
+                serializer.setUseSecureCookie(cookie.getSecure());
+            }
+            if (cookie.getSameSite() != null) {
+                serializer.setSameSite(cookie.getSameSite().attributeValue());
+            }
+        };
+    }
+
+    /**
+     * Injected wherever lockout/expiry time math happens — tests control time</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>application.yml · L1–96</summary><p>configuration · backend/src/main/resources/application.yml · 01efc8ed1560</p><pre><code>spring:
+  application:
+    name: hello-auth
+  datasource:
+    url: jdbc:h2:mem:helloauth
+    username: sa
+    password: &quot;&quot;
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  sql:
+    init:
+      mode: never
+  session:
+    # Spring Session JDBC over H2 — the ratified store (ticket 02). Sessions
+    # persist in SPRING_SESSION, enabling true invalidation and per-user
+    # session enumeration (findByPrincipalName) for later tickets.
+    store-type: jdbc
+    # Pinned idle timeout (security-review F-08): 30m is also the framework
+    # default — set explicitly so the value survives default changes and the
+    # session-lifetime contract is visible in config, not implied.
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        # Set explicitly — a Boot 4.1 regression can otherwise leave SameSite
+        # unset instead of Lax (spring-boot#48830). secure=true only in the
+        # prod profile (hardening ticket).
+        same-site: lax
+        secure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# Externalized security tunables (ticket 06 decision).
+app:
+  password-min-length: 12
+  # Two-layer brute-force defense (ticket 11). ip-throttle.max-failures stays
+  # below lockout.max-failures so a single source IP can never record enough
+  # failures to lock an account — the literal anti-DoS guarantee.
+  lockout:
+    max-failures: 5
+    window: 10m
+    cooldown: 15m
+  ip-throttle:
+    max-failures: 4
+    # anon-max-requests (security-review F-04): per-IP budget for the
+    # unauthenticated mutations (register, password-reset/request) — a
+    # second, independent bucket counting every hit, sharing the window
+    # and max-entries below.
+    anon-max-requests: 20
+    window: 10m
+    max-entries: 10000
+  # Single-use reset tokens (ticket 12): 32-byte SecureRandom, only the
+  # SHA-256 hash is stored, lifetime inside the spec's 15–30 min bound. The
+  # stubbed EmailService logs link-base-url?token=&lt;token&gt; — no SMTP exists.
+  # cleanup-interval (ticket 14): cadence of the scheduled purge that deletes
+  # consumed/expired token rows. log-reset-link (security-review F-02): the
+  # link line carries the plaintext token — a live bearer credential — so
+  # the prod profile sets it false and the stub logs a token-free
+  # suppressed-delivery line instead.
+  password-reset:
+    token-ttl: 15m
+    link-base-url: http://localhost:3000/reset-password
+    cleanup-interval: 1h
+    log-reset-link: true
+  # Initial-admin bootstrap (ticket 13). Credentials come from the
+  # APP_ADMIN_* env vars; blank means &quot;not configured&quot; and nothing is
+  # seeded. The dev profile ships documented defaults; the prod profile
+  # (ticket 14) requires the env vars outright so a missing config fails
+  # fast rather than leaving no way into /api/admin/**.
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}
+  # CORS allow-list for the credentialed SPA origin(s) (ticket 14). The
+  # dev/local default is the Vite origin; the prod profile binds
+  # APP_CORS_ALLOWED_ORIGINS (comma-separated) with a blank default —
+  # an unset list permits no origins (fail-closed).
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+</code></pre><a href="../../backend/src/main/resources/application.yml">Open full source file</a></details><details class="source"><summary>api.ts · L11–38</summary><p>implementation · frontend/src/lib/api.ts · 01efc8ed1560</p><pre><code>export const API_BASE: string =
+  import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
+
+/** In-memory CSRF token for the current server session; null until fetched. */
+let csrfToken: string | null = null
+
+/** Problem title the API uses for a missing/invalid CSRF token (403). */
+const CSRF_REJECTED_TITLE = 'Invalid CSRF token'
+
+function isMutating(method: string): boolean {
+  return method !== 'GET' &amp;&amp; method !== 'HEAD' &amp;&amp; method !== 'OPTIONS'
+}
+
+/** True when a 403 is the API's CSRF rejection, not an authorization denial. */
+async function isCsrfRejection(response: Response): Promise&lt;boolean&gt; {
+  if (response.status !== 403) {
+    return false
+  }
+  try {
+    const body = (await response.clone().json()) as { title?: string }
+    return body.title === CSRF_REJECTED_TITLE
+  } catch {
+    return false
+  }
+}
+
+function send(path: string, init: RequestInit, method: string): Promise&lt;Response&gt; {
+  const headers = new Headers(init.headers)</code></pre><a href="../../frontend/src/lib/api.ts">Open full source file</a></details></div></article><article class="panel" id="journey"><div class="panel-heading"><span class="number">05</span><div><p class="eyebrow">Security</p><h2>Follow one login</h2></div><a class="permalink" href="#journey" aria-label="Link to Follow one login">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Who actually creates the signed-in session?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>AuthController hands the username and password to LoginService. It runs three checks in order: IP throttle, account lock, then password (BCrypt). If all pass, the controller gives the session a new ID, saves the signed-in user to the session store, and returns 200. The SPA then fetches a fresh CSRF token.</p></div></div><figure class="diagram"><a href="diagrams/login.html" aria-label="Open interactive diagram: One successful login, step by step"><img src="img/login.png" alt="One successful login, step by step" width="2504" height="1890" loading="lazy"></a><figcaption><span>One successful login, step by step</span><a href="diagrams/login.html">Open interactive diagram ↗</a></figcaption></figure><figure class="diagram"><a href="diagrams/rate-limit.html" aria-label="Open interactive diagram: What stops password guessing"><img src="img/rate-limit.png" alt="What stops password guessing" width="3072" height="1536" loading="lazy"></a><figcaption><span>What stops password guessing</span><a href="diagrams/rate-limit.html">Open interactive diagram ↗</a></figcaption></figure><div class="notes"><p><strong>Why a new session ID:</strong> it stops session fixation, where an attacker plants a session ID before you log in.</p><p><strong>Failure responses:</strong> throttled login returns 429. Wrong password, unknown user and locked account all return the same 401. A missing or wrong CSRF token returns 403. A signed-in user without ADMIN is denied on admin routes.</p><p><strong>Logout:</strong> POST /api/auth/logout deletes the session on the server. Note that the SPA clears its own state even if that call fails, so the server session can survive until it expires.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Keep the session-ID change before saving the login. Hiding the UI is not logging out; only the server call ends the session.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>AuthController.java · L89–122</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/AuthController.java · 01efc8ed1560</p><pre><code>    @PostMapping(&quot;/login&quot;)
+    public ResponseEntity&lt;?&gt; login(@Valid @RequestBody LoginRequest request,
+            HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        Authentication authentication;
+        try {
+            // LoginService runs the ordered two-layer defense: IP-throttle →
+            // account-lock → credentials (ticket 11). A throttled source gets
+            // LoginThrottledException — not an AuthenticationException — so it
+            // falls through to the 429 handler in ApiExceptionHandler.
+            authentication = loginService.login(
+                request.username(), request.password(), servletRequest.getRemoteAddr());
+        } catch (AuthenticationException ex) {
+            // One generic message for every failure mode — bad credentials,
+            // locked, disabled — so account existence can't be inferred
+            // (enumeration resistance is a security AC, not a nicety).
+            ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, &quot;Invalid username or password.&quot;);
+            problem.setTitle(&quot;Login failed&quot;);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+        }
+
+        sessionAuthenticationStrategy.onAuthentication(
+            authentication, servletRequest, servletResponse);
+
+        SecurityContext context = securityContextHolderStrategy.createEmptyContext();
+        context.setAuthentication(authentication);
+        securityContextHolderStrategy.setContext(context);
+        securityContextRepository.saveContext(context, servletRequest, servletResponse);
+
+        return ResponseEntity.ok(
+            new PrincipalResponse(authentication.getName(), roleOf(authentication)));
+    }
+
+    /**</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/AuthController.java">Open full source file</a></details><details class="source"><summary>LoginService.java · L80–116</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/LoginService.java · 01efc8ed1560</p><pre><code>    public Authentication login(String username, String rawPassword, String remoteAddr) {
+        // (1) IP throttle first — before even the user lookup.
+        if (remoteAddr != null &amp;&amp; ipThrottle.isThrottled(remoteAddr)) {
+            // No authentication event can fire for a rejection before
+            // authenticate() runs — the audit emission is direct (ticket 14).
+            audit.loginThrottled(username, remoteAddr);
+            throw new LoginThrottledException();
+        }
+
+        // (2) Account lock — before credentials, so a locked attempt can't
+        //     re-arm locked_until or count at either layer.
+        User user = users.findByUsername(username).orElse(null);
+        Instant now = clock.instant();
+        if (isLocked(user, now)) {
+            audit.loginFailed(username, AuditLogger.Reasons.LOCKED);
+            throw new LockedException(&quot;Account is locked&quot;);
+        }
+
+        // (3) Credential verification.
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                UsernamePasswordAuthenticationToken.unauthenticated(
+                    username, rawPassword));
+            resetFailureState(user);
+            return authentication;
+        } catch (BadCredentialsException | UsernameNotFoundException ex) {
+            // Unknown usernames record only at the IP layer — no phantom
+            // counters, and the response stays identical either way.
+            if (user != null) {
+                recordFailure(user, now);
+            }
+            if (remoteAddr != null) {
+                ipThrottle.recordFailure(remoteAddr);
+            }
+            throw ex;
+        }
+    }</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/LoginService.java">Open full source file</a></details><details class="source"><summary>SecurityConfig.java · L223–228</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    SessionAuthenticationStrategy sessionAuthenticationStrategy(
+            CsrfTokenRepository csrfTokenRepository) {
+        return new CompositeSessionAuthenticationStrategy(List.of(
+            new CsrfAuthenticationStrategy(csrfTokenRepository),
+            new ChangeSessionIdAuthenticationStrategy()));
+    }</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>SecurityConfig.java · L201–209</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    AuthenticationManager authenticationManager(UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder, AuthenticationEventPublisher eventPublisher) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        ProviderManager providerManager = new ProviderManager(provider);
+        providerManager.setAuthenticationEventPublisher(eventPublisher);
+        return providerManager;
+    }
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>SecurityConfig.java · L133–144</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>            .logout(logout -&gt; logout
+                .logoutUrl(&quot;/api/auth/logout&quot;)
+                // Clears the CSRF token (the SPA re-bootstraps after logout).
+                // Added explicitly even though the configurer may wire one
+                // itself — a duplicate clear is idempotent.
+                .addLogoutHandler(new CsrfLogoutHandler(csrfTokenRepository))
+                // Belt-and-suspenders: invalidation already expires the Spring
+                // Session cookie, this also sends the clearing Set-Cookie.
+                .deleteCookies(&quot;SESSION&quot;)
+                .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler()));
+        return http.build();
+    }</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>auth-context.tsx · L80–91</summary><p>implementation · frontend/src/auth/auth-context.tsx · 01efc8ed1560</p><pre><code>  const signOut = useCallback(async () =&gt; {
+    try {
+      // POST /api/auth/logout (with CSRF) kills the server-side session row
+      // and re-bootstraps the CSRF token the server cleared.
+      await apiLogout()
+    } finally {
+      // Drop local state even if the call failed — the route guards then
+      // land the user on /login. A failed call leaves the server session
+      // alive, but it still expires on its own.
+      setUser(null)
+    }
+  }, [])</code></pre><a href="../../frontend/src/auth/auth-context.tsx">Open full source file</a></details><details class="source"><summary>HelloController.java · L16–20</summary><p>implementation · backend/src/main/java/com/example/helloauth/HelloController.java · 01efc8ed1560</p><pre><code>    @GetMapping(&quot;/api/hello&quot;)
+    public Map&lt;String, String&gt; hello(Authentication authentication) {
+        return Map.of(&quot;message&quot;, &quot;Hello, &quot; + authentication.getName());
+    }
+}</code></pre><a href="../../backend/src/main/java/com/example/helloauth/HelloController.java">Open full source file</a></details><details class="source"><summary>ApiExceptionHandler.java · L86–91</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java · 01efc8ed1560</p><pre><code>    @ExceptionHandler(LoginThrottledException.class)
+    ProblemDetail loginThrottled(LoginThrottledException ex) {
+        return ProblemDetail.forStatusAndDetail(
+            HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+}</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/ApiExceptionHandler.java">Open full source file</a></details></div></article><article class="panel" id="configuration"><div class="panel-heading"><span class="number">06</span><div><p class="eyebrow">Configuration</p><h2>Prod is a profile, not a guarantee</h2></div><a class="permalink" href="#configuration" aria-label="Link to Prod is a profile, not a guarantee">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Which settings win when the app starts?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>application.yml is the base. When the prod profile is active, application-prod.yml overrides it. Environment variables and command-line arguments override both. The frontend is different: VITE_API_BASE is baked in when you build the SPA, so changing it later on the server does nothing.</p></div></div><div class="flow" aria-label="Conceptual flow"><div><span>1</span>application.yml</div><div><span>2</span>application-prod.yml</div><div><span>3</span>Env vars / CLI args</div><div><span>4</span>Bind, validate, start</div></div><p class="caption">Simplified view, not a runtime trace.</p><div class="notes"><p><strong>In the code:</strong> prod turns off the H2 console and embedded database, lets Liquibase own the schema, and has Hibernate only validate it.</p><p><strong>Watch out:</strong> the dev-only H2 chain is switched on by the dev profile, not by 'not prod'. If someone activates dev and prod together, the dev chain is still there. Make the deployment pin the profile list.</p><p><strong>Not known from these files:</strong> the real deployment overrides, the database engine in use, TLS setup and frontend hosting.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Review the effective configuration, including which profiles are active. Keep credentials out of source code, screenshots and logs.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>application.yml · L1–96</summary><p>configuration · backend/src/main/resources/application.yml · 01efc8ed1560</p><pre><code>spring:
+  application:
+    name: hello-auth
+  datasource:
+    url: jdbc:h2:mem:helloauth
+    username: sa
+    password: &quot;&quot;
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  sql:
+    init:
+      mode: never
+  session:
+    # Spring Session JDBC over H2 — the ratified store (ticket 02). Sessions
+    # persist in SPRING_SESSION, enabling true invalidation and per-user
+    # session enumeration (findByPrincipalName) for later tickets.
+    store-type: jdbc
+    # Pinned idle timeout (security-review F-08): 30m is also the framework
+    # default — set explicitly so the value survives default changes and the
+    # session-lifetime contract is visible in config, not implied.
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        # Set explicitly — a Boot 4.1 regression can otherwise leave SameSite
+        # unset instead of Lax (spring-boot#48830). secure=true only in the
+        # prod profile (hardening ticket).
+        same-site: lax
+        secure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# Externalized security tunables (ticket 06 decision).
+app:
+  password-min-length: 12
+  # Two-layer brute-force defense (ticket 11). ip-throttle.max-failures stays
+  # below lockout.max-failures so a single source IP can never record enough
+  # failures to lock an account — the literal anti-DoS guarantee.
+  lockout:
+    max-failures: 5
+    window: 10m
+    cooldown: 15m
+  ip-throttle:
+    max-failures: 4
+    # anon-max-requests (security-review F-04): per-IP budget for the
+    # unauthenticated mutations (register, password-reset/request) — a
+    # second, independent bucket counting every hit, sharing the window
+    # and max-entries below.
+    anon-max-requests: 20
+    window: 10m
+    max-entries: 10000
+  # Single-use reset tokens (ticket 12): 32-byte SecureRandom, only the
+  # SHA-256 hash is stored, lifetime inside the spec's 15–30 min bound. The
+  # stubbed EmailService logs link-base-url?token=&lt;token&gt; — no SMTP exists.
+  # cleanup-interval (ticket 14): cadence of the scheduled purge that deletes
+  # consumed/expired token rows. log-reset-link (security-review F-02): the
+  # link line carries the plaintext token — a live bearer credential — so
+  # the prod profile sets it false and the stub logs a token-free
+  # suppressed-delivery line instead.
+  password-reset:
+    token-ttl: 15m
+    link-base-url: http://localhost:3000/reset-password
+    cleanup-interval: 1h
+    log-reset-link: true
+  # Initial-admin bootstrap (ticket 13). Credentials come from the
+  # APP_ADMIN_* env vars; blank means &quot;not configured&quot; and nothing is
+  # seeded. The dev profile ships documented defaults; the prod profile
+  # (ticket 14) requires the env vars outright so a missing config fails
+  # fast rather than leaving no way into /api/admin/**.
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}
+  # CORS allow-list for the credentialed SPA origin(s) (ticket 14). The
+  # dev/local default is the Vite origin; the prod profile binds
+  # APP_CORS_ALLOWED_ORIGINS (comma-separated) with a blank default —
+  # an unset list permits no origins (fail-closed).
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+</code></pre><a href="../../backend/src/main/resources/application.yml">Open full source file</a></details><details class="source"><summary>application-prod.yml · L34–79</summary><p>configuration · backend/src/main/resources/application-prod.yml · 01efc8ed1560</p><pre><code>spring:
+  # No embedded fallback. Use jdbc:postgresql://... or jdbc:mysql://... .
+  # The JDBC driver and Hibernate dialect are inferred from the URL.
+  datasource:
+    embedded-database-connection: none
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  session:
+    jdbc:
+      initialize-schema: never
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: strict
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  password-reset:
+    log-reset-link: false
+    # No localhost fallback — the day a real EmailService replaces the stub,
+    # an unset value must not silently emit reset links pointing at
+    # localhost:3000.
+    link-base-url: ${APP_RESET_LINK_BASE_URL:}
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}</code></pre><a href="../../backend/src/main/resources/application-prod.yml">Open full source file</a></details><details class="source"><summary>AppProperties.java · L12–24</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/AppProperties.java · 01efc8ed1560</p><pre><code>@ConfigurationProperties(prefix = &quot;app&quot;)
+public class AppProperties {
+
+    /** Minimum password length — the only password policy rule (ticket 07). */
+    private int passwordMinLength = 12;
+
+    private final Lockout lockout = new Lockout();
+    private final IpThrottle ipThrottle = new IpThrottle();
+    private final PasswordReset passwordReset = new PasswordReset();
+    private final Admin admin = new Admin();
+    private final Cors cors = new Cors();
+
+    public int getPasswordMinLength() {</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/AppProperties.java">Open full source file</a></details><details class="source"><summary>HelloAuthApplication.java · L8–18</summary><p>implementation · backend/src/main/java/com/example/helloauth/HelloAuthApplication.java · 01efc8ed1560</p><pre><code>@SpringBootApplication
+@ConfigurationPropertiesScan
+// Ticket-14 token housekeeping: the password-reset janitor's @Scheduled purge.
+@EnableScheduling
+public class HelloAuthApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(HelloAuthApplication.class, args);
+    }
+}
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/HelloAuthApplication.java">Open full source file</a></details><details class="source"><summary>api.ts · L11–38</summary><p>implementation · frontend/src/lib/api.ts · 01efc8ed1560</p><pre><code>export const API_BASE: string =
+  import.meta.env.VITE_API_BASE ?? 'http://localhost:8080'
+
+/** In-memory CSRF token for the current server session; null until fetched. */
+let csrfToken: string | null = null
+
+/** Problem title the API uses for a missing/invalid CSRF token (403). */
+const CSRF_REJECTED_TITLE = 'Invalid CSRF token'
+
+function isMutating(method: string): boolean {
+  return method !== 'GET' &amp;&amp; method !== 'HEAD' &amp;&amp; method !== 'OPTIONS'
+}
+
+/** True when a 403 is the API's CSRF rejection, not an authorization denial. */
+async function isCsrfRejection(response: Response): Promise&lt;boolean&gt; {
+  if (response.status !== 403) {
+    return false
+  }
+  try {
+    const body = (await response.clone().json()) as { title?: string }
+    return body.title === CSRF_REJECTED_TITLE
+  } catch {
+    return false
+  }
+}
+
+function send(path: string, init: RequestInit, method: string): Promise&lt;Response&gt; {
+  const headers = new Headers(init.headers)</code></pre><a href="../../frontend/src/lib/api.ts">Open full source file</a></details><details class="source"><summary>SecurityConfig.java · L155–165</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>    @Profile(&quot;dev&quot;)
+    @Order(1)
+    SecurityFilterChain h2ConsoleSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher(PathRequest.toH2Console())
+            .authorizeHttpRequests(auth -&gt; auth.anyRequest().permitAll())
+            .csrf(csrf -&gt; csrf.ignoringRequestMatchers(PathRequest.toH2Console()))
+            .headers(headers -&gt; headers.frameOptions(frame -&gt; frame.sameOrigin()));
+        return http.build();
+    }
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details></div></article><article class="panel" id="startup"><div class="panel-heading"><span class="number">07</span><div><p class="eyebrow">Configuration</p><h2>Missing settings fail in different ways</h2></div><a class="permalink" href="#startup" aria-label="Link to Missing settings fail in different ways">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Does every missing environment variable stop the app from starting?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>No. Two validators stop startup on purpose. ProdAdminCredentialsValidator rejects a blank admin username or password, or a password shorter than app.password-min-length (12 by default). SecurityTunablesValidator rejects an IP failure limit that is not lower than the account lockout limit. Other settings simply behave differently when blank.</p></div></div><div class="notes"><p><strong>Database:</strong> DB_URL, DB_USERNAME and DB_PASSWORD have no defaults, but no validator checks them. A bad value fails later, in different ways, when the app tries to connect.</p><p><strong>Blank but allowed:</strong> empty APP_CORS_ALLOWED_ORIGINS rejects cross-origin browser requests under the CORS policy; same-origin access remains possible. It is not a firewall. Empty APP_RESET_LINK_BASE_URL does not stop startup or turn off password reset.</p><p><strong>Watch out:</strong> the admin is only created if no admin exists yet. Changing APP_ADMIN_PASSWORD later does not change an existing admin's password.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Keep three cases apart: 'the app refuses to start', 'a feature does not work' and 'nothing checks this'. Consider adding validation for production URLs.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>ProdAdminCredentialsValidator.java · L25–48</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/ProdAdminCredentialsValidator.java · 01efc8ed1560</p><pre><code>    public ProdAdminCredentialsValidator(AppProperties properties) {
+        AppProperties.Admin admin = properties.getAdmin();
+        if (isBlank(admin.getUsername()) || isBlank(admin.getPassword())) {
+            throw new IllegalStateException(
+                &quot;The prod profile requires APP_ADMIN_USERNAME and &quot;
+                    + &quot;APP_ADMIN_PASSWORD environment variables — without &quot;
+                    + &quot;them no admin account can be seeded and /api/admin/** &quot;
+                    + &quot;stays unreachable.&quot;);
+        }
+        // Presence isn't enough: AdminSeeder treats a sub-minimum password
+        // as warn-only, which suits dev but would let a prod admin ship
+        // below the registered-account floor. Prod fails fast instead.
+        if (admin.getPassword().length() &lt; properties.getPasswordMinLength()) {
+            throw new IllegalStateException(
+                &quot;APP_ADMIN_PASSWORD is shorter than app.password-min-length (&quot;
+                    + properties.getPasswordMinLength() + &quot; characters).&quot;);
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+}
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/ProdAdminCredentialsValidator.java">Open full source file</a></details><details class="source"><summary>SecurityTunablesValidator.java · L22–35</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityTunablesValidator.java · 01efc8ed1560</p><pre><code>    public SecurityTunablesValidator(AppProperties properties) {
+        int throttleMax = properties.getIpThrottle().getMaxFailures();
+        int lockoutMax = properties.getLockout().getMaxFailures();
+        if (throttleMax &gt;= lockoutMax) {
+            throw new IllegalStateException(
+                &quot;app.ip-throttle.max-failures (&quot; + throttleMax
+                    + &quot;) must be less than app.lockout.max-failures (&quot;
+                    + lockoutMax + &quot;) — otherwise a single source IP can &quot;
+                    + &quot;record enough failures to lock an account, breaking &quot;
+                    + &quot;the anti-DoS guarantee.&quot;);
+        }
+    }
+}
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityTunablesValidator.java">Open full source file</a></details><details class="source"><summary>application-prod.yml · L34–79</summary><p>configuration · backend/src/main/resources/application-prod.yml · 01efc8ed1560</p><pre><code>spring:
+  # No embedded fallback. Use jdbc:postgresql://... or jdbc:mysql://... .
+  # The JDBC driver and Hibernate dialect are inferred from the URL.
+  datasource:
+    embedded-database-connection: none
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  session:
+    jdbc:
+      initialize-schema: never
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: strict
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  password-reset:
+    log-reset-link: false
+    # No localhost fallback — the day a real EmailService replaces the stub,
+    # an unset value must not silently emit reset links pointing at
+    # localhost:3000.
+    link-base-url: ${APP_RESET_LINK_BASE_URL:}
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}</code></pre><a href="../../backend/src/main/resources/application-prod.yml">Open full source file</a></details><details class="source"><summary>AdminSeeder.java · L54–87</summary><p>implementation · backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java · 01efc8ed1560</p><pre><code>    public void seedAdminIfAbsent() {
+        if (users.existsByRole(Role.ADMIN)) {
+            return;
+        }
+        AppProperties.Admin admin = properties.getAdmin();
+        String username = admin.getUsername();
+        String password = admin.getPassword();
+        if (isBlank(username) || isBlank(password)) {
+            log.warn(&quot;No ADMIN account exists and app.admin.username/&quot;
+                + &quot;app.admin.password are unset — skipping initial-admin &quot;
+                + &quot;seed. The admin module stays unreachable until an admin &quot;
+                + &quot;account exists.&quot;);
+            return;
+        }
+        if (users.existsByUsername(username)) {
+            // A USER row already holds the configured name — an INSERT
+            // would die on the unique constraint; surface it as a clear
+            // operator-facing message instead.
+            log.warn(&quot;app.admin.username '{}' is already taken by a &quot;
+                + &quot;non-admin account — skipping initial-admin seed.&quot;,
+                username);
+            return;
+        }
+        String email = admin.getEmail();
+        if (users.existsByEmail(email)) {
+            // users.email is unique + non-null too — a registered
+            // non-admin row holding the configured address would crash
+            // the INSERT (and startup) the same way.
+            log.warn(&quot;app.admin.email '{}' is already taken by a &quot;
+                + &quot;non-admin account — skipping initial-admin seed.&quot;,
+                email);
+            return;
+        }
+        int minLength = properties.getPasswordMinLength();</code></pre><a href="../../backend/src/main/java/com/example/helloauth/admin/AdminSeeder.java">Open full source file</a></details><details class="source"><summary>EmailService.java · L39–49</summary><p>implementation · backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java · 01efc8ed1560</p><pre><code>    public void sendPasswordResetLink(String toEmail, String token) {
+        if (properties.getPasswordReset().isLogResetLink()) {
+            String link = properties.getPasswordReset().getLinkBaseUrl()
+                + &quot;?token=&quot; + token;
+            log.info(&quot;Password reset link for {}: {}&quot;, toEmail, link);
+        } else {
+            log.info(&quot;Password reset requested for {} — no email adapter &quot;
+                + &quot;configured; reset link suppressed&quot;, toEmail);
+        }
+    }
+}</code></pre><a href="../../backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java">Open full source file</a></details><details class="source"><summary>ProdProfileTests.java · L29–37</summary><p>test · backend/src/test/java/com/example/helloauth/ProdProfileTests.java · 01efc8ed1560</p><pre><code>@SpringBootTest(properties = {
+    &quot;DB_URL=jdbc:h2:mem:prod-profile-tests&quot;,
+    &quot;DB_USERNAME=sa&quot;,
+    &quot;DB_PASSWORD=&quot;,
+    &quot;APP_ADMIN_USERNAME=prod-root&quot;,
+    &quot;APP_ADMIN_PASSWORD=prod-root-password-1&quot;,
+    &quot;APP_ADMIN_EMAIL=prod-root@example.com&quot;,
+    &quot;APP_CORS_ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com&quot;})
+@AutoConfigureMockMvc</code></pre><a href="../../backend/src/test/java/com/example/helloauth/ProdProfileTests.java">Open full source file</a></details><details class="source"><summary>StartupConfigValidationTests.java · L34–46</summary><p>test · backend/src/test/java/com/example/helloauth/StartupConfigValidationTests.java · 01efc8ed1560</p><pre><code>    void equalThrottleAndLockoutThresholdsRefuseToStart() {
+        // The boundary itself: &gt;= is the breaking condition, so equality
+        // must already fail.
+        assertThatThrownBy(() -&gt; new SpringApplicationBuilder(
+                HelloAuthApplication.class)
+            .run(
+                &quot;--server.port=0&quot;,
+                &quot;--app.ip-throttle.max-failures=5&quot;,
+                &quot;--app.lockout.max-failures=5&quot;))
+        .hasStackTraceContaining(&quot;app.ip-throttle.max-failures&quot;)
+        .hasStackTraceContaining(&quot;app.lockout.max-failures&quot;);
+    }
+</code></pre><a href="../../backend/src/test/java/com/example/helloauth/StartupConfigValidationTests.java">Open full source file</a></details></div></article><article class="panel" id="proxy"><div class="panel-heading"><span class="number">08</span><div><p class="eyebrow">Configuration</p><h2>The proxy must be trusted</h2></div><a class="permalink" href="#proxy" aria-label="Link to The proxy must be trusted">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Why does a proxy setting matter for login security?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>In prod the API believes the Forwarded and X-Forwarded-* headers. They tell it whether the original request was HTTPS and what the client's IP was. The IP throttle uses that IP, and HTTPS-only behaviour such as HSTS depends on the scheme. So the proxy must remove any of these headers sent by the client and write the real values.</p></div></div><figure class="diagram"><a href="diagrams/proxy-trust.html" aria-label="Open interactive diagram: Why the proxy in front of the API must be trusted"><img src="img/proxy-trust.png" alt="Why the proxy in front of the API must be trusted" width="3072" height="1626" loading="lazy"></a><figcaption><span>Why the proxy in front of the API must be trusted</span><a href="diagrams/proxy-trust.html">Open interactive diagram ↗</a></figcaption></figure><div class="notes"><p><strong>Deployment:</strong> only the proxy should be able to reach the API. The YAML setting does not check where headers came from.</p><p><strong>In the code:</strong> defaults throttle after 4 IP failures and lock accounts after 5 failures for 15 minutes. Counters reset after a gap greater than 10 minutes between recorded failures, not a precise rolling window. Register and reset requests share a separate 20-per-IP budget with the same quiet-gap behavior.</p><p><strong>Limits:</strong> IP counts are kept in memory on each server. A restart or a second replica resets them, and there is a known race under concurrent requests. Do not treat the 4 &lt; 5 rule as a cluster-wide guarantee.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Treat proxy trust and rate-limit storage as deployment decisions. Test with multiple instances before promising limits across the whole system.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>application-prod.yml · L34–79</summary><p>configuration · backend/src/main/resources/application-prod.yml · 01efc8ed1560</p><pre><code>spring:
+  # No embedded fallback. Use jdbc:postgresql://... or jdbc:mysql://... .
+  # The JDBC driver and Hibernate dialect are inferred from the URL.
+  datasource:
+    embedded-database-connection: none
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  session:
+    jdbc:
+      initialize-schema: never
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: strict
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  password-reset:
+    log-reset-link: false
+    # No localhost fallback — the day a real EmailService replaces the stub,
+    # an unset value must not silently emit reset links pointing at
+    # localhost:3000.
+    link-base-url: ${APP_RESET_LINK_BASE_URL:}
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}</code></pre><a href="../../backend/src/main/resources/application-prod.yml">Open full source file</a></details><details class="source"><summary>IpThrottleService.java · L54–73</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java · 01efc8ed1560</p><pre><code>    private final Cache&lt;String, SlidingWindowBucket&gt; failureBuckets;
+    private final Cache&lt;String, SlidingWindowBucket&gt; anonBuckets;
+    private final Clock clock;
+    private final AppProperties properties;
+
+    public IpThrottleService(Clock clock, AppProperties properties) {
+        this.clock = clock;
+        this.properties = properties;
+        this.failureBuckets = newBucketCache(properties);
+        this.anonBuckets = newBucketCache(properties);
+    }
+
+    private static Cache&lt;String, SlidingWindowBucket&gt; newBucketCache(
+            AppProperties properties) {
+        return Caffeine.newBuilder()
+            .maximumSize(properties.getIpThrottle().getMaxEntries())
+            .expireAfterAccess(properties.getIpThrottle().getWindow().multipliedBy(2))
+            .build();
+    }
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/IpThrottleService.java">Open full source file</a></details><details class="source"><summary>LoginService.java · L80–116</summary><p>implementation · backend/src/main/java/com/example/helloauth/auth/LoginService.java · 01efc8ed1560</p><pre><code>    public Authentication login(String username, String rawPassword, String remoteAddr) {
+        // (1) IP throttle first — before even the user lookup.
+        if (remoteAddr != null &amp;&amp; ipThrottle.isThrottled(remoteAddr)) {
+            // No authentication event can fire for a rejection before
+            // authenticate() runs — the audit emission is direct (ticket 14).
+            audit.loginThrottled(username, remoteAddr);
+            throw new LoginThrottledException();
+        }
+
+        // (2) Account lock — before credentials, so a locked attempt can't
+        //     re-arm locked_until or count at either layer.
+        User user = users.findByUsername(username).orElse(null);
+        Instant now = clock.instant();
+        if (isLocked(user, now)) {
+            audit.loginFailed(username, AuditLogger.Reasons.LOCKED);
+            throw new LockedException(&quot;Account is locked&quot;);
+        }
+
+        // (3) Credential verification.
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                UsernamePasswordAuthenticationToken.unauthenticated(
+                    username, rawPassword));
+            resetFailureState(user);
+            return authentication;
+        } catch (BadCredentialsException | UsernameNotFoundException ex) {
+            // Unknown usernames record only at the IP layer — no phantom
+            // counters, and the response stays identical either way.
+            if (user != null) {
+                recordFailure(user, now);
+            }
+            if (remoteAddr != null) {
+                ipThrottle.recordFailure(remoteAddr);
+            }
+            throw ex;
+        }
+    }</code></pre><a href="../../backend/src/main/java/com/example/helloauth/auth/LoginService.java">Open full source file</a></details><details class="source"><summary>SecurityTunablesValidator.java · L22–35</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityTunablesValidator.java · 01efc8ed1560</p><pre><code>    public SecurityTunablesValidator(AppProperties properties) {
+        int throttleMax = properties.getIpThrottle().getMaxFailures();
+        int lockoutMax = properties.getLockout().getMaxFailures();
+        if (throttleMax &gt;= lockoutMax) {
+            throw new IllegalStateException(
+                &quot;app.ip-throttle.max-failures (&quot; + throttleMax
+                    + &quot;) must be less than app.lockout.max-failures (&quot;
+                    + lockoutMax + &quot;) — otherwise a single source IP can &quot;
+                    + &quot;record enough failures to lock an account, breaking &quot;
+                    + &quot;the anti-DoS guarantee.&quot;);
+        }
+    }
+}
+</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityTunablesValidator.java">Open full source file</a></details><details class="source"><summary>application.yml · L1–96</summary><p>configuration · backend/src/main/resources/application.yml · 01efc8ed1560</p><pre><code>spring:
+  application:
+    name: hello-auth
+  datasource:
+    url: jdbc:h2:mem:helloauth
+    username: sa
+    password: &quot;&quot;
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  sql:
+    init:
+      mode: never
+  session:
+    # Spring Session JDBC over H2 — the ratified store (ticket 02). Sessions
+    # persist in SPRING_SESSION, enabling true invalidation and per-user
+    # session enumeration (findByPrincipalName) for later tickets.
+    store-type: jdbc
+    # Pinned idle timeout (security-review F-08): 30m is also the framework
+    # default — set explicitly so the value survives default changes and the
+    # session-lifetime contract is visible in config, not implied.
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        # Set explicitly — a Boot 4.1 regression can otherwise leave SameSite
+        # unset instead of Lax (spring-boot#48830). secure=true only in the
+        # prod profile (hardening ticket).
+        same-site: lax
+        secure: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+# Externalized security tunables (ticket 06 decision).
+app:
+  password-min-length: 12
+  # Two-layer brute-force defense (ticket 11). ip-throttle.max-failures stays
+  # below lockout.max-failures so a single source IP can never record enough
+  # failures to lock an account — the literal anti-DoS guarantee.
+  lockout:
+    max-failures: 5
+    window: 10m
+    cooldown: 15m
+  ip-throttle:
+    max-failures: 4
+    # anon-max-requests (security-review F-04): per-IP budget for the
+    # unauthenticated mutations (register, password-reset/request) — a
+    # second, independent bucket counting every hit, sharing the window
+    # and max-entries below.
+    anon-max-requests: 20
+    window: 10m
+    max-entries: 10000
+  # Single-use reset tokens (ticket 12): 32-byte SecureRandom, only the
+  # SHA-256 hash is stored, lifetime inside the spec's 15–30 min bound. The
+  # stubbed EmailService logs link-base-url?token=&lt;token&gt; — no SMTP exists.
+  # cleanup-interval (ticket 14): cadence of the scheduled purge that deletes
+  # consumed/expired token rows. log-reset-link (security-review F-02): the
+  # link line carries the plaintext token — a live bearer credential — so
+  # the prod profile sets it false and the stub logs a token-free
+  # suppressed-delivery line instead.
+  password-reset:
+    token-ttl: 15m
+    link-base-url: http://localhost:3000/reset-password
+    cleanup-interval: 1h
+    log-reset-link: true
+  # Initial-admin bootstrap (ticket 13). Credentials come from the
+  # APP_ADMIN_* env vars; blank means &quot;not configured&quot; and nothing is
+  # seeded. The dev profile ships documented defaults; the prod profile
+  # (ticket 14) requires the env vars outright so a missing config fails
+  # fast rather than leaving no way into /api/admin/**.
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}
+  # CORS allow-list for the credentialed SPA origin(s) (ticket 14). The
+  # dev/local default is the Vite origin; the prod profile binds
+  # APP_CORS_ALLOWED_ORIGINS (comma-separated) with a blank default —
+  # an unset list permits no origins (fail-closed).
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+</code></pre><a href="../../backend/src/main/resources/application.yml">Open full source file</a></details></div></article><article class="panel" id="headers"><div class="panel-heading"><span class="number">09</span><div><p class="eyebrow">Security</p><h2>Headers only protect their own response</h2></div><a class="permalink" href="#headers" aria-label="Link to Headers only protect their own response">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>Does the API's Referrer-Policy protect the frontend reset page?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>No. The API sends a strict CSP, a referrer policy and a permissions policy, but those apply only to the API's own responses. The React app is a separate page with its own headers, set by whatever serves it. That host needs its own policy, especially for the reset page, whose URL contains the token.</p></div></div><div class="notes"><p><strong>In the code:</strong> the API CSP is default-src 'none'; frame-ancestors 'none'. Good defence for a JSON API, but not a replacement for XSS protection in the frontend.</p><p><strong>Good to know:</strong> strict-origin-when-cross-origin hides the path and query from other sites, but same-origin requests still see the full URL, token included.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Check API headers, frontend page headers and proxy behaviour separately.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>SecurityConfig.java · L103–109</summary><p>implementation · backend/src/main/java/com/example/helloauth/config/SecurityConfig.java · 01efc8ed1560</p><pre><code>            .headers(headers -&gt; headers
+                .contentSecurityPolicy(csp -&gt; csp.policyDirectives(
+                    &quot;default-src 'none'; frame-ancestors 'none'&quot;))
+                .referrerPolicy(referrer -&gt; referrer.policy(
+                    ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                .permissionsPolicy(permissions -&gt; permissions.policy(
+                    &quot;camera=(), microphone=(), geolocation=()&quot;)))</code></pre><a href="../../backend/src/main/java/com/example/helloauth/config/SecurityConfig.java">Open full source file</a></details><details class="source"><summary>EmailService.java · L39–49</summary><p>implementation · backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java · 01efc8ed1560</p><pre><code>    public void sendPasswordResetLink(String toEmail, String token) {
+        if (properties.getPasswordReset().isLogResetLink()) {
+            String link = properties.getPasswordReset().getLinkBaseUrl()
+                + &quot;?token=&quot; + token;
+            log.info(&quot;Password reset link for {}: {}&quot;, toEmail, link);
+        } else {
+            log.info(&quot;Password reset requested for {} — no email adapter &quot;
+                + &quot;configured; reset link suppressed&quot;, toEmail);
+        }
+    }
+}</code></pre><a href="../../backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java">Open full source file</a></details></div></article><article class="panel" id="reset"><div class="panel-heading"><span class="number">10</span><div><p class="eyebrow">Security</p><h2>&quot;Link sent&quot; does not mean an email was sent</h2></div><a class="permalink" href="#reset" aria-label="Link to &quot;Link sent&quot; does not mean an email was sent">#</a></div><div class="dialogue junior"><div class="portrait junior-art" role="img" aria-label="Junior developer"></div><div class="bubble"><p class="speaker">JUNIOR DEV <span>asks</span></p><p>The page says a reset link was sent. Is that true in prod?</p></div></div><div class="dialogue senior"><div class="portrait senior-art" role="img" aria-label="Senior developer"></div><div class="bubble"><p class="speaker">SENIOR DEV <span>explains</span></p><p>Not yet. The reply is the same whether or not the email exists, which reduces enumeration through response text; equal response timing is not established. But EmailService is only a stub that writes to the log, and in prod it does not even log the link. There is no real email sender yet.</p></div></div><figure class="diagram"><a href="diagrams/password-reset.html" aria-label="Open interactive diagram: Password reset: request a link, then confirm"><img src="img/password-reset.png" alt="Password reset: request a link, then confirm" width="2464" height="1890" loading="lazy"></a><figcaption><span>Password reset: request a link, then confirm</span><a href="diagrams/password-reset.html">Open interactive diagram ↗</a></figcaption></figure><div class="notes"><p><strong>In the code:</strong> the token uses 32 random bytes, only its SHA-256 hash is stored, and it expires after 15 minutes. Confirming validates token and password length, atomically claims the unused token, saves the BCrypt hash and invokes deletion of the user’s sessions.</p><p><strong>Watch out:</strong> prod hides the token, but the stub still logs the recipient's email address. No token in the log does not mean no personal data in the log.</p><p><strong>Correction:</strong> @Transactional covers the service, but Spring Session JDBC documents REQUIRES_NEW for session operations. No transaction override was found. Sharing a database does not make password/token changes and session deletions atomic; rollback behavior needs verification. See the standards table.</p></div><div class="preserve"><strong>Keep this intact</strong><p>Never enable token logging to work around missing email. Keep token consumption and password update transactional, retain session invalidation, and verify its separate transaction behavior.</p></div><div class="evidence"><p class="eyebrow">Inspect the evidence · observed source</p><details class="source"><summary>EmailService.java · L39–49</summary><p>implementation · backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java · 01efc8ed1560</p><pre><code>    public void sendPasswordResetLink(String toEmail, String token) {
+        if (properties.getPasswordReset().isLogResetLink()) {
+            String link = properties.getPasswordReset().getLinkBaseUrl()
+                + &quot;?token=&quot; + token;
+            log.info(&quot;Password reset link for {}: {}&quot;, toEmail, link);
+        } else {
+            log.info(&quot;Password reset requested for {} — no email adapter &quot;
+                + &quot;configured; reset link suppressed&quot;, toEmail);
+        }
+    }
+}</code></pre><a href="../../backend/src/main/java/com/example/helloauth/passwordreset/EmailService.java">Open full source file</a></details><details class="source"><summary>PasswordResetService.java · L109–145</summary><p>implementation · backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetService.java · 01efc8ed1560</p><pre><code>    public void confirmReset(String token, String newPassword) {
+        String tokenHash = hashToken(token);
+        PasswordResetToken resetToken = tokens.findByTokenHash(tokenHash)
+            .orElseThrow(InvalidResetTokenException::new);
+
+        // Unknown, spent, or expired — one generic rejection for all three
+        // (the token is a credential; its state is not public information).
+        Instant now = clock.instant();
+        if (resetToken.getUsedAt() != null
+                || !resetToken.getExpiresAt().isAfter(now)) {
+            throw new InvalidResetTokenException();
+        }
+
+        // Same length-only policy as registration — enforced before the
+        // token is spent, so a typo'd password doesn't burn the link.
+        int minLength = properties.getPasswordMinLength();
+        if (newPassword == null || newPassword.length() &lt; minLength) {
+            throw new RegistrationException.PasswordTooShort(minLength);
+        }
+
+        // The atomic claim — the row the read just validated may already be
+        // spent by a racing confirm; a 0-row update is the generic rejection.
+        if (tokens.consumeIfUnused(tokenHash, now) == 0) {
+            throw new InvalidResetTokenException();
+        }
+
+        User user = resetToken.getUser();
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        users.save(user);
+
+        // One live token: links minted alongside the consumed one die too —
+        // otherwise an attacker who requested a second link before the
+        // victim reset could still pivot through it afterwards.
+        tokens.invalidateOutstandingForUser(user, now);
+
+        sessionInvalidation.invalidateAllFor(user.getUsername());
+        audit.passwordResetCompleted(user.getUsername());</code></pre><a href="../../backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetService.java">Open full source file</a></details><details class="source"><summary>PasswordResetController.java · L19–36</summary><p>implementation · backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java · 01efc8ed1560</p><pre><code>@RequestMapping(&quot;/api/auth/password-reset&quot;)
+public class PasswordResetController {
+
+    /**
+     * The ratified enumeration-resistant wording (ticket 07) — returned
+     * verbatim whether or not the email matches an account. The wording is a
+     * security control: keep it in one place and never vary it.
+     */
+    static final String REQUEST_RESPONSE_MESSAGE =
+        &quot;If an account with that email exists, we've sent a reset link.&quot;;
+
+    private final PasswordResetService passwordResetService;
+    private final IpThrottleService ipThrottle;
+
+    public PasswordResetController(PasswordResetService passwordResetService,
+            IpThrottleService ipThrottle) {
+        this.passwordResetService = passwordResetService;
+        this.ipThrottle = ipThrottle;</code></pre><a href="../../backend/src/main/java/com/example/helloauth/passwordreset/PasswordResetController.java">Open full source file</a></details><details class="source"><summary>application-prod.yml · L34–79</summary><p>configuration · backend/src/main/resources/application-prod.yml · 01efc8ed1560</p><pre><code>spring:
+  # No embedded fallback. Use jdbc:postgresql://... or jdbc:mysql://... .
+  # The JDBC driver and Hibernate dialect are inferred from the URL.
+  datasource:
+    embedded-database-connection: none
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+  session:
+    jdbc:
+      initialize-schema: never
+  sql:
+    init:
+      mode: never
+  h2:
+    console:
+      enabled: false
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+        http-only: true
+        same-site: strict
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  password-reset:
+    log-reset-link: false
+    # No localhost fallback — the day a real EmailService replaces the stub,
+    # an unset value must not silently emit reset links pointing at
+    # localhost:3000.
+    link-base-url: ${APP_RESET_LINK_BASE_URL:}
+  admin:
+    username: ${APP_ADMIN_USERNAME:}
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@localhost}</code></pre><a href="../../backend/src/main/resources/application-prod.yml">Open full source file</a></details></div></article></div>
+<section class="reference" id="reference"><p class="eyebrow">11 / Desk reference</p><h2>Settings and access, without the guesswork.</h2><h3>Configuration contract</h3><div class="table-wrap" tabindex="0" aria-label="Scrollable Setting table"><table><thead><tr><th scope="col">Setting</th><th scope="col">Shipped value / contract</th><th scope="col">Failure or limitation</th></tr></thead><tbody><tr><td>Active profiles</td><td>prod must be on; dev is separate</td><td>Nothing stops dev and prod being on together.</td></tr><tr><td>DB_URL / DB_USERNAME / DB_PASSWORD</td><td>Required in prod; no defaults</td><td>Not validated; a bad value fails when connecting.</td></tr><tr><td>APP_ADMIN_USERNAME / APP_ADMIN_PASSWORD</td><td>Blank by default in prod</td><td>Startup rejects blank values or passwords below app.password-min-length (default 12).</td></tr><tr><td>APP_ADMIN_EMAIL</td><td>Defaults to admin@localhost</td><td>Admin is skipped if the name or email is already taken.</td></tr><tr><td>APP_CORS_ALLOWED_ORIGINS</td><td>Blank in prod</td><td>Cross-origin browser requests rejected when blank; same-origin access remains possible.</td></tr><tr><td>APP_RESET_LINK_BASE_URL</td><td>Blank in prod</td><td>Not validated; email is still a stub.</td></tr><tr><td>app.password-reset.log-reset-link</td><td>false in prod, true by default</td><td>Keeps reset tokens out of prod logs.</td></tr><tr><td>app.ip-throttle.max-failures / app.lockout.max-failures</td><td>4 / 5</td><td>App refuses to start if throttle &gt;= lockout.</td></tr><tr><td>spring.session.timeout</td><td>30m</td><td>Idle timeout, not a maximum session length.</td></tr><tr><td>VITE_API_BASE</td><td>Set at frontend build time; default http://localhost:8080</td><td>Rebuild the SPA to change it.</td></tr></tbody></table></div><h3>Application endpoint register</h3><p>Static controller inventory plus logout and health. Public mutations still require CSRF. H2’s dev servlet is separate. Handler and service rules can reject a chain-permitted request.</p><label for="policy">Filter by boundary policy</label><select id="policy"><option value="">All policies</option><option value="Public">Public</option><option value="ROLE_ADMIN">ADMIN</option><option value="Authenticated">Authenticated</option><option value="CSRF">CSRF protected</option></select><div id="routes"><div class="table-wrap" tabindex="0" aria-label="Scrollable Method table"><table><thead><tr><th scope="col">Method</th><th scope="col">Path</th><th scope="col">Boundary policy</th><th scope="col">Additional condition</th></tr></thead><tbody><tr><td>POST</td><td>/api/auth/register</td><td>Public + CSRF</td><td>Body validated, per-IP budget, registration rules</td></tr><tr><td>POST</td><td>/api/auth/login</td><td>Public + CSRF</td><td>IP throttle, lock and password checks; 401 or 429</td></tr><tr><td>GET</td><td>/api/auth/csrf</td><td>Public</td><td>Returns an XOR-masked representation of the session CSRF token in JSON</td></tr><tr><td>GET</td><td>/api/auth/me</td><td>Handler checks identity</td><td>401 when not signed in</td></tr><tr><td>POST</td><td>/api/auth/password-reset/request</td><td>Public + CSRF</td><td>Body validated, per-IP budget, same reply for any email</td></tr><tr><td>POST</td><td>/api/auth/password-reset/confirm</td><td>Public + CSRF</td><td>Token and new-password checks</td></tr><tr><td>POST</td><td>/api/auth/logout</td><td>Logout filter + CSRF</td><td>Deletes the session; no controller needed</td></tr><tr><td>GET</td><td>/api/hello</td><td>Authenticated</td><td>Greets the signed-in user</td></tr><tr><td>GET</td><td>/api/admin/users</td><td>ROLE_ADMIN</td><td>Lists users (no password hashes)</td></tr><tr><td>PATCH</td><td>/api/admin/users/{id}/status</td><td>ROLE_ADMIN + CSRF</td><td>Not on yourself; disabling ends sessions</td></tr><tr><td>PATCH</td><td>/api/admin/users/{id}/role</td><td>ROLE_ADMIN + CSRF</td><td>Not on yourself; demoting ends sessions</td></tr><tr><td>DELETE</td><td>/api/admin/users/{id}</td><td>ROLE_ADMIN + CSRF</td><td>Not on yourself; removes sessions and account</td></tr><tr><td>GET</td><td>/actuator/health</td><td>Public</td><td>The only actuator endpoint exposed</td></tr></tbody></table></div></div><h3>Technology orientation</h3><p>Backend version declarations: backend/pom.xml. Frontend resolutions: frontend/package-lock.json. This is a scoped stack register; managed backend versions were not resolved.</p><div class="table-wrap" tabindex="0" aria-label="Scrollable Technology table"><table><thead><tr><th scope="col">Technology</th><th scope="col">Version evidence</th><th scope="col">Role</th></tr></thead><tbody><tr><td>Java</td><td>21 declared target</td><td>Backend language; installed runtime not established</td></tr><tr><td>Spring Boot</td><td>4.1.1 declared parent</td><td>MVC, external configuration and auto-configuration</td></tr><tr><td>Spring Security</td><td>BOM-managed; resolved version not verified</td><td>Filter chain, BCrypt, authentication and CSRF</td></tr><tr><td>Spring Session JDBC</td><td>BOM-managed; resolved version not verified</td><td>Server-side session persistence; configured in application.yml</td></tr><tr><td>Caffeine</td><td>BOM-managed; resolved version not verified</td><td>Process-local IP budgets in IpThrottleService</td></tr><tr><td>Liquibase / Hibernate</td><td>BOM-managed; resolved versions not verified</td><td>Migration and schema-validation configuration</td></tr><tr><td>React / Vite</td><td>19.3.0 / 8.3.0 lockfile</td><td>AuthContext UI state / build-time API address</td></tr></tbody></table></div><h3>Small glossary</h3><div class="table-wrap" tabindex="0" aria-label="Scrollable Term table"><table><thead><tr><th scope="col">Term</th><th scope="col">Meaning</th></tr></thead><tbody><tr><td>Authentication</td><td>Proving who you are (logging in).</td></tr><tr><td>Authorization</td><td>Deciding what you are allowed to do.</td></tr><tr><td>CSRF</td><td>Cross-site request forgery: another site tricks your browser into sending a request. A validated session-bound token mitigates it; XSS can bypass it.</td></tr><tr><td>CORS</td><td>Browser rule for which other origins may read API responses. Not a login check or a firewall.</td></tr><tr><td>HttpOnly / Secure / SameSite</td><td>Cookie flags: JavaScript cannot read it / only sent over HTTPS / cross-site sending depends on the SameSite value (Strict in prod).</td></tr><tr><td>Rate limiting</td><td>Capping failed attempts per IP or per account to slow down password guessing.</td></tr><tr><td>Profile</td><td>A named set of Spring settings (dev, prod) switched on at startup.</td></tr></tbody></table></div></section>
+<section class="reference" id="coverage"><p class="eyebrow">12 / Evidence & limits</p><h2>Know what this review establishes.</h2><p>Observed = source inspected. Interpretation = explanatory inference. Recommendation = proposed improvement. Unknown = needs further evidence.</p><div class="table-wrap" tabindex="0" aria-label="Scrollable Area table"><table><thead><tr><th scope="col">Area</th><th scope="col">Coverage</th><th scope="col">Limit</th></tr></thead><tbody><tr><td>Security chain, profiles, startup validators</td><td>inspected</td><td>Current working-tree source inspected; revision is base HEAD.</td></tr><tr><td>Login, admin guards, reset, browser cookie transport</td><td>partial</td><td>Representative paths inspected for this introduction; not a full audit.</td></tr><tr><td>Tests</td><td>partial</td><td>ProdProfileTests and StartupConfigValidationTests read, not executed.</td></tr><tr><td>Infrastructure, live proxy, production database, frontend host headers</td><td>not-inspected</td><td>Deployment not exercised; no runtime security claims.</td></tr><tr><td>Remaining nine-topic playbook scope</td><td>not-applicable</td><td>User requested an enhanced security/configuration introduction, not a complete playbook.</td></tr></tbody></table></div><p>Initial snapshot: Review used the current working tree including existing uncommitted application and documentation changes; revision identifies base HEAD only. Source anchors checked during generation. Backend tests not run for this documentation-only change.</p><p><a href="evidence.json">Source evidence & excerpts</a> · <a href="coverage.json">Coverage ledger</a> · <a href="content.json">Structured chapter content</a> · <a href="../../introduction.md">Markdown edition</a></p><h3>Standards assessment</h3><p><a href="../../introduction.md#standards-and-guidance-implemented">Read the standards mappings and limitations in the Markdown edition</a> · <a href="standards.md">Standards source</a></p><h3>Read the framework background</h3><p>Official references checked 2026-09-27; external documentation is not proof of repository behavior.</p><ul><li><a href="https://docs.spring.io/spring-security/reference/servlet/architecture.html" rel="noreferrer">Spring Security filter architecture</a> — How filters are ordered and chains are chosen<small>docs.spring.io</small></li><li><a href="https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html" rel="noreferrer">Spring Security CSRF</a> — Session-stored tokens, login and logout<small>docs.spring.io</small></li><li><a href="https://docs.spring.io/spring-boot/reference/features/external-config.html" rel="noreferrer">Spring Boot externalized configuration</a> — Which property source wins<small>docs.spring.io</small></li><li><a href="https://docs.spring.io/spring-session/reference/configuration/jdbc.html" rel="noreferrer">Spring Session JDBC</a> — Storing sessions in the database<small>docs.spring.io</small></li><li><a href="https://docs.spring.io/spring-framework/reference/web/webmvc/filters.html#filters-forwarded-headers" rel="noreferrer">Spring Framework forwarded headers</a> — Why the proxy must remove client-sent forwarded headers<small>docs.spring.io</small></li></ul></section>
+<footer>HELLO AUTH / FIELD NOTES <span>Evidence before confidence. <a href="#top">Back to top ↑</a></span></footer></main></div><script src="reader.js"></script></body></html>

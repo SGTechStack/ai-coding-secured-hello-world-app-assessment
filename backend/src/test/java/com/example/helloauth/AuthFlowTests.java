@@ -162,15 +162,40 @@ class AuthFlowTests extends ApiTestSupport {
         assertNotNull(session, "login must set the Spring Session cookie");
         assertThat(session.isHttpOnly()).isTrue();
 
-        // SessionAuthenticationStrategy must run on login: the
-        // CsrfAuthenticationStrategy leg rotates the token, which the client
-        // observes as a cleared XSRF-TOKEN cookie. Without the strategy call
-        // (session-fixation protection!) no clearing cookie is emitted.
-        Cookie rotatedCsrf = result.getResponse().getCookie("XSRF-TOKEN");
-        assertNotNull(rotatedCsrf,
-            "login must run the SessionAuthenticationStrategy (CSRF rotation)");
-        assertThat(rotatedCsrf.getMaxAge()).isZero();
-        assertThat(rotatedCsrf.getValue()).isEmpty();
+        // No CSRF token is ever carried in a cookie (Synchronizer Token
+        // pattern): the session is the only place it lives.
+        assertThat(result.getResponse().getCookie("XSRF-TOKEN")).isNull();
+    }
+
+    @Test
+    void loginRotatesTheCsrfToken() throws Exception {
+        // SessionAuthenticationStrategy must run on login: its
+        // CsrfAuthenticationStrategy leg drops the pre-login token and
+        // ChangeSessionIdAuthenticationStrategy moves the session to a new
+        // id. A token obtained before login must not work afterwards —
+        // without the strategy call (session-fixation protection!) it would.
+        seedUser("alice", "alice@example.com");
+        CsrfSession preLogin = csrfToken();
+        MvcResult result = mockMvc.perform(post("/api/auth/login")
+                .cookie(preLogin.session())
+                .header(CSRF_HEADER, preLogin.token())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"alice\",\"password\":\"" + VALID_PASSWORD + "\"}"))
+            .andExpect(status().isOk())
+            .andReturn();
+        Cookie session = result.getResponse().getCookie("SESSION");
+        assertNotNull(session, "login must set the Spring Session cookie");
+        assertThat(session.getValue()).isNotEqualTo(preLogin.session().getValue());
+
+        mockMvc.perform(post("/api/auth/logout")
+                .cookie(session)
+                .header(CSRF_HEADER, preLogin.token()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Invalid CSRF token"));
+
+        // A token fetched inside the new session is accepted.
+        mockMvc.perform(withCsrf(post("/api/auth/logout"), session))
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -212,29 +237,67 @@ class AuthFlowTests extends ApiTestSupport {
     // ------------------------------------------------------------------
 
     @Test
-    void csrfBootstrapEndpointEmitsTokenCookie() throws Exception {
-        mockMvc.perform(get("/api/auth/csrf"))
+    void csrfBootstrapReturnsTokenInBodyAndNeverInACookie() throws Exception {
+        // Synchronizer Token pattern: the token is delivered in the JSON body
+        // and held in the server session. OWASP: "A CSRF token should not be
+        // transmitted in a cookie for synchronized patterns."
+        MvcResult result = mockMvc.perform(get("/api/auth/csrf"))
             .andExpect(status().isOk())
-            .andExpect(cookie().exists("XSRF-TOKEN"))
+            .andExpect(cookie().doesNotExist("XSRF-TOKEN"))
+            .andExpect(cookie().exists("SESSION"))
             .andExpect(jsonPath("$.token").isNotEmpty())
-            .andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"));
+            .andExpect(jsonPath("$.headerName").value("X-XSRF-TOKEN"))
+            .andReturn();
+        assertThat(result.getResponse().getHeaders("Set-Cookie"))
+            .noneMatch(header -> header.contains("XSRF"));
     }
 
     @Test
-    void csrfTokenCookieCarriesSameSiteStrict() throws Exception {
-        // CookieCsrfTokenRepository doesn't emit SameSite on its own — the
-        // cookie customizer adds it (F-06). SameSite is a Servlet 6.1
-        // cookie attribute: a real container renders it into Set-Cookie;
-        // the mock response's header string doesn't serialize attributes
-        // on plain Cookies, so assert on the cookie object itself.
-        MvcResult result = mockMvc.perform(get("/api/auth/csrf"))
-            .andExpect(status().isOk())
-            .andReturn();
+    void csrfTokenIsBoundToTheSessionThatIssuedIt() throws Exception {
+        // The token is only valid together with its own session: replaying
+        // it with another session, or with no session at all, is rejected.
+        CsrfSession first = csrfToken();
+        CsrfSession second = csrfToken();
 
-        Cookie xsrfCookie = result.getResponse().getCookie("XSRF-TOKEN");
-        assertNotNull(xsrfCookie, "CSRF bootstrap must emit the XSRF-TOKEN cookie");
-        assertThat(xsrfCookie.getAttribute("SameSite")).isEqualTo("Strict");
-        assertThat(xsrfCookie.isHttpOnly()).isFalse();
+        mockMvc.perform(post("/api/auth/logout")
+                .cookie(second.session())
+                .header(CSRF_HEADER, first.token()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Invalid CSRF token"));
+        mockMvc.perform(post("/api/auth/logout")
+                .header(CSRF_HEADER, first.token()))
+            .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/auth/logout")
+                .cookie(first.session())
+                .header(CSRF_HEADER, first.token()))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void forgedTokenValueIsRejectedEvenWithAValidSession() throws Exception {
+        // Nothing the client controls can mint a valid token: an arbitrary
+        // header value (what cookie injection could plant under the old
+        // double-submit design) is compared against the session copy.
+        CsrfSession csrf = csrfToken();
+        mockMvc.perform(post("/api/auth/logout")
+                .cookie(csrf.session(), new Cookie("XSRF-TOKEN", "attacker-chosen"))
+                .header(CSRF_HEADER, "attacker-chosen"))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Invalid CSRF token"));
+    }
+
+    @Test
+    void eachBootstrapReturnsAFreshlyMaskedCopyOfTheSameSessionToken() throws Exception {
+        // XorCsrfTokenRequestAttributeHandler (BREACH mitigation): repeated
+        // fetches in one session return different masked strings, and every
+        // one of them validates against the single stored token.
+        CsrfSession csrf = csrfToken();
+        CsrfSession again = csrfToken(csrf.session());
+        assertThat(again.token()).isNotEqualTo(csrf.token());
+        mockMvc.perform(post("/api/auth/logout")
+                .cookie(csrf.session())
+                .header(CSRF_HEADER, csrf.token()))
+            .andExpect(status().isOk());
     }
 
     @Test

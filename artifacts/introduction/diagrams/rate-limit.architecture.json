@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Brute-force defence on POST /api/auth/login",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "attempt", "type": "frontend", "label": "Login attempt", "sublabel": "username + password", "pos": [40, 80], "size": [150, 64] },
+    { "id": "ip", "type": "security", "label": "1 · IP throttle", "sublabel": "4 failures / 10 min", "pos": [270, 80], "size": [150, 64] },
+    { "id": "lock", "type": "security", "label": "2 · Account lock", "sublabel": "locked for 15 min?", "pos": [500, 80], "size": [150, 64] },
+    { "id": "pw", "type": "security", "label": "3 · Password", "sublabel": "BCrypt match?", "pos": [730, 80], "size": [150, 64] },
+    { "id": "signed", "type": "backend", "label": "Signed in", "sublabel": "counters reset", "pos": [960, 80], "size": [150, 64] },
+    { "id": "r429", "type": "external", "label": "429 Too Many", "sublabel": "password not checked", "pos": [270, 260], "size": [150, 64] },
+    { "id": "r401", "type": "external", "label": "401 generic", "sublabel": "same text for all", "pos": [500, 260], "size": [150, 64] },
+    { "id": "record", "type": "database", "label": "Record failure", "sublabel": "+1 IP · +1 account", "pos": [730, 260], "size": [150, 64] },
+    { "id": "lockacct", "type": "security", "label": "Lock account", "sublabel": "5th failure → 15 min", "pos": [960, 260], "size": [150, 64] }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "LoginService — checks run in this order", "wraps": ["ip", "lock", "pw"] }
+  ],
+  "connections": [
+    { "id": "e-attempt", "from": "attempt", "to": "ip", "variant": "emphasis" },
+    { "id": "e-ip-ok", "from": "ip", "to": "lock", "label": "pass" },
+    { "id": "e-lock-ok", "from": "lock", "to": "pw", "label": "pass" },
+    { "id": "e-pw-ok", "from": "pw", "to": "signed", "label": "match", "variant": "emphasis" },
+    { "id": "e-throttled", "from": "ip", "to": "r429", "label": "throttled", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [345, 202] },
+    { "id": "e-locked", "from": "lock", "to": "r401", "label": "locked", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [575, 202] },
+    { "id": "e-wrong", "from": "pw", "to": "record", "label": "wrong", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [805, 202] },
+    { "id": "e-reply", "from": "record", "to": "r401", "label": "reply", "variant": "dashed", "fromSide": "left", "toSide": "right" },
+    { "id": "e-lock5", "from": "record", "to": "lockacct", "label": "5th", "variant": "dashed", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "amber", "title": "Why 4 is less than 5", "items": ["One IP is blocked after 4 failures", "Locking an account needs 5", "So one attacker IP cannot lock you out"] },
+    { "dot": "rose", "title": "No hints for attackers", "items": ["Unknown user, wrong password and locked account all get the same 401"] },
+    { "dot": "slate", "title": "Limits to know", "items": ["IP counts live in memory, per server", "A restart or extra replica resets them"] }
+  ]
+}

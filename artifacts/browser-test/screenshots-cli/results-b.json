@@ -1,0 +1,47 @@
+[
+  {
+    "id": "S7-pre-reset-session",
+    "status": "FAIL",
+    "note": "carol session /api/hello -> 401"
+  },
+  {
+    "id": "S7-reset-confirm",
+    "status": "PASS",
+    "note": "HELLO WORLD AUTH Choose a new password Passwords must be at least 12 characters. Your existing sessions are ended when the password changes."
+  },
+  {
+    "id": "S7-session-purge",
+    "status": "PASS",
+    "note": "old session /api/hello after reset -> 401"
+  },
+  {
+    "id": "S7-token-single-use",
+    "status": "PASS",
+    "note": "replay -> \"This reset link is invalid or has expired.\""
+  },
+  {
+    "id": "S7-missing-token",
+    "status": "PASS",
+    "note": "\"This reset link is missing its token — request a fresh one.\""
+  },
+  {
+    "id": "S2-old-pw-rejected",
+    "status": "PASS",
+    "note": "old pw -> \"Invalid username or password.\""
+  },
+  {
+    "id": "S2-new-pw-accepted",
+    "status": "PASS",
+    "note": "login with reset password lands on greeting"
+  },
+  {
+    "id": "S2-generic-failure",
+    "status": "PASS",
+    "note": "wrong=\"Invalid username or password.\" unknown=\"Invalid username or password.\""
+  },
+  {
+    "id": "S3-ip-throttle",
+    "status": "PASS",
+    "note": "429-wall=true, correct-creds-blocked=true"
+  }
+]

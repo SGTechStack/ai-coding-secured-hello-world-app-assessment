@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Hello Auth — who talks to whom",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "spa", "type": "frontend", "label": "React SPA", "sublabel": "runs in the browser", "pos": [40, 100], "size": [140, 64], "tag": "credentials: include" },
+    { "id": "proxy", "type": "cloud", "label": "TLS proxy", "sublabel": "terminates HTTPS", "pos": [270, 100], "size": [140, 64], "tag": "rewrites X-Forwarded-*" },
+    { "id": "chain", "type": "security", "label": "Security filters", "sublabel": "CORS · CSRF · access rules", "pos": [500, 100], "size": [150, 64] },
+    { "id": "ctrl", "type": "backend", "label": "Controllers + services", "sublabel": "login · reset · admin", "pos": [740, 100], "size": [160, 64] },
+    { "id": "throttle", "type": "security", "label": "IP throttle", "sublabel": "in-memory (Caffeine)", "pos": [740, 260], "size": [160, 64] },
+    { "id": "db", "type": "database", "label": "PostgreSQL / MySQL", "sublabel": "users + sessions", "pos": [990, 100], "size": [160, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Server side (trusted)", "wraps": ["proxy", "chain", "ctrl", "throttle", "db"] },
+    { "kind": "security-group", "label": "Spring Boot API", "wraps": ["chain", "ctrl", "throttle"] }
+  ],
+  "connections": [
+    { "id": "spa-proxy", "from": "spa", "to": "proxy", "label": "HTTPS + cookies", "variant": "emphasis" },
+    { "id": "proxy-chain", "from": "proxy", "to": "chain", "label": "forwarded", "variant": "security" },
+    { "id": "chain-ctrl", "from": "chain", "to": "ctrl", "label": "allowed" },
+    { "id": "ctrl-throttle", "from": "ctrl", "to": "throttle", "label": "count failures", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [820, 212] },
+    { "id": "ctrl-db", "from": "ctrl", "to": "db", "label": "JDBC" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Browser", "items": ["Untrusted: anyone can craft requests", "Sends cookies automatically", "Copies the CSRF token into a header"] },
+    { "dot": "rose", "title": "Security filters", "items": ["Reject bad CSRF with 403", "Reject anonymous calls with 401", "/api/admin/** needs ADMIN"] },
+    { "dot": "emerald", "title": "Database", "items": ["Stores users and password hashes", "Stores sessions (Spring Session JDBC)", "Logout deletes the session row"] }
+  ]
+}

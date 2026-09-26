@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import jakarta.servlet.http.Cookie;
@@ -91,29 +92,27 @@ class LogoutTests extends ApiTestSupport {
 
     @Test
     void logoutClearsCsrfToken() throws Exception {
-        // CsrfLogoutHandler clears the token on logout — the client observes
-        // an expired XSRF-TOKEN cookie and must re-bootstrap before its next
-        // mutation (the SPA calls GET /api/auth/csrf again).
+        // The token lives in the session, so logout (session invalidation +
+        // CsrfLogoutHandler) destroys it server-side: a token captured before
+        // logout is rejected afterwards, and the SPA must re-bootstrap.
         seedUser("alice", "alice@example.com");
         Cookie session = loginSession("alice", VALID_PASSWORD);
+        CsrfSession beforeLogout = csrfToken(session);
 
-        MvcResult result = logout(session)
-            .andExpect(status().isOk())
-            .andReturn();
+        logout(session).andExpect(status().isOk());
 
-        Cookie clearedCsrf = result.getResponse().getCookie("XSRF-TOKEN");
-        assertNotNull(clearedCsrf, "logout must clear the CSRF token cookie");
-        assertThat(clearedCsrf.getMaxAge()).isZero();
-        assertThat(clearedCsrf.getValue()).isEmpty();
+        mockMvc.perform(post("/api/auth/logout")
+                .cookie(beforeLogout.session())
+                .header(CSRF_HEADER, beforeLogout.token()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.title").value("Invalid CSRF token"));
     }
 
     @Test
     void anonymousLogoutIsIdempotent() throws Exception {
-        // No session to kill — still 200. Logout reveals nothing sensitive.
-        Cookie csrf = csrfToken();
-        mockMvc.perform(post("/api/auth/logout")
-                .cookie(csrf)
-                .header("X-XSRF-TOKEN", csrf.getValue()))
+        // No authenticated session to kill — still 200. Logout reveals
+        // nothing sensitive.
+        mockMvc.perform(withCsrf(post("/api/auth/logout")))
             .andExpect(status().isOk());
     }
 
@@ -123,13 +122,11 @@ class LogoutTests extends ApiTestSupport {
 
     /**
      * POST logout the way the SPA does: session cookie plus a *fresh* CSRF
-     * token (login's CsrfAuthenticationStrategy cleared the previous one).
+     * token generated in that session (login's CsrfAuthenticationStrategy
+     * removed the pre-login one).
      */
     private ResultActions logout(Cookie session) throws Exception {
-        Cookie csrf = csrfToken();
-        return mockMvc.perform(post("/api/auth/logout")
-            .cookie(session, csrf)
-            .header("X-XSRF-TOKEN", csrf.getValue()));
+        return mockMvc.perform(withCsrf(post("/api/auth/logout"), session));
     }
 
     /**

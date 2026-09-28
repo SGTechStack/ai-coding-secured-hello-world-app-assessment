@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,6 +26,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import sg.securedhello.testsupport.CtxDefaultTest;
 import sg.securedhello.testsupport.Proves;
@@ -136,6 +138,22 @@ class ErrorEnvelopeTest extends CtxDefaultTest {
     @Proves("T-AUTH-011")
     void aContainerStatusReachingTheErrorDispatchIsMappedToACode(int status, ErrorCode expected) throws Exception {
         mockMvc.perform(errorDispatch("/api/anything", status)).andExpect(problem(expected));
+    }
+
+    @Test
+    @Proves("T-AUTH-011")
+    void theFrameworkLogoutPathIsAnUnmatchedRouteNotARedirect() throws Exception {
+        mockMvc.perform(post("/logout").with(csrf()).with(user("user-logout").roles("USER")))
+                .andExpect(problem(ErrorCode.ACCESS_DENIED))
+                .andExpect(header().doesNotExist(HttpHeaders.LOCATION));
+    }
+
+    @Test
+    void anAnonymousBrowserRefusalCreatesNoSession() throws Exception {
+        mockMvc.perform(get("/api/hello").accept(MediaType.TEXT_HTML))
+                .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED))
+                .andExpect(MockMvcResultMatchers.request().sessionAttributeDoesNotExist("SPRING_SECURITY_SAVED_REQUEST"))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
     }
 
     @Test

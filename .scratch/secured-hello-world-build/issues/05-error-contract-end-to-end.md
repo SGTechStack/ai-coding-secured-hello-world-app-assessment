@@ -13,11 +13,11 @@ This ticket also builds the default-deny authorization matrix skeleton (ADR-043)
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] An unhandled exception returns 500 `INTERNAL_ERROR` in the envelope, with no stack trace.
-- [ ] An unmatched route returns the envelope, never a container error page.
-- [ ] Any `/api/admin/roles/**` request is refused.
-- [ ] The build regenerates `error-contract.md` and the JSON Schema from the enum, and drift fails the build.
-- [ ] A backend body that doesn't match the schema fails a test. An SPA fixture that doesn't match the schema fails Vitest.
-- [ ] An ArchUnit or grep check forbids `sendError` in main code.
+- [x] An unhandled exception returns 500 `INTERNAL_ERROR` in the envelope, with no stack trace.
+- [x] An unmatched route returns the envelope, never a container error page.
+- [x] Any `/api/admin/roles/**` request is refused.
+- [x] The build regenerates `error-contract.md` and the JSON Schema from the enum, and drift fails the build.
+- [x] A backend body that doesn't match the schema fails a test. An SPA fixture that doesn't match the schema fails Vitest.
+- [x] An ArchUnit or grep check forbids `sendError` in main code.

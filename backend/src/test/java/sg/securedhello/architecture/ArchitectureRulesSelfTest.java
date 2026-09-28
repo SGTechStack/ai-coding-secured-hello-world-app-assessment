@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import sg.securedhello.architecture.fixtures.ArchitectureViolations;
 import sg.securedhello.architecture.fixtures.PlaceholderProves;
+import sg.securedhello.security.source.SourceKeyResolver;
 
 /** Proves each rule actually catches what it bans, and lets through what it allows. */
 class ArchitectureRulesSelfTest {
@@ -39,6 +40,20 @@ class ArchitectureRulesSelfTest {
         assertViolates(ArchitectureRules.NO_SLEEP, violator);
     }
 
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.ReadsHttpRemoteAddr.class,
+            ArchitectureViolations.ReadsServletRemoteAddr.class, ArchitectureViolations.ReferencesRemoteAddr.class,
+            ArchitectureViolations.ReadsDetailsRemoteAddress.class})
+    void rawClientAddressReadsAreCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.NO_RAW_CLIENT_ADDRESS, violator);
+    }
+
+    @Test
+    void theSourceKeyResolverMayReadTheRawClientAddress() {
+        assertPasses(ArchitectureRules.NO_RAW_CLIENT_ADDRESS, SourceKeyResolver.class,
+                ArchitectureViolations.ReadsInjectedClock.class);
+    }
+
     @Test
     void aProvingSliceIsCaught() {
         assertViolates(NO_SLICE_ON_FIXTURES, ArchitectureViolations.ProvingWebMvcSlice.class);
@@ -60,6 +75,11 @@ class ArchitectureRulesSelfTest {
     void nonProvingSlicesAndProvingFullContextsAreAllowed() {
         assertPasses(NO_SLICE_ON_FIXTURES, ArchitectureViolations.NonProvingSlice.class,
                 ArchitectureViolations.ProvingFullContext.class);
+    }
+
+    @Test
+    void rememberMeIsCaught() {
+        assertViolates(ArchitectureRules.NO_REMEMBER_ME, ArchitectureViolations.EnablesRememberMe.class);
     }
 
     private static void assertViolates(ArchRule rule, Class<?>... classes) {

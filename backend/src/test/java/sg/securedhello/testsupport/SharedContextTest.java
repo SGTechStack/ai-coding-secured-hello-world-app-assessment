@@ -11,7 +11,8 @@ import org.springframework.test.context.bean.override.convention.TestBean;
  * What every shared Spring context has in common (ADR-065, ADR-066, ADR-067):
  * <ul>
  *   <li>the real {@code dev} profile, never a {@code test} profile;</li>
- *   <li>a fresh temporary H2 file;</li>
+ *   <li>a fresh temporary H2 file, and the test-only {@link TestSecrets}, both from
+ *       {@link TemporaryH2FileInitializer};</li>
  *   <li>BCrypt cost 4, a test-speed setting that does not touch the security posture;</li>
  *   <li>the {@code clock} bean replaced by the one suite-wide {@link MutableClock}, exposed as {@link #clock}.</li>
  * </ul>

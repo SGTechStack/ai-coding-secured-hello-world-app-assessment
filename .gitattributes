@@ -1,0 +1,2 @@
+# Migrations are byte-stable on every platform: V7's verbatim Spring Session copy is checked by git blob hash (REJ-040).
+backend/src/main/resources/db/migration/*.sql text eol=lf

@@ -1,0 +1,43 @@
+# Base (production) configuration. The `dev` profile is the only other posture; there is no `test` profile (ADR-067).
+server:
+  port: 8080
+
+spring:
+  application:
+    name: secured-hello-world
+  datasource:
+    # H2 file mode only; LOCK_TIMEOUT is pinned on the URL and FILE_LOCK=NO is prohibited.
+    url: jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=1000
+
+app:
+  security:
+    password:
+      bcrypt-strength: 12
+
+# Actuator: health only, read-only, no details; everything else is denied (ADR-061).
+# Values equal to Boot's defaults are still written, because im8-review greps for the exposure property.
+management:
+  endpoints:
+    access:
+      default: none
+      max-permitted: read-only
+    web:
+      exposure:
+        include: health
+    jmx:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      access: read-only
+      show-details: never
+      # No liveness/readiness probes or db indicator (REJ-063).
+      probes:
+        enabled: false
+  health:
+    db:
+      enabled: false
+  otlp:
+    metrics:
+      export:
+        enabled: false

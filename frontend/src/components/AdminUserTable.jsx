@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchAdminUsers, setUserEnabled, changeUserRole } from "../api/client.js";
+import { fetchAdminUsers, setUserEnabled, changeUserRole, deleteUser } from "../api/client.js";
 
 /**
  * Admin user table (Story 8/9). Loads and renders the user list from
@@ -84,6 +84,21 @@ export default function AdminUserTable() {
     }
   }
 
+  async function handleDelete(user) {
+    setActionError("");
+    setPendingId(user.username);
+    try {
+      await deleteUser(user.id);
+      // Remove the deleted account from the list on success.
+      setUsers((prev) => prev.filter((u) => u.username !== user.username));
+    } catch (err) {
+      // Leave the list unchanged on failure (e.g. self-action guard 400).
+      setActionError(err.message);
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   if (loading) {
     return <p data-testid="admin-users-loading">Loading users…</p>;
   }
@@ -143,6 +158,15 @@ export default function AdminUserTable() {
                   aria-label={`${u.enabled ? "Disable" : "Enable"} ${u.username}`}
                 >
                   {u.enabled ? "Disable" : "Enable"}
+                </button>
+                <button
+                  type="button"
+                  data-testid="admin-user-delete"
+                  onClick={() => handleDelete(u)}
+                  disabled={pendingId === u.username}
+                  aria-label={`Delete ${u.username}`}
+                >
+                  Delete
                 </button>
               </td>
             </tr>

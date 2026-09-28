@@ -4,11 +4,11 @@
 
 **Blocked by:** 11.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Delete endpoint (ADMIN only) removes another account
-- [ ] An admin deleting their own account is rejected (self-action guard)
-- [ ] CSRF enforced on the endpoint
-- [ ] Audit log line for account deletion (actor + target)
-- [ ] React admin control deletes an account and updates the list
-- [ ] Integration tests: account removed; admin cannot delete self
+- [x] Delete endpoint (ADMIN only) removes another account
+- [x] An admin deleting their own account is rejected (self-action guard)
+- [x] CSRF enforced on the endpoint
+- [x] Audit log line for account deletion (actor + target)
+- [x] React admin control deletes an account and updates the list
+- [x] Integration tests: account removed; admin cannot delete self

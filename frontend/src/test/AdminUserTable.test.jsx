@@ -185,6 +185,93 @@ test("surfaces the self-action error and leaves the row unchanged", async () => 
   expect(row.getByTestId("admin-user-toggle")).toHaveTextContent("Disable");
 });
 
+/**
+ * Like {@link routedFetch} but routes the account-delete DELETE
+ * (`.../users/{id}`) to `onDelete`. Used by the Story 11 delete-control tests.
+ */
+function routedFetchWithDelete(listUsers, onDelete) {
+  return vi.fn((url, options = {}) => {
+    const method = options.method ?? "GET";
+    if (url.endsWith("/api/admin/users") && method === "GET") {
+      return Promise.resolve({ ok: true, json: async () => listUsers });
+    }
+    if (method === "DELETE") {
+      return onDelete(url, options);
+    }
+    // /api/ping (CSRF priming) and anything else.
+    return Promise.resolve({ ok: true, json: async () => ({}) });
+  });
+}
+
+test("delete control removes the account from the list", async () => {
+  const users = [
+    {
+      id: "55555555-5555-5555-5555-555555555555",
+      username: "bob",
+      email: "bob@example.com",
+      role: "USER",
+      enabled: true,
+      createdAt: "2026-02-02T00:00:00Z",
+    },
+  ];
+  const del = vi.fn(() => Promise.resolve({ ok: true, status: 204, json: async () => ({}) }));
+  vi.stubGlobal("fetch", routedFetchWithDelete(users, del));
+
+  render(<AdminUserTable />);
+
+  const button = await screen.findByTestId("admin-user-delete");
+  await userEvent.click(button);
+
+  // The DELETE was sent to the target's /users/{id} endpoint.
+  await waitFor(() => expect(del).toHaveBeenCalledTimes(1));
+  const [delUrl, delOptions] = del.mock.calls[0];
+  expect(delUrl).toContain("/api/admin/users/55555555-5555-5555-5555-555555555555");
+  expect(delOptions.method).toBe("DELETE");
+
+  // The row is gone from the list.
+  await waitFor(() =>
+    expect(screen.queryByTestId("admin-user-row")).not.toBeInTheDocument(),
+  );
+});
+
+test("delete control surfaces the self-action error and keeps the row", async () => {
+  const users = [
+    {
+      id: "66666666-6666-6666-6666-666666666666",
+      username: "admin",
+      email: "admin@example.com",
+      role: "ADMIN",
+      enabled: true,
+      createdAt: "2026-01-01T00:00:00Z",
+    },
+  ];
+  const del = vi.fn(() =>
+    Promise.resolve({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        error: "self_action_forbidden",
+        message: "an admin cannot delete their own account",
+      }),
+    }),
+  );
+  vi.stubGlobal("fetch", routedFetchWithDelete(users, del));
+
+  render(<AdminUserTable />);
+
+  const button = await screen.findByTestId("admin-user-delete");
+  await userEvent.click(button);
+
+  await waitFor(() =>
+    expect(screen.getByTestId("admin-users-action-error")).toHaveTextContent(
+      /admin cannot delete their own account/i,
+    ),
+  );
+
+  // The row is still present — the failed delete did not remove it.
+  expect(screen.getByTestId("admin-user-row")).toBeInTheDocument();
+});
+
 test("role control changes a user's role and reflects the new value", async () => {
   const users = [
     {

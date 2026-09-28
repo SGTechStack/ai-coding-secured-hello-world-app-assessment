@@ -173,6 +173,27 @@ export async function changeUserRole(userId, role) {
   return data;
 }
 
+/**
+ * Deletes a target account (Story 11). Admin-only DELETE under `/api/admin/**`;
+ * the backend enforces the role guard server-side and rejects an admin deleting
+ * their OWN account (400 self-action guard). State-changing, so it follows the
+ * same CSRF-header pattern as the other write calls. Resolves on success (the
+ * backend returns 204 No Content); throws with the server message otherwise.
+ */
+export async function deleteUser(userId) {
+  await apiFetch("/api/ping");
+  const response = await apiFetch(`/api/admin/users/${userId}`, {
+    method: "DELETE",
+    headers: {
+      "X-XSRF-TOKEN": csrfToken(),
+    },
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message ?? `delete user failed: ${response.status}`);
+  }
+}
+
 /** Fetches the protected greeting. Returns null when unauthenticated (401). */
 export async function fetchGreeting() {
   const response = await apiFetch("/api/hello");

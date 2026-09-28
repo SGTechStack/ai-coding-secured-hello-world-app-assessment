@@ -1,17 +1,22 @@
 package com.example.helloworldauth.admin;
 
+import com.example.helloworldauth.user.PasswordResetTokenRepository;
 import com.example.helloworldauth.user.User;
 import com.example.helloworldauth.user.UserRepository;
 import com.example.helloworldauth.user.Role;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,9 +38,11 @@ public class AdminUserController {
     private static final Logger AUDIT = LoggerFactory.getLogger("audit");
 
     private final UserRepository users;
+    private final PasswordResetTokenRepository resetTokens;
 
-    public AdminUserController(UserRepository users) {
+    public AdminUserController(UserRepository users, PasswordResetTokenRepository resetTokens) {
         this.users = users;
+        this.resetTokens = resetTokens;
     }
 
     /**
@@ -124,5 +131,44 @@ public class AdminUserController {
             actor, target.getUsername(), newRole);
 
         return AdminUserResponse.from(target);
+    }
+
+    /**
+     * Deletes a target account (Story 11). Removes the account permanently.
+     *
+     * <p>State-changing DELETE under {@code /api/admin/**}, so it inherits the
+     * ADMIN role guard and CSRF protection. The acting admin is taken from the
+     * security context — never from the request. SELF-ACTION GUARD: an admin may
+     * not delete their own account (they would lock themselves out), so a target
+     * whose username equals the authenticated principal's is rejected with 400
+     * and the account is left present — the same mechanism the status-toggle and
+     * role-change endpoints use.
+     *
+     * <p>A user may have {@code password_reset_tokens} rows referencing them via
+     * a non-null FK; those child rows are deleted first so the account delete
+     * does not violate the constraint. The whole operation runs in one
+     * transaction, and returns 204 No Content on success.
+     */
+    @DeleteMapping("/users/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void deleteUser(@PathVariable UUID id, Authentication authentication) {
+        String actor = authentication != null ? authentication.getName() : "unknown";
+
+        User target = users.findById(id)
+            .orElseThrow(() -> new AdminUserNotFoundException("no account with id " + id));
+
+        if (target.getUsername().equals(actor)) {
+            AUDIT.info("admin self-action rejected actor={} target={} action=delete",
+                actor, target.getUsername());
+            throw new SelfActionForbiddenException("an admin cannot delete their own account");
+        }
+
+        // Remove child rows that reference this user (FK on password_reset_tokens)
+        // before deleting the account itself.
+        resetTokens.deleteAll(resetTokens.findByUser(target));
+        users.delete(target);
+
+        AUDIT.info("admin account deletion actor={} target={}", actor, target.getUsername());
     }
 }

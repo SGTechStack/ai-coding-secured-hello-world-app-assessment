@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The app starts, and `GET /actuator/health` returns `UP` with no `components` or details.
-- [ ] Every other `/actuator/**` path is refused.
-- [ ] Main code gets time only from the `Clock` bean. An ArchUnit rule bans ambient time in main code and `Thread.sleep` in tests (T-ARCH-001).
-- [ ] An ArchUnit rule bans `@WebMvcTest` and every other slice annotation on security-control tests (T-ARCH-006; ADR-065).
-- [ ] The four named contexts exist and boot on temporary H2 files. `ctx-nondev` asserts production values without refreshing a production context.
-- [ ] Surefire and Failsafe are pinned at exactly 3.6.0 (R-BLD-005).
-- [ ] A `@Proves("T-…")` annotation exists for tests to cite test-plan rows.
+- [x] The app starts, and `GET /actuator/health` returns `UP` with no `components` or details.
+- [x] Every other `/actuator/**` path is refused.
+- [x] Main code gets time only from the `Clock` bean. An ArchUnit rule bans ambient time in main code and `Thread.sleep` in tests (T-ARCH-001).
+- [x] An ArchUnit rule bans `@WebMvcTest` and every other slice annotation on security-control tests (T-ARCH-006; ADR-065).
+- [x] The four named contexts exist and boot on temporary H2 files. `ctx-nondev` asserts production values without refreshing a production context.
+- [x] Surefire and Failsafe are pinned at exactly 3.6.0 (R-BLD-005).
+- [x] A `@Proves("T-…")` annotation exists for tests to cite test-plan rows.

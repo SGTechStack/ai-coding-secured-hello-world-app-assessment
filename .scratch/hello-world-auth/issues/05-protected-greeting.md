@@ -4,9 +4,9 @@
 
 **Blocked by:** 04.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `GET /api/hello` on an authenticated session returns `"Hello, <username>"`
-- [ ] `GET /api/hello` with no session, or an invalid/expired one, returns 401
-- [ ] React landing page shows the greeting when authenticated and gates it when not
-- [ ] Integration tests: authenticated 200 with correct body, unauthenticated 401
+- [x] `GET /api/hello` on an authenticated session returns `"Hello, <username>"`
+- [x] `GET /api/hello` with no session, or an invalid/expired one, returns 401
+- [x] React landing page shows the greeting when authenticated and gates it when not
+- [x] Integration tests: authenticated 200 with correct body, unauthenticated 401

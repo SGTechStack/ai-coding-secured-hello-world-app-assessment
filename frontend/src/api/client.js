@@ -62,3 +62,16 @@ export async function login({ username, password }) {
   }
   return data;
 }
+
+/** Fetches the protected greeting. Returns null when unauthenticated (401). */
+export async function fetchGreeting() {
+  const response = await apiFetch("/api/hello");
+  if (response.status === 401) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`greeting failed: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.message;
+}

@@ -1,13 +1,13 @@
 package sg.securedhello.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static sg.securedhello.testsupport.CsrfSession.validToken;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
 
 import java.nio.charset.StandardCharsets;
@@ -95,7 +95,7 @@ class ErrorEnvelopeTest extends CtxDefaultTest {
     @MethodSource("everyMethod")
     @Proves("T-ADM-019")
     void roleDefinitionPathsRefuseAnAnonymousCallerWith401(HttpMethod method) throws Exception {
-        mockMvc.perform(roleDefinition(method).with(csrf()))
+        mockMvc.perform(roleDefinition(method).with(validToken(mockMvc)))
                 .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
     }
 
@@ -103,7 +103,7 @@ class ErrorEnvelopeTest extends CtxDefaultTest {
     @MethodSource("everyMethod")
     @Proves("T-ADM-020")
     void roleDefinitionPathsRefuseAUserWith403(HttpMethod method) throws Exception {
-        mockMvc.perform(roleDefinition(method).with(csrf()).with(user("user-adm020").roles("USER")))
+        mockMvc.perform(roleDefinition(method).with(validToken(mockMvc)).with(user("user-adm020").roles("USER")))
                 .andExpect(problem(ErrorCode.ACCESS_DENIED));
     }
 
@@ -111,7 +111,7 @@ class ErrorEnvelopeTest extends CtxDefaultTest {
     @MethodSource("everyMethod")
     @Proves("T-ADM-020")
     void roleDefinitionPathsRefuseAnAdminWith403(HttpMethod method) throws Exception {
-        mockMvc.perform(roleDefinition(method).with(csrf()).with(user("admin-adm020").roles("ADMIN")))
+        mockMvc.perform(roleDefinition(method).with(validToken(mockMvc)).with(user("admin-adm020").roles("ADMIN")))
                 .andExpect(problem(ErrorCode.ACCESS_DENIED));
     }
 
@@ -143,7 +143,7 @@ class ErrorEnvelopeTest extends CtxDefaultTest {
     @Test
     @Proves("T-AUTH-011")
     void theFrameworkLogoutPathIsAnUnmatchedRouteNotARedirect() throws Exception {
-        mockMvc.perform(post("/logout").with(csrf()).with(user("user-logout").roles("USER")))
+        mockMvc.perform(post("/logout").with(validToken(mockMvc)).with(user("user-logout").roles("USER")))
                 .andExpect(problem(ErrorCode.ACCESS_DENIED))
                 .andExpect(header().doesNotExist(HttpHeaders.LOCATION));
     }

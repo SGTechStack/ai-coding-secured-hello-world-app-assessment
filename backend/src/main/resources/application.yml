@@ -4,6 +4,16 @@ server:
   # Explicit, so cloud-platform detection never installs a RemoteIpValve with Tomcat's RFC 1918 default. The only
   # forwarded-header trust is the one derived from app.security.client-ip (REJ-015; R-RL-007).
   forward-headers-strategy: none
+  servlet:
+    session:
+      # The one cookie (ADR-058; REJ-061): SameSite=Strict, not the governing standard's Lax, by decision. No Domain and
+      # no Max-Age (REJ-008). The __Host- prefix needs Secure and Path=/; dev overrides the name and Secure.
+      cookie:
+        name: __Host-SESSION
+        http-only: true
+        secure: true
+        same-site: strict
+        path: /
 
 spring:
   application:
@@ -30,8 +40,13 @@ spring:
             unique_key_validation: NAMED
   # V7 creates the session tables from a verbatim copy; Spring Session never creates them (REJ-040; ADR-030).
   session:
+    # W, the idle window. Set here, not as server.servlet.session.timeout, which Boot ignores outside an embedded
+    # server (a MOCK test context). Anonymous sessions also expire W after creation (REJ-091).
+    timeout: 15m
     jdbc:
       initialize-schema: never
+      # Spring Session's default, pinned: the per-source row figures assume a one-minute sweep (R-SES-011).
+      cleanup-cron: "0 * * * * *"
 
 app:
   security:
@@ -40,7 +55,10 @@ app:
     # Authorization matrix (ADR-043). Each row names an explicit method and a path under /api. Applied as: whitelist,
     # then the fixed /api/admin/roles/** denyAll, then these role guards, then anyRequest().denyAll(). No row, no access.
     authorization:
-      whitelist: []
+      whitelist:
+        # The CSRF token bootstrap, the only route that creates an anonymous session (ADR-040).
+        - method: GET
+          path: /api/csrf
       roles: {}
     # Source keys (ADR-020). The client address is the socket peer unless source=proxy, which needs
     # trusted-proxies to name each proxy address; trusted-proxies has no default (R-RL-007).

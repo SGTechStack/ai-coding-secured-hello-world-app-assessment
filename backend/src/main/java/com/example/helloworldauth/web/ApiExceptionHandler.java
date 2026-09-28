@@ -1,5 +1,6 @@
 package com.example.helloworldauth.web;
 
+import com.example.helloworldauth.auth.AuthenticationFailedException;
 import com.example.helloworldauth.auth.RegistrationConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,13 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ResponseEntity<Map<String, String>> onAuthFailed(AuthenticationFailedException ex) {
+        // Single generic 401 — never reveal whether the username exists.
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(Map.of("error", "unauthorized", "message", ex.getMessage()));
+    }
 
     @ExceptionHandler(RegistrationConflictException.class)
     public ResponseEntity<Map<String, String>> onConflict(RegistrationConflictException ex) {

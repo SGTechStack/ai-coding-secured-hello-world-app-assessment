@@ -44,3 +44,21 @@ export async function register({ username, email, password }) {
   }
   return data;
 }
+
+export async function login({ username, password }) {
+  await apiFetch("/api/ping");
+  const response = await apiFetch("/api/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-XSRF-TOKEN": csrfToken(),
+    },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    // Generic message — backend never reveals which field was wrong.
+    throw new Error(data.message ?? "Invalid username or password");
+  }
+  return data;
+}

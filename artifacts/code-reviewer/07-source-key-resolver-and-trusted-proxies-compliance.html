@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 07-source-key-resolver-and-trusted-proxies</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">code-review PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">react N/A</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN 0/0/1/0</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t07-source-key</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 07: source key resolver and trusted proxies. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify</code> green: 119 tests, 0 failures. Ad hoc PIT on <code>SourceKeyResolver</code>: 28/28 killed (DEFAULTS), 40/40 (STRONGER), 100% line coverage.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">Four small main classes; the derivation is one pure static function; no duplication (proxy validation and valve masks reuse <code>parseLiteral</code>).</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">All four acceptance criteria covered. Low: the real-port test runs its own <code>SpringApplicationBuilder</code> contexts instead of a fixed shared context, because the client-ip configuration decides which Tomcat valves exist.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">semgrep CLI not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">Forwarded headers trusted only from named proxy literals (no RFC 1918 default, no hostnames, no regexes); invalid config fails startup; logged tokens escaped and capped at 64 chars (log-injection safe); no DNS.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">N/A</td><td class="p-2">-</td><td class="p-2">No frontend changes.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">WARN</td><td class="p-2">0/0/1/0</td><td class="p-2">Medium (logging): the unparseable-address WARN/ERROR is emitted per occurrence; R-RL-020's once-per-window throttle is not built yet (T-RL-020 not claimed). Only reachable under proxy misconfiguration. <code>@Validated</code> record properties, profile-free, constructor injection: fine.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

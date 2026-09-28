@@ -4,13 +4,13 @@
 
 **Blocked by:** 02, 04.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Request endpoint returns a generic success message for any email, registered or not (enumeration-resistant)
-- [ ] Registered email → single-use token generated, token hash stored with a 15–30 min expiry
-- [ ] Stubbed `EmailService.sendPasswordResetEmail(...)` invoked and logs the reset link
-- [ ] Plaintext token never stored or logged
-- [ ] CSRF enforced on the endpoint
-- [ ] Audit log line for password reset requested
-- [ ] React request form submits and shows the generic confirmation
-- [ ] Integration tests: registered vs unregistered email return identical responses; token hash stored with expiry
+- [x] Request endpoint returns a generic success message for any email, registered or not (enumeration-resistant)
+- [x] Registered email → single-use token generated, token hash stored with a 15–30 min expiry
+- [x] Stubbed `EmailService.sendPasswordResetEmail(...)` invoked and logs the reset link
+- [x] Plaintext token never stored or logged
+- [x] CSRF enforced on the endpoint
+- [x] Audit log line for password reset requested
+- [x] React request form submits and shows the generic confirmation
+- [x] Integration tests: registered vs unregistered email return identical responses; token hash stored with expiry

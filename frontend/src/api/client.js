@@ -63,6 +63,29 @@ export async function login({ username, password }) {
   return data;
 }
 
+/**
+ * Requests a password reset for the given email. The backend always responds
+ * with the same generic success message regardless of whether the email is
+ * registered (enumeration resistance), so this returns that message on 200 and
+ * only throws on an actual transport/server error.
+ */
+export async function requestPasswordReset({ email }) {
+  await apiFetch("/api/ping");
+  const response = await apiFetch("/api/password-reset/request", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-XSRF-TOKEN": csrfToken(),
+    },
+    body: JSON.stringify({ email }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message ?? `password reset request failed: ${response.status}`);
+  }
+  return data;
+}
+
 /** Fetches the protected greeting. Returns null when unauthenticated (401). */
 export async function fetchGreeting() {
   const response = await apiFetch("/api/hello");

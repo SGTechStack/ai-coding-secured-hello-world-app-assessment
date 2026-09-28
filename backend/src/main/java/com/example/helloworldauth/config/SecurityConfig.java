@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(sf -> sf.migrateSession()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/ping", "/api/register", "/api/login").permitAll()
+                .requestMatchers("/api/ping", "/api/register", "/api/login", "/api/password-reset/request").permitAll()
                 .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(

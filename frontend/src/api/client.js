@@ -110,6 +110,20 @@ export async function confirmPasswordReset({ token, newPassword }) {
   return data;
 }
 
+/**
+ * Fetches the admin user list (Story 8). Admin-only: the backend enforces the
+ * `/api/admin/**` role guard server-side, so an authenticated non-admin gets 403
+ * and an unauthenticated caller gets 401 — client state is never trusted for
+ * authorization. Returns the array of users on success; throws otherwise.
+ */
+export async function fetchAdminUsers() {
+  const response = await apiFetch("/api/admin/users");
+  if (!response.ok) {
+    throw new Error(`admin users fetch failed: ${response.status}`);
+  }
+  return response.json();
+}
+
 /** Fetches the protected greeting. Returns null when unauthenticated (401). */
 export async function fetchGreeting() {
   const response = await apiFetch("/api/hello");

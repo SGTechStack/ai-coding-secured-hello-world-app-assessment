@@ -46,11 +46,20 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/ping", "/api/register", "/api/login",
                     "/api/password-reset/request", "/api/password-reset/confirm").permitAll()
+                // Admin module role guard, enforced server-side. Must sit BEFORE
+                // anyRequest().authenticated() so it matches first. Later admin
+                // slices (12/13/14) reuse this same /api/admin/** matcher.
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
+                // Unauthenticated -> 401 (no session/credentials).
                 .authenticationEntryPoint(
                     new org.springframework.security.web.authentication.HttpStatusEntryPoint(
-                        org.springframework.http.HttpStatus.UNAUTHORIZED)))
+                        org.springframework.http.HttpStatus.UNAUTHORIZED))
+                // Authenticated but lacking the role -> 403. Explicit so an
+                // authenticated USER hitting /api/admin/** gets 403, never 401.
+                .accessDeniedHandler(
+                    new org.springframework.security.web.access.AccessDeniedHandlerImpl()))
             // No form-login/basic UI: this is a REST API driven by the SPA.
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);

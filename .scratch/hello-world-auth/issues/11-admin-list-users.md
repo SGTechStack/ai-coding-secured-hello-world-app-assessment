@@ -4,12 +4,12 @@
 
 **Blocked by:** 04, 10.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `GET /api/admin/users` for an authenticated admin lists username, email, role, enabled, created-at
-- [ ] Password hashes are never included in the response
-- [ ] An authenticated non-admin (USER) calling it receives 403
-- [ ] The `/api/admin/**` role guard is enforced server-side via Spring Security (never trusted from client state)
-- [ ] Audit log line for admin user-list access (actor)
-- [ ] React admin table renders the user list for an admin
-- [ ] Integration tests: admin 200 with expected fields and no hashes; USER → 403
+- [x] `GET /api/admin/users` for an authenticated admin lists username, email, role, enabled, created-at
+- [x] Password hashes are never included in the response
+- [x] An authenticated non-admin (USER) calling it receives 403
+- [x] The `/api/admin/**` role guard is enforced server-side via Spring Security (never trusted from client state)
+- [x] Audit log line for admin user-list access (actor)
+- [x] React admin table renders the user list for an admin
+- [x] Integration tests: admin 200 with expected fields and no hashes; USER → 403

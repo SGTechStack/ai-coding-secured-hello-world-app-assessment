@@ -47,7 +47,8 @@ class ActuatorExposureTest extends CtxDefaultTest {
             "/actuator/threaddump", "/actuator/mappings", "/actuator/sessions", "/actuator/unknown"})
     @Proves("T-OBS-010")
     void everyOtherActuatorPathIsRefusedAnonymously(String path) throws Exception {
-        mockMvc.perform(get(path)).andExpect(status().isForbidden());
+        // Anonymous refusals go through the entry point: 401 AUTHENTICATION_FAILED (ADR-031).
+        mockMvc.perform(get(path)).andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest

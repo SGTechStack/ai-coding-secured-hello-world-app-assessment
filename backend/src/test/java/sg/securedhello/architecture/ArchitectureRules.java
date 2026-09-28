@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
@@ -55,6 +57,14 @@ final class ArchitectureRules {
     /** T-ARCH-006: a class that proves a control boots the full context, never a Boot test slice (ADR-065). */
     static final ArchRule NO_SLICE_ON_PROVING_TESTS = noSliceOnClassesDeclaring(Proves.class);
 
+    /**
+     * T-AUTH-011: nothing calls {@code HttpServletResponse.sendError}, which hands the body to the container's error
+     * page; every error body goes through {@code ProblemDetailWriter} (ADR-031).
+     */
+    static final ArchRule NO_SEND_ERROR = noClasses()
+            .should().callMethodWhere(sendErrorCall())
+            .because("every error body is written by ProblemDetailWriter; sendError is prohibited (ADR-031)");
+
     /** No class that declares {@code marker} on itself or on a method may be a Boot test slice. */
     static ArchRule noSliceOnClassesDeclaring(Class<? extends Annotation> marker) {
         return noClasses()
@@ -68,6 +78,12 @@ final class ArchitectureRules {
                 call -> call.getName().equals("sleep")
                         && (call.getTargetOwner().isEquivalentTo(Thread.class)
                                 || call.getTargetOwner().isAssignableTo(TimeUnit.class)));
+    }
+
+    private static DescribedPredicate<JavaMethodCall> sendErrorCall() {
+        return DescribedPredicate.describe("HttpServletResponse.sendError",
+                call -> call.getName().equals("sendError")
+                        && call.getTargetOwner().isAssignableTo(HttpServletResponse.class));
     }
 
     private static DescribedPredicate<JavaClass> declare(Class<? extends Annotation> marker) {

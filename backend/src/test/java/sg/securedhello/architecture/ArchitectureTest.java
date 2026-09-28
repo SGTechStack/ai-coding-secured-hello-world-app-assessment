@@ -1,6 +1,7 @@
 package sg.securedhello.architecture;
 
 import static sg.securedhello.architecture.ArchitectureRules.NO_AMBIENT_TIME;
+import static sg.securedhello.architecture.ArchitectureRules.NO_SEND_ERROR;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SLEEP;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SLICE_ON_PROVING_TESTS;
 
@@ -47,5 +48,11 @@ class ArchitectureTest {
     @Proves("T-ARCH-006")
     void provingTestsAreNeverBootTestSlices() {
         NO_SLICE_ON_PROVING_TESTS.check(TESTS);
+    }
+
+    @Test
+    @Proves("T-AUTH-011")
+    void mainCodeNeverCallsSendError() {
+        NO_SEND_ERROR.check(MAIN);
     }
 }

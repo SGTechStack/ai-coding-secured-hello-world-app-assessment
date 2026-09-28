@@ -13,6 +13,11 @@ app:
   security:
     password:
       bcrypt-strength: 12
+    # Authorization matrix (ADR-043). Each row names an explicit method and a path under /api. Applied as: whitelist,
+    # then the fixed /api/admin/roles/** denyAll, then these role guards, then anyRequest().denyAll(). No row, no access.
+    authorization:
+      whitelist: []
+      roles: {}
 
 # Actuator: health only, read-only, no details; everything else is denied (ADR-061).
 # Values equal to Boot's defaults are still written, because im8-review greps for the exposure property.

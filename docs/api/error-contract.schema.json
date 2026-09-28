@@ -1,0 +1,394 @@
+{
+  "$id" : "tag:securedhello.sg,2026:error-contract",
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties" : false,
+  "allOf" : [ {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "AUTHENTICATION_FAILED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "Authentication is required, or the credentials were not accepted."
+        },
+        "status" : {
+          "const" : 401
+        },
+        "title" : {
+          "const" : "Authentication failed"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:authentication-failed"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "PASSWORD_CHANGE_REQUIRED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The password must be changed before this request can be made."
+        },
+        "status" : {
+          "const" : 403
+        },
+        "title" : {
+          "const" : "Password change required"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:password-change-required"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "CSRF_TOKEN_INVALID"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The CSRF token is missing, invalid or no longer current."
+        },
+        "status" : {
+          "const" : 403
+        },
+        "title" : {
+          "const" : "CSRF token invalid"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:csrf-token-invalid"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "ACCESS_DENIED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The request is not permitted."
+        },
+        "status" : {
+          "const" : 403
+        },
+        "title" : {
+          "const" : "Access denied"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:access-denied"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "VALIDATION_FAILED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The request was not valid."
+        },
+        "status" : {
+          "const" : 400
+        },
+        "title" : {
+          "const" : "Validation failed"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:validation-failed"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "PASSWORD_REJECTED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The password does not meet the password policy."
+        },
+        "status" : {
+          "const" : 400
+        },
+        "title" : {
+          "const" : "Password rejected"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:password-rejected"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "RESET_TOKEN_INVALID"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The token is invalid or has expired."
+        },
+        "status" : {
+          "const" : 400
+        },
+        "title" : {
+          "const" : "Token invalid"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:reset-token-invalid"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "USER_EXISTS"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "A user with that username or email address already exists."
+        },
+        "status" : {
+          "const" : 400
+        },
+        "title" : {
+          "const" : "User exists"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:user-exists"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "TOO_MANY_REQUESTS"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "Too many requests. Try again later."
+        },
+        "status" : {
+          "const" : 429
+        },
+        "title" : {
+          "const" : "Too many requests"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:too-many-requests"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "MISSING_FACTOR"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "A current second-factor verification is required."
+        },
+        "status" : {
+          "const" : 412
+        },
+        "title" : {
+          "const" : "Second factor required"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:missing-factor"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "INVALID_FACTOR"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The second-factor code was not accepted."
+        },
+        "status" : {
+          "const" : 412
+        },
+        "title" : {
+          "const" : "Second factor invalid"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:invalid-factor"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "FACTOR_ENROLMENT_REQUIRED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "A second factor must be enrolled before this request can be made."
+        },
+        "status" : {
+          "const" : 422
+        },
+        "title" : {
+          "const" : "Second factor enrolment required"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:factor-enrolment-required"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "FACTOR_ALREADY_ENROLLED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "A second factor is already enrolled."
+        },
+        "status" : {
+          "const" : 409
+        },
+        "title" : {
+          "const" : "Second factor already enrolled"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:factor-already-enrolled"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "FACTOR_DISABLED"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The second factor is disabled. Contact an administrator."
+        },
+        "status" : {
+          "const" : 423
+        },
+        "title" : {
+          "const" : "Second factor disabled"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:factor-disabled"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
+          "const" : "INTERNAL_ERROR"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "An unexpected error occurred."
+        },
+        "status" : {
+          "const" : 500
+        },
+        "title" : {
+          "const" : "Internal error"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:internal-error"
+        }
+      }
+    }
+  } ],
+  "description" : "Generated from sg.securedhello.error.ErrorCode. Do not edit; see error-contract.md.",
+  "properties" : {
+    "code" : {
+      "enum" : [ "AUTHENTICATION_FAILED", "PASSWORD_CHANGE_REQUIRED", "CSRF_TOKEN_INVALID", "ACCESS_DENIED", "VALIDATION_FAILED", "PASSWORD_REJECTED", "RESET_TOKEN_INVALID", "USER_EXISTS", "TOO_MANY_REQUESTS", "MISSING_FACTOR", "INVALID_FACTOR", "FACTOR_ENROLMENT_REQUIRED", "FACTOR_ALREADY_ENROLLED", "FACTOR_DISABLED", "INTERNAL_ERROR" ]
+    },
+    "detail" : {
+      "type" : "string"
+    },
+    "instance" : {
+      "type" : "string"
+    },
+    "status" : {
+      "type" : "integer"
+    },
+    "title" : {
+      "type" : "string"
+    },
+    "traceId" : {
+      "pattern" : "^[0-9a-f]{32}$",
+      "type" : "string"
+    },
+    "type" : {
+      "type" : "string"
+    }
+  },
+  "required" : [ "type", "title", "status", "detail", "instance", "traceId", "code" ],
+  "title" : "Error envelope",
+  "type" : "object"
+}

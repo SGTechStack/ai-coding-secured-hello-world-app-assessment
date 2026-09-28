@@ -39,6 +39,18 @@ class ArchitectureRulesSelfTest {
         assertViolates(ArchitectureRules.NO_SLEEP, violator);
     }
 
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.SendsErrorWithStatus.class,
+            ArchitectureViolations.SendsErrorWithMessage.class, ArchitectureViolations.SendsErrorOnAWrapper.class})
+    void sendErrorIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.NO_SEND_ERROR, violator);
+    }
+
+    @Test
+    void settingAStatusIsAllowed() {
+        assertPasses(ArchitectureRules.NO_SEND_ERROR, ArchitectureViolations.SetsStatus.class);
+    }
+
     @Test
     void aProvingSliceIsCaught() {
         assertViolates(NO_SLICE_ON_FIXTURES, ArchitectureViolations.ProvingWebMvcSlice.class);

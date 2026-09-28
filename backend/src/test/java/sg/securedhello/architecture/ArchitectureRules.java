@@ -1,5 +1,6 @@
 package sg.securedhello.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import java.lang.annotation.Annotation;
@@ -18,6 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
@@ -26,6 +28,8 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 
 import jakarta.servlet.ServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
@@ -33,6 +37,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
+import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
 
@@ -86,6 +91,37 @@ final class ArchitectureRules {
             .resideInAPackage("org.springframework.security.web.authentication.rememberme..")
             .because("remember-me is an implicit persistent login, prohibited like a cookie Max-Age (REJ-008)");
 
+    /** T-AUD-016: the audit emitter's {@code emit} has no throwable parameter (ADR-055 constraint 3). */
+    static final ArchRule AUDIT_EMIT_TAKES_NO_THROWABLE = emitTakesNoThrowable(AuditEmitter.class);
+
+    /** T-AUD-016: no audit code attaches a throwable to a log event (ADR-055 constraint 3). */
+    static final ArchRule NO_THROWABLE_ON_AUDIT_ROWS = noThrowableAttachedIn("sg.securedhello.audit..");
+
+    /** Every {@code emit} method {@code emitter} declares takes no {@link Throwable}. */
+    static ArchRule emitTakesNoThrowable(Class<?> emitter) {
+        return methods()
+                .that().areDeclaredIn(emitter).and().haveName("emit")
+                .should(new ArchCondition<>("take no Throwable parameter") {
+                    @Override
+                    public void check(JavaMethod method, ConditionEvents events) {
+                        method.getRawParameterTypes().stream()
+                                .filter(type -> type.isAssignableTo(Throwable.class))
+                                .forEach(type -> events.add(SimpleConditionEvent.violated(method,
+                                        method.getFullName() + " takes a " + type.getName())));
+                    }
+                })
+                .because("an exception message can hold request content, and Boot's ECS formatter writes it "
+                        + "(ADR-055)");
+    }
+
+    /** No class in {@code packageIdentifier} calls {@code setCause} or a logger method taking a throwable. */
+    static ArchRule noThrowableAttachedIn(String packageIdentifier) {
+        return noClasses()
+                .that().resideInAPackage(packageIdentifier)
+                .should().callMethodWhere(throwableAttachment())
+                .because("no throwable may reach an audit row; throwables stay on the application logger (ADR-055)");
+    }
+
     /** ADR-036: the CSRF token lives in the session, never in a cookie ({@code csrf.spa()} builds on this class). */
     static final ArchRule NO_CSRF_COOKIE = noClasses()
             .should().dependOnClassesThat().areAssignableTo(CookieCsrfTokenRepository.class)
@@ -126,6 +162,15 @@ final class ArchitectureRules {
                         && access.getTargetOwner().isAssignableTo(ServletRequest.class)
                         || access.getName().equals("getRemoteAddress")
                         && access.getTargetOwner().isAssignableTo(WebAuthenticationDetails.class));
+    }
+
+    private static DescribedPredicate<JavaMethodCall> throwableAttachment() {
+        return DescribedPredicate.describe("LoggingEventBuilder.setCause or a Logger method taking a Throwable",
+                call -> call.getName().equals("setCause")
+                        && call.getTargetOwner().isAssignableTo(LoggingEventBuilder.class)
+                        || call.getTargetOwner().isAssignableTo(Logger.class)
+                        && call.getTarget().getRawParameterTypes().stream()
+                        .anyMatch(type -> type.isAssignableTo(Throwable.class)));
     }
 
     private static DescribedPredicate<JavaMethodCall> rememberMeCall() {

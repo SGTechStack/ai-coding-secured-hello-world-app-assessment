@@ -26,7 +26,7 @@ import sg.securedhello.testsupport.TestSecrets;
 class SecretsConfigTest {
 
     private static final Pattern FINGERPRINT_LINE =
-            Pattern.compile("Key loaded: property=(\\S+) version=\\S+ fingerprint=([0-9a-f]+)\\R");
+            Pattern.compile("Key loaded: property=(\\S+) version=\\S+ fingerprint=([0-9a-f]+)\\b");
 
     private static final String[] KEYS = {SecretsConfig.TOTP_KEY, SecretsConfig.TOMBSTONE_KEY, SecretsConfig.LOG_KEY};
 

@@ -70,6 +70,15 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
+        <!-- Tracing: trace.id and span.id on every log line; inbound context is restarted (ADR-063). No exporter. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-tracing-opentelemetry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-session-jdbc</artifactId>
@@ -119,6 +128,10 @@
                     <!-- One JVM, one test at a time: the shared clock, contexts and stream captures need it (REJ-058). -->
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
+                    <systemPropertyVariables>
+                        <!-- Tests write the audit file under target/, and LogOutputGuard scans it there. -->
+                        <app.audit.directory>${project.build.directory}/audit-logs</app.audit.directory>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>
@@ -137,6 +150,7 @@
                         <register.compliance.path>${register.compliance.path}</register.compliance.path>
                         <register.handover.path>${register.handover.path}</register.handover.path>
                         <register.regenerate>${register.regenerate}</register.regenerate>
+                        <app.audit.directory>${project.build.directory}/audit-logs</app.audit.directory>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

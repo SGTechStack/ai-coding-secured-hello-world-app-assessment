@@ -11,6 +11,9 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -40,9 +43,11 @@ public class ProblemDetailWriter {
     private static final Logger log = LoggerFactory.getLogger(ProblemDetailWriter.class);
 
     private final JsonMapper jsonMapper;
+    private final Tracer tracer;
 
-    public ProblemDetailWriter(JsonMapper jsonMapper) {
+    public ProblemDetailWriter(JsonMapper jsonMapper, Tracer tracer) {
         this.jsonMapper = jsonMapper;
+        this.tracer = tracer;
     }
 
     /** Writes the envelope for {@code code}, with no extension members. */
@@ -94,15 +99,20 @@ public class ProblemDetailWriter {
     }
 
     /**
-     * A 32-hex-digit id, shaped like a W3C trace id, kept for the rest of the request. Until tracing is wired in
-     * (ADR-063) nothing else sets the attribute, so the writer mints one.
+     * The request's trace id, kept for the rest of the request: the server-generated {@code trace.id} its log lines
+     * carry (ADR-063), or, outside a trace, a minted 32-hex-digit id of the same shape.
      */
-    private static String traceId(HttpServletRequest request) {
+    private String traceId(HttpServletRequest request) {
         if (request.getAttribute(TRACE_ID_ATTRIBUTE) instanceof String existing) {
             return existing;
         }
-        String minted = UUID.randomUUID().toString().replace("-", "");
-        request.setAttribute(TRACE_ID_ATTRIBUTE, minted);
-        return minted;
+        Span span = tracer.currentSpan();
+        // An unsampled span still has a real trace id; only a no-op tracer's span has an empty one.
+        String traceId = span == null ? "" : span.context().traceId();
+        if (traceId == null || traceId.isEmpty()) {
+            traceId = UUID.randomUUID().toString().replace("-", "");
+        }
+        request.setAttribute(TRACE_ID_ATTRIBUTE, traceId);
+        return traceId;
     }
 }

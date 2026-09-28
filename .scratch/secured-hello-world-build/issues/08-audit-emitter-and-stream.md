@@ -12,13 +12,13 @@ Emit the startup rows here. Later tickets add their events to the enum.
 
 **Blocked by:** 06, 07
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] An unknown context key fails in tests and degrades softly at runtime (T-AUD-043).
-- [ ] Rows carry `source.ip_hash` and `session.hash` as keyed hashes (T-AUD-042), and no raw address appears anywhere.
-- [ ] The file appender and the stdout copy both receive rows (T-AUD-044).
-- [ ] Reason codes serialise to their pinned values (T-AUD-045).
-- [ ] The catalogue snapshot regenerates from the enum, and drift fails the build.
-- [ ] An inbound `traceparent` is not continued, and baggage is not propagated.
-- [ ] The canary-secret scan runs across the suite.
-- [ ] Emitter key validation is in the PIT scope at 85%.
+- [x] An unknown context key fails in tests and degrades softly at runtime (T-AUD-043).
+- [x] Rows carry `source.ip_hash` and `session.hash` as keyed hashes (T-AUD-042), and no raw address appears anywhere.
+- [x] The file appender and the stdout copy both receive rows (T-AUD-044).
+- [x] Reason codes serialise to their pinned values (T-AUD-045).
+- [x] The catalogue snapshot regenerates from the enum, and drift fails the build.
+- [x] An inbound `traceparent` is not continued, and baggage is not propagated.
+- [x] The canary-secret scan runs across the suite.
+- [x] Emitter key validation is in the PIT scope at 85%.

@@ -95,6 +95,29 @@ class ArchitectureRulesSelfTest {
     }
 
     @Test
+    void anEmitTakingAThrowableIsCaught() {
+        assertViolates(ArchitectureRules.emitTakesNoThrowable(ArchitectureViolations.EmitsWithThrowable.class),
+                ArchitectureViolations.EmitsWithThrowable.class);
+    }
+
+    @Test
+    void anEmitWithoutAThrowableIsAllowed() {
+        assertPasses(ArchitectureRules.AUDIT_EMIT_TAKES_NO_THROWABLE, sg.securedhello.audit.AuditEmitter.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.AttachesCause.class, ArchitectureViolations.LogsThrowable.class})
+    void aThrowableAttachedToALogEventIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.noThrowableAttachedIn("sg.securedhello.architecture.fixtures.."), violator);
+    }
+
+    @Test
+    void loggingWithoutAThrowableIsAllowed() {
+        assertPasses(ArchitectureRules.noThrowableAttachedIn("sg.securedhello.architecture.fixtures.."),
+                ArchitectureViolations.LogsWithoutThrowable.class);
+    }
+
+    @Test
     void aCsrfCookieRepositoryIsCaught() {
         assertViolates(ArchitectureRules.NO_CSRF_COOKIE, ArchitectureViolations.StoresCsrfInACookie.class);
     }

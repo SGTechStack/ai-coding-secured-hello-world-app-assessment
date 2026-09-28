@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  One format everywhere: ECS NDJSON from EcsLogFormatter, which redacts at source (REJ-001).
+
+  The audit logger writes to its own daily rolling file, the dedicated destination (Logging Std §4; ADR-056): 90
+  archives and deliberately no totalSizeCap, which would delete the oldest audit archives silently while every setting
+  still read compliant (REJ-045; R-AUD-010). Its rows ALSO reach stdout through additivity, in every profile
+  (LOG §3.1; R-AUD-037). Never switch its additivity off: T-AUD-044 fails if the stdout copy goes.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty name="AUDIT_DIRECTORY" source="app.audit.directory" defaultValue="logs"/>
+    <property name="LOG_FORMAT" value="sg.securedhello.logging.EcsLogFormatter"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+            <format>${LOG_FORMAT}</format>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${AUDIT_DIRECTORY}/audit.ndjson</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${AUDIT_DIRECTORY}/audit.%d{yyyy-MM-dd}.ndjson.gz</fileNamePattern>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+        <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+            <format>${LOG_FORMAT}</format>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <logger name="audit" level="INFO">
+        <appender-ref ref="AUDIT_FILE"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

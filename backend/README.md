@@ -59,6 +59,7 @@ Failsafe are pinned at exactly 3.6.0, so `-DskipTests` no longer skips the Fails
 |---|---|---|
 | `@Proves` traceability (ADR-068) | a test cites an unknown T-ID; the test plan is missing, unreadable, empty or has the wrong header (T-BLD-007; T-BLD-008); a row has no test and is not on the pending ledger; a ledger entry already has a test | `TraceabilityGateIT` |
 | Register drift (ADR-069; T-BLD-006) | a committed rendering (`docs/register/deferral-register.md`, `docs/register/handover.md`) differs from what `docs/register/register.md` regenerates, or the table breaks the register schema | `RegisterDriftIT` |
+| Audit log inventory (R-AUD-027; T-AUD-017) | `docs/audit/log-inventory.md` differs from what `AuditEvent` generates; regenerate with `-Daudit-inventory.regenerate=true` | `AuditInventoryDriftIT` |
 | OWASP Dependency-Check (R-BLD-007; R-BLD-010) | a dependency finding at CVSS 7.0 or higher | `dependency-check-maven`, bound to `verify` |
 
 Set `NVD_API_KEY` in the environment before a release build. Without a key the NVD download is slow or refused, and

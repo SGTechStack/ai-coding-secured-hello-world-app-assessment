@@ -8,6 +8,8 @@ import java.util.Map;
 
 import jakarta.servlet.RequestDispatcher;
 
+import io.micrometer.tracing.Tracer;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -20,7 +22,7 @@ class ProblemDetailWriterTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
-    private final ProblemDetailWriter writer = new ProblemDetailWriter(JSON);
+    private final ProblemDetailWriter writer = new ProblemDetailWriter(JSON, Tracer.NOOP);
     private final MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/hello");
     private final MockHttpServletResponse response = new MockHttpServletResponse();
 

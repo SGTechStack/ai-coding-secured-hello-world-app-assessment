@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Structured, single-line key=value output suitable for ingestion (IM8 lm-15). -->
+    <appender name="STRUCTURED" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>ts=%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%-5level logger=%logger{40} msg=%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STRUCTURED"/>
+    </root>
+</configuration>

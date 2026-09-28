@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  admin:
+    username: seedadmin
+    email: seedadmin@example.com
+    password: SeedAdminPass123
+  lockout:
+    max-attempts: 3
+    cooldown-minutes: 15
+  throttle:
+    max-per-ip: 5
+    window-minutes: 15
+  reset:
+    token-ttl-minutes: 30
+  cors:
+    allowed-origins:
+      - http://localhost:3000

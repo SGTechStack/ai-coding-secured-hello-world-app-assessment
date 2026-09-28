@@ -16,7 +16,7 @@ A reference/demo application demonstrating a secure username/password login flow
 ## Out of Scope
 
 - JWT implementation (design documented in the appendix only).
-- Multi-factor authentication (MFA/2FA).
+- Multi-factor authentication (MFA/2FA) — for all users, including `ADMIN`. See the Compliance Waivers section for the IM8 ac-2 waiver and compensating controls.
 - Real SMTP / email delivery (password reset uses a stubbed `EmailService` that logs instead of sending).
 - Containerization / CI/CD / hosting infra.
 - Local HTTPS setup (documented as a deployment assumption; local dev runs over HTTP).
@@ -106,21 +106,28 @@ A reference/demo application demonstrating a secure username/password login flow
 
 **Story 12** — As an **operator deploying the app for the first time**, I want an initial admin account to be created automatically, so that there's a way into the admin module without manual database edits.
 
-- Given no `ADMIN` user exists in the database, when the application starts, then one is seeded using credentials supplied via configuration (e.g. `app.admin.username`, `app.admin.password`), with the password hashed identically to any other account.
+- Given no `ADMIN` user exists in the database, when the application starts, then one is seeded using credentials sourced from a managed secret store (e.g. environment-injected secrets, AWS Secrets Manager, or HashiCorp Vault — never plaintext committed to configuration files), with the password hashed identically to any other account. (IM8 as-8)
 - Given an `ADMIN` user already exists, when the application restarts, then no duplicate seed account is created.
+- Given the seeded admin (or any admin-issued/temporary credential) has never changed its password, when the admin logs in, then a mandatory password change is enforced before any admin action is permitted; the account carries a `must_change_password` flag that is cleared only after a successful change. (IM8 ac-6)
 
 ## Non-Functional & Security Requirements
 
 These are cross-cutting constraints rather than individual user actions, so they sit outside the Connextra story format above but are binding on every story that touches them.
 
-- **Password storage:** BCrypt (`BCryptPasswordEncoder`); no custom hashing.
-- **Session security:** `HttpOnly`, `Secure` (prod), `SameSite` cookie attributes; session-fixation protection; sessions invalidated on logout and password reset.
+- **Password storage:** BCrypt (`BCryptPasswordEncoder`); no custom hashing. (IM8 as-6)
+- **Secrets management:** All secrets (admin seed credentials, database credentials, session/reset-token signing material) are sourced from a managed secret store or environment-injected secrets, never committed to source or plaintext config files. (IM8 as-8)
+- **Forced credential change:** Admin-issued or temporary credentials (including the seeded admin) require a mandatory password change on first login before any privileged action; a forced password reset can also be triggered by an operator on suspected account compromise. (IM8 ac-6, as-15)
+- **Session security:** `HttpOnly`, `Secure` (prod), `SameSite` cookie attributes; session-fixation protection; sessions invalidated on logout and password reset. An absolute maximum session lifetime and idle timeout are enforced, after which re-authentication is required. (IM8 as-11)
 - **CSRF:** Enabled for all state-changing endpoints (register, login, logout, password reset, admin mutations), since auth is cookie-based.
 - **CORS:** Explicit allow-list of the frontend origin(s); `Access-Control-Allow-Credentials: true` for the session cookie to travel cross-origin.
+- **Output encoding / CSP:** All user-controlled output (e.g. the greeting `"Hello, <username>"`, validation and error messages) is contextually encoded; the React client escapes by default and API responses use non-HTML content types. A minimally-permissive Content-Security-Policy header (`default-src 'self'`, no inline/`unsafe-eval`) is set on frontend responses. (IM8 as-3, as-9)
 - **Enumeration resistance:** Login and password-reset-request responses never reveal whether a username/email exists.
-- **Transport:** Any real deployment must sit behind HTTPS (required for `Secure` cookies and HSTS); local dev over HTTP is a documented, accepted gap.
-- **Audit logging:** Structured log lines (no dedicated table required) for login success/failure, lockout triggered, password reset requested/completed, and role change/enable/disable/delete (actor + target). Never log passwords.
-- **Least privilege:** Role checks enforced server-side via Spring Security; never trusted from client-supplied state.
+- **Transport:** Any real deployment must sit behind HTTPS (required for `Secure` cookies and HSTS, with `max-age` ≥ 1 year); local dev over HTTP is a documented, accepted gap. (IM8 as-10, dp-3)
+- **Error handling:** Client-facing errors are generic; internal details, stack traces, and debug information are never disclosed to end users. (IM8 as-13)
+- **Audit logging:** Structured (JSON/ECS) log lines (no dedicated table required) for login success/failure, lockout triggered, password reset requested/completed, and role change/enable/disable/delete (actor + target). Passwords and reset tokens are never logged; sensitive fields are masked. (IM8 lm-4, lm-15, lm-19)
+- **Least privilege:** Default-deny authorization; role checks enforced server-side via Spring Security URL + method-level security; never trusted from client-supplied state. (IM8 ac-1, as-7)
+
+See the Compliance Waivers section for controls (IM8 ac-2, ac-3, ac-4, lm-16) that are waived as out of scope with compensating controls.
 
 ## Data Model
 
@@ -134,6 +141,8 @@ These are cross-cutting constraints rather than individual user actions, so they
 | password_hash | string | BCrypt |
 | role | enum: `USER`, `ADMIN` | |
 | enabled | boolean | admin can disable an account without deleting it |
+| must_change_password | boolean | forces password change on next login for seeded/temporary credentials (IM8 ac-6) |
+| last_login_at | timestamp, nullable | last successful login (audit / operational visibility) |
 | failed_login_attempts | int | for lockout tracking |
 | locked_until | timestamp, nullable | for lockout |
 | created_at | timestamp | |
@@ -148,6 +157,70 @@ These are cross-cutting constraints rather than individual user actions, so they
 | expires_at | timestamp | short-lived (e.g. 15–30 min) |
 | used_at | timestamp, nullable | single-use enforcement |
 
+## System Documentation
+
+Maintained to satisfy IM8 pm-6 (architecture, API specification, network topology, data-flow).
+
+### API surface
+
+| Method | Path | Auth | State-changing (CSRF) |
+| --- | --- | --- | --- |
+| POST | `/api/register` | public | yes |
+| POST | `/api/login` | public | yes |
+| POST | `/api/logout` | session | yes |
+| GET | `/api/hello` | session | no |
+| POST | `/api/password-reset/request` | public | yes |
+| POST | `/api/password-reset/confirm` | public | yes |
+| GET | `/api/admin/users` | ADMIN | no |
+| PATCH | `/api/admin/users/{id}/status` | ADMIN | yes |
+| PATCH | `/api/admin/users/{id}/role` | ADMIN | yes |
+| DELETE | `/api/admin/users/{id}` | ADMIN | yes |
+
+### Network topology (deployment)
+
+```
+[Browser] --HTTPS--> [Reverse proxy / TLS termination + HSTS]
+     |                         |
+     |  React static origin    |  Spring Boot API origin
+     |  (e.g. :3000)           |  (e.g. :8080)
+     +-------------------------+
+                               |
+                        [Spring Boot app]
+                               |
+                        [Spring Session store]
+                               |
+                        [JPA -> H2 (dev) / Postgres|MySQL (prod)]
+                               |
+                        [Secret store: env / Secrets Manager / Vault]
+```
+
+Local dev runs both origins over HTTP (accepted gap); every non-dev deployment sits behind HTTPS.
+
+### Data-flow (login example)
+
+1. Browser submits credentials + CSRF token over HTTPS to `/api/login`.
+2. Backend validates input, looks up the user via parameterised JPA query, checks lockout/enabled state.
+3. On success: session id regenerated (fixation protection), secure `HttpOnly`/`SameSite` cookie set, `failed_login_attempts` reset; structured audit log emitted (no secrets).
+4. On failure: `failed_login_attempts` incremented, generic error returned, lockout/IP-throttle evaluated, audit log emitted.
+
+### Residual controls register
+
+| Control | Status | Rationale / compensating control |
+| --- | --- | --- |
+| IM8 ac-2 privileged MFA | waived (out of scope) | See Compliance Waivers; compensated by lockout, IP throttling, forced first-login change, audit logging, secure sessions. |
+| IM8 ac-3 inactivity disable | waived (out of scope) | Lifecycle automation out of scope; admin can manually disable accounts (Story 9). |
+| IM8 ac-4 access review | waived (out of scope) | Periodic review is an org/ops process, not app scope; admin user list (Story 8) supports ad-hoc review. |
+| IM8 lm-16 key-signal metrics | waived (out of scope) | Monitoring/observability infra out of scope (see Out of Scope: hosting infra). |
+
+## Compliance Waivers
+
+The following IM8 controls are **waived** because they fall outside the declared scope of this reference/demo application. Each waiver records the reason and the compensating controls that remain in force.
+
+- **IM8 ac-2 — MFA for privileged accounts.** *Waived:* MFA/2FA is out of scope for all users, including `ADMIN` (see Out of Scope). *Compensating controls:* per-account lockout and independent IP throttling (Story 3), mandatory first-login password change for the seeded admin (Story 12, ac-6), BCrypt password storage, secure session cookies with fixation protection, and full audit logging of privileged actions. *Residual risk accepted:* privileged accounts rely on a single (password) factor; acceptable for a non-production demo behind HTTPS. Revisit before any production/public deployment.
+- **IM8 ac-3 — Inactive/expired account disable.** *Waived:* automated inactivity-based lifecycle management is out of scope. *Compensating control:* admins can manually disable accounts (Story 9); `last_login_at` is recorded for future automation.
+- **IM8 ac-4 — Periodic access review.** *Waived:* a scheduled privilege-review process is an operational/governance activity outside app scope. *Compensating control:* the admin user list (Story 8) exposes role/enabled/created-at for ad-hoc review.
+- **IM8 lm-16 — Key-signal (RED/USE) monitoring.** *Waived:* runtime observability infrastructure is out of scope (aligned with the Out of Scope exclusion of hosting/CI-CD infra). *Compensating control:* structured audit logging (lm-4/lm-15) provides security-event visibility.
+
 ## Testing Requirements
 
 Automated integration tests are required for the security-critical paths; general CRUD/UI test coverage is left to implementer discretion. Minimum required coverage, mapped to the stories above:
@@ -158,6 +231,7 @@ Automated integration tests are required for the security-critical paths; genera
 - Password reset (Stories 6–7): token single-use, token expiry, reset invalidates existing sessions.
 - Admin self-action guard (Stories 9–11): admin cannot disable/delete/demote their own account.
 - Role enforcement (Story 8): a `USER` calling any `/api/admin/**` endpoint receives 403.
+- Privileged-account hardening (Story 12): seeded admin is forced to change its password on first login before any admin action succeeds. (IM8 ac-6)
 
 ## Appendix: JWT Alternative
 

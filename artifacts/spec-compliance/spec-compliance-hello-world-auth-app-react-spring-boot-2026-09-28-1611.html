@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Spec Compliance: Hello World Auth App (React + Spring Boot) — 2026-09-28 16:11</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall: PASS</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Policy (IM8 / ARC): PASS</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">Hello World Auth App (React + Spring Boot) — post-waiver</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+
+      <div class="flex flex-wrap gap-3">
+        <div class="rounded-full bg-emerald-50 border border-emerald-200 px-4 py-1 text-sm font-medium text-emerald-800">✓ PASS — 22</div>
+        <div class="rounded-full bg-blue-50 border border-blue-200 px-4 py-1 text-sm font-medium text-blue-700">⟳ AUTO-FIX — 0</div>
+        <div class="rounded-full bg-red-50 border border-red-200 px-4 py-1 text-sm font-medium text-red-700">✗ FAIL — 0</div>
+        <div class="rounded-full bg-amber-50 border border-amber-200 px-4 py-1 text-sm font-medium text-amber-700">⏱ DEFERRED — 0</div>
+        <div class="rounded-full bg-slate-50 border border-slate-200 px-4 py-1 text-sm font-medium text-slate-400">— N/A — 103 (88 ARC + 15 IM8)</div>
+      </div>
+
+      <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-6 py-5">
+        <h2 class="text-sm font-semibold text-emerald-700 uppercase tracking-wider mb-3">Compliant — no FAIL or AUTO-FIX outstanding</h2>
+        <p class="text-sm text-slate-700">All in-scope controls PASS. Out-of-scope controls are formally waived in the spec's Compliance Waivers section with documented compensating controls.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-300 bg-slate-50 px-6 py-5">
+        <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wider mb-3">Waived as out of scope (recorded in spec Compliance Waivers)</h2>
+        <ul class="list-disc list-inside space-y-1 text-sm text-slate-700">
+          <li><span class="font-medium">IM8 ac-2 (MFA):</span> waived for all users incl. ADMIN. Compensating: lockout, IP throttling, forced first-login change, secure sessions, audit logging. Residual single-factor risk accepted for non-prod demo.</li>
+          <li><span class="font-medium">IM8 ac-3 (inactivity disable):</span> waived; admin manual disable + <code>last_login_at</code> recorded.</li>
+          <li><span class="font-medium">IM8 ac-4 (access review):</span> waived; admin user list supports ad-hoc review.</li>
+          <li><span class="font-medium">IM8 lm-16 (RED/USE metrics):</span> waived; monitoring infra out of scope; structured audit logging retained.</li>
+        </ul>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">Policy (IM8 / ARC)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span>
+        </summary>
+
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="text-left px-4 py-2">Control</th>
+              <th class="text-left px-4 py-2">Verdict</th>
+              <th class="text-left px-4 py-2">Reason</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Application Security (as)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">as-1 Input Validation</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Uniqueness, password strength, role values validated server-side.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-2 Parameterised Interfaces</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Spring Data JPA parameterised queries.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-3 Output Sanitisation</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Contextual output encoding required; React escaping; JSON responses.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-4 Auth Rate-Limiting</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Per-account lockout + IP throttling.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-5 Password Requirements</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Length ≥ 12.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-6 Password Salting &amp; Hashing</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">BCrypt.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-7 Access Control Enforcement</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Server-side Spring Security checks.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-8 Secrets Management</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Secrets from managed store / env; never plaintext config.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-9 Content Security Policy</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Minimally-permissive CSP header required.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-10 HSTS</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">HSTS ≥ 1 year for HTTPS; local HTTP documented gap.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-11 Session Management</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Max lifetime + idle timeout forcing re-auth.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-12 Malware Scanning of Uploads</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">No file uploads.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-13 Exposure of Internal Details</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Generic errors; no stack traces to clients.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-14 Secure Cryptographic Libraries</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Spring Security / BCrypt.</td></tr>
+            <tr><td class="px-4 py-2 align-top">as-15 Password Change on Compromise</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Operator-triggered forced reset.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Access Control (ac)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-1 Least Privilege</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Default-deny, URL + method-level checks, self-action guards.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-2 MFA Enforcement</td><td class="px-4 py-2 align-top text-slate-400">N/A (waived)</td><td class="px-4 py-2 align-top">MFA out of scope for all users incl. ADMIN; formally waived with compensating controls (lockout, IP throttling, forced first-login change, secure sessions, audit logging). Residual single-factor risk accepted for non-prod demo.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-3 Inactive/Expired Accounts</td><td class="px-4 py-2 align-top text-slate-400">N/A (waived)</td><td class="px-4 py-2 align-top">Lifecycle automation out of scope; admin manual disable + <code>last_login_at</code> recorded.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-4 Access Review</td><td class="px-4 py-2 align-top text-slate-400">N/A (waived)</td><td class="px-4 py-2 align-top">Periodic review is org/ops process out of scope; admin user list supports ad-hoc review.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-6 Default Credentials</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Mandatory first-login password change via <code>must_change_password</code>.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-7 Singpass/Corppass</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">Not a public gov transaction service.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-8 Automated Account Lifecycle</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">No SCIM/JIT in scope.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ac-12 SSO for Internal Services</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">Local-auth demo, not internal WOG service.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Data Protection (dp)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">dp-3 Data in Transit Encryption</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Prod HTTPS/TLS; local HTTP documented gap.</td></tr>
+            <tr><td class="px-4 py-2 align-top">dp-8 Data Classification Disclosure</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">Internal-app control; not this demo.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Logging &amp; Monitoring (lm)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">lm-4 Audit Logging</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Audit lines for auth, lockout, reset, admin actions.</td></tr>
+            <tr><td class="px-4 py-2 align-top">lm-15 Structured Log Formatting</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Structured JSON/ECS logs.</td></tr>
+            <tr><td class="px-4 py-2 align-top">lm-16 Key Signals Monitoring</td><td class="px-4 py-2 align-top text-slate-400">N/A (waived)</td><td class="px-4 py-2 align-top">Observability infra out of scope; formally waived; structured audit logging retained.</td></tr>
+            <tr><td class="px-4 py-2 align-top">lm-18 WOGAA</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">Public gov service only.</td></tr>
+            <tr><td class="px-4 py-2 align-top">lm-19 Log Sanitisation</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">Passwords/tokens never logged; masking.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Cryptography (ck)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">ck-1 Key Establishment</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">No key-exchange crypto.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ck-2 Key Rotation</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">No long-lived app-managed keys.</td></tr>
+            <tr><td class="px-4 py-2 align-top">ck-4 Key Storage</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">No app-managed keys.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Generative AI (ga)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">ga-8 Inform Users of GenAI Risks</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">No GenAI features.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Project Management (pm)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">pm-6 System Documentation</td><td class="px-4 py-2 align-top text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 align-top">System Documentation section with API surface, topology, data-flow, register.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">IM8 — Security Testing (st)</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">st-3 Public Vulnerability Disclosure</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">No public-facing service surface.</td></tr>
+
+            <tr><td class="px-4 py-2 align-top" colspan="3"><span class="text-xs font-semibold uppercase tracking-wider text-slate-600">ARC Framework — all 88 controls</span></td></tr>
+            <tr><td class="px-4 py-2 align-top">CTRL-0001 … CTRL-0088</td><td class="px-4 py-2 align-top text-slate-400">N/A</td><td class="px-4 py-2 align-top">Not an agentic AI system; no LLM/tool/memory/agent/autonomous-code surface.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+    </main>
+  </body>
+</html>

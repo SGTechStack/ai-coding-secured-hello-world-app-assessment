@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: hello-auth
+  datasource:
+    url: jdbc:h2:mem:helloauth;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+
+server:
+  port: 8080
+  servlet:
+    session:
+      # IM8 as-11: absolute idle timeout after which re-authentication is required.
+      timeout: 30m
+      cookie:
+        http-only: true       # IM8 session security
+        same-site: lax
+        secure: false          # overridden to true under HTTPS/prod
+        name: JSESSIONID
+        path: /
+  error:
+    # IM8 as-13: never expose stack traces / internal details to clients.
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+app:
+  admin:
+    # IM8 as-8: sourced from environment/secret store, never committed plaintext.
+    username: ${APP_ADMIN_USERNAME:}
+    email: ${APP_ADMIN_EMAIL:}
+    password: ${APP_ADMIN_PASSWORD:}
+  lockout:
+    max-attempts: 5
+    cooldown-minutes: 15
+  throttle:
+    max-per-ip: 15
+    window-minutes: 15
+  reset:
+    token-ttl-minutes: 30
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+
+logging:
+  level:
+    AUDIT: INFO

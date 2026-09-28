@@ -23,6 +23,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 import sg.securedhello.testsupport.Proves;
 
@@ -55,6 +56,13 @@ final class ArchitectureRules {
     /** T-ARCH-006: a class that proves a control boots the full context, never a Boot test slice (ADR-065). */
     static final ArchRule NO_SLICE_ON_PROVING_TESTS = noSliceOnClassesDeclaring(Proves.class);
 
+    /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
+    static final ArchRule NO_REMEMBER_ME = noClasses()
+            .should().callMethodWhere(rememberMeCall())
+            .orShould().dependOnClassesThat()
+            .resideInAPackage("org.springframework.security.web.authentication.rememberme..")
+            .because("remember-me is an implicit persistent login, prohibited like a cookie Max-Age (REJ-008)");
+
     /** No class that declares {@code marker} on itself or on a method may be a Boot test slice. */
     static ArchRule noSliceOnClassesDeclaring(Class<? extends Annotation> marker) {
         return noClasses()
@@ -68,6 +76,12 @@ final class ArchitectureRules {
                 call -> call.getName().equals("sleep")
                         && (call.getTargetOwner().isEquivalentTo(Thread.class)
                                 || call.getTargetOwner().isAssignableTo(TimeUnit.class)));
+    }
+
+    private static DescribedPredicate<JavaMethodCall> rememberMeCall() {
+        return DescribedPredicate.describe("HttpSecurity.rememberMe",
+                call -> call.getName().equals("rememberMe")
+                        && call.getTargetOwner().isAssignableTo(HttpSecurity.class));
     }
 
     private static DescribedPredicate<JavaClass> declare(Class<? extends Annotation> marker) {

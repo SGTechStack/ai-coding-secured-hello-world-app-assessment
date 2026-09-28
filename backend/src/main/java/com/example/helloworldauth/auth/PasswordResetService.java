@@ -7,6 +7,9 @@ import com.example.helloworldauth.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,15 +21,20 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.Map;
 
 /**
- * Password reset request flow (Story 6).
+ * Password reset request (Story 6) and confirm (Story 7) flows.
  *
- * <p>Enumeration-resistant: the request always completes the same way whether
- * or not the email is registered. Only when it matches a real user is a token
- * minted, its SHA-256 hash persisted (never the plaintext), and the stubbed
- * {@link EmailService} invoked with the plaintext link. The plaintext token is
- * never stored and never written to the audit log.
+ * <p>Request side is enumeration-resistant: it always completes the same way
+ * whether or not the email is registered. Only when it matches a real user is a
+ * token minted, its SHA-256 hash persisted (never the plaintext), and the
+ * stubbed {@link EmailService} invoked with the plaintext link.
+ *
+ * <p>Confirm side looks the incoming plaintext token up by its SHA-256 hash
+ * (the same hashing used when it was minted), rejects any token that is unknown,
+ * expired, or already used, updates the password hash, marks the token used
+ * (single-use), and invalidates every existing session for that user.
  */
 @Service
 public class PasswordResetService {
@@ -37,16 +45,22 @@ public class PasswordResetService {
     private final UserRepository users;
     private final PasswordResetTokenRepository tokens;
     private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
+    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
     private final Duration tokenTtl;
 
     public PasswordResetService(
         UserRepository users,
         PasswordResetTokenRepository tokens,
         EmailService emailService,
+        PasswordEncoder passwordEncoder,
+        FindByIndexNameSessionRepository<? extends Session> sessionRepository,
         @Value("${app.password-reset.token-ttl-minutes:30}") long tokenTtlMinutes) {
         this.users = users;
         this.tokens = tokens;
         this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
+        this.sessionRepository = sessionRepository;
         this.tokenTtl = Duration.ofMinutes(tokenTtlMinutes);
     }
 
@@ -66,6 +80,54 @@ public class PasswordResetService {
             tokens.save(new PasswordResetToken(user, tokenHash, expiresAt));
             emailService.sendPasswordResetEmail(user, plaintextToken);
         });
+    }
+
+    /**
+     * Confirms a reset: validates the token, sets the new password, marks the
+     * token used, and invalidates the user's existing sessions.
+     *
+     * @throws InvalidResetTokenException when the token is unknown, expired, or
+     *     already used. The password is left unchanged in every rejection case.
+     */
+    @Transactional
+    public void confirmReset(String plaintextToken, String newPassword) {
+        String tokenHash = sha256Hex(plaintextToken);
+        PasswordResetToken token = tokens.findByTokenHash(tokenHash)
+            .orElseThrow(InvalidResetTokenException::new);
+
+        Instant now = Instant.now();
+        if (token.isUsed() || token.isExpired(now)) {
+            // Single generic rejection — never reveal which condition tripped.
+            throw new InvalidResetTokenException();
+        }
+
+        User user = token.getUser();
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        users.save(user);
+
+        // Single-use: stamp the token so any further use is rejected above.
+        token.setUsedAt(now);
+        tokens.save(token);
+
+        // Invalidate every existing session for this user so a stolen/active
+        // session cannot survive a password reset.
+        invalidateSessions(user.getUsername());
+
+        audit.info("password reset completed username={}", user.getUsername());
+    }
+
+    /**
+     * Deletes all Spring Session entries indexed under the given principal name.
+     * The principal-name index is populated when a logged-in session persists a
+     * SPRING_SECURITY_CONTEXT (see {@code LoginController}); with the in-memory
+     * {@code MapSessionRepository} configured for this demo the lookup is exact.
+     */
+    private void invalidateSessions(String username) {
+        Map<String, ? extends Session> sessions =
+            sessionRepository.findByPrincipalName(username);
+        for (String sessionId : sessions.keySet()) {
+            sessionRepository.deleteById(sessionId);
+        }
     }
 
     private static String generateToken() {

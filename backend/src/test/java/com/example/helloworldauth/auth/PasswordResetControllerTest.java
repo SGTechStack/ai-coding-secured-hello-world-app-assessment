@@ -5,6 +5,7 @@ import com.example.helloworldauth.user.PasswordResetTokenRepository;
 import com.example.helloworldauth.user.Role;
 import com.example.helloworldauth.user.User;
 import com.example.helloworldauth.user.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,13 @@ class PasswordResetControllerTest {
         tokens.deleteAll();
         users.deleteAll();
         users.save(new User("alice", "alice@example.com", encoder.encode("correcthorsebattery"), Role.USER));
+    }
+
+    @AfterEach
+    void cleanup() {
+        // Clear reset tokens so a later @SpringBootTest class that deletes users
+        // (sharing this H2 context) does not trip the tokens->users FK.
+        tokens.deleteAll();
     }
 
     private String body(String email) {

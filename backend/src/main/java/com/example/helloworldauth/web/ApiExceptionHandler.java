@@ -1,6 +1,7 @@
 package com.example.helloworldauth.web;
 
 import com.example.helloworldauth.auth.AuthenticationFailedException;
+import com.example.helloworldauth.auth.InvalidResetTokenException;
 import com.example.helloworldauth.auth.RegistrationConflictException;
 import com.example.helloworldauth.auth.TooManyRequestsException;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,13 @@ public class ApiExceptionHandler {
         // IP-level throttle tripped (ticket 07). Generic body — no per-account detail.
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
             .body(Map.of("error", "too_many_requests", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<Map<String, String>> onInvalidResetToken(InvalidResetTokenException ex) {
+        // Generic 400 for unknown/expired/used token — never reveal which case.
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "invalid_reset_token", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

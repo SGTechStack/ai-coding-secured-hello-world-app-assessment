@@ -86,6 +86,30 @@ export async function requestPasswordReset({ email }) {
   return data;
 }
 
+/**
+ * Confirms a password reset: submits the reset token and the new password. The
+ * backend validates the token (unknown/expired/used -> 400) and re-checks the
+ * password strength policy, then updates the password and invalidates the user's
+ * existing sessions. Follows the same CSRF-header pattern as the other
+ * state-changing calls. Throws with the server message on any non-2xx response.
+ */
+export async function confirmPasswordReset({ token, newPassword }) {
+  await apiFetch("/api/ping");
+  const response = await apiFetch("/api/password-reset/confirm", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-XSRF-TOKEN": csrfToken(),
+    },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message ?? `password reset failed: ${response.status}`);
+  }
+  return data;
+}
+
 /** Fetches the protected greeting. Returns null when unauthenticated (401). */
 export async function fetchGreeting() {
   const response = await apiFetch("/api/hello");

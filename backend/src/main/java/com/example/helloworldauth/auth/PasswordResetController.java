@@ -31,4 +31,19 @@ public class PasswordResetController {
         passwordResetService.requestReset(request.email());
         return ResponseEntity.ok(GENERIC_RESPONSE);
     }
+
+    /**
+     * Completes a reset with a valid, unexpired, unused token and a
+     * policy-compliant new password. On success the password is updated, the
+     * token is consumed (single-use), and the user's existing sessions are
+     * invalidated. Invalid/expired/used tokens are rejected with 400 via
+     * {@link InvalidResetTokenException} (mapped in the global handler); a new
+     * password shorter than the policy minimum is a 400 bean-validation error.
+     */
+    @PostMapping("/confirm")
+    public ResponseEntity<Map<String, String>> confirmReset(
+        @Valid @RequestBody PasswordResetConfirmRequest request) {
+        passwordResetService.confirmReset(request.token(), request.newPassword());
+        return ResponseEntity.ok(Map.of("message", "Your password has been reset."));
+    }
 }

@@ -1,5 +1,6 @@
 package com.example.helloworldauth.auth;
 
+import com.example.helloworldauth.config.InMemoryIndexedSessionRepository;
 import com.example.helloworldauth.user.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -9,6 +10,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.session.MapSession;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,10 +24,12 @@ import java.util.Map;
 public class LoginController {
 
     private final LoginService loginService;
+    private final InMemoryIndexedSessionRepository indexedSessions;
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
-    public LoginController(LoginService loginService) {
+    public LoginController(LoginService loginService, InMemoryIndexedSessionRepository indexedSessions) {
         this.loginService = loginService;
+        this.indexedSessions = indexedSessions;
     }
 
     @PostMapping("/login")
@@ -43,8 +47,18 @@ public class LoginController {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
-        httpRequest.getSession(true);
+        String servletSessionId = httpRequest.getSession(true).getId();
         contextRepository.saveContext(context, httpRequest, httpResponse);
+
+        // Mirror the authenticated session into the principal-name-indexed store,
+        // keyed by the servlet session id. This is what lets the password-reset
+        // confirm flow find and delete every session for a user (Story 7). The
+        // mirror carries the SPRING_SECURITY_CONTEXT so the principal-name index
+        // resolves to this user.
+        MapSession indexed = new MapSession(servletSessionId);
+        indexed.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+        indexedSessions.save(indexed);
 
         return Map.of("username", user.getUsername(), "role", user.getRole().name());
     }

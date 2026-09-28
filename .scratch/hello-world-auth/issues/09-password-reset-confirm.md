@@ -4,13 +4,13 @@
 
 **Blocked by:** 08.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Valid, unexpired, unused token + policy-compliant new password → password updated, token marked used, existing sessions invalidated
-- [ ] Expired token → rejected, password unchanged
-- [ ] Already-used token → rejected (single-use enforced)
-- [ ] New password re-validated against the strength policy (≥ 12)
-- [ ] CSRF enforced on the endpoint
-- [ ] Audit log line for password reset completed
-- [ ] React confirm form submits the token + new password and reflects success/failure
-- [ ] Integration tests: single-use, expiry, and existing-session invalidation
+- [x] Valid, unexpired, unused token + policy-compliant new password → password updated, token marked used, existing sessions invalidated
+- [x] Expired token → rejected, password unchanged
+- [x] Already-used token → rejected (single-use enforced)
+- [x] New password re-validated against the strength policy (≥ 12)
+- [x] CSRF enforced on the endpoint
+- [x] Audit log line for password reset completed
+- [x] React confirm form submits the token + new password and reflects success/failure
+- [x] Integration tests: single-use, expiry, and existing-session invalidation

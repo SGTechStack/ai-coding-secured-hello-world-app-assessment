@@ -1,5 +1,6 @@
 package com.example.helloworldauth.auth;
 
+import com.example.helloworldauth.config.InMemoryIndexedSessionRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +30,12 @@ public class LogoutController {
 
     private static final Logger audit = LoggerFactory.getLogger("audit");
 
+    private final InMemoryIndexedSessionRepository indexedSessions;
+
+    public LogoutController(InMemoryIndexedSessionRepository indexedSessions) {
+        this.indexedSessions = indexedSessions;
+    }
+
     @PostMapping("/logout")
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -37,6 +44,8 @@ public class LogoutController {
         // Invalidate the server-side session so the old id can never re-authenticate.
         HttpSession session = request.getSession(false);
         if (session != null) {
+            // Drop the principal-name-indexed mirror for this session too.
+            indexedSessions.deleteById(session.getId());
             session.invalidate();
         }
 

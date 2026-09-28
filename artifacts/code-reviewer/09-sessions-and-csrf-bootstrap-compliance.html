@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 09-sessions-and-csrf-bootstrap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/1/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">springboot PASS 0/0/0/1</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t09-sessions-csrf</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 09: sessions and CSRF bootstrap. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify -Ddependency-check.skip=true</code> green after merging ticket 03: 385 unit tests and 4 ITs, including <code>TraceabilityGateIT</code>. Frontend <code>typecheck</code>, <code>oxlint</code>, <code>prettier --check</code>, Vitest (56 tests) and <code>build</code> all green. Ad hoc PIT on the new CSRF and session classes killed every non-equivalent covered mutant.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Small single-purpose classes: two thin CSRF wrappers, the lifetime filter, the first-cookie resolver and the allowlist deserialiser. Low: <code>ProblemAccessDeniedHandler.csrfRejected</code> does not use its exception parameter yet. It is the named seam for ticket 10's audit row.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/1/1</td><td class="p-2">Five of the six acceptance criteria are met, each proven by a test. Medium: the audit row on a CSRF refusal is deferred to ticket 10, which needs the audit emitter from ticket 08. The seam is <code>ProblemAccessDeniedHandler#csrfRejected</code>. Low: the authenticated branch of the absolute-lifetime filter (8 h from <code>AUTH_INSTANT</code>) belongs to ticket 10. Only the anonymous pin is built. Found and fixed during the review: Spring Security's <code>csrf()</code> test post-processor permanently swapped the shared context's token repository, which made later tests create sessions. It is replaced by <code>CsrfSession</code> and banned by an ArchUnit rule.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">The semgrep CLI is not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">The session cookie is HttpOnly and SameSite=Strict (ADR-058), Secure with <code>__Host-</code> outside dev, and has no Domain or Max-Age. The idle timeout is 15 minutes. CSRF uses a synchronizer token read from the header only, with no CSRF cookie. CORS allows exactly the SPA origin with credentials and no wildcard. Session attributes deserialise through a JEP 290 allowlist. Low: R-SES-007's duplicate-cookie audit reason (T-AUD-038) waits for the audit tickets.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">API-client logic only. The token is single-flight, cleared on a failed bootstrap, and retried once on <code>CSRF_TOKEN_INVALID</code>. Queries use the <code>shouldRetry</code> predicate (REJ-052). No component changes beyond the QueryClient options.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">The filter order is SecurityContextHolder, then lifetime, then Csrf, and a test asserts it. The request cache is an explicit <code>NullRequestCache</code>. CORS refusals use the shared envelope rather than the framework's plain text. An explicit <code>CookieSerializer</code> is paired with the custom resolver (REJ-083). Dev relaxes only the cookie name and Secure. Low: <code>spring.session.timeout</code> is used because Boot ignores <code>server.servlet.session.timeout</code> in a MOCK test context, which T-SES-033 caught.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

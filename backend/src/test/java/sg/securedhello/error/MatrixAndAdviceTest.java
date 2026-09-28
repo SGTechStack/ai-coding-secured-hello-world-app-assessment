@@ -1,13 +1,13 @@
 package sg.securedhello.error;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static sg.securedhello.testsupport.CsrfSession.validToken;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
 
 import java.nio.charset.StandardCharsets;
@@ -86,7 +86,8 @@ class MatrixAndAdviceTest extends CtxDefaultTest {
 
         mockMvc.perform(get("/api/admin/roles/probe").with(user("admin-guard").roles("ADMIN")))
                 .andExpect(problem(ErrorCode.ACCESS_DENIED));
-        mockMvc.perform(put("/api/admin/roles/probe").with(csrf()).with(user("admin-guard").roles("ADMIN")))
+        mockMvc.perform(put("/api/admin/roles/probe").with(validToken(mockMvc))
+                        .with(user("admin-guard").roles("ADMIN")))
                 .andExpect(problem(ErrorCode.ACCESS_DENIED));
     }
 
@@ -120,7 +121,7 @@ class MatrixAndAdviceTest extends CtxDefaultTest {
     @Test
     @Proves("T-AUTH-011")
     void anUnreadableBodyIsAValidationFailure() throws Exception {
-        mockMvc.perform(post("/api/probe/echo").with(csrf()).with(user("user-echo").roles("USER"))
+        mockMvc.perform(post("/api/probe/echo").with(validToken(mockMvc)).with(user("user-echo").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON).content("{not json"))
                 .andExpect(problem(ErrorCode.VALIDATION_FAILED));
     }
@@ -128,7 +129,7 @@ class MatrixAndAdviceTest extends CtxDefaultTest {
     @Test
     @Proves("T-AUTH-011")
     void anUnsupportedMediaTypeIsAValidationFailure() throws Exception {
-        mockMvc.perform(post("/api/probe/echo").with(csrf()).with(user("user-echo").roles("USER"))
+        mockMvc.perform(post("/api/probe/echo").with(validToken(mockMvc)).with(user("user-echo").roles("USER"))
                         .contentType(MediaType.TEXT_PLAIN).content("x"))
                 .andExpect(problem(ErrorCode.VALIDATION_FAILED));
     }
@@ -143,7 +144,7 @@ class MatrixAndAdviceTest extends CtxDefaultTest {
     @Test
     @Proves("T-AUTH-011")
     void aPermittedPathWithTheWrongMethodIsAccessDeniedNotA405() throws Exception {
-        mockMvc.perform(post("/api/probe/ok").with(csrf()).with(user("user-405").roles("USER")))
+        mockMvc.perform(post("/api/probe/ok").with(validToken(mockMvc)).with(user("user-405").roles("USER")))
                 .andExpect(problem(ErrorCode.ACCESS_DENIED));
     }
 }

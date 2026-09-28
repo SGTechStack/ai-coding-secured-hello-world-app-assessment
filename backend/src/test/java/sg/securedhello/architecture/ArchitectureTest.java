@@ -2,6 +2,8 @@ package sg.securedhello.architecture;
 
 import static sg.securedhello.architecture.ArchitectureRules.AUDIT_EMIT_TAKES_NO_THROWABLE;
 import static sg.securedhello.architecture.ArchitectureRules.NO_AMBIENT_TIME;
+import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_COOKIE;
+import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_TEST_POST_PROCESSOR;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SEND_ERROR;
 import static sg.securedhello.architecture.ArchitectureRules.NO_RAW_CLIENT_ADDRESS;
 import static sg.securedhello.architecture.ArchitectureRules.NO_REMEMBER_ME;
@@ -82,5 +84,16 @@ class ArchitectureTest {
     @Proves("T-AUD-016")
     void noAuditCodeAttachesAThrowableToALogEvent() {
         NO_THROWABLE_ON_AUDIT_ROWS.check(MAIN);
+    }
+
+    /** ADR-036 names no test-plan row for the cookie repository; T-CSRF-001 covers the response side. */
+    @Test
+    void mainCodeNeverStoresTheCsrfTokenInACookie() {
+        NO_CSRF_COOKIE.check(MAIN);
+    }
+
+    @Test
+    void testsNeverUseTheCsrfPostProcessor() {
+        NO_CSRF_TEST_POST_PROCESSOR.check(TESTS);
     }
 }

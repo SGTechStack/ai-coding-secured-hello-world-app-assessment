@@ -117,6 +117,17 @@ class ArchitectureRulesSelfTest {
                 ArchitectureViolations.LogsWithoutThrowable.class);
     }
 
+    @Test
+    void aCsrfCookieRepositoryIsCaught() {
+        assertViolates(ArchitectureRules.NO_CSRF_COOKIE, ArchitectureViolations.StoresCsrfInACookie.class);
+    }
+
+    @Test
+    void theCsrfTestPostProcessorIsCaught() {
+        assertViolates(ArchitectureRules.NO_CSRF_TEST_POST_PROCESSOR,
+                ArchitectureViolations.UsesCsrfPostProcessor.class);
+    }
+
     private static void assertViolates(ArchRule rule, Class<?>... classes) {
         assertThat(rule.evaluate(importClasses(classes)).hasViolation()).as("%s violates the rule", classes[0]).isTrue();
     }

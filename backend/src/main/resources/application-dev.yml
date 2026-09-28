@@ -1,0 +1,8 @@
+# The dev profile: plain-HTTP local development. Only what cannot hold without TLS differs from production.
+server:
+  servlet:
+    session:
+      cookie:
+        # The __Host- prefix requires Secure, which plain HTTP cannot carry (ADR-058; REJ-061).
+        name: SESSION
+        secure: false

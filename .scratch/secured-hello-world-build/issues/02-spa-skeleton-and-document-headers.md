@@ -11,10 +11,10 @@ The API origin is baked in at build time (R-BLD-012), and the `.env.*` files sta
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `npm run build` produces a bundle whose document has the CSP meta tag ahead of every script (T-BLD-010) and the `Referrer-Policy` meta first in `<head>`.
-- [ ] The production document contains no inline script.
-- [ ] No service worker is registered (T-E2E-001).
-- [ ] The dev and preview servers send `frame-ancestors 'none'` (R-HDR-010).
-- [ ] One Vitest test and one Playwright test run green, each carrying a T-ID in its name.
+- [x] `npm run build` produces a bundle whose document has the CSP meta tag ahead of every script (T-BLD-010) and the `Referrer-Policy` meta first in `<head>`.
+- [x] The production document contains no inline script.
+- [x] No service worker is registered (T-E2E-001).
+- [x] The dev and preview servers send `frame-ancestors 'none'` (R-HDR-010).
+- [x] One Vitest test and one Playwright test run green, each carrying a T-ID in its name.

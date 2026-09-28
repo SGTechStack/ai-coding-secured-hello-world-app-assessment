@@ -1,0 +1,14 @@
+com/example/helloworldauth/web/PingControllerTest.class
+com/example/helloworldauth/auth/PasswordResetConfirmTest.class
+com/example/helloworldauth/admin/AdminChangeRoleTest.class
+com/example/helloworldauth/auth/PasswordResetControllerTest.class
+com/example/helloworldauth/auth/LoginControllerTest.class
+com/example/helloworldauth/admin/AdminSetEnabledTest.class
+com/example/helloworldauth/auth/LockoutThrottlingTest.class
+com/example/helloworldauth/admin/AdminUserControllerTest.class
+com/example/helloworldauth/user/UserRepositoryTest.class
+com/example/helloworldauth/web/HelloControllerTest.class
+com/example/helloworldauth/admin/AdminDeleteUserTest.class
+com/example/helloworldauth/auth/RegistrationControllerTest.class
+com/example/helloworldauth/auth/LogoutControllerTest.class
+com/example/helloworldauth/config/AdminBootstrapTest.class

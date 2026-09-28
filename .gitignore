@@ -1,11 +1,65 @@
-# Backend
-backend/target/
-*.class
+# Ignore the per-tool skill mirror folders.
+# skills-lock.json (the manifest) stays tracked; app code (backend/, frontend/,
+# docs/, prd/) stays tracked.
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
+# Top-level skills source
+/skills/
 
-# Editors / OS
-.DS_Store
-*.log
+# Per-tool skill mirrors (each holds a copy of the skills)
+/agent/
+/data/
+/.adal/
+/.agents/
+/.aider-desk/
+/.augment/
+/.autohand/
+/.bob/
+/.claude/
+/.codeartsdoer/
+/.codebuddy/
+/.codemaker/
+/.codestudio/
+/.commandcode/
+/.continue/
+/.cortex/
+/.crush/
+/.devin/
+/.factory/
+/.forge/
+/.fx/
+/.goose/
+/.grok/
+/.hermes/
+/.iflow/
+/.inferencesh/
+/.jazz/
+/.junie/
+/.kilocode/
+/.kimchi/
+/.kode/
+/.lingma/
+/.mcpjam/
+/.minimax/
+/.moxby/
+/.mux/
+/.neovate/
+/.ona/
+/.openhands/
+/.pi/
+/.pochi/
+/.posit/
+/.qoder/
+/.qwen/
+/.reasonix/
+/.roo/
+/.rovodev/
+/.tabnine/
+/.terramind/
+/.tinycloud/
+/.trae/
+/.vibe/
+/.windsurf/
+/.zcode/
+/.zencoder/
+
+/.kiro/

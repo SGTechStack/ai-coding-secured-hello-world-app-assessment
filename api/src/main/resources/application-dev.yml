@@ -1,0 +1,27 @@
+# Local development. Runs over plain HTTP against an in-memory database.
+# The relaxations below are the PRD's accepted local-dev gaps, not a template for production.
+spring:
+  datasource:
+    url: jdbc:h2:mem:helloauth;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      # Dev convenience only. A real deployment uses versioned migrations and ddl-auto: validate.
+      ddl-auto: update
+
+server:
+  servlet:
+    session:
+      cookie:
+        # No HTTPS locally, so a Secure cookie would never be sent back. Documented gap.
+        secure: false
+
+app:
+  admin:
+    password: ${APP_ADMIN_PASSWORD:dev-admin-password}
+
+logging:
+  level:
+    com.example.helloauth: DEBUG

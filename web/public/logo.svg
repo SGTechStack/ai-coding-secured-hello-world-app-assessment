@@ -1,0 +1,30 @@
+<!--
+  Favicon: the orange badge with "auth" in it, squared off because favicons are square.
+
+  Two things differ from the in-app logo, both because a favicon is loaded outside the document.
+
+  Colours are literal, since CSS custom properties are not visible here. These must stay in step with
+  --color-accent and --color-accent-ink in src/index.css.
+
+  The text needs an explicit font stack for the same reason. No letter-spacing, matching the in-app
+  badge: tracking adds a trailing gap after the last letter, which reads as lopsided padding. Sized so
+  "auth" fills the 28px box without touching the edges even in a wide fallback font. It reads clearly
+  at 32px and is legible-but-tight at 16px, which is the price of a four-letter word in a favicon.
+
+  The lowercase spelling matches the wordmark. The title and aria-label stay capitalised, since those
+  are read aloud rather than looked at.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Helloworld Auth">
+  <title>Helloworld Auth</title>
+  <rect x="2" y="2" width="28" height="28" rx="7" fill="#f97316" />
+  <text
+    x="16"
+    y="16.5"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif"
+    font-size="11"
+    font-weight="700"
+    fill="#1a0f03"
+  >auth</text>
+</svg>

@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/*
+ * The theme, in one place.
+ *
+ * Components reference these names — bg-panel, text-ink, border-edge — and never a raw palette
+ * colour like slate-900. That is the difference between re-theming this app by editing one file and
+ * re-theming it by grepping fifteen.
+ *
+ * Contrast was checked rather than assumed, because a dark theme with a bright accent is the easiest
+ * place to accidentally ship unreadable text. Every value below clears WCAG AA (4.5:1) against the
+ * surface it sits on; the ratios are noted where the choice was non-obvious.
+ */
+@theme {
+  /* Surfaces, darkest first. */
+  --color-canvas: #0a0a0a;
+  --color-panel: #151515;
+  --color-panel-hover: #1e1e1e;
+  --color-edge: #2b2b2b;
+  --color-edge-strong: #3f3f3f;
+
+  /* Text. */
+  --color-ink: #f0efed; /* 18.6:1 on canvas */
+  --color-ink-muted: #a8a29b; /* 8.4:1 */
+  --color-ink-faint: #8d867e; /* 5.8:1 — still AA for body text */
+
+  /*
+   * Accent. Orange is bright enough to read as text on black (7.5:1) but NOT bright enough to carry
+   * white text on top of it — white on this orange is about 2.8:1, which fails badly. So a filled
+   * accent button uses near-black text instead, which gets the same 7.5:1 the other way round.
+   */
+  --color-accent: #f97316;
+  --color-accent-hover: #fb923c;
+  --color-accent-ink: #1a0f03;
+  --color-accent-soft: #2a1608;
+
+  /* Status colours, each with a dark tinted surface for alerts. */
+  --color-danger: #ff7a70; /* 7.8:1 */
+  --color-danger-soft: #2a1210;
+  --color-success: #4ade80; /* 11.3:1 */
+  --color-success-soft: #0d2418;
+  --color-warning: #fbbf24; /* 11.8:1 */
+  --color-warning-soft: #2a1f05;
+}
+
+@layer base {
+  html {
+    /* Tells the browser to render native controls, scrollbars and form widgets dark too. Without it
+       you get a dark page with light scrollbars and a white date picker. */
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  /*
+   * Chrome overrides autofilled inputs with its own near-white background, which on a dark theme
+   * makes a filled-in login form look broken. There is no property to set it directly, so the
+   * conventional fix is an inset shadow large enough to cover the field.
+   */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--color-panel-hover) inset;
+    -webkit-text-fill-color: var(--color-ink);
+    caret-color: var(--color-ink);
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-accent-ink);
+  }
+}
+
+/* Respect a user's reduced-motion preference rather than animating regardless. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,72 @@
+# This file works as an allow-list, not a deny-list.
+#
+# The rule for this repository is that only what is needed to run the application and satisfy
+# docs/prd/assessment-prd.md is tracked. A conventional .gitignore cannot express that, because it has
+# to name every unwanted thing in advance and so lets the next stray file in by default. So the root is
+# ignored outright and the few things that belong are added back by name.
+#
+# The consequence to know about: a new top-level file or directory is ignored until it is listed here.
+# `git add` says so rather than failing quietly — it prints "The following paths are ignored" — but it
+# is a real cost, and the reason for it is that "everything else is ignored" is otherwise unenforceable.
+#
+# Tracked, and why:
+#   .gitignore                    this contract
+#   README.md                     how to run and test the application
+#   docs/prd/                     the PRD, which is the source of truth for behaviour
+#   docs/decisions.md             the ten questions the PRD left open, and how each was settled.
+#                                 Kept because the code cites it: without it, deliberate choices
+#                                 (registration not auto-logging in, a 72-byte password ceiling) look
+#                                 like oversights.
+#   api/                          Spring Boot service, including the integration tests the PRD requires
+#   web/                          React frontend, its build config, and its browser tests
+#
+# Deliberately not tracked: the agent-workflow scaffolding this project was built with — story tickets,
+# dependency graphs, estimates, PM reports, skill documentation, orchestrator caches and the ad-hoc
+# verification scripts. None of it is needed to build, run, test or understand the application.
+
+# ---------------------------------------------------------------------------
+# Ignore everything at the root, then allow back what belongs.
+# ---------------------------------------------------------------------------
+/*
+
+!/.gitignore
+!/README.md
+!/api/
+!/docs/
+!/web/
+
+# docs/ carries requirements only, not process notes.
+/docs/*
+!/docs/prd/
+!/docs/decisions.md
+
+# ---------------------------------------------------------------------------
+# Build output and dependencies inside the two packages.
+# ---------------------------------------------------------------------------
+target/
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Test and tooling output.
+# ---------------------------------------------------------------------------
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+coverage/
+# Screenshots from the capture-theme utility: regenerable, and committed images go stale silently.
+screenshots/
+
+# ---------------------------------------------------------------------------
+# Local environment and editor noise. Unanchored, so they apply at any depth.
+# ---------------------------------------------------------------------------
+*.log
+.env
+.env.local
+.env.*.local
+.DS_Store
+Thumbs.db
+*.swp

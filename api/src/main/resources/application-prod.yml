@@ -1,0 +1,24 @@
+# Production shape. Everything comes from the environment; nothing security-relevant has a default.
+# Containerization, CI/CD and hosting are out of scope per the PRD, so this profile documents the
+# contract a real deployment has to satisfy rather than being exercised by this repository.
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  session:
+    jdbc:
+      # The schema is owned by migrations, not by the application.
+      initialize-schema: never
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+        # Genuinely cross-site frontends need SameSite=None, which browsers only honour
+        # alongside Secure. That is why the PRD requires HTTPS for any real deployment.
+        same-site: ${APP_SESSION_COOKIE_SAME_SITE:lax}

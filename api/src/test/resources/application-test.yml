@@ -1,0 +1,43 @@
+# Test profile.
+#
+# Two settings here are load-bearing rather than incidental:
+#
+#   app.admin.password is blank, so the startup seed does nothing and each test owns every account
+#   that exists. A seeded admin appearing in an unrelated test's fixtures is the kind of thing that
+#   makes a suite pass for the wrong reason.
+#
+#   app.throttle.max-failures is set absurdly high, because the whole suite calls from 127.0.0.1 and
+#   would otherwise throttle itself partway through. The throttling test lowers it again for its own
+#   context, which is the only place the real value matters.
+spring:
+  datasource:
+    # A fresh database per application context. Without the random name, two contexts with different
+    # properties would share one in-memory database and leak fixtures into each other.
+    url: jdbc:h2:mem:helloauth-test-${random.uuid};DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  session:
+    jdbc:
+      initialize-schema: always
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
+
+app:
+  admin:
+    password: ""
+  throttle:
+    max-failures: 100000
+    window: 15m
+
+logging:
+  level:
+    com.example.helloauth: INFO
+    org.hibernate.SQL: WARN

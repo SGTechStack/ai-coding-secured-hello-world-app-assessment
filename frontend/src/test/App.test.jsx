@@ -1,23 +1,44 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import App from "../App.jsx";
 
-afterEach(() => {
-  vi.restoreAllMocks();
+beforeEach(() => {
+  // No ?token= in the URL for these tests.
+  window.history.pushState({}, "", "/");
 });
 
-test("shows backend ok status when ping succeeds", async () => {
+afterEach(() => vi.restoreAllMocks());
+
+test("logged out: shows the login form after the session check returns 401", async () => {
+  // fetchGreeting() -> 401 (unauthenticated)
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) }),
+  );
+
+  render(<App />);
+
+  await waitFor(() =>
+    expect(screen.getByRole("region", { name: /login/i })).toBeInTheDocument(),
+  );
+  expect(screen.getByRole("button", { name: /create an account/i })).toBeInTheDocument();
+});
+
+test("authenticated: shows the greeting and a logout control", async () => {
+  // Both the App session probe and the Greeting component call /api/hello.
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ status: "ok" }),
+      status: 200,
+      json: async () => ({ message: "Hello, alice" }),
     }),
   );
 
   render(<App />);
 
   await waitFor(() =>
-    expect(screen.getByTestId("backend-status")).toHaveTextContent("backend: ok"),
+    expect(screen.getByTestId("greeting")).toHaveTextContent("Hello, alice"),
   );
+  expect(screen.getByRole("button", { name: /log ?out/i })).toBeInTheDocument();
 });

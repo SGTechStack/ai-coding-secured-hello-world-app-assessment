@@ -1,0 +1,962 @@
+{
+  "version": "2.2.0",
+  "summary": {
+    "title": "Secured Hello World Auth App",
+    "owner": "secured-hello-world design plan",
+    "description": "STRIDE threat model over the DECIDED DESIGN (the ADRs, deferral register and test plan under docs/), built before any code exists; ADR-064 records why it is a plan artefact. The DFD is drawn from the design decisions, not from prd/assessment-prd.md. Threats already named and closed by a design decision are recorded as Mitigated with the owning decision cited, so the Open set is what the decisions missed. Findings carry the IDs TM-01..TM-11 and are argued in full in report.md.",
+    "id": 0
+  },
+  "detail": {
+    "contributors": [
+      { "name": "Threat model of the decided design (ADR-064)" }
+    ],
+    "diagramTop": 3,
+    "reviewer": "Compliance review gate",
+    "threatTop": 14,
+    "diagrams": [
+      {
+        "id": 0,
+        "title": "Level 0 — origins, stores and trust boundaries",
+        "diagramType": "STRIDE",
+        "placeholder": "Level 0 context: two browser origins, one API process, one H2 file, one log stream, one secret source.",
+        "thumbnail": "./public/content/images/thumbnail.stride.jpg",
+        "version": "2.2.0",
+        "cells": [
+          {
+            "id": "tb-internet",
+            "shape": "trust-boundary-box",
+            "zIndex": -1,
+            "position": { "x": 40, "y": 40 },
+            "size": { "width": 420, "height": 520 },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "Untrusted — browser / network. No TLS terminator is nominated anywhere (R-OPS-003).",
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "tb-api",
+            "shape": "trust-boundary-box",
+            "zIndex": -1,
+            "position": { "x": 520, "y": 40 },
+            "size": { "width": 460, "height": 520 },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "API origin — localhost:8080. Cross-origin but SAME-SITE with the SPA origin (ADR-059, R-OPS-002), which is why SameSite=Strict survives (ADR-058).",
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "tb-store",
+            "shape": "trust-boundary-box",
+            "zIndex": -1,
+            "position": { "x": 1040, "y": 40 },
+            "size": { "width": 380, "height": 300 },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "Local disk — one H2 file. The application's DB account is an H2 ADMINISTRATOR; least privilege was attempted and declined on h2database#2846 (R-DATA-015).",
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "tb-log",
+            "shape": "trust-boundary-box",
+            "zIndex": -1,
+            "position": { "x": 1040, "y": 380 },
+            "size": { "width": 380, "height": 300 },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "Observability — stdout is the ingestion path and NOTHING CONSUMES IT in this build. ASVS 16.4.2 (L2) and 16.4.3 (L2) are both F (R-AUD-012, R-AUD-013).",
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "ee-anon",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 80 },
+            "size": { "width": 160, "height": 70 },
+            "data": {
+              "type": "tm.Actor",
+              "name": "Anonymous visitor",
+              "description": "Reaches /api/csrf, /api/login, /api/register, /api/register/activate, both password-reset endpoints — and, unbudgeted, every other path in the application.",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-01",
+                  "title": "Audit-volume amplification through routes the rate limiter never listed",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Denial of Service",
+                  "description": "The per-source budget table is a ROUTE ALLOWLIST (twelve rows once the TOTP routes were added; ADR-010) and the decisions this model was run against state no default for a route absent from it. Spring Security's documented filter ordering puts CsrfFilter ahead of authentication and authorization (Spring Security reference, Servlet Architecture (https://docs.spring.io/spring-security/reference/servlet/architecture.html)), so an anonymous POST carrying no CSRF token to ANY path — including /api/admin/**, which is deliberately unthrottled, and including paths matching no controller — is rejected before routing and emits audit row 13 (WARN). Rows 12, 13 and 14 sit in the rate-above ALERT class; they are not transition-keyed, and row 46's truncation cap bounds only RATE_LIMITED_SOURCE rows. So audit volume on these rows is set by the attacker's ingress rate, which is the exact amplification the audit event catalogue identified for rows 5 and 6 and closed with row 46 — arriving through a door row 46 does not cover. It invalidates published arithmetic: the observability design sizes the disk at 90 x daily and the DiskSpace threshold at daily x lead_days, and daily is now attacker-controlled. Disk-full is the standard's own audit-failure condition and total-size-cap was deliberately declined (REJ-045).",
+                  "mitigation": "Graduated to a follow-on decision: decide the limiter's default for unbudgeted routes (default-deny with a catch-all budget was this model's candidate), bound the pre-routing rejection rows, and produce the endpoint-coverage matrix that makes route/budget/matrix/audit completeness provable rather than remembered. Decided in ADR-017 (the budget table stays an allowlist; unlisted routes are metered on session-store misses, raw rate bounded at the edge per R-OPS-006), ADR-018 and ADR-019; asserted by T-RL-016 and T-ARCH-005.",
+                  "modelType": "STRIDE",
+                  "number": 1
+                },
+                {
+                  "id": "TM-02",
+                  "title": "trace.id is caller-supplied, so the audit correlation join key is forgeable",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Spoofing",
+                  "description": "W3C Trace Context §4.3 adopts a well-formed inbound traceparent rather than generating a fresh trace-id, and §7.2 names contrived trace-id collisions that render monitoring data useless as an attack on a publicly reachable API (W3C Trace Context, W3C Recommendation (https://www.w3.org/TR/trace-context/)). The logging design adopted spring-boot-starter-opentelemetry FOR trace.id; the audit event catalogue then made trace.id the join key of the authentication correlation chain — row 8 carries the pre-rotation session.hash, row 1 the post-rotation one, joinable only because they share one trace.id (ADR-038, ADR-054). Nothing in the design asks where trace.id comes from on an inbound request. An unauthenticated caller pinning traceparent to a constant collapses the correlation space, and pinning it to a value a victim's session also carries poisons an investigation. The specification's own suggested protection is to treat authenticated and unauthenticated requests differently.",
+                  "mitigation": "Graduated to a follow-on decision: decide inbound trace-context handling (restart the trace at the boundary or gate continuation on authentication), cap and validate the header per W3C Trace Context §7, and state what the correlation chain rests on once the caller can no longer choose it. Decided in ADR-063 (inbound trace context is restarted at the application boundary; R-OBS-015); asserted by T-OBS-002, T-OBS-003, T-OBS-004 and T-AUD-028.",
+                  "modelType": "STRIDE",
+                  "number": 2
+                },
+                {
+                  "id": "TM-07",
+                  "title": "No global bulkhead: every limiter is per-key, so aggregate cost is unbounded",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Denial of Service",
+                  "description": "Every budget in the design is per source IP, per submitted username, or per submitted identifier. There is no global concurrency cap, no semaphore around password verification and no stated Tomcat thread ceiling, so all of the lockout and throttling arithmetic (ADR-010, ADR-015) is per-source and total CPU and thread occupancy scale linearly with source count — which that arithmetic already concedes IP rotation makes free (R-RL-002). BCrypt cost 12 (ADR-001) holds a request thread 300-400ms, and two UNAUTHENTICATED endpoints run the full four-BCrypt PasswordService sequence: /api/register/activate and /api/password-reset/confirm. The credential-flow design's statement that the unauthenticated-BCrypt resource lever disappears is true of REGISTRATION only and must not be read as covering redemption (R-CRED-016). Token possession bounds it, which is why this is Medium and not High.",
+                  "mitigation": "Build-phase control plus an accepted risk: pin and document server.tomcat.threads.max, keep the Tomcat and Hikari saturation meters (they are the evidence for the thread-exhaustion argument behind ADR-014), and narrow the unauthenticated-BCrypt claim in the register so a later reader does not inherit it too broadly. Now R-RL-005, R-CRED-016 and T-OBS-005.",
+                  "modelType": "STRIDE",
+                  "number": 7
+                }
+              ]
+            }
+          },
+          {
+            "id": "ee-user",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 190 },
+            "size": { "width": 160, "height": 70 },
+            "data": {
+              "type": "tm.Actor",
+              "name": "Authenticated USER",
+              "description": "Password-only session. Reaches /api/profile, /api/hello, PATCH /api/profile/password, /logout. No factor is ever demanded of a USER (MFA for regular users is out of scope).",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-05",
+                  "title": "GET /api/hello — PRD Story 5's only endpoint — has no owner in the design",
+                  "status": "Open",
+                  "severity": "Low",
+                  "type": "Elevation of Privilege",
+                  "description": "The endpoint appeared three times across the design record and never as a design decision: the logging design and the audit event catalogue both say do not log it, and the authorization design cites it only to fix the unversioned base path. It has no authorization-matrix row, no rate-limit row, and is deliberately unaudited (R-AUD-005). Because anyRequest().denyAll() is last (ADR-043) the omission FAILS CLOSED — the endpoint would 401/403 rather than open — so this is a completeness defect, not a hole. It is recorded because it is the same shape the frontend design found on GET /api/profile (audited on every call, throttled on none): three orthogonal registries and no cross-check between them.",
+                  "mitigation": "Amend the authorization matrix to add the row (REJ-055: one matrix row, carried by the spec); the budget row and the general completeness property go with TM-01 to ADR-017 and T-ARCH-005.",
+                  "modelType": "STRIDE",
+                  "number": 5
+                }
+              ]
+            }
+          },
+          {
+            "id": "ee-admin",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 300 },
+            "size": { "width": 160, "height": 70 },
+            "data": {
+              "type": "tm.Actor",
+              "name": "Administrator",
+              "description": "ROLE_ADMIN plus FACTOR_PASSWORD plus FACTOR_TOTP. Reads unbounded (type-guard duration = 8h), mutations re-verified every 10 minutes.",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-08",
+                  "title": "Flat ADMIN role: any admin can take over any account, including another admin's",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Elevation of Privilege",
+                  "description": "Stated once here because no decision states it as a whole. POST /api/admin/users/{uuid}/password-reset deliberately carries NO actor-not-equal-subject rule and returns a plaintext token for any target (ADR-006); DELETE /api/admin/users/{uuid}/totp destroys a target's factor. Composed, one admin can take over another admin's account end to end. Amended by ADR-049: the factor deletion is now EXEMPT from the two-enrolled-admins count (actor-not-equal-subject stays), because at exactly two admins the guard refused legitimate lost-phone recovery and the subject restores the count alone by re-enrolling. So at exactly two admins A can take B over completely (password plus factor, and A may re-enrol as B); at three or more the path was already open. The invariant (ADR-048) is an availability guard on disable, demote and delete, not a separation-of-duties control. The admin design named self-disable and self-demotion; nobody named other-admin takeover. The PRD requests no separation of duties and no four-eyes control, so this is inherent to a flat role model rather than a defect introduced by the design.",
+                  "mitigation": "Accepted risk (R-ADM-009), with the detection channel named: audit row 18 with reason ADMIN_RESET carries actor plus user.target.id and is, in the credential-flow design's own words, the sole detector of admin abuse; row 33 totp-remove sits beside it, and if the deployer enables OTLP export the authenticable-admins gauge below 2 fires at the takeover step (non-discriminating, silent at three or more admins; R-OBS-007). The residual is that its retention is 90 days on a file the application owns and rewrites (ASVS 16.4.2 (L2) F), so the detector outlives neither the tombstone nor a patient attacker.",
+                  "modelType": "STRIDE",
+                  "number": 8
+                }
+              ]
+            }
+          },
+          {
+            "id": "ee-logreader",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 410 },
+            "size": { "width": 160, "height": 70 },
+            "data": {
+              "type": "tm.Actor",
+              "name": "Log reader",
+              "description": "A REAL actor in this build (R-CRED-020): under dev the stubbed EmailService logs reset links, so a log reader can take over any activated account. Outside dev that logger is confined (ADR-057), and the consequence flips — no deliverable artefact exists at all (R-CRED-021).",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": [
+                {
+                  "id": "TM-11",
+                  "title": "Total account takeover from log read (dev) / total loss of recovery channel (non-dev)",
+                  "status": "Mitigated",
+                  "severity": "High",
+                  "type": "Information Disclosure",
+                  "description": "Named and argued at length by the credential-flow design and its lockout-recovery amendment (R-CRED-020, R-CRED-021): the leak is total for ordinary users and partial for administrators, contained only by the administrators' TOTP factor (ADR-023) and confidentiality-only; and outside dev the same design yields no reset artefact at all. Three enforcement mechanisms confine the logger (ADR-057) and the operator rebinding runner writes its token to System.out and never through the logging system.",
+                  "mitigation": "Owned by ADR-057 (dev-only reset-link logger), ADR-023 (TOTP for administrators) and R-CRED-020 / R-CRED-021. Recorded here as a Mitigated inherited risk so the DFD shows the actor rather than implying the threat is new.",
+                  "modelType": "STRIDE",
+                  "number": 11
+                }
+              ]
+            }
+          },
+          {
+            "id": "ee-operator",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": { "x": 260, "y": 410 },
+            "size": { "width": 160, "height": 70 },
+            "data": {
+              "type": "tm.Actor",
+              "name": "Deployer / operator (shell)",
+              "description": "Holds deploy-level access. Invokes the --rebind=<username> runner, the only privileged path with no HTTP authentication in front of it (ADR-072). Also owns the build machine that bakes the SPA's origin and CSP (R-BLD-012, R-HDR-007).",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-spa",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 300, "y": 190 },
+            "size": { "width": 140, "height": 80 },
+            "data": {
+              "type": "tm.Process",
+              "name": "React SPA (localhost:5173)",
+              "description": "Own origin. Ten-directive CSP delivered in three layers; script-src 'self' with no nonce, which is why no inline script may exist in the production document. Auth state comes only from GET /api/profile; the envelope code outranks cached belief.",
+              "outOfScope": false,
+              "handlesCard": false,
+              "privilegeLevel": "anonymous or session",
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-api",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 600, "y": 190 },
+            "size": { "width": 180, "height": 90 },
+            "data": {
+              "type": "tm.Process",
+              "name": "Spring Boot API (localhost:8080)",
+              "description": "Decomposed in diagram 1. Boot 4.1 / Security 7.1.1 / Session JDBC 4.1.1 on Java 21. Six-plus envelope producers, all writing through one ProblemDetailWriter; sendError prohibited.",
+              "outOfScope": false,
+              "privilegeLevel": "application",
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "st-h2",
+            "shape": "store",
+            "zIndex": 1,
+            "position": { "x": 1080, "y": 90 },
+            "size": { "width": 200, "height": 80 },
+            "data": {
+              "type": "tm.Store",
+              "name": "H2 file — 7 application tables",
+              "description": "roles, users, credential_tokens, password_history, totp_user_details, pending_totp, deleted_users. UUID v4 sole primary key. ON DELETE CASCADE on four child tables; sessions deliberately do not cascade.",
+              "outOfScope": false,
+              "isEncrypted": false,
+              "isSigned": false,
+              "storesCredentials": true,
+              "hasOpenThreats": false,
+              "threats": [
+                {
+                  "id": "TM-09",
+                  "title": "The tombstone records no role, so privileged deprovisioning loses its evidence first",
+                  "status": "Open",
+                  "severity": "Low",
+                  "type": "Repudiation",
+                  "description": "deleted_users holds user_id, username, email_hmac, deleted_at, deleted_by_id — and no role (ADR-044). Retention is indefinite. Audit row 31 carries the actor and user.target.id, but the application does not own the 90-day TTL (R-AUD-022) and the audit event catalogue recorded the asymmetry twice. So past the audit horizon the permanent record can say an account existed and who deleted it, but not whether the account was an ADMIN. IM8 ac-7 binds provisioning and deprovisioning, and the one deprovisioning fact a reviewer would ask for is the one that expires.",
+                  "mitigation": "Accepted risk (R-ADM-010) rather than a schema change: adding a role column to the tombstone widens indefinite retention of personal-adjacent data, which cuts against the PDPA argument that made the email an HMAC in the first place (ADR-044). Recorded so the asymmetry is a decision.",
+                  "modelType": "STRIDE",
+                  "number": 9
+                }
+              ]
+            }
+          },
+          {
+            "id": "st-session",
+            "shape": "store",
+            "zIndex": 1,
+            "position": { "x": 1080, "y": 210 },
+            "size": { "width": 200, "height": 80 },
+            "data": {
+              "type": "tm.Store",
+              "name": "SPRING_SESSION (+_ATTRIBUTES)",
+              "description": "Same H2 file. DDL copied verbatim and enforced by git-blob hash (REJ-040). ATTRIBUTE_BYTES is JDK-serialised; the Spring Security configuration design chose JDK serialisation over JSON deliberately, on a Jackson-version argument.",
+              "outOfScope": false,
+              "isEncrypted": false,
+              "storesCredentials": true,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-06",
+                  "title": "Session attributes are JDK-deserialised on every request and no design decision states whether a filter is configured",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Tampering",
+                  "description": "The Spring Security configuration design kept JDK serialization for session attributes for a Jackson-version reason; the data model copied the DDL verbatim including the LONGVARBINARY column (REJ-040); the TOTP design asserts a FactorGrantedAuthority survives the round trip. Nobody looked at the DESERIALISATION side. The configuration design already concedes that reading the H2 file means live session hijack because SESSION_ID is the cookie value; the unexamined escalation is WRITE to that file, which becomes a gadget-chain path rather than a hijack (R-SES-003). Verified: DefaultDeserializer exposes getObjectInputFilter(), so the hook is a first-class settable property in Spring Framework 7 (DefaultDeserializer javadoc, Spring Framework 7.0.9 (https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/serializer/DefaultDeserializer.html)). NOT verified, and therefore not asserted: that the framework default installs no filter — the Spring Session reference documents no serialization configuration at all, so the default is unstated (Spring Session JDBC configuration reference (https://docs.spring.io/spring-session/reference/configuration/jdbc.html)).",
+                  "mitigation": "Build-phase control plus a handover item, deliberately not a reopening: confirm the effective filter as a first-implementation check and install an allowlist over the attribute types actually stored. It stays Medium because the precondition is database write access, which the configuration design scoped to a developer workstation (R-DATA-015) — but a future real database inherits the path, and that is the handover sentence. Now R-SES-003 and T-SES-025.",
+                  "modelType": "STRIDE",
+                  "number": 6
+                }
+              ]
+            }
+          },
+          {
+            "id": "st-audit",
+            "shape": "store",
+            "zIndex": 1,
+            "position": { "x": 1080, "y": 430 },
+            "size": { "width": 200, "height": 80 },
+            "data": {
+              "type": "tm.Store",
+              "name": "Audit stream — stdout + rolling file",
+              "description": "NDJSON, one event per line, both destinations in every profile. max-history 90, total-size-cap deliberately absent. 46 rows, closed AuditEvent enum, emit() exposes no throwable.",
+              "outOfScope": false,
+              "isEncrypted": false,
+              "isSigned": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "st-secrets",
+            "shape": "store",
+            "zIndex": 1,
+            "position": { "x": 600, "y": 430 },
+            "size": { "width": 180, "height": 80 },
+            "data": {
+              "type": "tm.Store",
+              "name": "Secret material",
+              "description": "Three 32-byte keys plus the bootstrap admin credential, delivered via configtree:/run/secrets and the environment. No property name may appear in any committed config. OS environment variables override imported config data, which is why the startup fingerprint exists.",
+              "outOfScope": false,
+              "isEncrypted": false,
+              "storesCredentials": true,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-spa-api",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-spa" },
+            "target": { "cell": "pr-api" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Credentialed cross-origin fetch (cookie + X-CSRF-TOKEN)",
+              "description": "HTTP, not HTTPS, in the only configuration we run. SameSite=Strict survives because the two origins are same-site. CORS allow-list is the SPA origin with credentials.",
+              "isEncrypted": false,
+              "protocol": "HTTP",
+              "isPublicNetwork": true,
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-anon-api",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "ee-anon" },
+            "target": { "cell": "pr-api" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Direct unauthenticated request to any path",
+              "description": "The flow that matters for TM-01 and TM-02: a non-browser client reaching arbitrary paths, carrying arbitrary traceparent, with no cookie and no CSRF token. SameSite and CORS are browser controls and do not apply to it.",
+              "isEncrypted": false,
+              "protocol": "HTTP",
+              "isPublicNetwork": true,
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-api-h2",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-api" },
+            "target": { "cell": "st-h2" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "JDBC as H2 administrator",
+              "description": "Least privilege attempted and declined: H2 GRANT is table-scoped, a DML grant may confer DROP (h2database#2846), and the first connector to a new database becomes its admin. LOCK_TIMEOUT=1000 pinned on the URL.",
+              "isEncrypted": false,
+              "protocol": "JDBC",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-api-session",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-api" },
+            "target": { "cell": "st-session" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Session read/write in PROPAGATION_REQUIRES_NEW",
+              "description": "Every session write suspends the caller's transaction and commits independently, so a session kill can never be atomic with the state change that triggers it. Hence: session rows only after commit, never inside the lock, plus a startup reconciliation sweep.",
+              "isEncrypted": false,
+              "protocol": "JDBC",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-api-audit",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-api" },
+            "target": { "cell": "st-audit" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Audit emission (after commit, synchronous listener)",
+              "description": "Synchronous so MDC — trace.id, session.hash, user.id — survives. The flow TM-01 floods and TM-02 mislabels.",
+              "isEncrypted": false,
+              "protocol": "logback",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-api-mail",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-api" },
+            "target": { "cell": "st-audit" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Stubbed EmailService — writes the link it would have sent",
+              "description": "Separate non-audit logger, dev profile only, three enforcement mechanisms. Outside dev this flow produces nothing, which is the finding, not the fix.",
+              "isEncrypted": false,
+              "protocol": "logback",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-secrets-api",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "st-secrets" },
+            "target": { "cell": "pr-api" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "Refresh-phase secret binding",
+              "description": "Presence validated as @NotBlank; every value-dependent check moved to the @Bean factory because Boot's failure report prints the rejected value and its origin.",
+              "isEncrypted": false,
+              "protocol": "in-process",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          }
+        ]
+      },
+      {
+        "id": 1,
+        "title": "Level 1 — the API decomposed into filter bands",
+        "diagramType": "STRIDE",
+        "placeholder": "Where TM-01, TM-03 and TM-04 live: the ordering of the bands is the design.",
+        "version": "2.2.0",
+        "cells": [
+          {
+            "id": "tb-preroute",
+            "shape": "trust-boundary-box",
+            "zIndex": -1,
+            "position": { "x": 40, "y": 40 },
+            "size": { "width": 400, "height": 460 },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "PRE-ROUTING band — runs before any authorization decision and before handler mapping. Everything here sees client bytes as url.path.",
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-ratelimit",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 80 },
+            "size": { "width": 160, "height": 80 },
+            "data": {
+              "type": "tm.Process",
+              "name": "1. Per-IP limiter (addFilterBefore DisableEncodeUrlFilter)",
+              "description": "Bucket4j over a hand-built Caffeine map, twelve route rows. First filter in the chain. The allowlist whose default nobody stated.",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-abs",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 190 },
+            "size": { "width": 160, "height": 80 },
+            "data": {
+              "type": "tm.Process",
+              "name": "2. AbsoluteSessionLifetimeFilter",
+              "description": "After SecurityContextHolderFilter, before CsrfFilter — so an expired session gets a 401 rather than a misleading 403. Reads AUTH_INSTANT, never getCreationTime().",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-csrf",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 300 },
+            "size": { "width": 160, "height": 80 },
+            "data": {
+              "type": "tm.Process",
+              "name": "3. CsrfFilter",
+              "description": "HttpSessionCsrfTokenRepository, header-only (the _csrf parameter fallback is prohibited because a token in a query string lands in access logs). No CSRF cookie is ever set. Applies to login and to logout.",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-forcedchange",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 410 },
+            "size": { "width": 160, "height": 70 },
+            "data": {
+              "type": "tm.Process",
+              "name": "4. Forced-change filter",
+              "description": "Five-path allowlist, the union of two mutually incompatible prescribed lists. Must run before the factor filters, which share its AuthorizationFilter anchor.",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-login",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 500, "y": 80 },
+            "size": { "width": 180, "height": 90 },
+            "data": {
+              "type": "tm.Process",
+              "name": "5. Route C login filter + converter",
+              "description": "Converter parses JSON, calls the per-account limiter on the RAW submitted username before authenticate(), and must set WebAuthenticationDetails or two readers fail in opposite directions. Login composite: ConcurrentSessionControl, audit strategy, ChangeSessionId, RegisterSession, AuthInstantStamping, CsrfAuthenticationStrategy.",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-totp",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 500, "y": 210 },
+            "size": { "width": 180, "height": 90 },
+            "data": {
+              "type": "tm.Process",
+              "name": "6. TOTP confirmation + verification filters",
+              "description": "Two AbstractAuthenticationProcessingFilter beans, four explicit settings each, two of which fail silently. Precondition lives in the provider because shouldPerformMfa gates only the merge and an authorizeHttpRequests rule on the path is dead code. Username from the SecurityContext, never the body.",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-03",
+                  "title": "The tier-2 trip inverts the pinned lock order",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Denial of Service",
+                  "description": "The design pins lock order as user rows, then TOTP rows, then session rows (ADR-039, ADR-048). The TOTP verification path holds a pessimistic lock on totp_user_details across load, decrypt, compare and write — correctly, because that atomicity IS the replay control. But on the hundredth cumulative failure the tier-2 trip must also set users.force_password_change (ADR-016, ADR-027), so that path acquires totp_user_details and THEN users: the pinned order, inverted, in the one place three decisions agreed it must not be. The counterparty is AdminActionGuard, which takes users then totp_user_details on all four mutating paths (ADR-048) — a textbook deadlock pair. H2's LOCK_TIMEOUT bounds it at 1s, and the consequences are asymmetric: the guard's side surfaces as audit row 34 with reason LOCK_TIMEOUT, while the TOTP design deliberately does NOT fail open on the TOTP path, so the same contention rejects a legitimate admin's CORRECT code as a failed authentication.",
+                  "mitigation": "Amend the tier-2 trip (ADR-027): the trip acquires the users row first, before the TOTP row, so the trip obeys the order the rest of the design already follows. The alternative — dispatching the flag after commit like the session kill — was considered and is worse, because it puts a credential-compromise consequence outside the transaction that detected it. The test plan owes the assertion (T-MFA-007), which is cheap to state and near-impossible to discover by accident.",
+                  "modelType": "STRIDE",
+                  "number": 3
+                }
+              ]
+            }
+          },
+          {
+            "id": "pr-authz",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 500, "y": 340 },
+            "size": { "width": 180, "height": 90 },
+            "data": {
+              "type": "tm.Process",
+              "name": "7. AuthorizationFilter + hand-composed factor rules",
+              "description": "allOf(deny, hasRole('ADMIN'), factors) — role FIRST, two-argument allOf because the one-argument form grants on all-abstain. Method-aware matchers split GET from mutations. AuthorizationManagerFactories and @EnableMultiFactorAuthentication both abandoned.",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-04",
+                  "title": "The factor gate is single-layered while the role gate is double-layered",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Elevation of Privilege",
+                  "description": "The authorization design applies the matrix in authorizeHttpRequests AND @PreAuthorize on the service methods, calling the annotation defence in depth (ADR-043). The TOTP design then abandoned @EnableMultiFactorAuthentication precisely BECAUSE it would AND the factor into every rule in web and method security (ADR-026) — a correct decision for the reason given, one global bean cannot hold two validDurations. The consequence nobody wrote down is that the factor requirement now exists in exactly one place. The role gate has two independent layers; the factor gate has one, and it is the layer expressed as request matchers — including the method-aware GET-versus-mutation split that carries the difference between an 8-hour type guard and a 10-minute re-verification. So a mis-written matcher silently downgrades or removes the factor, and @PreAuthorize will not catch it, while the identical mistake on the role is caught.",
+                  "mitigation": "Amend ADR-043 and ADR-026 to state the asymmetry, and give the test plan an assertion enumerated FROM the matrix rather than hand-written (T-MFA-002): for every admin route and method, a session holding ROLE_ADMIN and FACTOR_PASSWORD but no FACTOR_TOTP is refused, and for every mutation a factor older than 10 minutes is refused. Enumerating from the matrix is the point — a hand-written list omits the route that gets added later, which is the failure this finding is about. A method-level @RequiresFactor was considered and is not recommended: it rebuilds the global-bean problem ADR-026 escaped.",
+                  "modelType": "STRIDE",
+                  "number": 4
+                }
+              ]
+            }
+          },
+          {
+            "id": "pr-handlers",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 760, "y": 210 },
+            "size": { "width": 180, "height": 90 },
+            "data": {
+              "type": "tm.Process",
+              "name": "8. Handlers — credential flows, admin module, profile, hello",
+              "description": "The first band where url.path is a matched route pattern rather than client bytes, which is why handler-scoped audit rows have no injection surface at all and pre-routing rows do.",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-emitter",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 760, "y": 360 },
+            "size": { "width": 180, "height": 90 },
+            "data": {
+              "type": "tm.Process",
+              "name": "9. Audit emitter — one emit(), closed enum, 46 rows",
+              "description": "No throwable parameter, so no call site can attach a cause; unknown keys rejected as well as missing ones; fail soft at runtime, hard at test time.",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-10",
+                  "title": "Row 46's cap is the only bound on audit volume and has no value, key or test",
+                  "status": "Open",
+                  "severity": "Low",
+                  "type": "Denial of Service",
+                  "description": "Row 46 caps per-source breach rows at N distinct sources per window and then emits one aggregate row. N has no numeric value, no property key and no named binding test anywhere in the audit event catalogue or the observability design — the latter commits only to the general mechanism/constants seam rule and puts the table in working notes that are not in the file. The design's own seam rule says the owning decision NAMES the property keys and their binding test and registers the dependency as an owed input; here the rule was invoked but the naming was not done. This is a Low finding on its own and it is recorded because TM-01 makes it load-bearing: the aggregate ceiling N x windows/day is the arithmetic that has to carry audit volume once the unbudgeted-route flood is also bounded.",
+                  "mitigation": "Graduated with TM-01: name the property key, the value and the binding test alongside the catch-all budget, since the two numbers size the same disk. Now ADR-019, with N bound to app.audit.truncation.distinct-sources (REJ-080) and pinned by T-AUD-034.",
+                  "modelType": "STRIDE",
+                  "number": 10
+                }
+              ]
+            }
+          },
+          {
+            "id": "fl-band-1-2",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-ratelimit" },
+            "target": { "cell": "pr-abs" },
+            "vertices": [],
+            "data": { "type": "tm.Flow", "name": "chain", "protocol": "in-process", "outOfScope": false, "hasOpenThreats": false, "threats": [] }
+          },
+          {
+            "id": "fl-band-2-3",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-abs" },
+            "target": { "cell": "pr-csrf" },
+            "vertices": [],
+            "data": { "type": "tm.Flow", "name": "chain", "protocol": "in-process", "outOfScope": false, "hasOpenThreats": false, "threats": [] }
+          },
+          {
+            "id": "fl-band-3-4",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-csrf" },
+            "target": { "cell": "pr-forcedchange" },
+            "vertices": [],
+            "data": { "type": "tm.Flow", "name": "chain", "protocol": "in-process", "outOfScope": false, "hasOpenThreats": false, "threats": [] }
+          },
+          {
+            "id": "fl-csrf-emitter",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-csrf" },
+            "target": { "cell": "pr-emitter" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "row 13 — CSRF rejection, on ANY path, unbudgeted",
+              "description": "The TM-01 flow. A control that guards every state-changing endpoint, evaluated before routing, emitting one WARN row per rejected request, on paths the limiter has no bucket for.",
+              "protocol": "in-process",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-authz-emitter",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-authz" },
+            "target": { "cell": "pr-emitter" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "rows 12 and 14 — 403 role, 412 factor, on unthrottled /api/admin/**",
+              "description": "Both in the rate-above alert class, neither transition-keyed, neither covered by row 46's cap.",
+              "protocol": "in-process",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-totp-authz",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-totp" },
+            "target": { "cell": "pr-authz" },
+            "vertices": [],
+            "data": { "type": "tm.Flow", "name": "factor grant (minimal strategy, no AUTH_INSTANT restamp)", "protocol": "in-process", "outOfScope": false, "hasOpenThreats": false, "threats": [] }
+          },
+          {
+            "id": "fl-authz-handlers",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-authz" },
+            "target": { "cell": "pr-handlers" },
+            "vertices": [],
+            "data": { "type": "tm.Flow", "name": "authorized request", "protocol": "in-process", "outOfScope": false, "hasOpenThreats": false, "threats": [] }
+          },
+          {
+            "id": "fl-handlers-emitter",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-handlers" },
+            "target": { "cell": "pr-emitter" },
+            "vertices": [],
+            "data": { "type": "tm.Flow", "name": "handler-scoped rows (matched route pattern, no injection surface)", "protocol": "in-process", "outOfScope": false, "hasOpenThreats": false, "threats": [] }
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Level 1 — out-of-band privileged channels",
+        "diagramType": "STRIDE",
+        "placeholder": "The two channels that reach privileged state outside the factor authorization model. Both were designed after the core decisions this model was scoped against had closed, and neither had been threat-modelled.",
+        "version": "2.2.0",
+        "cells": [
+          {
+            "id": "tb-oob",
+            "shape": "trust-boundary-box",
+            "zIndex": -1,
+            "position": { "x": 40, "y": 40 },
+            "size": { "width": 900, "height": 440 },
+            "data": {
+              "type": "tm.BoundaryBox",
+              "name": "OUT-OF-BAND — no HTTP request, no session, no factor, no AdminActionGuard. Authorization here IS possession of deploy-level shell access. The authentication pathway inventory (R-MFA-014) marks both 'not a pathway' because neither grants a session; both nonetheless mutate state the factor model otherwise protects.",
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "ee-shell",
+            "shape": "actor",
+            "zIndex": 1,
+            "position": { "x": 80, "y": 90 },
+            "size": { "width": 170, "height": 80 },
+            "data": {
+              "type": "tm.Actor",
+              "name": "Shell holder",
+              "description": "Deploy-level access to the running system. The handover records that a named human filling this role and being reachable is the ONE item in the entire handover that cannot be converted into an enforced check (R-RUN-003).",
+              "outOfScope": false,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "pr-rebind",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 340, "y": 80 },
+            "size": { "width": 200, "height": 100 },
+            "data": {
+              "type": "tm.Process",
+              "name": "Rebinding runner --rebind=<username>",
+              "description": "Originated in the lockout design's recovery section; now ADR-072. Scope password|totp|both, with a batch form sized for the hundreds-of-accounts mass-lockout event (R-LCK-005). Invalidates the hash, mints a single-use token through the credential-token machinery (ADR-007), prints it once to System.out. The only privileged path with no HTTP authentication in front of it.",
+              "outOfScope": false,
+              "privilegeLevel": "operator / shell",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-12",
+                  "title": "The runner's System.out token channel IS the audit ingestion channel",
+                  "status": "Open",
+                  "severity": "High",
+                  "type": "Information Disclosure",
+                  "description": "The configuration design routes the rebinding token to System.out rather than through the logging system, reasoning that a logger would put it 'in whatever appender the profile configures' and that this door is reachable in every profile. The distinction does not survive the deployment the handover sequences. The audit design emits the audit stream as NDJSON to STDOUT in every profile (ADR-056), calling stdout the Enforced Constraint and the platform ingestion path and the only route to ASVS 16.4.3 (L2); the handover's deployment sequence (step 6) then has the deployer install log forwarding and retention over that stream. System.out and the audit stream are the same file descriptor, and a collector tails a descriptor — it does not distinguish bytes Logback wrote from bytes System.out.println wrote. So the enforced control protects against the APPLICATION writing the token to an appender and does nothing against the PLATFORM collecting the identical bytes, which on any container runtime is unconditional. The consequence is worse than the reset-link leak the audit design spent three controls confining to dev (ADR-057), because this channel exists in every profile BY DESIGN and its payload is the credential of last resort.",
+                  "mitigation": "Graduated to a follow-on decision: decide the runner's output channel on the premise that stdout is collected: candidates are a mode-0600 file at a named path, a TTY-only write that refuses when stdout is not a terminal, or deferring to mail once transport lands. That decision also takes the three smaller findings on this channel that share its session (actor attribution, guard bypass, batch blast radius). Decided in ADR-072 (offline runner inside a planned outage), ADR-073 (credential in, nothing out; R-AUD-034) and ADR-074 (plan/apply digest); asserted by T-AUD-027, T-RUN-003 and T-RUN-011.",
+                  "modelType": "STRIDE",
+                  "number": 12
+                },
+                {
+                  "id": "TM-14",
+                  "title": "Three non-mutation channels now change the two-enrolled-admins count",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Elevation of Privilege",
+                  "description": "AdminActionGuard enforces the invariant on the three MUTATING paths that count (disable, demote, delete; factor reset exempt from the count per ADR-049), under a pessimistic lock over users and totp_user_details (ADR-048). The data model found the first channel that changes the count without naming the table (ON DELETE CASCADE removing a totp_user_details row; REJ-034); the admin design's lockout amendment conceded the second, the NIST SP 800-63B-4 §3.2.2 cap (ADR-013), with 'the two-admin invariant is monitorable, not enforceable' because the cap arrives through the authentication path which no guard observes. The break-glass path and the runner's scope=totp|both are the third: they clear an enrolment, and therefore the count, from outside any transaction the guard could join. The admin design already owes one authenticable predicate with two readers — its guard and the zero-authenticable-admins signal (R-OBS-007) — spanning enabled, activated, not password-disabled, TOTP row present, not tier-2 disabled. The finding is that the signal must observe the out-of-band channels too, or the monitoring silently stops matching the guard in exactly the incident the signal exists to catch.",
+                  "mitigation": "Amend ADR-048 and the authenticable-admins signal (R-OBS-007): state the invariant as guarded on mutation paths and MONITORED everywhere, and put both out-of-band channels inside the zero-authenticable-admins signal. No guard change — break-glass must be able to take the count to zero, that is its purpose. The finding is that this is a decision rather than an omission.",
+                  "modelType": "STRIDE",
+                  "number": 14
+                }
+              ]
+            }
+          },
+          {
+            "id": "pr-breakglass",
+            "shape": "process",
+            "zIndex": 1,
+            "position": { "x": 340, "y": 240 },
+            "size": { "width": 200, "height": 100 },
+            "data": {
+              "type": "tm.Process",
+              "name": "Break-glass access restoration",
+              "description": "The handover's break-glass route (ADR-070). Clears a tier-2 factor disable AND a TOTP enrolment with no authenticated admin session, because tier 2 clears only by rebinding and the reset endpoint sits behind the factor. Constructed as NIST SP 800-63B-4 §4.2.2.2 option 2 — one issued recovery code plus the admin's password — with a recovery address distinct from the login address as the adopted mitigation for the password/mailbox correlation (ADR-071, R-CRED-025).",
+              "outOfScope": false,
+              "privilegeLevel": "recovery code + password",
+              "hasOpenThreats": true,
+              "threats": [
+                {
+                  "id": "TM-13",
+                  "title": "Activating the recovery-code route while the dev stub logs it inverts the log-leak containment claim",
+                  "status": "Open",
+                  "severity": "Medium",
+                  "type": "Elevation of Privilege",
+                  "description": "Stated conditionally on purpose, because the unconditional version is false today. The credential-flow design's load-bearing sentence (R-CRED-020) is that the log leak is total for ordinary users and PARTIAL for administrators, contained only by the administrators' TOTP (ADR-023), confidentiality-only — a log reader can reset an admin's password but cannot obtain the factor. The break-glass route (ADR-070) is one issued recovery code plus the password, and the recovery code clears the TOTP enrolment. So a reader of the dev log who can obtain BOTH a reset link and a recovery code holds NIST SP 800-63B-4 §4.2.2.2 option 2 in full, and the containment inverts from partial to total for administrators. Today the route does not exist — the handover makes mail transport its single named prerequisite and records the shell path as the only route meanwhile — so nothing is live. What is missing is that the handover records the mail-transport reopening trigger (R-CRED-026) WITHOUT this consequence attached, and NIST SP 800-63B-4 §4.2.1.2's recovery-address confirmation code travels the same channel, so the mitigation's own establishment step is in the leak too.",
+                  "mitigation": "Amend the mail-transport trigger (R-CRED-026) to carry the consequence, plus a build-phase control (T-CRED-023): the recovery-code route and the recovery-address confirmation must be structurally unavailable while the transport is the stub, not merely unused — the dev-only confinement (ADR-057) is the wrong control here because it confines the link TO dev, and dev is precisely where the stub is. Deliberately NOT a reopening: the design's reopening rule (REJ-048) reopens when an amendment weakens a compensating control standing in for a declined SHALL, and this weakening is contingent on a trigger that has not fired. Recorded as an amendment with the reasoning stated so the next reader can disagree with the call rather than guess at it.",
+                  "modelType": "STRIDE",
+                  "number": 13
+                }
+              ]
+            }
+          },
+          {
+            "id": "st-oob-db",
+            "shape": "store",
+            "zIndex": 1,
+            "position": { "x": 660, "y": 80 },
+            "size": { "width": 200, "height": 90 },
+            "data": {
+              "type": "tm.Store",
+              "name": "users / totp_user_details / credential_tokens",
+              "description": "The tables both channels mutate. password_disabled_at and consecutive_failures_since_success on the password axis; cumulative_failures and row existence on the factor axis.",
+              "outOfScope": false,
+              "storesCredentials": true,
+              "hasOpenThreats": false,
+              "threats": []
+            }
+          },
+          {
+            "id": "st-oob-stdout",
+            "shape": "store",
+            "zIndex": 1,
+            "position": { "x": 660, "y": 240 },
+            "size": { "width": 200, "height": 90 },
+            "data": {
+              "type": "tm.Store",
+              "name": "stdout — audit NDJSON AND the printed token",
+              "description": "One descriptor, two writers, one collector. The whole of TM-12.",
+              "outOfScope": false,
+              "isEncrypted": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-shell-rebind",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "ee-shell" },
+            "target": { "cell": "pr-rebind" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "program arguments — which Boot also binds as the highest-precedence property source",
+              "description": "Modelled because the configuration design established the adjacent failure on the same mechanism: a leftover environment variable silently beats the mounted secret file (R-CFG-022). If invocation is gated on a bound property rather than on explicit argument parsing, a leftover --rebind in a unit file or container spec re-fires the tool on EVERY restart, invalidating the hash and printing a fresh token each time. The runner decision owes the negative assertion (T-RUN-003).",
+              "protocol": "process argv",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-rebind-db",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-rebind" },
+            "target": { "cell": "st-oob-db" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "invalidate hash, mint token, clear factor state — bypassing AdminActionGuard",
+              "protocol": "JDBC",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-rebind-stdout",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-rebind" },
+            "target": { "cell": "st-oob-stdout" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "plaintext token, printed once, in every profile",
+              "protocol": "System.out",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          },
+          {
+            "id": "fl-bg-db",
+            "shape": "flow",
+            "zIndex": 10,
+            "source": { "cell": "pr-breakglass" },
+            "target": { "cell": "st-oob-db" },
+            "vertices": [],
+            "data": {
+              "type": "tm.Flow",
+              "name": "clear tier-2 disable and delete the enrolment row",
+              "protocol": "JDBC or CLI",
+              "outOfScope": false,
+              "hasOpenThreats": true,
+              "threats": []
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

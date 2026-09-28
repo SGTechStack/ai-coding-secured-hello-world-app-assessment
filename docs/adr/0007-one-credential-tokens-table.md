@@ -1,0 +1,90 @@
+---
+status: accepted
+---
+
+# ADR-007: One `credential_tokens` table, domain-separated SHA-256, no HMAC, no Spring OTT
+
+Activation, invite and password-reset tokens share one `credential_tokens` table with a type column. Each token is
+stored as a SHA-256 over its type label and the token, never in plaintext. The PRD's data model names a
+`password_reset_tokens` table, and Spring Security ships one-time-token support that looks like the obvious
+framework swap. A maintainer would plausibly reach for either.
+
+## Context
+
+- The PRD's data model names `password_reset_tokens`. Self-registration now needs an activation token (ADR-032) and
+  admin creation an invite token (ADR-006), so there are at least two token kinds.
+- **There is no token machinery in the corpus.** No recipe defines a token entity, an expiry, a single-use flag, a
+  `SecureRandom` call or a token hash. Everything here is built from zero.
+- **SHA-256 for tokens is suggested, not mandated.** The governing standard's only mention is an italic Spring Boot
+  note under §2 Happy Path step 11 (use `SecureRandom`, store a SHA-256 hash, because the token is already high
+  entropy). The Questions file (Q22) states it flatly for activation tokens. Recorded as a standards defect
+  (R-STD-021).
+- **No ASVS requirement sets an entropy floor for reset tokens.** 6.6.3 (L2)'s 64-bit figure is a "consider", and
+  its binding half is rate limiting. 6.5.2 (L2) says a standard hash suffices for a secret of 112 bits or more, but it
+  is scoped to lookup secrets. It is cited here by analogy for the hash choice only.
+- **One table carries a specific risk.** The only thing between an activation token and a reset token would be a
+  `type` term in a `WHERE` clause. One dropped condition becomes an account takeover.
+
+## Considered options
+
+- **Separate tables per token kind, as the PRD names one.** Clearer constraints, but two expiry, single-use and
+  invalidation code paths that can drift.
+- **One table, hashing `SHA-256(token)`.** Cross-type safety rests on every query being written correctly.
+- **HMAC instead of a plain hash.** The key facility exists (ADR-022), so it would be cheap. At 256 bits there is
+  nothing to brute-force from a stolen table, so it adds nothing.
+- **Spring Security one-time tokens** (`oneTimeTokenLogin()`). Declined on behaviour, not storage. OTT is a login
+  mechanism: redeeming a token authenticates the user and establishes a session, and Spring Security 7 grants the
+  `FACTOR_OTT` authority on success. Redemption here must never mint a session (sessions end, ADR-035), and a
+  `FACTOR_OTT` authority would collide with the factor model (ADR-021).
+- **One table, domain-separated SHA-256 (chosen).**
+
+## Decision
+
+- **Table:** `credential_tokens(id, user_id, type, token_hash, expires_at, used_at, created_at)`. `type` is stored as
+  a string behind a named check constraint over `ACTIVATION` and `PASSWORD_RESET`. `user_id` has `ON DELETE CASCADE`.
+  The DDL carries a comment that the table **stores only a hash**, because it is the column most likely to gain a
+  plaintext sibling "for debugging".
+- **Generation:** 256 bits from `SecureRandom`, Base64url without padding (43 characters). 256 bits is a
+  first-principles choice, not a standards-derived one.
+- **Storage:** `token_hash` is lowercase hex of `SHA-256(type_label || ":" || token)`, in `VARCHAR(64)`, with a unique
+  index on `token_hash` alone. Cross-type redemption then fails cryptographically ("token not found") rather than
+  because a query was written correctly. The Base64url alphabet has no `:`, so a crafted token cannot spoof the
+  separator. Lowercase is part of the contract: an equality lookup that misses on case fails open on the reset path.
+- **Lifetimes:** `PASSWORD_RESET` 30 minutes. `ACTIVATION` 24 hours, which meets ASVS 6.4.1 (L1)'s short-lifetime
+  limb.
+- **Single use:** one conditional update,
+  `UPDATE credential_tokens SET used_at = :now WHERE token_hash = ? AND type = ? AND used_at IS NULL AND expires_at > :now`,
+  proceeding only if exactly one row changed. It is atomic in one statement, so token rows never enter the row-lock
+  ordering. The repository method needs `@Modifying(clearAutomatically = true, flushAutomatically = true)`, or a
+  native query with no entity loaded on that path, because a bulk update bypasses the persistence context.
+- **Redemption:** in one transaction, consume first, then set the password through the single password-setting
+  component. A rejected password rolls back the consume, so it never burns the token. The token is still checked
+  before password quality, so a strength error cannot confirm a token was valid.
+- **Pending tokens are invalidated by:** any successful password set (reset tokens); a new issuance of the same type;
+  admin disable (both types); and re-registration against an unactivated record (its activation token). Deletion
+  needs no trigger, because the cascade removes the rows. A surviving token after deletion would be a live
+  redemption path for a deleted account, so the database guarantees it rather than a remembered call.
+- No constant-time comparison: the lookup is hash equality in SQL against a full-entropy value. No per-token attempt
+  limit: at 256 bits, the per-source budget (ADR-010) is enough.
+
+## Consequences
+
+- The PRD data-model deviation is recorded in the deferral register (R-DATA-002).
+- **A third type is designed but not built.** Break-glass recovery uses an issued recovery code (ADR-070). When mail
+  transport exists it joins this table under its own type, with its own 24-hour email lifetime and its own
+  throttling. It reuses the same hashing and single-use path. Until then the check constraint admits two values and
+  the recovery routes are structurally absent.
+- Tests: T-CRED-011 (cross-type redemption fails and consumes nothing); T-CRED-012 (the stored hash is the
+  domain-separated digest and no column holds the plaintext); T-CRED-013 (30-minute expiry); T-CRED-014 (concurrent
+  redemption, exactly one succeeds); T-CRED-015 (a rejected password does not burn the token); T-CRED-019 (pending-token
+  invalidation); T-CRED-020 (the type check constraint); T-CRED-023 (recovery routes absent).
+
+## Sources
+
+- PRD, Data model (`password_reset_tokens`).
+- Standalone User Access Control Application Standard §2 Happy Path step 11 (including its Spring Boot note), §5
+  Password Reset Tests.
+- Standalone User Access Control Application Standard Questions, Q22.
+- OWASP ASVS 5.0, V6.4, V6.5 and V6.6: 6.4.1 (L1), 6.5.1 (L2), 6.5.2 (L2), 6.5.3 (L2), 6.6.3 (L2).
+- OWASP Forgot Password Cheat Sheet (token length and single use).
+- Spring Security reference, One-Time Token Login and Multi-Factor Authentication (`FACTOR_OTT`).

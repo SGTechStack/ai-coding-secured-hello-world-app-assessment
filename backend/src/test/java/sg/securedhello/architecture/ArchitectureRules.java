@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.lang.ArchCondition;
@@ -23,9 +24,14 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 
+import jakarta.servlet.ServletRequest;
+
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
+import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
 
 /**
@@ -65,6 +71,19 @@ final class ArchitectureRules {
             .should().callMethodWhere(sendErrorCall())
             .because("every error body is written by ProblemDetailWriter; sendError is prohibited (ADR-031)");
 
+    /** T-RL-028: only the resolver reads the raw client address; everything else uses the source key (ADR-020). */
+    static final ArchRule NO_RAW_CLIENT_ADDRESS = noClasses()
+            .that().doNotBelongToAnyOf(SourceKeyResolver.class)
+            .should().accessTargetWhere(rawClientAddressRead())
+            .because("the client address becomes a source key in SourceKeyResolver only (ADR-020)");
+
+    /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
+    static final ArchRule NO_REMEMBER_ME = noClasses()
+            .should().callMethodWhere(rememberMeCall())
+            .orShould().dependOnClassesThat()
+            .resideInAPackage("org.springframework.security.web.authentication.rememberme..")
+            .because("remember-me is an implicit persistent login, prohibited like a cookie Max-Age (REJ-008)");
+
     /** No class that declares {@code marker} on itself or on a method may be a Boot test slice. */
     static ArchRule noSliceOnClassesDeclaring(Class<? extends Annotation> marker) {
         return noClasses()
@@ -84,6 +103,20 @@ final class ArchitectureRules {
         return DescribedPredicate.describe("HttpServletResponse.sendError",
                 call -> call.getName().equals("sendError")
                         && call.getTargetOwner().isAssignableTo(HttpServletResponse.class));
+    }
+
+    private static DescribedPredicate<JavaAccess<?>> rawClientAddressRead() {
+        return DescribedPredicate.describe("ServletRequest.getRemoteAddr or WebAuthenticationDetails.getRemoteAddress",
+                access -> access.getName().equals("getRemoteAddr")
+                        && access.getTargetOwner().isAssignableTo(ServletRequest.class)
+                        || access.getName().equals("getRemoteAddress")
+                        && access.getTargetOwner().isAssignableTo(WebAuthenticationDetails.class));
+    }
+
+    private static DescribedPredicate<JavaMethodCall> rememberMeCall() {
+        return DescribedPredicate.describe("HttpSecurity.rememberMe",
+                call -> call.getName().equals("rememberMe")
+                        && call.getTargetOwner().isAssignableTo(HttpSecurity.class));
     }
 
     private static DescribedPredicate<JavaClass> declare(Class<? extends Annotation> marker) {

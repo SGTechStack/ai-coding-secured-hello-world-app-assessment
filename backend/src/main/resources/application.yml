@@ -1,6 +1,9 @@
 # Base (production) configuration. The `dev` profile is the only other posture; there is no `test` profile (ADR-067).
 server:
   port: 8080
+  # Explicit, so cloud-platform detection never installs a RemoteIpValve with Tomcat's RFC 1918 default. The only
+  # forwarded-header trust is the one derived from app.security.client-ip (REJ-015; R-RL-007).
+  forward-headers-strategy: none
 
 spring:
   application:
@@ -8,6 +11,27 @@ spring:
   datasource:
     # H2 file mode only; LOCK_TIMEOUT is pinned on the URL and FILE_LOCK=NO is prohibited.
     url: jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=1000
+  # Flyway owns the schema (V1-V7, append-only) and may never wipe it (REJ-041).
+  flyway:
+    clean-disabled: true
+  # Hibernate only validates; the real schema gate is ADR-051's negative-test set.
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+      # Column names in the database's metadata case, so NAMED validation has no false failures (T-CFG-006).
+      naming:
+        physical-strategy: sg.securedhello.persistence.MetadataCaseNamingStrategy
+    properties:
+      hibernate:
+        tooling:
+          schema:
+            index_validation: NAMED
+            unique_key_validation: NAMED
+  # V7 creates the session tables from a verbatim copy; Spring Session never creates them (REJ-040; ADR-030).
+  session:
+    jdbc:
+      initialize-schema: never
 
 app:
   security:
@@ -18,6 +42,11 @@ app:
     authorization:
       whitelist: []
       roles: {}
+    # Source keys (ADR-020). The client address is the socket peer unless source=proxy, which needs
+    # trusted-proxies to name each proxy address; trusted-proxies has no default (R-RL-007).
+    client-ip:
+      source: socket
+      ipv6-prefix-length: 64
 
 # Actuator: health only, read-only, no details; everything else is denied (ADR-061).
 # Values equal to Boot's defaults are still written, because im8-review greps for the exposure property.

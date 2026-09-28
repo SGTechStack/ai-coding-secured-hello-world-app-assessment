@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 04-schema-seven-migrations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">build WARN 0/0/1/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/1/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">react N/A</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">springboot PASS 0/0/0/2</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t04-schema</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 04: schema, all seven migrations. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">WARN</td><td class="p-2">0/0/1/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify</code> green: 84 tests, 0 failures. No JaCoCo 80% gate exists yet (ticket 03 owns build gates).</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Seven small append-only migrations, one naming strategy, field-only entities. Low: entity fields are unread until later tickets add behaviour.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/1/0</td><td class="p-2">All five acceptance criteria covered by tests. Medium: two rows of ADR-051's database-invariant set (T-CRED-021, T-ADM-002) need the password and tombstone services and stay with their tickets.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">semgrep CLI not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">Tokens stored as hash only (DDL comment), TOTP key envelope width pinned, no MFA flag (ADR-053, documented false negative R-MFA-005), no secrets committed, Flyway clean disabled.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">N/A</td><td class="p-2">-</td><td class="p-2">No frontend changes.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">PASS</td><td class="p-2">0/0/0/2</td><td class="p-2">Data: <code>ddl-auto: validate</code>, NAMED index/unique-key validation, open-in-view off, UUIDv4 <code>@UuidGenerator</code>, <code>@Immutable</code> roles, no ambient time. Tests: full contexts or explicit runners, no slices; invariants asserted by plain JDBC outside any persistence context.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm">None.</p>
+        </div>
+      </div>
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+        <summary class="font-semibold">build: WARN</summary>
+        <ul class="list-disc pl-6 text-sm mt-2">
+          <li>Medium: no JaCoCo coverage gate in <code>backend/pom.xml</code>; the build gates ticket (03) owns it.</li>
+        </ul>
+      </details>
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+        <summary class="font-semibold">code-review: WARN</summary>
+        <ul class="list-disc pl-6 text-sm mt-2">
+          <li>Medium: T-CRED-021 (history eviction) and T-ADM-002 (tombstone blocks both identifiers) are behaviours of later services; the columns and unique indexes they rely on are in place and tested here.</li>
+        </ul>
+      </details>
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+        <summary class="font-semibold">springboot: PASS</summary>
+        <ul class="list-disc pl-6 text-sm mt-2">
+          <li>Low: <code>backend/src/main/java/sg/securedhello/persistence/MetadataCaseNamingStrategy.java</code> works around Hibernate 7.4's case-sensitive column comparison in NAMED validation; T-CFG-006 fails if it is removed.</li>
+          <li>Low: entities declare no <code>equals</code>/<code>hashCode</code>; none is needed until entities enter collections.</li>
+        </ul>
+      </details>
+    </main>
+  </body>
+</html>

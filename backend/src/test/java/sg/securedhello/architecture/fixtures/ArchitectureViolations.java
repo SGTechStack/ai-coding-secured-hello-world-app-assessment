@@ -9,12 +9,19 @@ import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 /**
  * Deliberate rule violations, fed to the rules by {@code ArchitectureRulesSelfTest} so that a rule that silently
@@ -115,6 +122,36 @@ public final class ArchitectureViolations {
     public static final class SetsStatus {
         void fail(HttpServletResponse response) {
             response.setStatus(401);
+        }
+    }
+
+    public static final class ReadsHttpRemoteAddr {
+        String read(HttpServletRequest request) {
+            return request.getRemoteAddr();
+        }
+    }
+
+    public static final class ReadsServletRemoteAddr {
+        String read(ServletRequest request) {
+            return request.getRemoteAddr();
+        }
+    }
+
+    public static final class ReferencesRemoteAddr {
+        Function<HttpServletRequest, String> read() {
+            return HttpServletRequest::getRemoteAddr;
+        }
+    }
+
+    public static final class ReadsDetailsRemoteAddress {
+        String read(WebAuthenticationDetails details) {
+            return details.getRemoteAddress();
+        }
+    }
+
+    public static final class EnablesRememberMe {
+        void configure(HttpSecurity http) throws Exception {
+            http.rememberMe(Customizer.withDefaults());
         }
     }
 

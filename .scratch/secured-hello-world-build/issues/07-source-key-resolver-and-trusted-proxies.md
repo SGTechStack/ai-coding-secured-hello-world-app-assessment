@@ -4,9 +4,9 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Unit tests cover IPv4, IPv6 at several prefixes, IPv4-mapped IPv6, and prefix bounds. A prefix outside 48–128 stops startup.
-- [ ] On a real port, `X-Forwarded-For` from an untrusted peer is ignored. From a named trusted proxy it is honoured.
-- [ ] An ArchUnit rule forbids reading `getRemoteAddr()` outside the resolver.
-- [ ] The resolver is in the PIT scope and meets 85%.
+- [x] Unit tests cover IPv4, IPv6 at several prefixes, IPv4-mapped IPv6, and prefix bounds. A prefix outside 48–128 stops startup.
+- [x] On a real port, `X-Forwarded-For` from an untrusted peer is ignored. From a named trusted proxy it is honoured.
+- [x] An ArchUnit rule forbids reading `getRemoteAddr()` outside the resolver.
+- [x] The resolver is in the PIT scope and meets 85%.

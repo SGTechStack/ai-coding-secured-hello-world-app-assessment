@@ -4,10 +4,10 @@
 
 **Blocked by:** 02.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] On startup with no ADMIN present, one ADMIN is seeded from `app.admin.username` / `app.admin.password`
-- [ ] The seeded admin's password is BCrypt-hashed like any other account (never stored plaintext)
-- [ ] On restart with an ADMIN already present, no duplicate seed account is created
-- [ ] Audit/startup log line noting a seed occurred (no password)
-- [ ] Integration tests: seeds when absent; idempotent when an ADMIN exists
+- [x] On startup with no ADMIN present, one ADMIN is seeded from `app.admin.username` / `app.admin.password`
+- [x] The seeded admin's password is BCrypt-hashed like any other account (never stored plaintext)
+- [x] On restart with an ADMIN already present, no duplicate seed account is created
+- [x] Audit/startup log line noting a seed occurred (no password)
+- [x] Integration tests: seeds when absent; idempotent when an ADMIN exists

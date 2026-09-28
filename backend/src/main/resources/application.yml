@@ -43,3 +43,12 @@ app:
   password-reset:
     token-ttl-minutes: 30
     reset-url-base: http://localhost:3000/reset-password
+
+  # Admin bootstrap (ticket 10 / Story 12): on first startup, if no ADMIN
+  # exists, one is seeded from these props with a BCrypt-hashed password.
+  # Idempotent across restarts. In a real environment set app.admin.password
+  # (e.g. via an env var); when blank, seeding is skipped with a warning.
+  admin:
+    username: admin
+    email: admin@example.com
+    password: change-me-please-12+

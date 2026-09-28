@@ -66,8 +66,8 @@ the MFA and audit-durability questions answered yes or no rather than hedged.
 
 **Two things the plan must declare before any audit can even run:**
 
-1. **Risk classification (Low or Medium).** `im8-review/SKILL.md` step 3 derives every finding's severity from the `LR`/`MR` column. With no declared classification, severity is underivable. Recommend declaring **Low Risk** and saying so in the Spec.
-2. **User population: internal, public, or both.** Six controls (`ac-7`, `ac-8`, `ac-12`, `dp-8`, `lm-18`, `st-3`) switch between N/A and binding purely on this. The PRD never says. See "Scope conflict 2".
+1. **Risk classification (Low or Medium).** `im8-review/SKILL.md` step 3 derives every finding's severity from the `LR`/`MR` column. With no declared classification, severity is underivable. Recommend declaring **Low Risk** and saying so in the Spec. *Consolidated into the register (ticket 33): R-OPS-001. Amend the table by ID, not this list.*
+2. **User population: internal, public, or both.** Six controls (`ac-7`, `ac-8`, `ac-12`, `dp-8`, `lm-18`, `st-3`) switch between N/A and binding purely on this. The PRD never says. See "Scope conflict 2". *Consolidated into the register (ticket 33): R-ADM-003. Amend the table by ID, not this list.*
 
 ---
 
@@ -85,7 +85,7 @@ Critically, **ac-2 has no N/A escape hatch.** Compare the controls that do: `ac-
 
 The PRD as written fails every ac-2 backend check: no MFA state fields on `users`, no second-factor endpoint, no two-step login flow, no step-up gate on the admin mutations.
 
-**Consequence: this is a scope conflict. "MFA" must come off the map's Out of scope list and go to the user as a decision.** The map's current justification — that `Appfw-Mfa-Standards/index.md` reads as a feature router rather than a blanket mandate — may well be true of the App Standard, but IM8 ac-2 is an independent and unconditional source, and the map itself made this conditional: "if IM8 forces MFA for privileged access, this returns as a fresh effort." It does.
+**Consequence: this is a scope conflict. "MFA" must come off the map's Out of scope list and go to the user as a decision.** The map's current justification — that `Appfw-Mfa-Standards/index.md` reads as a feature router rather than a blanket mandate — may well be true of the App Standard, but IM8 ac-2 is an independent and unconditional source, and the map itself made this conditional: "if IM8 forces MFA for privileged access, this returns as a fresh effort." It does. *Consolidated into the register (ticket 33): R-MFA-008. Amend the table by ID, not this list.*
 
 Cheapest compliant options, for the user to choose between:
 - **TOTP step-up on `/api/admin/**` mutations only** (not at login). `im8-review` accepts step-up-at-action as satisfying ac-2, via "a Spring Security filter, `@PreAuthorize` expression … or custom annotation processor that gates the endpoint on a valid step-up token". Scope: one `totpSecret` column (encrypted at rest — ac-2 requires this explicitly), one enrol endpoint, one verify endpoint, one guard. Smallest change that closes ac-2.
@@ -119,9 +119,9 @@ The honest complication is `## Capability — Operational (op)`, which governs *
 
 This plan and its eventual code are AI-generated, so these *read* as applicable to the development process. But `arc-framework-policy.md` contains **no applicability section and no statement of its own trigger** — it never says whether it governs AI-built software or only AI-featuring software. I will not invent that boundary. State it plainly in the Spec as a declared interpretation.
 
-Recommended position, for the user to confirm: **ARC is N/A as a product requirement; the `op` code-generation controls are claimed as workflow controls.** Two of them we already satisfy by accident — the map's "OWASP Dependency-Check bound to the Maven `verify` phase with a CVSS failure threshold" is CTRL-0074, and it works without CI, which is why the no-CI/CD gap does not sink it. CTRL-0068/0071 want a linter and a static analyser (ESLint strict + Semgrep or SpotBugs on `verify`); CTRL-0070 is the human review gate we already run per ticket.
+Recommended position, for the user to confirm: **ARC is N/A as a product requirement; the `op` code-generation controls are claimed as workflow controls.** Two of them we already satisfy by accident — the map's "OWASP Dependency-Check bound to the Maven `verify` phase with a CVSS failure threshold" is CTRL-0074, and it works without CI, which is why the no-CI/CD gap does not sink it. CTRL-0068/0071 want a linter and a static analyser (ESLint strict + Semgrep or SpotBugs on `verify`); CTRL-0070 is the human review gate we already run per ticket. *Consolidated into the register (ticket 33): R-BLD-001. Amend the table by ID, not this list.*
 
-Practical consequence for ticket 18: `spec-compliance` Step 2 demands a verdict row for **every** control in `/policies` — that is 36 IM8 + 88 ARC = **124 rows**. The ARC block needs one blanket N/A rationale that can be stamped across ~74 rows, plus individual rows for the `op` controls we claim.
+Practical consequence for ticket 18: `spec-compliance` Step 2 demands a verdict row for **every** control in `/policies` — that is 36 IM8 + 88 ARC = **124 rows**. The ARC block needs one blanket N/A rationale that can be stamped across ~74 rows, plus individual rows for the `op` controls we claim. *Consolidated into the register (ticket 33): R-BLD-002. Amend the table by ID, not this list.*
 
 #### Q4. What input format do `spec-compliance` and `im8-review` expect?
 
@@ -133,15 +133,15 @@ This pins down what ticket 17 ("Produce the deferral register and ADR set") must
 
 - **Keyed by control ID**, one row per control, all 124. A register listing only our deviations will fail Step 2's completion criterion.
 - Each row carries **verdict + a self-contained one-sentence reason**, because that text lands verbatim in the Reason column with no surrounding context.
-- `DEFERRED` is a first-class verdict — "not applicable at the Spec phase and must be handled during implementation" — which is exactly the right slot for the map's account-hygiene deferrals. Use it; don't call them N/A.
-- `policies/SKILL.md` warns: "**Never auto-fix:** scope decisions, security boundaries, permission models — mark FAIL." So MFA, the user-population question, and the role model cannot be quietly tightened in wording; they go to the user as FAILs.
+- `DEFERRED` is a first-class verdict — "not applicable at the Spec phase and must be handled during implementation" — which is exactly the right slot for the map's account-hygiene deferrals. Use it; don't call them N/A. *Consolidated into the register (ticket 33): R-ADM-011. Amend the table by ID, not this list.*
+- `policies/SKILL.md` warns: "**Never auto-fix:** scope decisions, security boundaries, permission models — mark FAIL." So MFA, the user-population question, and the role model cannot be quietly tightened in wording; they go to the user as FAILs. *Consolidated into the register (ticket 33): R-BLD-002. Amend the table by ID, not this list.*
 
 **`im8-review`** — Step 1: "Identify the target codebase". The skill is explicitly a code audit ("Run this skill against a React 19 (TypeScript) + Spring Boot 3.4 (Spring Security 6.4) codebase"), and `### Evidence standard — framework delegation rule` insists "Evidence must come from the application's own code and declared dependencies", with "**'Delegated to framework' is WARN, not PASS**". Output is markdown at `artifacts/im8-compliance-report-YYYYMMDD-HHmm.md` per `## Report Format`.
 
 **It therefore cannot consume this plan at all.** Ticket 18's gate can run `spec-compliance` now and must schedule `im8-review` post-build. Two knock-ons:
 
-- **Version mismatch.** `im8-review` targets Boot 3.4 / Security 6.4; our baseline is Boot 4.1 / Security 7. The checks are literal — they grep for `server.servlet.session.timeout`, `.headers(h -> h.contentSecurityPolicy(...))`, `bucket4j.filters`, `logging.structured.format.file: ecs`, `@EnableMethodSecurity`. **Ticket 05 should prefer the config spellings `im8-review` recognises wherever Boot 4.1 still supports them**, or ticket 17 must pre-write the mapping note, or the audit will read compliant config as absent.
-- **Ticket 16's test plan gets a free specification.** `im8-review`'s PASS conditions and FAIL conditions are the de facto acceptance criteria. Asserting them in tests (CSP header present, HSTS max-age, session timeout value, 429 on the 6th attempt, generic error body) converts the audit from an inspection into a regression suite.
+- **Version mismatch.** `im8-review` targets Boot 3.4 / Security 6.4; our baseline is Boot 4.1 / Security 7. The checks are literal — they grep for `server.servlet.session.timeout`, `.headers(h -> h.contentSecurityPolicy(...))`, `bucket4j.filters`, `logging.structured.format.file: ecs`, `@EnableMethodSecurity`. **Ticket 05 should prefer the config spellings `im8-review` recognises wherever Boot 4.1 still supports them**, or ticket 17 must pre-write the mapping note, or the audit will read compliant config as absent. *Consolidated into the register (ticket 33): R-CFG-001. Amend the table by ID, not this list.*
+- **Ticket 16's test plan gets a free specification.** `im8-review`'s PASS conditions and FAIL conditions are the de facto acceptance criteria. Asserting them in tests (CSP header present, HSTS max-age, session timeout value, ~~429 on the 6th attempt~~ *[amended by ticket 16: the per-IP 429 at N+1 of its budget, and the per-account 429 on mixed traffic. Under ticket 09's design the 6th failure against a locked account gets the uniform 401]*, generic error body) converts the audit from an inspection into a regression suite. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-HDR-002, T-HDR-001, T-SES-001, T-RL-001, T-RL-002, T-AUTH-001. Amend the table by ID, not this list.*
 
 ---
 
@@ -225,8 +225,8 @@ Every row cites `im8-reform-app-policy.md` for the control text and `im8-review/
 | --- | --- | --- | --- | --- | --- |
 | **ac-1** Principle of Least Privilege | MUST | (none → 1) | Explicit `requestMatchers` role rules; **a default-deny catch-all**; correct matcher ordering (first match wins); `@EnableMethodSecurity` + `@PreAuthorize` on privileged methods; **ownership/tenancy checks** (`#id == authentication.principal.id` style); chain rules and annotations must not disagree. Frontend privilege UI must derive from backend-sourced permissions, not hardcoded client-side role logic. | **05**, **11**, **14** | Mostly PASS. Two sharp edges: (a) the admin self-action guards (cannot disable/demote/delete self, Stories 9–11) **are** ac-1 ownership checks and must be server-side; (b) the frontend must not hardcode role logic — the worked example took a WARN for exactly that. |
 | **as-7** Access Control Check Enforcement | MUST | 1 \| 0 | Every controller method covered by an annotation **or** a URL rule; flags `anyRequest().permitAll()` | **05**, **11** | PASS if the default-deny catch-all lands. |
-| **ac-3** Inactive and Expired Accounts | MUST | (none → 1) | Disable within 5 days of last authorised use; auto-disable after 90 days inactivity; a **daily** job; disabling must invalidate active sessions | **17** (deferral), **12** | **FAIL — knowingly deferred by the map.** Worth noting: the PRD data model has no `lastLoginAt` and no `accountExpiresAt`, so even the *deferral* has a ticket-12 consequence — add the columns now or accept a later migration. |
-| **ac-4** Access Review | MUST | (none → 1) | A **declared per-account permission baseline** as a source of truth, plus a scheduled compare-and-revoke pipeline running often enough to revoke within 5 days. N/A only with zero app-managed accounts. The skill warns explicitly that inactivity-based jobs satisfy ac-3, **not** ac-4. | **11**, **17** | **FAIL.** Split it: the baseline half is cheap (two roles, declarable in the authorization matrix ticket 11 already plans); the scheduled-revoke half is the genuine deferral. Deferring both when half is nearly free is a weak position at review. |
+| **ac-3** Inactive and Expired Accounts | MUST | (none → 1) | Disable within 5 days of last authorised use; auto-disable after 90 days inactivity; a **daily** job; disabling must invalidate active sessions | **17** (deferral), **12** | **FAIL — knowingly deferred by the map.** Worth noting: the PRD data model has no `lastLoginAt` and no `accountExpiresAt`, so even the *deferral* has a ticket-12 consequence — add the columns now or accept a later migration. *Consolidated into the register (ticket 33): R-ADM-011. Amend the table by ID, not this list.* |
+| **ac-4** Access Review | MUST | (none → 1) | A **declared per-account permission baseline** as a source of truth, plus a scheduled compare-and-revoke pipeline running often enough to revoke within 5 days. N/A only with zero app-managed accounts. The skill warns explicitly that inactivity-based jobs satisfy ac-3, **not** ac-4. | **11**, **17** | **FAIL.** Split it: the baseline half is cheap (two roles, declarable in the authorization matrix ticket 11 already plans); the scheduled-revoke half is the genuine deferral. Deferring both when half is nearly free is a weak position at review. *Consolidated into the register (ticket 33): R-ADM-001. Amend the table by ID, not this list.* |
 
 #### Secrets and configuration
 
@@ -239,23 +239,23 @@ Every row cites `im8-reform-app-policy.md` for the control text and `im8-review/
 | Control | Force | Requires | Constrains | PRD |
 | --- | --- | --- | --- | --- |
 | **pm-6** System Documentation | MUST | Architecture docs (`ARCHITECTURE.md` or `docs/architecture/`); network topology/diagram; an ADR directory (`/adr` or `/docs/adr`); dependency manifests; **a committed OpenAPI spec** — "A runtime-only OpenAPI endpoint … does not count"; data-flow documentation. "A basic README with only setup/build instructions is NOT sufficient." | **15**, **17**, **18** | Achievable and cheap **if planned now**. The worked example took a High FAIL here. Commit to a version-controlled `openapi.yaml`, an `/adr` directory (ticket 17 produces this anyway), and a data-flow diagram. |
-| **st-3** Public Vulnerability Disclosure | conditional | Internal-only → N/A. Otherwise `security.txt` at `/.well-known/` with a `Contact` and a **future** `Expires`, or the footer link. | **14**, **17** | N/A under an internal classification; otherwise a trivially avoidable FAIL. **Warning: the skill's required frontend snippet contains a typo — `herf` instead of `href`. Do not copy it verbatim into real code; flag the discrepancy in ticket 17 if the footer route is chosen.** |
+| **st-3** Public Vulnerability Disclosure | conditional | Internal-only → N/A. Otherwise `security.txt` at `/.well-known/` with a `Contact` and a **future** `Expires`, or the footer link. | **14**, **17** | N/A under an internal classification; otherwise a trivially avoidable FAIL. **Warning: the skill's required frontend snippet contains a typo — `herf` instead of `href`. Do not copy it verbatim into real code; flag the discrepancy in ticket 17 if the footer route is chosen.** *Consolidated into the register (ticket 33): R-STD-001. Amend the table by ID, not this list.* |
 | **ga-8** GenAI Risks | N/A | GenAI features only | — | N/A. Assert. |
 
 ---
 
 ### Scope conflicts requiring a user decision
 
-**Scope conflict 1 — MFA (ac-2).** Established above. The map's Out of scope entry is now void on its own stated condition. Decision needed: TOTP step-up on admin mutations (recommended, smallest surface), TOTP at admin login, or an accepted FAIL registered as a deferral with written justification.
+**Scope conflict 1 — MFA (ac-2).** Established above. The map's Out of scope entry is now void on its own stated condition. Decision needed: TOTP step-up on admin mutations (recommended, smallest surface), TOTP at admin login, or an accepted FAIL registered as a deferral with written justification. *Consolidated into the register (ticket 33): R-MFA-008. Amend the table by ID, not this list.*
 
 **Scope conflict 2 — the undeclared user population.** The PRD never says whether users are internal public officers, external public users, or neither. Six controls hinge on it, and the two branches lead to very different applications:
 
 - **If classed "internal":** `ac-12` FAILs outright — internal users must authenticate via the organisational IdP, and its FAIL condition names a local username/password login page. **That would invalidate the PRD's entire premise.** `ac-8` also FAILs (no SCIM/JIT provisioning), and `dp-8` FAILs (no per-field classification labels).
 - **If classed "external public / demo, serving neither internal officers nor real citizens":** `ac-12`, `ac-8`, `dp-8` all go N/A, and `lm-18` (WOGAA) and `st-3` need explicit N/A or cheap compliance.
 
-Recommendation: declare in the Spec that this is **a standalone reference application serving neither internal public officers nor production public users**, which makes `ac-7`, `ac-8`, `ac-12`, `dp-8`, `lm-18`, `st-3` N/A on a single stated basis. This is a scope declaration, not a technical fix — `policies/SKILL.md` forbids auto-fixing scope decisions, so it must come from the user, and it must be written down where the auditor will read it.
+Recommendation: declare in the Spec that this is **a standalone reference application serving neither internal public officers nor production public users**, which makes `ac-7`, `ac-8`, `ac-12`, `dp-8`, `lm-18`, `st-3` N/A on a single stated basis. This is a scope declaration, not a technical fix — `policies/SKILL.md` forbids auto-fixing scope decisions, so it must come from the user, and it must be written down where the auditor will read it. *Consolidated into the register (ticket 33): R-ADM-003. Amend the table by ID, not this list.*
 
-**Scope conflict 3 — ARC's `op` controls.** Whether AI-generated code for a non-AI app inherits ARC's Level 0 code-generation controls. The source does not say. Needs a declared interpretation (recommendation in Q3).
+**Scope conflict 3 — ARC's `op` controls.** Whether AI-generated code for a non-AI app inherits ARC's Level 0 code-generation controls. The source does not say. Needs a declared interpretation (recommendation in Q3). *Consolidated into the register (ticket 33): R-BLD-001. Amend the table by ID, not this list.*
 
 ---
 
@@ -277,13 +277,13 @@ Recommendation: declare in the Spec that this is **a standalone reference applic
 1. **as-9 CSP — FAIL.** Not mentioned anywhere in the PRD; explicit FAIL condition; complicated by the two-origin split.
 2. **lm-16 Key Signals Monitoring — FAIL** in the 2\|2 band. Not mentioned; absence of both metrics paths is a stated FAIL.
 3. **ac-6 + as-15 forced password change — FAIL.** No `forcePasswordChange` field in the data model; no forced reset after unlock; seeded admin credentials never forced to rotate. **Direct consequence for ticket 12.**
-4. **ac-4 Access Review — FAIL**, and materially separate from the ac-3 deferral the map already made.
+4. **ac-4 Access Review — FAIL**, and materially separate from the ac-3 deferral the map already made. *Consolidated into the register (ticket 33): R-ADM-001. Amend the table by ID, not this list.*
 5. **as-11 session timeout ≤ 15 minutes — underspecified**, and the threshold is concrete.
 6. **as-13 Actuator exposure, source maps, console stripping — unspecified**, in the 2\|2 band.
 7. **as-14 `SecureRandom`** for the reset token — unspecified, one sentence to fix now.
 8. **pm-6** — needs a committed OpenAPI spec, an ADR directory, architecture and data-flow docs. Cheap now, a High FAIL if left.
 9. **Missing data-model columns** implied by the above: `forcePasswordChange`, `lastLoginAt`, and (if MFA lands) `mfaEnabled` + an encrypted `totpSecret`. **Ticket 12 should reconcile these before the Flyway set is written.**
-10. **No declared risk classification**, without which no severity can be derived at all.
+10. **No declared risk classification**, without which no severity can be derived at all. *Consolidated into the register (ticket 33): R-OPS-001. Amend the table by ID, not this list.*
 
 ---
 
@@ -292,7 +292,7 @@ Recommendation: declare in the Spec that this is **a standalone reference applic
 | Ticket | Controls it must satisfy |
 | --- | --- |
 | **03** Logging/audit schema | lm-15 (name ECS or a JSON encoder), lm-19 (masking), lm-4 (a findable emitter). **Also: settle the 90-day retention claim against the App Standard — IM8 does not require it.** |
-| **05** Spring Security 7 config surface | ac-1 (default-deny catch-all, matcher order, `@EnableMethodSecurity`), as-7. **Prefer config keys `im8-review` recognises, or pre-write the Boot 4.1 → 3.4 mapping note.** |
+| **05** Spring Security 7 config surface | ac-1 (default-deny catch-all, matcher order, `@EnableMethodSecurity`), as-7. **Prefer config keys `im8-review` recognises, or pre-write the Boot 4.1 → 3.4 mapping note.** *Consolidated into the register (ticket 33): R-CFG-001. Amend the table by ID, not this list.* |
 | **06** Error envelope | as-13 (generic bodies, no `e.getMessage()`), as-1, lm-19. Enumeration resistance comes from the standard/PRD, **not** IM8. |
 | **07** Password policy and hashing | as-5, as-6 (BCrypt explicitly accepted). |
 | **08** Session and CSRF | as-11 (≤15 min, fixation, `maximumSessions`), as-10, dp-3, as-9 (API-side headers). |
@@ -303,12 +303,22 @@ Recommendation: declare in the Spec that this is **a standalone reference applic
 | **13** Audit event catalogue | lm-4 (auth events, authorization failures, data access), lm-19, and lm-16's signal list. |
 | **14** Frontend architecture | **as-9 (CSP on the SPA origin — the sharpest new constraint)**, as-3, as-1 (response + URL-param validation), as-5 (requirements shown before submit), as-13 (Error Boundary, sourcemaps, console), as-11 (idle timeout), ac-1 (no hardcoded role logic), as-8, dp-3, conditionally dp-8 and st-3. |
 | **15** Threat model | pm-6 (data-flow documentation doubles as pm-6 evidence). |
-| **16** Test plan | Assert `im8-review`'s PASS conditions as tests: CSP header, HSTS max-age, session timeout, 429 threshold, generic error bodies, 403 on role violation. |
-| **17** Deferral register and ADRs | **124 rows keyed by control ID** (36 IM8 + 88 ARC), each with a verdict from `spec-compliance`'s five-value set and a self-contained reason. `DEFERRED` for ac-3/ac-4 with written justification. Plus the declared risk classification, the population declaration, the ARC interpretation, the Boot-version mapping note, and the `herf` typo warning. |
-| **18** Compliance review gate | Run `spec-compliance` against **one consolidated Spec/TRD in-conversation**; resolve every FAIL/AUTO-FIX with the user per Step 4. **`im8-review` cannot run here — it needs a codebase; schedule it post-build.** |
+| **16** Test plan | Assert `im8-review`'s PASS conditions as tests: CSP header, HSTS max-age, session timeout, 429 threshold (*amended by ticket 16: per-IP 429 at N+1 of its budget; per-account 429 on mixed traffic*), generic error bodies, 403 on role violation. |
+| **17** Deferral register and ADRs | **124 rows keyed by control ID** (36 IM8 + 88 ARC), each with a verdict from `spec-compliance`'s five-value set and a self-contained reason. `DEFERRED` for ac-3/ac-4 with written justification. Plus the declared risk classification, the population declaration, the ARC interpretation, the Boot-version mapping note, and the `herf` typo warning. *Consolidated into the register (ticket 33): R-ADM-001, R-ADM-003, R-ADM-011, R-BLD-001, R-BLD-002, R-CFG-001, R-OPS-001, R-STD-001. Amend the table by ID, not this list.* |
+| **18** Compliance review gate | Run `spec-compliance` against **one consolidated Spec/TRD in-conversation**; resolve every FAIL/AUTO-FIX with the user per Step 4. **`im8-review` cannot run here — it needs a codebase; schedule it post-build.** *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-HDR-002, T-HDR-001, T-SES-001, T-RL-001, T-RL-002, T-AUTH-001, T-AUTH-002. Amend the table by ID, not this list.* |
 
 ### What I could not determine
 
 - **Log retention (incl. the 90-day figure).** Absent from the IM8 sources entirely; the only `.kiro` mention of retention is an unrelated Logback rolling-policy recommendation in `spring-logging-review/SKILL.md`. Belongs to `App-Standards/Appfw-Logging-Standards/`, which is not in this workspace. Ticket 03 owns it.
-- **The app's official risk classification and user population.** Not stated in any source I read. Both are user decisions with large control consequences.
+- **The app's official risk classification and user population.** Not stated in any source I read. Both are user decisions with large control consequences. *Consolidated into the register (ticket 33): R-OPS-001. Amend the table by ID, not this list.*
 - **ARC's own applicability trigger.** `arc-framework-policy.md` has no applicability section. The `op`-section question is a judgement call, flagged rather than silently resolved.
+
+---
+
+## Amendment from ticket 16 (test plan)
+
+01:144 and 01:306 were edited in place. The "429 on the 6th attempt" example cannot hold under ticket 09's design, because the account locks at the 5th failure and the 6th gets the uniform 401. The corrected wording names the two 429s the design actually produces:
+- the per-IP 429 at N+1 of the per-IP budget;
+- the per-account 429 on mixed traffic.
+
+The line was an illustrative list, not an `im8-review` PASS condition, so this is an amendment and not a finding. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-RL-001, T-RL-002. Amend the table by ID, not this list.*

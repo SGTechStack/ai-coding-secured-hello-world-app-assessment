@@ -1,0 +1,1184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE — SPA auth state &amp; interceptor behaviour (ticket 14)</title>
+<style>
+  :root{
+    --ink:#14161a; --ink2:#494f59; --ink3:#767d89;
+    --line:#e2e5ea; --bg:#fbfcfd; --panel:#ffffff;
+    --accent:#0b5fc7; --accent-soft:#eaf2fe;
+    --bad:#b3261e; --bad-soft:#fdecea;
+    --warn:#8a5300; --warn-soft:#fff4e0;
+    --ok:#136a43; --ok-soft:#e8f6ee;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:36px 24px 96px}
+  header.top{border-bottom:1px solid var(--line);padding-bottom:24px;margin-bottom:28px}
+  .tag{display:inline-block;font:600 11px/1 var(--mono);letter-spacing:.09em;
+       text-transform:uppercase;color:var(--bad);background:var(--bad-soft);
+       border:1px solid #f3c9c5;border-radius:3px;padding:6px 8px;margin-bottom:14px}
+  h1{font-size:27px;line-height:1.25;margin:0 0 10px;letter-spacing:-.015em}
+  h2{font-size:15px;letter-spacing:.055em;text-transform:uppercase;color:var(--ink3);
+     margin:0 0 14px;font-weight:600}
+  h3{font-size:16px;margin:0 0 6px}
+  p{margin:0 0 12px;color:var(--ink2);max-width:76ch}
+  p.lede{color:var(--ink);font-size:17px}
+  code{font-family:var(--mono);font-size:.87em;background:#f1f3f6;
+       border:1px solid var(--line);border-radius:3px;padding:1px 4px}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:26px;align-items:start}
+  @media (max-width:1040px){.cols{grid-template-columns:1fr}}
+  section.card{background:var(--panel);border:1px solid var(--line);border-radius:9px;
+               padding:20px 22px;margin-bottom:22px}
+  /* ---- state panel ---- */
+  .sticky{position:sticky;top:20px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:14px;margin:0}
+  .kv dt{color:var(--ink3)}
+  .kv dd{margin:0;font-family:var(--mono);font-size:13px;word-break:break-word}
+  .changed{background:#fff8c9;border-radius:3px;padding:0 3px;
+           box-shadow:0 0 0 2px #fff8c9}
+  .screen{font:600 15px/1.3 inherit;background:var(--accent-soft);color:var(--accent);
+          border:1px solid #bfd8f8;border-radius:6px;padding:11px 13px;margin:0 0 16px}
+  .screen small{display:block;font-weight:400;color:var(--ink2);margin-top:3px;font-size:12.5px}
+  .banner{border-radius:6px;padding:10px 12px;font-size:13.5px;margin:0 0 14px;border:1px solid}
+  .banner.b-bad{background:var(--bad-soft);border-color:#f3c9c5;color:var(--bad)}
+  .banner.b-warn{background:var(--warn-soft);border-color:#f0dcb4;color:var(--warn)}
+  .banner.b-ok{background:var(--ok-soft);border-color:#c3e6d3;color:var(--ok)}
+  .banner.b-info{background:var(--accent-soft);border-color:#bfd8f8;color:var(--accent)}
+  .counters{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0 0}
+  .counter{border:1px solid var(--line);border-radius:6px;padding:9px 10px;text-align:center}
+  .counter b{display:block;font:600 21px/1.1 var(--mono)}
+  .counter span{font-size:11px;color:var(--ink3);letter-spacing:.02em}
+  /* ---- buttons ---- */
+  button{font:inherit;font-size:13.5px;cursor:pointer;background:#fff;color:var(--ink);
+         border:1px solid #cfd5de;border-radius:6px;padding:8px 11px;text-align:left}
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  button:disabled{opacity:.42;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover:not(:disabled){background:#0a53ad;color:#fff}
+  button.ghost{background:transparent;border-style:dashed}
+  .btnrow{display:flex;flex-wrap:wrap;gap:7px}
+  .grouplabel{font:600 11.5px/1 inherit;letter-spacing:.07em;text-transform:uppercase;
+              color:var(--ink3);margin:18px 0 8px}
+  .grouplabel:first-child{margin-top:0}
+  /* ---- toggles ---- */
+  .toggle{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--line);
+          border-radius:7px;padding:11px 13px;margin-bottom:9px;background:#fff}
+  .toggle input{margin:3px 0 0;flex:0 0 auto;width:16px;height:16px;accent-color:var(--accent)}
+  .toggle .t-body{min-width:0}
+  .toggle .t-name{font-weight:600;font-size:14px}
+  .toggle .t-why{font-size:12.5px;color:var(--ink2);margin-top:2px}
+  .pill{display:inline-block;font:600 10.5px/1 var(--mono);letter-spacing:.04em;
+        border-radius:20px;padding:4px 7px;margin-left:6px;vertical-align:1px}
+  .pill.decided{background:var(--ok-soft);color:var(--ok);border:1px solid #c3e6d3}
+  .pill.wrong{background:var(--bad-soft);color:var(--bad);border:1px solid #f3c9c5}
+  /* ---- tabs ---- */
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--line);
+        margin:0 0 18px;padding-bottom:14px}
+  .tabs button{font-size:12.5px;padding:7px 10px}
+  .tabs button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .steps{list-style:none;margin:16px 0 0;padding:0;counter-reset:s}
+  .steps li{display:flex;gap:11px;align-items:flex-start;padding:7px 0;
+            border-top:1px solid var(--line)}
+  .steps li:first-child{border-top:0}
+  .steps .num{flex:0 0 22px;height:22px;border-radius:50%;background:#eef1f5;color:var(--ink3);
+              font:600 11px/22px var(--mono);text-align:center;margin-top:5px}
+  .steps li.done .num{background:var(--ok-soft);color:var(--ok)}
+  .steps li.now .num{background:var(--accent);color:#fff}
+  .steps .stepbtn{flex:1 1 auto}
+  .steps .note{font-size:12.5px;color:var(--ink2);margin-top:5px}
+  /* ---- log ---- */
+  .log{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:7px;
+       background:#fff;max-height:340px;overflow:auto}
+  .log .row{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:6px 10px;
+            border-top:1px solid #eef1f5}
+  .log .row:first-child{border-top:0}
+  .log .t{color:var(--ink3)}
+  .log .m{white-space:pre-wrap;word-break:break-word}
+  .log .http{color:var(--accent)}
+  .log .r-bad .m{color:var(--bad)}
+  .log .r-ok .m{color:var(--ok)}
+  .log .r-warn .m{color:var(--warn)}
+  .log .r-note .m{color:var(--ink3);font-style:italic}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+  td.c{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+  .footnote{font-size:13px;color:var(--ink3);border-top:1px solid var(--line);
+            margin-top:34px;padding-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <span class="tag">Throwaway prototype — not the build</span>
+  <h1>What the app believes, and what it does when the server disagrees</h1>
+  <p class="lede">
+    The session cookie is <code>HttpOnly</code>, so this app can never look at it. It only ever
+    learns where it stands by asking the server and reading the reply. This page lets you drive
+    that conversation by hand.
+  </p>
+  <p>
+    Press the buttons on the left and watch the panel on the right. Every exchange with the server
+    is written into the log at the bottom, so you can <strong>count</strong> the round trips, the
+    audit-log entries and the throwaway sessions each choice costs. The four switches are the four
+    decisions this prototype exists to settle: each is set the way we currently intend to build it,
+    and each can be flipped to the obvious-but-wrong alternative so you can feel what goes wrong.
+  </p>
+  <p>
+    <strong>The question:</strong> is this the right set of rules for discovering who you are,
+    keeping the form-submission token fresh, and recovering when the server asks for a second
+    factor half-way through an action? Prototype code is thrown away; only the decisions survive.
+  </p>
+</header>
+
+<div class="cols">
+
+  <!-- ====================== LEFT: controls ====================== -->
+  <div>
+
+    <section class="card">
+      <h2>The four decisions, as switches</h2>
+
+      <label class="toggle">
+        <input type="checkbox" id="sw-lazyCsrf" checked>
+        <span class="t-body">
+          <span class="t-name">Ask for a form token only when one is needed<span class="pill decided">how we intend to build it</span></span>
+          <span class="t-why">Asking for a token is not a free read — the server has to remember it,
+            so it starts a session every time. Turn this off to ask on every page load instead, and
+            watch the throwaway-session counter climb for visitors who never even log in.</span>
+        </span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="sw-proactive" checked>
+        <span class="t-body">
+          <span class="t-name">Fetch a fresh token immediately after signing in<span class="pill decided">how we intend to build it</span></span>
+          <span class="t-why">Signing in silently replaces the token, so the one we hold is already
+            dead. Turn this off to rely on the built-in "rejected once, try again" recovery instead —
+            and watch every session begin with a rejected submission, which is the same alarm we ask
+            the operators to watch for.</span>
+        </span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="sw-logoutTerminal" checked>
+        <span class="t-body">
+          <span class="t-name">Signing out always ends the session here, whatever the server says<span class="pill decided">how we intend to build it</span></span>
+          <span class="t-why">Signing out of an already-dead session is rejected as a stale-token
+            error. Turn this off to let the generic recovery handle it, and watch the app start a
+            brand-new session purely in order to sign out of it.</span>
+        </span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="sw-tier2Code" checked>
+        <span class="t-body">
+          <span class="t-name">A disabled authenticator says so, in its own words<span class="pill decided">how we intend to build it</span></span>
+          <span class="t-why">After a hundred wrong codes the authenticator is switched off for good and
+            only an administrator can restore it — but it is still set up, so nothing in the ordinary
+            vocabulary can say that. Turn this off to see what happens without a word for it: the person
+            is put on the code screen and every correct code they type is refused, for ever.</span>
+        </span>
+      </label>
+
+      <label class="toggle">
+        <input type="checkbox" id="sw-retry3">
+        <span class="t-body">
+          <span class="t-name">Retry failed reads three times<span class="pill wrong">the library's default</span></span>
+          <span class="t-why">Our data-fetching library retries a failed read three times unless
+            told not to, and it cannot tell "the server is down" from "you are not logged in".
+            Turn this on and open the app with an expired session to see one question become four,
+            with four entries in the security log.</span>
+        </span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Free play — press anything, in any order</h2>
+
+      <div class="grouplabel">What the person does</div>
+      <div class="btnrow" id="fp-user"></div>
+
+      <div class="grouplabel">What happens around them</div>
+      <div class="btnrow" id="fp-world"></div>
+
+      <div class="btnrow" style="margin-top:20px">
+        <button class="ghost" id="btn-reset">Start over</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Guided walkthroughs</h2>
+      <p style="font-size:14px">
+        Each tab sets up one situation that is hard to reason about on paper. Starting a walkthrough
+        resets everything, so it runs the same way every time. Press the steps in order.
+      </p>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div id="scenario"></div>
+    </section>
+
+    <section class="card">
+      <h2>The rule the interceptor follows</h2>
+      <p style="font-size:14px">Every error the server can send, and the one thing the app does about it.
+        The app branches on the short machine-readable code and never on the English text.</p>
+      <table>
+        <thead><tr><th>Server says</th><th>Code</th><th>The app</th></tr></thead>
+        <tbody id="rules"></tbody>
+      </table>
+    </section>
+
+  </div>
+
+  <!-- ====================== RIGHT: state ====================== -->
+  <div class="sticky">
+    <section class="card">
+      <h2>What the person sees</h2>
+      <div class="screen" id="screen"></div>
+      <div id="banners"></div>
+
+      <h2>What the app believes</h2>
+      <dl class="kv" id="belief"></dl>
+
+      <h2 style="margin-top:20px">What it costs</h2>
+      <div class="counters">
+        <div class="counter"><b id="c-req">0</b><span>requests</span></div>
+        <div class="counter"><b id="c-audit">0</b><span>security-log rows</span></div>
+        <div class="counter"><b id="c-sess">0</b><span>throwaway sessions</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Conversation with the server</h2>
+      <div class="log" id="log"></div>
+    </section>
+  </div>
+
+</div>
+
+<p class="footnote">
+  Prototype for ticket 14 of the <em>Secured Hello World</em> wayfinder map. The state machine in
+  <code>#pure-module</code> is written to be lifted out intact; everything else on this page is
+  scaffolding and gets thrown away. The pretend server below is a stub, not a specification — where
+  it and a resolved ticket disagree, the ticket wins.
+</p>
+</div>
+
+<!-- ============================================================
+     THE PURE MODULE. No DOM, no document, no event handlers.
+     This is the part that survives the prototype: it lifts into
+     the real client as-is.
+     ============================================================ -->
+<script id="pure-module">
+const AuthModel = (() => {
+
+  /* ---------- the app's belief about where it stands ---------- */
+  const initialState = () => ({
+    phase: 'COLD',            // COLD | DISCOVERING | ANONYMOUS | SIGNED_IN
+    role: null,               // 'USER' | 'ADMIN'
+    mustChangePassword: false,
+    factorEnrolled: false,
+    factorHeldSince: null,    // clock minutes, or null
+    rebindRequired: false,    // tier 2 tripped: enrolled, and permanently unverifiable
+    token: null,              // the form-submission token we hold, or null
+    screen: 'nothing',
+    parked: [],               // actions waiting for a second factor
+    challenge: 'closed',      // closed | open
+    banners: [],
+    csrfRetryUsed: false,
+  });
+
+  /* ---------- 1. classify: what does this reply mean? ----------
+     The single branch point is `code`. Never the status alone,
+     never the English prose, never the type URL.              */
+  function classify(reply, ctx) {
+    // Signing out is terminal under every outcome. It is deliberately
+    // classified before anything else, because the generic stale-token
+    // recovery is actively wrong here.
+    if (ctx.isSignOut) {
+      return { act: 'END_SESSION_LOCALLY',
+               why: 'Signing out is never retried and never interpreted.' };
+    }
+    if (reply.status >= 200 && reply.status < 300) {
+      return { act: 'ACCEPT' };
+    }
+    switch (reply.code) {
+      case 'CSRF_TOKEN_INVALID':
+        return ctx.csrfRetryUsed
+          ? { act: 'GIVE_UP', why: 'The one permitted retry is already spent.' }
+          : { act: 'REFRESH_TOKEN_AND_RETRY_ONCE' };
+
+      case 'AUTHENTICATION_FAILED':
+        // Idle expiry, absolute expiry, signed in elsewhere, locked,
+        // disabled, unknown user, wrong password, credential too old.
+        // All one reply on purpose. We cannot explain it, so we do not try.
+        return { act: 'FORGET_EVERYTHING_AND_ASK_TO_SIGN_IN' };
+
+      case 'PASSWORD_CHANGE_REQUIRED':
+        return { act: 'GO_TO_CHANGE_PASSWORD' };   // not a sign-out
+
+      case 'ACCESS_DENIED':
+        return { act: 'SHOW_REFUSAL', retry: false };
+
+      case 'MISSING_FACTOR':
+        // reason is MISSING or EXPIRED. Same action either way; the
+        // distinction only changes the wording.
+        return { act: 'PARK_AND_CHALLENGE', reason: reply.reason };
+
+      case 'INVALID_FACTOR':
+        return { act: 'KEEP_CHALLENGE_OPEN' };
+
+      case 'FACTOR_ENROLMENT_REQUIRED':
+        // Authoritative over anything we believe about enrolment.
+        return { act: 'GO_TO_ENROLMENT' };
+
+      case 'FACTOR_DISABLED':
+        // Terminal. The authenticator is still enrolled but can never be
+        // verified again; only an administrator deleting it recovers.
+        // The challenge must be closed for good, or a correct code is
+        // refused forever.
+        return { act: 'SHOW_REBIND_REQUIRED' };
+
+      case 'FACTOR_ALREADY_ENROLLED':
+        return { act: 'SHOW_ALREADY_ENROLLED' };
+
+      case 'TOO_MANY_REQUESTS':
+        return { act: 'WAIT_OUT', seconds: reply.retryAfter };
+
+      case 'VALIDATION_FAILED':
+      case 'PASSWORD_REJECTED':
+      case 'USER_EXISTS':
+      case 'USERNAME_CHANGE_NOT_ALLOWED':
+        return { act: 'SHOW_FIELD_PROBLEMS', problems: reply.problems || [] };
+
+      case 'RESET_TOKEN_INVALID':
+        return { act: 'SHOW_LINK_DEAD' };
+
+      case 'INTERNAL_ERROR':
+        return { act: 'SHOW_REFERENCE', reference: reply.traceId };
+
+      default:
+        return { act: 'SHOW_REFERENCE', reference: reply.traceId };
+    }
+  }
+
+  /* ---------- 2. where may we be, given what we believe? ----------
+     Navigation is driven by belief. The codes above are the
+     authority; this only stops us walking into a wall.         */
+  function screenFor(s) {
+    if (s.phase === 'COLD' || s.phase === 'DISCOVERING') return 'holding';
+    if (s.phase === 'ANONYMOUS') return 'sign in';
+    if (s.mustChangePassword) return 'change your password';
+    // This test must precede both factor screens. An account whose factor has
+    // been disabled is still enrolled, and its verification can never succeed,
+    // so without this line the two tests below pin the person on the code
+    // screen for ever — enrolled, so not sent to set-up; never verified, so
+    // never let past.
+    if (s.role === 'ADMIN' && s.rebindRequired) return 'an administrator must reset your authenticator';
+    if (s.role === 'ADMIN' && !s.factorEnrolled) return 'set up your authenticator';
+    if (s.role === 'ADMIN' && s.factorHeldSince === null) return 'enter your 6-digit code';
+    return 'hello world';
+  }
+
+  /* ---------- 3. reduce: fold one thing that happened ---------- */
+  function reduce(state, ev) {
+    const s = structuredClone(state);
+    switch (ev.type) {
+      case 'DISCOVERY_STARTED':  s.phase = 'DISCOVERING'; break;
+
+      case 'SELF_DESCRIPTION':   // the server told us who we are
+        s.phase = 'SIGNED_IN';
+        s.role = ev.role;
+        s.mustChangePassword = ev.mustChangePassword;
+        s.factorEnrolled = ev.factorEnrolled;
+        s.factorHeldSince = ev.factorHeldSince;
+        s.rebindRequired = !!ev.rebindRequired;
+        break;
+
+      case 'TOKEN_HELD':         s.token = ev.token; s.csrfRetryUsed = false; break;
+      case 'TOKEN_STALE':        s.csrfRetryUsed = true; break;
+
+      case 'FORGET_EVERYTHING':
+        // Unconditional. The server's clear-site-data header cannot
+        // reach this origin's storage, so this is the actual control.
+        return { ...initialState(), phase: 'ANONYMOUS', screen: 'sign in',
+                 banners: ev.banners || [] };
+
+      case 'PARK':               s.parked.push(ev.action); s.challenge = 'open'; break;
+      case 'CHALLENGE_PASSED':
+        s.factorHeldSince = ev.at;
+        s.challenge = 'closed';
+        s.parked = [];           // replayed by the caller, then cleared
+        break;
+      case 'CHALLENGE_CLOSED':   s.challenge = 'closed'; s.parked = []; break;
+
+      case 'FACTOR_WENT_STALE':  s.factorHeldSince = null; break;
+      case 'REBIND_REQUIRED':
+        s.rebindRequired = true;
+        s.challenge = 'closed';   // never offer the challenge again
+        s.parked = [];            // and drop the queue: replay can never succeed
+        break;
+      case 'ENROLLED':           s.factorEnrolled = true; break;
+      case 'PASSWORD_CHANGED':   s.mustChangePassword = false; break;
+
+      case 'SAY':                s.banners = [...s.banners, ev.banner]; break;
+      case 'QUIET':              s.banners = []; break;
+    }
+    s.screen = screenFor(s);
+    return s;
+  }
+
+  /* ---------- 4. is the factor fresh enough to mutate? ----------
+     Reads need the factor at all; writes need it within ten
+     minutes. Kept here so the rule is stated once.            */
+  const WRITE_FRESHNESS_MINUTES = 10;
+  function factorState(s, now) {
+    if (s.rebindRequired) return 'DISABLED';   // terminal, and not a lock
+    if (!s.factorEnrolled) return 'NOT_ENROLLED';
+    if (s.factorHeldSince === null) return 'MISSING';
+    if (now - s.factorHeldSince > WRITE_FRESHNESS_MINUTES) return 'EXPIRED';
+    return 'FRESH';
+  }
+
+  return { initialState, classify, reduce, screenFor, factorState, WRITE_FRESHNESS_MINUTES };
+})();
+</script>
+
+<!-- ============================================================
+     Everything below is throwaway page scaffolding: a pretend
+     server, the wiring, the rendering.
+     ============================================================ -->
+<script>
+/* ------------------------- pretend server ------------------------- */
+let srv, clock, S, counters, logRows, prevBelief;
+
+function freshServer(){
+  return {
+    // the one session the server will keep (cap is one per account)
+    session: null,   // {authed, role, mustChange, factorAt, authInstant, tokenSeq}
+    anonTokenSeq: 0,
+    enrolled: false,
+    mustChange: false,
+    totpFails: 0,
+    cumulativeFails: 0,
+    totpDisabled: false,   // tier 2: row still there, verification can never pass
+    lockedUntil: null,
+    accountAlive: true,
+  };
+}
+
+function reset(quiet){
+  srv = freshServer(); clock = 0;
+  S = AuthModel.initialState();
+  counters = { req:0, audit:0, sess:0 };
+  logRows = []; prevBelief = null;
+  if(!quiet) note('Everything reset. Nothing has happened yet.');
+  render();
+}
+
+/* the switches */
+const sw = id => document.getElementById(id).checked;
+
+/* --------- issuing a form-submission token costs a session --------- */
+function issueToken(){
+  counters.req++;
+  if(srv.session){
+    srv.session.tokenSeq++;
+    http('GET','/api/csrf','200 — a token bound to your existing session');
+    return 'tok-live-'+srv.session.tokenSeq;
+  }
+  srv.anonTokenSeq++; counters.sess++;
+  http('GET','/api/csrf','200 — a token, and a brand-new empty session to remember it in');
+  warn('That started a throwaway session. The server has to remember the token, so asking for one is a write, not a read.');
+  return 'tok-anon-'+srv.anonTokenSeq;
+}
+
+/* --------- the server's answer to "who am I?" --------- */
+function selfDescribe(){
+  counters.req++;
+  if(!srv.session || !srv.session.authed){
+    counters.audit++;
+    http('GET','/api/profile','401 AUTHENTICATION_FAILED');
+    return { status:401, code:'AUTHENTICATION_FAILED' };
+  }
+  const held = srv.session.factorAt !== null ? ['PASSWORD','TOTP'] : ['PASSWORD'];
+  http('GET','/api/profile','200 — role '+srv.session.role+
+       ', must change password: '+srv.session.mustChange+
+       ', authenticator enrolled: '+srv.enrolled+
+       ', factor held: '+(srv.session.factorAt!==null?('yes, since minute '+srv.session.factorAt):'no'));
+  if(srv.totpDisabled && sw('sw-tier2Code'))
+    note('The self-read carries rebindRequired: true. This is the only thing that lets the app render the terminal state instead of discovering it by being refused.');
+  if(srv.totpDisabled && !sw('sw-tier2Code'))
+    warn('The self-read says enrolled: true and nothing else. The authenticator is off, and the app has no way to know.');
+  return { status:200, role:srv.session.role, mustChangePassword:srv.session.mustChange,
+           factorEnrolled:srv.enrolled, factorHeldSince:srv.session.factorAt,
+           rebindRequired: srv.totpDisabled && sw('sw-tier2Code'), held };
+}
+
+/* --------- a guarded call --------- */
+function callServer(req){
+  counters.req++;
+  const needsToken = req.method !== 'GET';
+
+  // 1. absolute / idle / evicted / disabled — all one answer
+  if(req.needsSession && (!srv.session || !srv.session.authed)){
+    counters.audit++;
+    http(req.method, req.path, '401 AUTHENTICATION_FAILED');
+    return { status:401, code:'AUTHENTICATION_FAILED' };
+  }
+  // 2. stale form token (checked before the factor, mirroring filter order)
+  if(needsToken && req.token !== currentServerToken()){
+    counters.audit++;
+    http(req.method, req.path, '403 CSRF_TOKEN_INVALID');
+    return { status:403, code:'CSRF_TOKEN_INVALID' };
+  }
+  // 3. forced password change gates everything outside five paths
+  const ALLOWED_WHILE_FORCED = ['/api/login','/api/csrf','/api/profile','/api/logout','/api/profile/password'];
+  if(srv.session && srv.session.authed && srv.session.mustChange
+     && !ALLOWED_WHILE_FORCED.includes(req.path)){
+    http(req.method, req.path, '403 PASSWORD_CHANGE_REQUIRED');
+    return { status:403, code:'PASSWORD_CHANGE_REQUIRED' };
+  }
+  // 4. role first, then factor — this order is the whole point
+  if(req.adminOnly){
+    if(srv.session.role !== 'ADMIN'){
+      http(req.method, req.path, '403 ACCESS_DENIED');
+      return { status:403, code:'ACCESS_DENIED' };
+    }
+    if(!srv.enrolled){
+      http(req.method, req.path, '422 FACTOR_ENROLMENT_REQUIRED');
+      return { status:422, code:'FACTOR_ENROLMENT_REQUIRED' };
+    }
+    // The entry point's third branch. Its row-read already tells absent from
+    // present; it now has to tell present-and-usable from present-and-disabled.
+    if(srv.totpDisabled){
+      if(sw('sw-tier2Code')){
+        http(req.method, req.path, '423 FACTOR_DISABLED');
+        return { status:423, code:'FACTOR_DISABLED' };
+      }
+      http(req.method, req.path, '412 MISSING_FACTOR (reason: MISSING) — the row is there, so this is all it can say');
+      return { status:412, code:'MISSING_FACTOR', reason:'MISSING' };
+    }
+    if(srv.session.factorAt === null){
+      http(req.method, req.path, '412 MISSING_FACTOR (reason: MISSING)');
+      return { status:412, code:'MISSING_FACTOR', reason:'MISSING' };
+    }
+    if(req.method !== 'GET' && clock - srv.session.factorAt > 10){
+      http(req.method, req.path, '412 MISSING_FACTOR (reason: EXPIRED)');
+      return { status:412, code:'MISSING_FACTOR', reason:'EXPIRED' };
+    }
+  }
+  http(req.method, req.path, '200 — done');
+  return { status:200 };
+}
+function currentServerToken(){
+  if(srv.session) return 'tok-live-'+srv.session.tokenSeq;
+  return 'tok-anon-'+srv.anonTokenSeq;
+}
+
+/* ------------------------- the client ------------------------- */
+
+function ensureToken(){
+  if(S.token && S.token === currentServerToken()) return;
+  if(!S.token || !sw('sw-lazyCsrf')) { /* fall through */ }
+  S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+}
+
+/* the interceptor: send, classify, act */
+function send(req, ctx = {}){
+  if(req.method !== 'GET' && !ctx.noToken){ ensureToken(); req.token = S.token; }
+  let reply = callServer(req);
+  let decision = AuthModel.classify(reply, { isSignOut: !!req.isSignOut, csrfRetryUsed: S.csrfRetryUsed });
+  return act(decision, req, reply);
+}
+
+function act(d, req, reply){
+  switch(d.act){
+    case 'ACCEPT':
+      return true;
+
+    case 'END_SESSION_LOCALLY': {
+      if(!sw('sw-logoutTerminal') && reply.code === 'CSRF_TOKEN_INVALID'){
+        warn('Switch is off, so the generic stale-token recovery ran on sign-out.');
+        S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+        note('It just created a session so that it could sign out of it. The sign-out then "succeeds" and means nothing.');
+        counters.req++; http('POST','/api/logout','204 — signed out of the session created one line ago');
+      }
+      srv.session = null;
+      S = AuthModel.reduce(S, {type:'FORGET_EVERYTHING',
+        banners:[{k:'ok', t:'Signed out. Everything held in this tab has been discarded.'}]});
+      note('Forgetting local state is unconditional here. The server\'s clear-site-data header only reaches the API origin, so it cannot clear this app\'s storage.');
+      return true;
+    }
+
+    case 'REFRESH_TOKEN_AND_RETRY_ONCE': {
+      warn('Submission rejected as stale. Fetching a fresh token and trying once more.');
+      S = AuthModel.reduce(S, {type:'TOKEN_STALE'});
+      S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+      req.token = S.token;
+      const reply2 = callServer(req);
+      const d2 = AuthModel.classify(reply2, { isSignOut:!!req.isSignOut, csrfRetryUsed:true });
+      return act(d2, req, reply2);
+    }
+
+    case 'GIVE_UP':
+      say('bad','Something is wrong with this page. Please reload.');
+      return false;
+
+    case 'FORGET_EVERYTHING_AND_ASK_TO_SIGN_IN':
+      S = AuthModel.reduce(S, {type:'FORGET_EVERYTHING',
+        banners:[{k:'info', t:'Please sign in.'}]});
+      note('One reply covers idle expiry, the 8-hour limit, being signed in elsewhere, a locked account and a wrong password. The app is not able to say which, and must not guess.');
+      return false;
+
+    case 'GO_TO_CHANGE_PASSWORD':
+      S = AuthModel.reduce(S, {type:'SAY',
+        banner:{k:'warn', t:'You need to choose a new password before you can go any further.'}});
+      note('This is not a sign-out. Treating 403 like 401 here would throw out a perfectly good session.');
+      return false;
+
+    case 'SHOW_REFUSAL':
+      say('bad','You do not have access to that.');
+      note('Never retried. Retrying a refusal just makes noise in the security log.');
+      return false;
+
+    case 'PARK_AND_CHALLENGE': {
+      const already = S.challenge === 'open';
+      S = AuthModel.reduce(S, {type:'PARK', action:req});
+      if(already){
+        note('A second action hit the same wall. It joins the queue — one prompt, not two.');
+      } else {
+        say('info', d.reason === 'EXPIRED'
+          ? 'Your verification has expired. Enter your 6-digit code to continue.'
+          : 'Enter your 6-digit code to continue.');
+        note('The server kept nothing. There is no saved request to resume, so this app owns the queue and the replay.');
+      }
+      return false;
+    }
+
+    case 'KEEP_CHALLENGE_OPEN':
+      say('bad','That code was not right. Try again.');
+      return false;
+
+    case 'GO_TO_ENROLMENT':
+      S = AuthModel.reduce(S, {type:'SAY',
+        banner:{k:'warn', t:'Set up an authenticator app to continue.'}});
+      note('This reply outranks whatever the app believed about enrolment — it exists precisely for the case where someone reset the factor after this page loaded.');
+      S.factorEnrolled = false; S.screen = AuthModel.screenFor(S);
+      return false;
+
+    case 'SHOW_ALREADY_ENROLLED':
+      say('bad','You already have an authenticator set up. If you did not set it up, tell an administrator now.');
+      note('Worth saying plainly: an administrator who is told this when they know it is untrue has just been handed evidence that someone else got in.');
+      return false;
+
+    case 'WAIT_OUT':
+      say('warn','Too many attempts. Try again in '+d.seconds+' seconds.');
+      note('Honour the wait. Retrying faster spends a budget that is shared across everyone on this network.');
+      return false;
+
+    case 'SHOW_FIELD_PROBLEMS':
+      say('bad','Check the highlighted fields.');
+      return false;
+
+    case 'SHOW_LINK_DEAD':
+      say('bad','That link is no longer valid. Ask for a new one.');
+      return false;
+
+    case 'SHOW_REBIND_REQUIRED':
+      S = AuthModel.reduce(S, {type:'QUIET'});
+      S = AuthModel.reduce(S, {type:'REBIND_REQUIRED'});
+      say('bad','Your authenticator has been switched off after too many incorrect codes. An administrator has to reset it before you can sign in to the administration area.');
+      note('Terminal. The prompt is closed for good and the queue is dropped, because no code can ever be accepted. This is the only branch that closes the challenge without succeeding.');
+      return false;
+
+    case 'SHOW_REFERENCE':
+      say('bad','Something went wrong. Quote reference '+(d.reference||'—')+' if you contact support.');
+      return false;
+  }
+}
+
+/* ---- actions the person can take ---- */
+const ACTIONS = {
+  open: { label:'Open the app', run(){
+    S = AuthModel.reduce(S, {type:'DISCOVERY_STARTED'});
+    note('Nothing is drawn yet. The app genuinely does not know whether it is signed in, so it holds the screen rather than flashing a sign-in form at someone who is already signed in.');
+    if(!sw('sw-lazyCsrf')){
+      note('Switch is off, so a token is fetched on load whether or not anything will be submitted.');
+      S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+    }
+    let attempts = sw('sw-retry3') ? 4 : 1;
+    let r;
+    for(let i=0;i<attempts;i++){
+      r = selfDescribe();
+      if(r.status === 200) break;
+      if(i===0 && attempts>1) warn('Read failed. The library will retry it three times, because it cannot tell "not signed in" from "server down".');
+    }
+    if(r.status === 200){
+      S = AuthModel.reduce(S, {type:'SELF_DESCRIPTION', ...r});
+      note('One question answered everything the app needs to route on: role, forced password change and authenticator state all arrive together.');
+    } else {
+      S = AuthModel.reduce(S, {type:'FORGET_EVERYTHING', banners:[{k:'info',t:'Please sign in.'}]});
+      if(attempts>1) warn('Four requests and four security-log entries, to learn one thing the first reply already said.');
+    }
+  }},
+
+  signInUser: { label:'Sign in (ordinary user)', run(){ doSignIn('USER'); }},
+  signInAdmin:{ label:'Sign in (administrator)', run(){ doSignIn('ADMIN'); }},
+
+  code: { label:'Enter the correct 6-digit code', run(){
+    if(!srv.session || !srv.session.authed){ say('bad','Not signed in.'); return; }
+    if(srv.totpDisabled){
+      counters.req++; counters.audit++;
+      if(sw('sw-tier2Code')){
+        http('POST','/api/mfa/totp/verification','423 FACTOR_DISABLED');
+        act({act:'SHOW_REBIND_REQUIRED'});
+      } else {
+        http('POST','/api/mfa/totp/verification','412 INVALID_FACTOR');
+        warn('A CORRECT code, refused. With no word for "switched off", this is the best the server can say — and the app will offer the prompt again. That is the loop.');
+        say('bad','That code was not right. Try again.');
+      }
+      return;
+    }
+    if(srv.lockedUntil !== null && clock < srv.lockedUntil){
+      counters.req++; counters.audit++;
+      const wait = (srv.lockedUntil - clock) * 60;
+      http('POST','/api/mfa/totp/verification',
+           '429 TOO_MANY_REQUESTS (factor: "TOTP", reason: "LOCKED"), Retry-After: '+wait);
+      note('Tier one. A rate-limit reply, carrying the two members that tell it apart from the per-address throttle on this same path — that one carries no factor member at all. Retry-After comes from when the lock lifts, which is safe here only because this reply goes to a session already authenticated as its own owner.');
+      act({act:'WAIT_OUT', seconds:wait});
+      return;
+    }
+    counters.req++;
+    srv.totpFails = 0;
+    srv.session.factorAt = clock;
+    srv.session.tokenSeq++;      // verifying rotates the session id and the token
+    http('POST','/api/mfa/totp/verification','204 — factor granted');
+    note('Verifying replaced the session id and the form token, so the token this app holds is now stale.');
+    if(sw('sw-proactive')){
+      S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+      note('Fresh token fetched straight away, before anything is replayed.');
+    } else {
+      warn('Switch is off, so the stale token is kept. Watch the replay get rejected first.');
+    }
+    const parked = [...S.parked];
+    S = AuthModel.reduce(S, {type:'CHALLENGE_PASSED', at:clock});
+    S = AuthModel.reduce(S, {type:'QUIET'});
+    if(parked.length){
+      note('Replaying '+parked.length+' parked action'+(parked.length>1?'s':'')+'.');
+      parked.forEach(p => send(p));
+      say('ok','Done.');
+    }
+  }},
+
+  badCode: { label:'Enter a wrong code', run(){
+    if(!srv.session || !srv.session.authed){ say('bad','Not signed in.'); return; }
+    if(srv.totpDisabled){ ACTIONS.code.run(); return; }
+    counters.req++; counters.audit++;
+    srv.totpFails++; srv.cumulativeFails++;
+    if(srv.cumulativeFails >= 100){
+      srv.totpDisabled = true; srv.session = null;
+      http('POST','/api/mfa/totp/verification',
+           (sw('sw-tier2Code')?'423 FACTOR_DISABLED':'412 INVALID_FACTOR')+
+           ' — and that was the hundredth, so the authenticator is switched off for good');
+      note('The authenticator row stays. Only an administrator deleting it restores anything. Sessions are closed too, after the change commits — a factor presumed compromised must not leave the session it authorised alive.');
+      if(sw('sw-tier2Code')) act({act:'SHOW_REBIND_REQUIRED'});
+      else { warn('No word for it, so this reads as one more wrong code.'); say('bad','That code was not right. Try again.'); }
+      return;
+    }
+    if(srv.totpFails >= 10 && srv.lockedUntil === null){
+      srv.lockedUntil = clock + 20;
+      http('POST','/api/mfa/totp/verification','412 INVALID_FACTOR — and that was the tenth, so the authenticator is now locked for 20 minutes');
+      warn('Ten wrong codes locks the authenticator for twenty minutes. Nothing on the map says what the app is told about that.');
+    } else {
+      http('POST','/api/mfa/totp/verification','412 INVALID_FACTOR ('+srv.totpFails+' consecutive)');
+    }
+    say('bad','That code was not right. Try again.');
+  }},
+
+  enrol: { label:'Set up the authenticator', run(){
+    if(!srv.session || !srv.session.authed || srv.session.role!=='ADMIN'){ say('bad','Administrators only.'); return; }
+    if(srv.enrolled){
+      counters.req++; http('POST','/api/mfa/totp/enrolment','409 FACTOR_ALREADY_ENROLLED');
+      act({act:'SHOW_ALREADY_ENROLLED'}); return;
+    }
+    if(srv.session.mustChange){
+      counters.req++; http('POST','/api/mfa/totp/enrolment','403 PASSWORD_CHANGE_REQUIRED');
+      act({act:'GO_TO_CHANGE_PASSWORD'}); return;
+    }
+    counters.req++;
+    http('POST','/api/mfa/totp/enrolment','200 — a setup URI, the secret in text, and a QR image');
+    note('The secret is shown exactly once and can never be fetched again. It is also offered as text, so someone who cannot scan a QR can still finish.');
+    counters.req++;
+    srv.enrolled = true; srv.session.factorAt = clock; srv.session.tokenSeq++;
+    http('POST','/api/mfa/totp/enrolment/confirmation','204 — set up, and the factor granted');
+    S = AuthModel.reduce(S, {type:'ENROLLED'});
+    if(sw('sw-proactive')) S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+    S = AuthModel.reduce(S, {type:'CHALLENGE_PASSED', at:clock});
+    S = AuthModel.reduce(S, {type:'QUIET'});
+    say('ok','Authenticator set up.');
+  }},
+
+  changePw: { label:'Choose a new password', run(){
+    if(!srv.session || !srv.session.authed){ say('bad','Not signed in.'); return; }
+    ensureToken();
+    counters.req++;
+    if(S.token !== currentServerToken()){
+      counters.audit++;
+      http('PATCH','/api/profile/password','403 CSRF_TOKEN_INVALID');
+      act({act:'REFRESH_TOKEN_AND_RETRY_ONCE'}, {method:'PATCH',path:'/api/profile/password',needsSession:true});
+      return;
+    }
+    http('PATCH','/api/profile/password','204 — changed (this one takes about two seconds; five password hashes)');
+    srv.mustChange = false; srv.session.mustChange = false; srv.session.tokenSeq++;
+    S = AuthModel.reduce(S, {type:'PASSWORD_CHANGED'});
+    if(sw('sw-proactive')) S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+    S = AuthModel.reduce(S, {type:'QUIET'});
+    say('ok','Password changed. Any other sessions you had are now closed.');
+    note('The slowest call in the app at roughly two seconds. Any timeout shorter than that turns a success into a retry, and a retry here spends a budget shared by everyone on this network.');
+  }},
+
+  listUsers: { label:'View the user list', run(){
+    send({ method:'GET', path:'/api/admin/users', needsSession:true, adminOnly:true, name:'view the user list' })
+      && say('ok','User list loaded.');
+  }},
+
+  disableUser: { label:'Disable a user', run(){
+    send({ method:'PUT', path:'/api/admin/users/{id}/enabled', needsSession:true, adminOnly:true, name:'disable a user' })
+      && say('ok','User disabled.');
+  }},
+
+  changeRole: { label:'Change a user\'s role', run(){
+    send({ method:'PUT', path:'/api/admin/users/{id}/role', needsSession:true, adminOnly:true, name:'change a role' })
+      && say('ok','Role changed.');
+  }},
+
+  signOut: { label:'Sign out', run(){
+    send({ method:'POST', path:'/api/logout', needsSession:true, isSignOut:true, name:'sign out' });
+  }},
+};
+
+function doSignIn(role){
+  ensureToken();
+  counters.req++;
+  if(!srv.accountAlive){
+    counters.audit++;
+    http('POST','/api/login','401 AUTHENTICATION_FAILED');
+    act({act:'FORGET_EVERYTHING_AND_ASK_TO_SIGN_IN'});
+    return;
+  }
+  srv.session = { authed:true, role, mustChange:srv.mustChange, factorAt:null,
+                  authInstant:clock, tokenSeq:(srv.session?srv.session.tokenSeq+1:1) };
+  http('POST','/api/login','204 — signed in. The session id changed, and so did the form token.');
+  note('Signing in silently replaced the form token. The one this app is holding is now dead.');
+  if(sw('sw-proactive')){
+    S = AuthModel.reduce(S, {type:'TOKEN_HELD', token:issueToken()});
+    note('Fresh token fetched immediately, so the first thing the person does will not be rejected.');
+  } else {
+    warn('Switch is off. The stale token is kept, so the very next submission in this session will be rejected once and retried. Every session now begins with a rejected submission — which is exactly the alarm the operators are asked to watch.');
+  }
+  const r = selfDescribe();
+  if(r.status===200) S = AuthModel.reduce(S, {type:'SELF_DESCRIPTION', ...r});
+  if(role==='ADMIN' && srv.enrolled && !srv.session.mustChange){
+    say('info','Enter your 6-digit code to finish signing in.');
+    note('The prompt comes up straight away rather than waiting for the first administrative action, so the second step is part of signing in.');
+  }
+}
+
+/* ---- things that happen around the person ---- */
+const WORLD = {
+  tick11: { label:'Eleven minutes pass', run(){
+    clock += 11;
+    note('Clock is now at minute '+clock+'. Verification is only good for ten minutes when changing something.');
+    if(S.factorHeldSince !== null && clock - S.factorHeldSince > 10)
+      note('The app cannot tell that its verification just went stale. It finds out by being refused.');
+  }},
+  tick25: { label:'Twenty-five minutes pass', run(){
+    clock += 25; note('Clock is now at minute '+clock+'.');
+    if(srv.lockedUntil !== null && clock >= srv.lockedUntil){
+      srv.lockedUntil = null; srv.totpFails = 0;
+      note('The authenticator lock lifted by itself. Nothing was scheduled; it is worked out when next asked.');
+    }
+  }},
+  idle: { label:'Sit idle for sixteen minutes', run(){
+    clock += 16; srv.session = null;
+    note('The session expired quietly. This app has no idea — the cookie is invisible to it, and nothing was pushed. It finds out on its next request.');
+  }},
+  elsewhere: { label:'The same person signs in on another device', run(){
+    if(!srv.session){ note('Nobody is signed in here.'); return; }
+    srv.session = null;
+    note('Only one session is allowed at a time and the newest wins, so this one is finished. Nothing is sent to this tab; it will discover it on its next request, and will be told only "please sign in".');
+  }},
+  nearCap:{ label:'Ninety-nine wrong codes have already been tried', run(){
+    srv.cumulativeFails = 99; srv.totpFails = 0; srv.lockedUntil = null;
+    note('Cumulative count set to 99. The next wrong code switches the authenticator off for good. Unlike the twenty-minute lock, this count never resets on a success.');
+  }},
+  adminRebind:{ label:'An administrator deletes the authenticator', run(){
+    srv.totpDisabled = false; srv.enrolled = false;
+    srv.cumulativeFails = 0; srv.totpFails = 0; srv.lockedUntil = null;
+    if(srv.session) srv.session.factorAt = null;
+    note('The row is gone, so tier one\'s lock and tier two\'s switch-off go with it. Enrolment now reads false, and the person is sent to set-up rather than to a prompt they can never pass.');
+  }},
+  factorReset:{ label:'Another administrator resets this person\'s authenticator', run(){
+    srv.enrolled = false; if(srv.session) srv.session.factorAt = null;
+    note('What this app believes about enrolment is now wrong, and nothing told it. This is the case the "set up an authenticator" reply exists to catch.');
+  }},
+  forceChange:{ label:'Fresh deployment: the first administrator must change their password', run(){
+    srv = freshServer(); srv.mustChange = true; clock = 0;
+    S = AuthModel.initialState(); counters={req:0,audit:0,sess:0};
+    note('Seeded administrator. Everything except sign in, the token, who-am-I, sign out and change-password is closed to them.');
+  }},
+  disabled:{ label:'An administrator disables this account', run(){
+    srv.accountAlive = false; srv.session = null;
+    note('Sessions are closed after the change commits, never inside it — so for a moment the old session still worked.');
+  }},
+};
+
+/* ------------------------- walkthroughs ------------------------- */
+const SCENARIOS = [
+  { id:'stepup', name:'Verification expires mid-action',
+    blurb:'An administrator has been working for a while and clicks Disable. Their verification is '+
+          'more than ten minutes old, so the server refuses. Watch where the refused action goes, '+
+          'and what has to happen before it can be replayed.',
+    watch:'The server keeps nothing. The parked action, the prompt and the replay all belong to this app — and the replay needs a fresh form token, because verifying changes it.',
+    steps:[['Open the app','open'],['Sign in (administrator)','signInAdmin'],
+           ['Set up the authenticator','enrol'],['Eleven minutes pass','tick11'],
+           ['Disable a user','disableUser'],['Enter the correct 6-digit code','code']] },
+
+  { id:'twoparked', name:'Two actions blocked at once',
+    blurb:'The same situation, but the administrator clicks two things before dealing with the '+
+          'prompt. One prompt should appear, not two, and both actions should go through afterwards.',
+    watch:'One prompt, a queue of two, both replayed on a single successful verification.',
+    steps:[['Open the app','open'],['Sign in (administrator)','signInAdmin'],
+           ['Set up the authenticator','enrol'],['Eleven minutes pass','tick11'],
+           ['Disable a user','disableUser'],['Change a user\'s role','changeRole'],
+           ['Enter the correct 6-digit code','code']] },
+
+  { id:'freshdeploy', name:'A brand-new deployment',
+    blurb:'The very first administrator signs in. They must change their password, then set up an '+
+          'authenticator, and only then does the administration area open. Try the steps in the '+
+          'wrong order and watch it refuse.',
+    watch:'Three gates in a fixed order. Try "View the user list" at any point before the end.',
+    steps:[['Fresh deployment','forceChange'],['Open the app','open'],
+           ['Sign in (administrator)','signInAdmin'],['View the user list','listUsers'],
+           ['Choose a new password','changePw'],['Set up the authenticator','enrol'],
+           ['View the user list','listUsers']] },
+
+  { id:'staletoken', name:'The form token after signing in',
+    blurb:'Signing in silently replaces the form token. Run this with the second switch on, then '+
+          'turn it off and run it again.',
+    watch:'With the switch off, every single session starts with a rejected submission. That is the same alarm the operators are asked to watch for, so the design would be drowning its own signal.',
+    steps:[['Open the app','open'],['Sign in (ordinary user)','signInUser'],
+           ['Choose a new password','changePw']] },
+
+  { id:'signout', name:'Signing out of a session that already died',
+    blurb:'The session expired while the tab sat there. The person clicks Sign out. The form token '+
+          'died with the session, so the server rejects it as stale. Run this with the third switch '+
+          'on, then off.',
+    watch:'With the switch off, the generic recovery starts a fresh session purely so that it can sign out of it, and reports success. Nothing is broken, but the success means nothing.',
+    steps:[['Open the app','open'],['Sign in (ordinary user)','signInUser'],
+           ['Sit idle for sixteen minutes','idle'],['Sign out','signOut']] },
+
+  { id:'elsewhere', name:'Signed in somewhere else',
+    blurb:'Only one session per person is allowed, and the newest one wins. This tab is finished, '+
+          'but nothing tells it so.',
+    watch:'The tab finds out on its next request, and all it is ever told is "please sign in". It cannot say "you signed in elsewhere", because that reply is deliberately the same as a wrong password.',
+    steps:[['Open the app','open'],['Sign in (administrator)','signInAdmin'],
+           ['Set up the authenticator','enrol'],
+           ['The same person signs in on another device','elsewhere'],
+           ['View the user list','listUsers']] },
+
+  { id:'stalefactor', name:'What the app believes is out of date',
+    blurb:'Another administrator removes this person\'s authenticator after the page has loaded. '+
+          'The app still thinks it is enrolled.',
+    watch:'The server\'s reply overrides the app\'s belief. Navigation runs off what the app believes; the replies are the authority. Never the other way round.',
+    steps:[['Open the app','open'],['Sign in (administrator)','signInAdmin'],
+           ['Set up the authenticator','enrol'],
+           ['Another administrator resets this person\'s authenticator','factorReset'],
+           ['View the user list','listUsers']] },
+
+  { id:'lock', name:'Ten wrong codes',
+    blurb:'The administrator mistypes their code repeatedly. After ten, the authenticator locks for '+
+          'twenty minutes. Press the wrong-code button ten times, then try a correct one.',
+    watch:'This is an open gap, not a decision. Nothing on the map says what the server replies once the authenticator is locked. If it reuses "that code was not right", a person typing correct codes is told they are wrong for twenty minutes.',
+    steps:[['Open the app','open'],['Sign in (administrator)','signInAdmin'],
+           ['Set up the authenticator','enrol'],
+           ['Eleven minutes pass','tick11'],['Disable a user','disableUser'],
+           ['Wrong code','badCode'],['Wrong code','badCode'],['Wrong code','badCode'],
+           ['Wrong code','badCode'],['Wrong code','badCode'],['Wrong code','badCode'],
+           ['Wrong code','badCode'],['Wrong code','badCode'],['Wrong code','badCode'],
+           ['Wrong code','badCode'],
+           ['Enter the correct 6-digit code','code']] },
+
+  { id:'tier2', name:'A hundred wrong codes, and the trap',
+    blurb:'A hundred wrong codes switches the authenticator off for good — but it stays set up, so '+
+          'nothing in the ordinary vocabulary can say so. Run this once with the fifth switch on, '+
+          'then turn it off and run it again, and keep pressing the last two steps.',
+    watch:'With the switch off, the person is put on the code screen and every CORRECT code is refused, for ever. They are still enrolled so they are not sent to set-up, and they can never verify so they are never let past. Turning the switch on is what makes the terminal screen renderable at all.',
+    steps:[['Open the app','open'],['Sign in (administrator)','signInAdmin'],
+           ['Set up the authenticator','enrol'],
+           ['Ninety-nine wrong codes have already been tried','nearCap'],
+           ['Wrong code','badCode'],
+           ['Sign in (administrator)','signInAdmin'],
+           ['Choose a new password','changePw'],
+           ['Enter the correct 6-digit code','code'],
+           ['Enter the correct 6-digit code','code'],
+           ['An administrator deletes the authenticator','adminRebind'],
+           ['Open the app','open']] },
+
+  { id:'retry', name:'What the library does by default',
+    blurb:'Turn the fourth switch on first. Then open the app with an expired session and count the '+
+          'requests.',
+    watch:'One question becomes four, each one an entry in the security log. Multiply that by every reload of every expired tab, then compare it with the disk the log was sized for.',
+    steps:[['Turn on the fourth switch, then press this','retryOn'],['Open the app','open']] },
+
+  { id:'ordinary', name:'An ordinary user tries an administrator URL',
+    blurb:'Someone with no administrative role navigates straight to the user list.',
+    watch:'They are refused for not being an administrator. They are NOT told to set up an authenticator — being asked to secure a page you must never reach would itself be a leak.',
+    steps:[['Open the app','open'],['Sign in (ordinary user)','signInUser'],
+           ['View the user list','listUsers']] },
+];
+
+let activeScenario = null, stepIndex = 0;
+
+/* ------------------------- logging ------------------------- */
+function http(m,p,r){ logRows.push({k:'http', t:'m'+clock, m:m+' '+p+'\n  → '+r}); }
+function note(t){ logRows.push({k:'note', t:'', m:t}); }
+function warn(t){ logRows.push({k:'warn', t:'', m:'⚠ '+t}); }
+function say(k,t){ S = AuthModel.reduce(S, {type:'SAY', banner:{k,t}}); }
+
+/* ------------------------- rendering ------------------------- */
+function render(){
+  document.getElementById('screen').innerHTML =
+    'Screen: <strong>'+S.screen+'</strong>' +
+    (S.challenge==='open' ? '<small>A code prompt is open over the top of it.</small>' : '') +
+    (S.phase==='DISCOVERING' ? '<small>Holding. The app does not know yet, so it draws nothing rather than flashing a sign-in form.</small>' : '');
+
+  document.getElementById('banners').innerHTML = S.banners.map(b =>
+    '<div class="banner b-'+({bad:'bad',warn:'warn',ok:'ok',info:'info'}[b.k]||'info')+'">'+esc(b.t)+'</div>').join('');
+
+  const now = clock;
+  const fs = AuthModel.factorState(S, now);
+  const belief = [
+    ['where it stands', {COLD:'not asked yet',DISCOVERING:'asking…',ANONYMOUS:'signed out',SIGNED_IN:'signed in'}[S.phase]],
+    ['role', S.role || '—'],
+    ['must change password', S.mustChangePassword ? 'yes' : 'no'],
+    ['authenticator', S.factorEnrolled ? 'set up' : 'not set up'],
+    ['verification', S.role==='ADMIN' ? ({DISABLED:'switched off — admin must reset',NOT_ENROLLED:'n/a',MISSING:'not verified',EXPIRED:'expired',FRESH:'good for '+(10-(now-S.factorHeldSince))+' more min'}[fs]) : '—'],
+    ['form token held', S.token || 'none'],
+    ['token still valid', S.token ? (S.token===currentServerToken()?'yes':'NO — stale') : '—'],
+    ['actions waiting', S.parked.length ? S.parked.length+' ('+S.parked.map(p=>p.name).join(', ')+')' : 'none'],
+    ['clock', 'minute '+now],
+  ];
+  document.getElementById('belief').innerHTML = belief.map(([k,v])=>{
+    const ch = prevBelief && prevBelief[k] !== undefined && prevBelief[k] !== String(v);
+    return '<dt>'+esc(k)+'</dt><dd>'+(ch?'<span class="changed">':'')+esc(String(v))+(ch?'</span>':'')+'</dd>';
+  }).join('');
+  prevBelief = Object.fromEntries(belief.map(([k,v])=>[k,String(v)]));
+
+  document.getElementById('c-req').textContent = counters.req;
+  document.getElementById('c-audit').textContent = counters.audit;
+  document.getElementById('c-sess').textContent = counters.sess;
+
+  const log = document.getElementById('log');
+  log.innerHTML = logRows.length ? logRows.map(r =>
+    '<div class="row r-'+r.k+'"><div class="t">'+esc(r.t)+'</div><div class="m '+(r.k==='http'?'http':'')+'">'+esc(r.m)+'</div></div>'
+  ).join('') : '<div class="row r-note"><div class="t"></div><div class="m">Nothing yet.</div></div>';
+  log.scrollTop = log.scrollHeight;
+
+  renderScenario();
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function fire(fn){ fn(); render(); }
+
+function buildFreePlay(){
+  document.getElementById('fp-user').innerHTML = Object.entries(ACTIONS)
+    .map(([k,a])=>'<button data-act="'+k+'">'+esc(a.label)+'</button>').join('');
+  document.getElementById('fp-world').innerHTML = Object.entries(WORLD)
+    .map(([k,a])=>'<button data-world="'+k+'">'+esc(a.label)+'</button>').join('');
+  document.body.addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    if(b.dataset.act) fire(()=>ACTIONS[b.dataset.act].run());
+    else if(b.dataset.world) fire(()=>WORLD[b.dataset.world].run());
+  });
+}
+
+function buildTabs(){
+  document.getElementById('tabs').innerHTML = SCENARIOS.map((s,i)=>
+    '<button role="tab" data-tab="'+i+'" aria-selected="'+(i===0)+'">'+esc(s.name)+'</button>').join('');
+  document.getElementById('tabs').addEventListener('click', e=>{
+    const b=e.target.closest('[data-tab]'); if(!b) return;
+    activeScenario = +b.dataset.tab; stepIndex = 0;
+    reset(true); note('Walkthrough: '+SCENARIOS[activeScenario].name+'. Reset to a known start.');
+    [...document.querySelectorAll('[data-tab]')].forEach(x=>x.setAttribute('aria-selected', x===b));
+    render();
+  });
+  activeScenario = 0;
+}
+
+const STEP_RUNNERS = Object.assign({}, ACTIONS, WORLD, {
+  retryOn:{ label:'', run(){ document.getElementById('sw-retry3').checked = true;
+            note('Retry-three-times is now on.'); }},
+});
+
+function renderScenario(){
+  if(activeScenario===null) return;
+  const sc = SCENARIOS[activeScenario];
+  document.getElementById('scenario').innerHTML =
+    '<h3>'+esc(sc.name)+'</h3><p>'+esc(sc.blurb)+'</p>'+
+    '<div class="banner b-info"><strong>What to watch for:</strong> '+esc(sc.watch)+'</div>'+
+    '<ol class="steps">'+sc.steps.map(([label,key],i)=>
+      '<li class="'+(i<stepIndex?'done':i===stepIndex?'now':'')+'">'+
+      '<span class="num">'+(i<stepIndex?'✓':i+1)+'</span>'+
+      '<span class="stepbtn"><button data-step="'+i+'" '+(i!==stepIndex?'disabled':'')+'>'+
+      esc(label)+'</button></span></li>').join('')+'</ol>'+
+    (stepIndex>=sc.steps.length?'<div class="banner b-ok" style="margin-top:14px">Walkthrough finished. Read the conversation log, then try the free-play buttons from here.</div>':'');
+  document.getElementById('scenario').querySelectorAll('[data-step]').forEach(b=>{
+    b.onclick = ()=>{
+      const i = +b.dataset.step;
+      const key = sc.steps[i][1];
+      const runner = STEP_RUNNERS[key] || Object.values(WORLD).find(()=>false);
+      stepIndex = i+1;
+      fire(()=>{ (STEP_RUNNERS[key] ? STEP_RUNNERS[key].run
+                 : ()=>note('(no runner for '+key+')'))(); });
+    };
+  });
+}
+
+const RULES = [
+  ['403','CSRF_TOKEN_INVALID','Get a fresh token, try once more, never twice. Except on sign-out, where it is ignored.'],
+  ['401','AUTHENTICATION_FAILED','Forget everything held here, ask them to sign in. Offer no explanation — there is none to give.'],
+  ['403','PASSWORD_CHANGE_REQUIRED','Go to the change-password screen. Not a sign-out.'],
+  ['403','ACCESS_DENIED','Say they do not have access. Never retry.'],
+  ['412','MISSING_FACTOR','Park the action, open the code prompt, replay after a fresh token.'],
+  ['412','INVALID_FACTOR','Keep the prompt open, clear the field, show the error beside it.'],
+  ['422','FACTOR_ENROLMENT_REQUIRED','Go to set-up. Outranks whatever the app believed.'],
+  ['423','FACTOR_DISABLED','Terminal. Close the prompt for good, drop the queue, say an administrator must reset it.'],
+  ['409','FACTOR_ALREADY_ENROLLED','Show enrolled state, and say plainly that this may mean someone else got in.'],
+  ['429','TOO_MANY_REQUESTS','Count down the seconds given. Never retry sooner.'],
+  ['400','VALIDATION_FAILED','Field errors from the rule names. The app writes its own wording.'],
+  ['400','PASSWORD_REJECTED','Field errors from six rule names, including the byte limit people never expect.'],
+  ['400','RESET_TOKEN_INVALID','The link is dead. Ask for another.'],
+  ['400','USER_EXISTS','Field error. Administrator-created accounts only.'],
+  ['400','USERNAME_CHANGE_NOT_ALLOWED','Field error.'],
+  ['500','INTERNAL_ERROR','Show the reference so support can find it. Only here is the reference shown.'],
+];
+document.getElementById('rules').innerHTML = RULES.map(([s,c,a])=>
+  '<tr><td class="c">'+s+'</td><td class="c">'+c+'</td><td>'+esc(a)+'</td></tr>').join('');
+
+document.getElementById('btn-reset').onclick = ()=>{ stepIndex=0; reset(); };
+buildFreePlay(); buildTabs(); reset(true);
+note('Ready. Either press the free-play buttons, or pick a walkthrough.');
+render();
+</script>
+</body>
+</html>

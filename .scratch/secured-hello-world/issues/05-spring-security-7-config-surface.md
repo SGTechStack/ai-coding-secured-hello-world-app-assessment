@@ -133,7 +133,7 @@ uses exactly this ([CSRF chapter](https://docs.spring.io/spring-security/referen
   **Any test that asserts an exact authority set, or any `@PreAuthorize` that enumerates
   authorities, must account for this.** Flagged as a build-phase check.
 - **New:** `AbstractAuthenticationProcessingFilter` and `AuthenticationFilter` both expose
-  `setMfaEnabled(boolean)` (default `false`). We leave it off.
+  `setMfaEnabled(boolean)` (default `false`). We leave it off. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-MFA-001. Amend the table by ID, not this list.*
 
 Skeleton (doc-shaped, safe):
 
@@ -238,7 +238,7 @@ that handler, `/csrf` is already uncacheable. If you want it explicit and self-d
 than implicit, return `ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(csrfToken)` —
 but be aware that setting it yourself *suppresses* Spring Security's three-header set for that
 response, so you then also lose `Pragma`/`Expires`. My recommendation: rely on the default and
-assert the three headers in a test.
+assert the three headers in a test. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-CSRF-002. Amend the table by ID, not this list.*
 
 **Interaction with Spring Session JDBC (important).** With session-backed CSRF the token becomes a
 session attribute, so it is serialised into `SPRING_SESSION_ATTRIBUTES`. With the default JDK
@@ -414,7 +414,7 @@ The displaced user is only actually logged out when their **next** request reach
   `maximumSessions(1)` silently never triggers. Spring Session derives it from the session's
   security context. This is the classic silent-failure mode on this feature: **write an integration
   test that logs in twice and asserts the first session is dead.** Marked as a required build-phase
-  test, not an assumption.
+  test, not an assumption. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-SES-010, T-SES-009. Amend the table by ID, not this list.*
 
 ---
 
@@ -516,7 +516,7 @@ Register it in the chain after the security-context filter so `SecurityContextHo
 (`http.addFilterAfter(...)`). **Both snippets in (b) are design, not verified library behaviour** —
 mark them for a throwaway compile check plus an integration test with a 2-second lifetime. What *is*
 verified is that the hooks exist (`addSessionAuthenticationStrategy`, `SessionAuthenticationStrategy`,
-`OncePerRequestFilter`) and that nothing in the library does this for us.
+`OncePerRequestFilter`) and that nothing in the library does this for us. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-SES-006. Amend the table by ID, not this list.*
 
 Ordering note: because the absolute filter invalidates rather than just rejecting, the session row
 disappears and the stale cookie behaves like any other invalid session — `invalidSessionUrl` /
@@ -604,7 +604,7 @@ success/failure handlers so the error envelope stays consistent (no redirects).
 **Route C is a design assembled from verified primitives, not a documented recipe.** Every class,
 constructor and setter used above is confirmed present, but the combination is ours. Flag it for a
 throwaway compile check and an integration test covering: JSON login succeeds; session id changes;
-a second login kills the first session; a bad body yields our standard envelope not a 500.
+a second login kills the first session; a bad body yields our standard envelope not a 500. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-SES-010, T-SES-009, T-SES-005, T-AUTH-004. Amend the table by ID, not this list.*
 
 Two smaller notes: the request body must be readable once only — the converter consuming the body
 means downstream filters cannot re-read it, which is fine because the filter terminates the request
@@ -714,12 +714,12 @@ cannot enforce that — a bad override silently wins. Add a `@Profile("prod")` `
 startup unless `secure == Boolean.TRUE`, `sameSite == STRICT`, `httpOnly == Boolean.TRUE`,
 `domain == null`, `path.equals("/")` and `name.startsWith("__Host-")`. Cheap, and it converts a
 silent security regression into a failed deploy. Pair it with an integration test asserting the raw
-`Set-Cookie` header.
+`Set-Cookie` header. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-SES-011. Amend the table by ID, not this list.*
 
 **There is no separate CSRF cookie.** The ticket's item 6 mentions cookie attributes "for both the
 session cookie and the CSRF cookie" — with `HttpSessionCsrfTokenRepository` there is no CSRF cookie
 at all. That part of the requirement is satisfied by not existing, and the `[Enforced Constraint]`
-is better tested by asserting *no* `XSRF-TOKEN` cookie is ever emitted.
+is better tested by asserting *no* `XSRF-TOKEN` cookie is ever emitted. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-CSRF-001. Amend the table by ID, not this list.*
 
 ---
 
@@ -782,6 +782,8 @@ UrlBasedCorsConfigurationSource corsConfigurationSource(
     configuration.setAllowedOrigins(allowedOrigins);                       // explicit allowlist, no "*"
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
     configuration.setAllowedHeaders(List.of("Content-Type", "X-CSRF-TOKEN"));
+    // TRIPWIRE (ticket 27): adding traceparent, tracestate, b3, X-B3-* or baggage here makes the SPA an
+    // upstream trace participant and REOPENS ticket 27. The trace restart ADR must be revisited first.
     configuration.setAllowCredentials(true);
     configuration.setMaxAge(1800L);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -1061,7 +1063,7 @@ Ranked by "how badly does a wrong guess hurt".
    *Verify a login + CSRF round trip survives a restart of the app with the DB retained.*
 10. **Version drift.** I verified against the current published docs and `main`. `main` runs ahead of
     7.1.1 / 4.1.1. Anything marked source-derived should be re-confirmed against the exact pinned
-    versions at build time.
+    versions at build time. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-MFA-001, T-SES-010, T-SES-009, T-SES-006, T-SES-005, T-AUTH-004, T-SES-011, T-CSRF-003, T-CSRF-004. Amend the table by ID, not this list.*
 
 ### Sources
 
@@ -1125,3 +1127,82 @@ Source read on `main` (spring-projects):
 
 Content from the sources above was rephrased and summarised for compliance with licensing
 restrictions; verbatim quotation is kept minimal.
+
+---
+
+## Amendment from ticket 11
+
+**The BCrypt CVE attribution in this ticket is wrong, and the correction matters only for the ADR wording —
+the conclusion stands.**
+
+The encode/verify asymmetry (encoding over 72 bytes throws; verification does not short-circuit) is the
+behaviour introduced by the fix for **[CVE-2025-22228](https://access.redhat.com/security/cve/cve-2025-22228)**,
+where `BCryptPasswordEncoder.matches` returned true for passwords longer than 72 characters whenever the first
+72 agreed. **[CVE-2025-22234](https://github.com/advisories/GHSA-vqxh-445g-37fc)** is the *consequence* of that
+fix: throwing early broke the timing-attack mitigation in `DaoAuthenticationProvider` and reintroduced username
+enumeration. This ticket attributes the asymmetry to 22234. Validate length at registration and change, never
+on the login path — unchanged. *Consolidated into the ADR routing (ticket 34): ADR-001 (attached amendment). Amend by ID, not this list.*
+
+**Two CVEs give the Security 7.1.1 pin a security floor, not just a currency argument.** Both are capped at
+7.0.4:
+
+- **[CVE-2026-22753](https://zeropath.com/blog/cve-2026-22753-spring-security-servlet-path-bypass)**
+  (CVSS 7.5): `securityMatchers(String)` constructed a fresh default `PathPatternRequestMatcher.Builder` that
+  ignored the builder bean Boot publishes when `spring.mvc.servlet.path` is set, so the filter chain never
+  matched the real request paths and **no security applied at all**. Ticket 11 responds with a standing design
+  rule independent of the patch: the API base path lives in controller mappings, and
+  `spring.mvc.servlet.path` is prohibited.
+- **[CVE-2026-22746](https://www.sentinelone.com/vulnerability-database/cve-2026-22746/)**: the
+  `DaoAuthenticationProvider` timing defence was bypassable for accounts that are disabled, expired or locked,
+  because the status-check path skipped the timing normalisation. Handed to ticket 09.
+
+Also record, since this ticket owns the config surface: Spring Security 7 defaults to
+`PathPatternRequestMatcher` rather than Ant-style matching, which removes the trailing-slash and Ant-matcher
+traps that would otherwise make prefix authorization like `/api/admin/**` risky. Nobody should reintroduce
+`AntPathRequestMatcher`.
+
+Finally, the **7.1.1 pin itself should be re-verified against the actual release train at build time** rather
+than trusted from this research ticket. The floor that matters is "above 7.0.4 in the 7.x line".
+
+---
+
+## Amendment from ticket 09 (lockout and dual rate limiting)
+
+Three changes to Route C, and one correction.
+
+1. **The Route C `AuthenticationConverter` now also hosts the per-account rate limiter.** Item 6's note that
+   the converter consumes the body and downstream filters cannot re-read it is what forced this: a
+   pre-authentication filter needing the username would have had to buffer every login body. The converter
+   calls `AuthRateLimiter` on the raw submitted username immediately after parsing, before
+   `authenticationManager.authenticate`, and throws `TooManyRequestsAuthenticationException` when the bucket
+   is empty. This also means ticket 06's "key on the submitted string, not a resolved account" rule is
+   satisfied structurally — the converter holds the string before any repository lookup.
+2. **The failure handler gains a 429 branch.** `unsuccessfulAuthentication` maps
+   `TooManyRequestsAuthenticationException` to `429 TOO_MANY_REQUESTS` with `Retry-After`, and everything else
+   to `401 AUTHENTICATION_FAILED`. This is a **deliberate exemption from ticket 06's uniform-401 rule inside
+   the handler whose job is uniformity**, so it needs a comment at the branch and a test — a later "always
+   401" simplification would delete the per-account limiter's only observable behaviour and break nothing
+   except §5:452's prescribed test.
+3. **Both additions ride item 6's existing compile-check flag**, which already lists Route C as assembled from
+   verified primitives rather than a documented recipe. Tests to add to that list: JSON login over the
+   per-account budget returns 429 and not 401; and N+1 requests past that budget leave `failed_login_attempts`
+   unchanged, since a converter throw never reaches `ProviderManager` and therefore fires no
+   `AuthenticationFailureBadCredentialsEvent`. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-RL-002, T-RL-003. Amend the table by ID, not this list.*
+
+**Correction.** Where item 6 and the reference list touch
+`AbstractUserDetailsAuthenticationProvider`: `setAlwaysPerformAdditionalChecksOnUser(boolean)` and the
+`performPreCheck` logic that consults it are **declared on `AbstractUserDetailsAuthenticationProvider`**
+(`core/src/main/java/org/springframework/security/authentication/dao/`), `@since 5.7.23`, default `true`.
+The CVE-2026-22746 advisory names it `DaoAuthenticationProvider#setAlwaysPerformAdditionalChecksOnUser`,
+which is legitimate by inheritance but is not where it is declared — worth pinning because ticket 09 makes
+the default an asserted invariant. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-AUTH-005. Amend the table by ID, not this list.*
+
+---
+
+## Amendment from ticket 16 (test plan)
+
+- **Open risk 3's "integration test with a 2-second lifetime" is restated.** It now runs on the injected forward-only `Clock`, advancing time past the configured lifetime. No real wait is used. Ticket 16 prohibits `Thread.sleep` and real waits, except one named lock-timeout test.
+- **The code samples at 05:485 and 05:502 call `Instant.now()`, and must take the `Clock`: `Instant.now(clock)`.** Ticket 16 has ArchUnit ban every no-argument `now()` (`Instant`, `LocalDate`, `LocalDateTime`, `ZonedDateTime`, `OffsetDateTime`), plus `new Date()`, `System.currentTimeMillis()` and `System.nanoTime()`, in main code.
+- **The `spring.session.jdbc.cleanup-cron=0 */5 * * * *` snippet (05:299–300) is superseded.** Ticket 29 now owns the value and pins `0 * * * * *`, which is Spring Session's own `DEFAULT_CLEANUP_CRON` and what 05:284's table already says. The snippet contradicted both that table and ticket 29's 510-per-source arithmetic.
+- **Open risk 9 (CSRF round trip survives a restart) is owned by ticket 16's restart harness.** That is two sequential `SpringApplicationBuilder` runs on one `jdbc:h2:file` path, with the first context fully closed and one shared clock.
+- **Test API:** `@WebMvcTest` and every other slice are banned for security-control tests. Full contexts use `@AutoConfigureMockMvc` (§11 above). *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-SES-006, T-CSRF-004, T-ARCH-001. Amend the table by ID, not this list.*

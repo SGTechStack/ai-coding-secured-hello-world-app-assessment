@@ -96,7 +96,7 @@ the cookie/double-submit alternative outright. But:
      must resolve it**, in one of two directions: put SPA and API on the same registrable site (a
      reverse proxy or shared parent domain, keeping `Lax`), or use `SameSite=None; Secure`, which is
      a documented deviation from §3.5 requiring an ADR. This is the single most load-bearing thing
-     found.
+     found. *Dropped in the ADR routing (ticket 34): superseded; see its routing §4.*
    - **Neither recipe mentions that the bootstrap token must be re-fetched after login and after
      logout.** Spring Security's `CsrfAuthenticationStrategy` and `CsrfLogoutHandler` clear the
      existing token on authentication and logout success; Spring's own SPA guidance therefore
@@ -131,7 +131,7 @@ contradicts itself here too** — §3.5 ("Password Policy") says "Administrative
 generate a 12-character random password", while §3.1 says it "must return the newly generated
 plaintext token exactly once". Ticket 10 inherits a contradiction rather than a recipe, and our
 hashed-single-use-token design matches §2/§3.1/Q14/Q22 but *not* §3.5 or the only recipe that
-exists. Record as an ADR.
+exists. Record as an ADR. *Consolidated into the ADR routing (ticket 34): ADR-006. Amend by ID, not this list.*
 
 ### Classification
 
@@ -173,7 +173,7 @@ calls a single encoder mandatory ("We use a single encoder implementation"), whi
 recipe says "Password Encoder: Default configured to **BCrypt**" and its §5.3 then recommends
 Argon2id anyway. Our settled baseline is BCrypt, which §3.5 permits ("BCrypt is acceptable for
 existing systems") and Q12 permits at "cost factor ≥12" — so ticket 07 should cite Q12's ≥12 as the
-floor for the work-factor decision, and record the deviation from the admin recipe's Argon2id.
+floor for the work-factor decision, and record the deviation from the admin recipe's Argon2id. *Consolidated into the ADR routing (ticket 34): ADR-001. Amend by ID, not this list.*
 Open to us: exact min/max length, whether to keep composition rules (the admin recipe's regex
 requires four classes from the set `@#$%^&+=`, which is *narrower* than §3.5's permitted special-char
 set and would reject a password §3.5 explicitly allows — a real defect if copied verbatim),
@@ -200,7 +200,7 @@ sketch in the session-login recipe shows the DB-backed counter. Not inherited: *
 per-IP limiting**, and Q16 actively argues against it for internal apps behind corporate NAT
 ("Do NOT implement if: Internal behind corporate proxy..."). Our PRD mandates dual limiting, so
 ticket 09 inherits a justification burden, not a recipe — and an ADR, since we are adding a control
-the standard's decision guidance steers away from. Also open: how 429 is actually produced (the
+the standard's decision guidance steers away from. Also open: how 429 is actually produced (the *Consolidated into the ADR routing (ticket 34): ADR-010. Amend by ID, not this list.*
 recipe asserts it in Verification but no code emits it), the `Retry-After` value, whether the
 limiter is in-memory (the sketch's `ConcurrentHashMap` is per-instance and does not hold across the
 load-balanced topology Q1 contemplates), and Q15's choice of auto-unlock vs admin unlock vs admin
@@ -240,7 +240,7 @@ authenticated-but-unroled path list (Q20, property `pathsForAuthenticatedUsers`)
 whitelist (Q21, property `pathsForWhitelisting`), and admin unlock semantics (Q15). One conflict to
 resolve: Q3's bootstrap options all say **Liquibase changeset** for the production admin, while our
 settled baseline is Flyway — same idea, different tool, worth an explicit line in the ADR rather
-than a silent substitution.
+than a silent substitution. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-ADM-001, T-ADM-002, T-ADM-003, T-ADM-004, T-SES-003, T-SES-004, T-ADM-005; retired items are recorded in ticket 32's reconciliation. Amend the table by ID, not this list.* *Consolidated into the ADR routing (ticket 34): REJ-003. Amend by ID, not this list.* *Consolidated into the register (ticket 33): R-DATA-001. Amend the table by ID, not this list.*
 
 **12 data model — substantially prescribed, but from three mutually inconsistent sources.** The
 admin recipe §3 step 2 is the richest and should be the base: `UserAccount` with `id` (UUID,
@@ -303,9 +303,9 @@ role change with no rebuild; unconfigured endpoint → 403; IDOR attempt bounded
 `password`/`passwordHistory` in the profile JSON; the admin recipe's fourteen-item rule list
 including "the returned plaintext password is NOT present in any log line"; history rotation proving
 the N+1-th password becomes reusable. Two are hard and ticket 16 should say how: proving **identical
-response timing** across auth outcomes, and proving a log line *absence*.
+response timing** across auth outcomes, and proving a log line *absence*. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-HDR-001, T-HDR-002, T-CSRF-001, T-SES-005, T-LCK-003, T-LCK-002, T-SES-006, T-ADM-006, T-ADM-007, T-ADM-009, T-ADM-008, T-AUD-013, T-CRED-002, T-AUTH-003, T-RL-001; retired items are recorded in ticket 32's reconciliation. Amend the table by ID, not this list.*
 
-**17 deferral register and ADRs — inherits five new entries** beyond hygiene jobs: the `SameSite`
+**17 deferral register and ADRs — inherits five new entries** beyond hygiene jobs: the `SameSite` *Consolidated into the register (ticket 33): R-ADM-011. Amend the table by ID, not this list.*
 deviation (or the topology change that avoids it), BCrypt over the admin recipe's Argon2id, reset-by-
 token over §3.5's reset-by-generated-password, adding per-IP limiting against Q16's guidance, and
 Flyway where Q3 says Liquibase.
@@ -330,7 +330,7 @@ caused by a 3.x assumption:
    is simply absent. See [Spring Boot 4 modularization](https://www.danvega.dev/blog/spring-boot-4-modularization)
    and this [Boot 4.0.0 H2 console write-up](https://qiita.com/zatton27/items/3abaec3924e35f34640c).
    Verify the class's new package before copying. *Content was rephrased for compliance with
-   licensing restrictions.*
+   licensing restrictions.* *Consolidated into the register (ticket 33): R-STD-010. Amend the table by ID, not this list.*
 2. **The rate limiter API does not exist.** The session-login recipe's
    `Bucket.builder().addLimit(Limit.of(10, Refill.intervally(10, Duration.ofMinutes(1))))` matches
    neither the current Bucket4j form —
@@ -338,22 +338,22 @@ caused by a 3.x assumption:
    [Bucket4j 8.20 documentation](https://bucket4j.com/8.20.0/toc.html) — nor the older
    `Bandwidth.classic(capacity, Refill.intervally(...))`. There is no `Limit` type. The library is
    never named and no version is pinned anywhere in the recipe set. Treat the whole limiter as
-   pseudo-code and pin the dependency ourselves.
+   pseudo-code and pin the dependency ourselves. *Consolidated into the register (ticket 33): R-STD-011. Amend the table by ID, not this list.*
 3. **Starter-internal types presented as if they were API.** `UserManagementRepositoryHandler`,
    `CommandExecutor`/`UserActionCommand`, `PasswordUtil.generateRandomPassword()`,
    `CustomUserDetails`, `SecurityFilterProperties`, `DataRestAutoConfigurationProperties`,
    `WebSecurityConfiguration.DEFAULT_AUTH_WHITELIST`. We have none of these. The behaviour is
-   prescriptive; the code is not adoptable.
+   prescriptive; the code is not adoptable. *Consolidated into the register (ticket 33): R-STD-012. Amend the table by ID, not this list.*
 4. **`hasRole` vs `hasAuthority` mismatch.** The admin and self-service recipes guard with
    `@PreAuthorize("hasRole('USERS_UPDATE')")` / `hasRole('CURRENT_USER_UPDATE')`, but `hasRole(X)`
    checks for the authority `ROLE_X`, while the RBAC recipe grants bare authorities (`USER_READ`,
    `USER_WRITE`) and guards with `hasAuthority`. Copied verbatim these deny every request. Q18
    compounds it by stating authorization is enforced "by roles, not individual privileges", which is
    the opposite of the RBAC recipe's "code checks for fine-grained *Authorities*". Ticket 11 must
-   pick one convention and apply it everywhere.
+   pick one convention and apply it everywhere. *Consolidated into the register (ticket 33): R-STD-033. Amend the table by ID, not this list.*
 5. **Field injection into a manually constructed object.** The self-service recipe's
    `ChangeCurrentUserPasswordCommand` is created with `new` in the controller but declares
-   `@Autowired`/`@Value` fields; they will be null at runtime.
+   `@Autowired`/`@Value` fields; they will be null at runtime. *Consolidated into the register (ticket 33): R-STD-013. Amend the table by ID, not this list.*
 
 Two more that are not compile errors but will bite:
 
@@ -362,13 +362,13 @@ Two more that are not compile errors but will bite:
    `spring.user-management.*` (admin), `app.batch.*` (hygiene). Two of those squat inside Spring
    Boot's own `spring.*` namespace, and the role→authority map appears under two different keys
    (`app.security.role-mappings` and `spring.security.sso.predefined-roles-and-privileges`). Ticket
-   12 or 11 should declare a single prefix and note the deviation.
+   12 or 11 should declare a single prefix and note the deviation. *Consolidated into the register (ticket 33): R-CFG-002. Amend the table by ID, not this list.*
 7. **Two incompatible `PasswordChangeFilter` implementations** for one requirement. The admin recipe
    extends `OncePerRequestFilter`, allows csrf + currentUser + changePassword + whitelist, and is
    registered before `AuthorizationFilter`. The self-service recipe extends `GenericFilter`, compares
    full URI equality, and allows only changePassword + logout — which would block the `/csrf` call
    the SPA needs in order to *make* the change-password request, deadlocking the flow. Adopt the
-   admin recipe's version.
+   admin recipe's version. *Consolidated into the register (ticket 33): R-STD-029. Amend the table by ID, not this list.*
 
 `Argon2PasswordEncoder(16, 32, 1, 19456, 2)` was checked and is fine: the five-arg constructor is
 still public and undeprecated in the current
@@ -508,7 +508,7 @@ no CSP unless we configure it there.
 2. Keeping the API-side CSP is still worth it — cheap, and it hardens the one document the API can
    serve (Boot's `/error` page) plus any accidental HTML — but we should record that it is
    defence-in-depth, not the XSS control, so a later reviewer does not read the green `curl -I` check
-   as the obligation being met.
+   as the obligation being met. *Consolidated into the register (ticket 33): R-HDR-004. Amend the table by ID, not this list.*
 3. The SPA-origin policy needs directives the recipe's two-directive string does not have, precisely
    because of the split: `connect-src` must name the API origin (under `default-src 'self'` alone the
    SPA cannot call the API at all), and `form-action`, `frame-ancestors`, `base-uri` and
@@ -522,7 +522,7 @@ no CSP unless we configure it there.
 
 Net: add "CSP for the SPA origin" to ticket 14 (or a new deployment-topology ticket shared with 08),
 and add it to ticket 16's test plan as a check against the **SPA** host, since the recipe's
-verification step only ever probes the API.
+verification step only ever probes the API. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-HDR-004, T-HDR-003. Amend the table by ID, not this list.*
 
 ### Verification pass on this report
 
@@ -542,4 +542,4 @@ user's role is untouched by it.
 One small defect in the RBAC recipe not noted above: in §3 Step 3 the filter chain registers
 `url-guards` **before** the `whitelist`, and `authorizeHttpRequests` is first-match-wins. The example
 paths do not overlap so it works as printed, but any whitelist entry that also matches a guard
-pattern would be silently guarded instead of public. Ticket 11 should register the whitelist first.
+pattern would be silently guarded instead of public. Ticket 11 should register the whitelist first. *Consolidated into the register (ticket 33): R-STD-014. Amend the table by ID, not this list.*

@@ -90,7 +90,7 @@ Source: `Log_Schema.md` "ECS Auto-Populated Fields — Do Not Set Manually" and 
 | `log.logger` | logger name | for us this is the literal `"audit"` logger (see item 6) |
 | `ecs.version` | schema constant | |
 | `process.pid` | JVM pid | present if `spring.application.pid` set |
-| `process.thread.name` | current thread | §3.1 calls this `thread.name`/`logger.name`; `Log_Schema.md` names them `process.thread.name`/`log.logger`. The schema names are authoritative. |
+| `process.thread.name` | current thread | §3.1 calls this `thread.name`/`logger.name`; `Log_Schema.md` names them `process.thread.name`/`log.logger`. The schema names are authoritative. *Consolidated into the register (ticket 33): R-STD-002. Amend the table by ID, not this list.* |
 | `service.name` | `logging.structured.ecs.service.name` or `spring.application.name` | configure in `application.yaml` only |
 | `service.version` | `logging.structured.ecs.service.version` | |
 | `service.environment` | `logging.structured.ecs.service.environment` | enum `dev`, `test`, `staging`, `prod` |
@@ -129,7 +129,7 @@ Underscore keys are mandatory, not stylistic: the ECS formatter pre-seals the `e
 
 #### Tier D — optional / contextual, permitted
 
-`correlation.id` (business process spanning multiple traces); `host.name`, `host.ip` (required for startup events); `event.start`, `event.end`, `event.duration_ms` (on `*-end` events); `http.request.method`, `url.path`, `http.response.status_code` (the typed-module recipe puts method + path on `accessDenied` and `profileRead`); `session.hash` (item 3); `service.id`, `service.system`, `service.subsystem`.
+~~`correlation.id` (business process spanning multiple traces);~~ *(dropped by [ticket 27](27-inbound-trace-context.md) §6: the server-generated `trace.id` is the correlation ID)* `host.name`, `host.ip` (required for startup events); `event.start`, `event.end`, `event.duration_ms` (on `*-end` events); `http.request.method`, `url.path`, `http.response.status_code` (the typed-module recipe puts method + path on `accessDenied` and `profileRead`); `session.hash` (item 3); `service.id`, `service.system`, `service.subsystem`.
 
 #### Fields our design needs that the schema does not define
 
@@ -137,7 +137,7 @@ Flag these in the deferral register — they are used by the recipes but absent 
 
 - `auth.method` — used in `Logging_AuthN_And_AuthZ_Events.md` §4 and mandated in prose by app standard §2.2 and §3.4 ("the authentication method"). No schema row. Values from the recipe's resolver: `password`, `jwt`, `oauth2`, `remember-me`, `unknown`. We only ever emit `password`.
 - `session.max_inactive_interval` — used in the §6.1 session-created example. No schema row.
-- `export.id` — used in the §8.1 example. No schema row.
+- `export.id` — used in the §8.1 example. No schema row. *Consolidated into the register (ticket 33): R-STD-003. Amend the table by ID, not this list.*
 - Any target-of-admin-action field — see item 7.
 
 #### The canonical line, field by field
@@ -244,9 +244,9 @@ Mapping for our audit event catalogue — every PRD event lands on an existing e
 | Authorisation denied (403, incl. self-target guards) | `access-control` | `["denied"]` | WARN | medium | actor |
 | App startup / shutdown | `application-startup` / `application-shutdown` | `["start"]` / `["end"]` | INFO | low | n/a |
 
-Note there is **no** dedicated enum value for a role change, an account enable/disable, or an account deletion. All three collapse onto `user-administration`; the distinguishing detail has to live in `event.type` (`change` vs `deletion`) and in `message`. Two design consequences: (a) dashboards cannot separate "role granted" from "account disabled" by `event.action` alone, and (b) `event.type` carries real semantic load for us and must be set precisely. `event.type` is itself a closed enum: `access`, `admin`, `allowed`, `change`, `connection`, `creation`, `deletion`, `denied`, `end`, `error`, `group`, `indicator`, `info`, `installation`, `interface-end`, `interface-start`, `job-end`, `job-start`, `protocol`, `start`, `step-end`, `step-start`, `user`.
+Note there is **no** dedicated enum value for a role change, an account enable/disable, or an account deletion. All three collapse onto `user-administration`; the distinguishing detail has to live in `event.type` (`change` vs `deletion`) and in `message`. Two design consequences: (a) dashboards cannot separate "role granted" from "account disabled" by `event.action` alone, and (b) `event.type` carries real semantic load for us and must be set precisely. `event.type` is itself a closed enum: `access`, `admin`, `allowed`, `change`, `connection`, `creation`, `deletion`, `denied`, `end`, `error`, `group`, `indicator`, `info`, `installation`, `interface-end`, `interface-start`, `job-end`, `job-start`, `protocol`, `start`, `step-end`, `step-start`, `user`. *Consolidated into the register (ticket 33): R-STD-004. Amend the table by ID, not this list.*
 
-`event.category` is also closed — `configuration`, `network`, `database`, `batch`, `interface`, `process`. There is **no** `iam` or `authentication` category (unlike upstream ECS), so every auth/authz/admin event uses `["process"]`, matching the recipes. Request-boundary logs use `["network"]` (`Enriching_Logs_With_MDC.md` §3.1).
+`event.category` is also closed — `configuration`, `network`, `database`, `batch`, `interface`, `process`. There is **no** `iam` or `authentication` category (unlike upstream ECS), so every auth/authz/admin event uses `["process"]`, matching the recipes. Request-boundary logs use `["network"]` (`Enriching_Logs_With_MDC.md` §3.1). *Consolidated into the register (ticket 33): R-STD-005. Amend the table by ID, not this list.*
 
 ---
 
@@ -258,9 +258,9 @@ Definition exists in exactly one place: `Log_Schema.md` → User table.
 
 - Algorithm: a one-way **SHA-256** hash of the raw session identifier. The raw session ID must never be logged (the app standard §3.3 "What must NOT be logged" lists session IDs in raw form; the User Access Standard §3.4 "What NOT to Log" repeats it).
 - Purpose: correlating **pre-authentication** entries where `user.id` is not yet resolved.
-- No salt or HMAC is prescribed for `session.hash`. The salt/HMAC requirement in app standard §3.5 is scoped to *hashed PII* ("Hashed PII is permitted only if secured via a system-wide salt or HMAC"). A session ID is not PII, so a plain unsalted SHA-256 digest satisfies the letter of the standard. Recommendation anyway: use a system-wide HMAC key, because an unsalted digest of a session ID is trivially confirmable by anyone who holds the cookie. Raise as an ADR; do not treat as a standard requirement.
+- No salt or HMAC is prescribed for `session.hash`. The salt/HMAC requirement in app standard §3.5 is scoped to *hashed PII* ("Hashed PII is permitted only if secured via a system-wide salt or HMAC"). A session ID is not PII, so a plain unsalted SHA-256 digest satisfies the letter of the standard. Recommendation anyway: use a system-wide HMAC key, because an unsalted digest of a session ID is trivially confirmable by anyone who holds the cookie. Raise as an ADR; do not treat as a standard requirement. *Consolidated into the ADR routing (ticket 34): ADR-054. Amend by ID, not this list.*
 - No reference implementation exists in any recipe. Ours will be: `HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(rawSessionId.getBytes(UTF_8)))`, computed in the MDC filter and put into MDC under key `session.hash` so it lands on every line in the request.
-- Encoding gap: the `Log_Schema.md` example value `5d41402abc4b2a76b9719d911017c592` is 32 hex characters, i.e. 128 bits — an MD5-length digest, not SHA-256's 64 hex characters. The prose ("SHA-256") is authoritative; the example is wrong. Emit the full 64-character lowercase hex digest and note the schema-example defect.
+- Encoding gap: the `Log_Schema.md` example value `5d41402abc4b2a76b9719d911017c592` is 32 hex characters, i.e. 128 bits — an MD5-length digest, not SHA-256's 64 hex characters. The prose ("SHA-256") is authoritative; the example is wrong. Emit the full 64-character lowercase hex digest and note the schema-example defect. *Consolidated into the register (ticket 33): R-STD-006. Amend the table by ID, not this list.*
 
 **Where `session.hash` is and is not required.** This is a genuine fork in the sources:
 
@@ -274,8 +274,8 @@ Both are satisfiable simultaneously: emit `session.hash` (a session-scoped, non-
 - **Producer: Micrometer Tracing, not a hand-rolled MDC filter and not the OTel SDK directly.** App standard §4 marks this an Enforced Constraint: put Micrometer Tracing on the classpath so `traceId`/`spanId` are written to MDC automatically whenever a span is active. §3.1 lists `trace.id`/`span.id` as auto-populated — "do not set manually".
 - **Backend:** Micrometer Tracing is a facade and needs an implementation. `Structured_Logging_Trace_Correlation_And_Context_Propagation.md` §3 offers exactly two sanctioned choices: `spring-boot-starter-opentelemetry` (OTLP export, W3C propagation by default) or `spring-boot-starter-zipkin` (Brave, B3 by default — set `management.tracing.propagation.type: w3c` if W3C is needed). Both write `traceId`/`spanId` to MDC identically. Use the OTel starter: W3C `traceparent` is the recommended format per §3 and per app standard §3.1 ("Propagate and log trace context (W3C Trace Context)"). Using the raw OTel SDK instead of Micrometer is permitted only under the narrow conditions in the §4 note (platform mandates OTel across polyglot services, or OTel-only features needed) — neither applies to us.
 - **Sampling does not affect log correlation.** Sampling controls only which traces are *exported*. 100% of log lines carry a trace ID regardless. Default probability is `0.1`; set `1.0` for local/test.
-- **What the MDC filter is still for.** Not `trace.id`. Two other things: (a) an application-defined `correlation.id` from an inbound `X-Correlation-ID` header, via `OncePerRequestFilter` (`Enriching_Logs_With_MDC.md` §3.1) — optional for us, since we have no upstream caller supplying one and §3 says to skip 3.1/3.2 when `traceId` suffices; and (b) `user.id`, via a separate `MdcUserFilter` registered **inside** the Spring Security chain with `http.addFilterAfter(new MdcUserFilter(), AnonymousAuthenticationFilter.class)` (§3.4). Placement is load-bearing: register it as a `@Component` and it runs before authentication and sees nothing. It must check `!(auth instanceof AnonymousAuthenticationToken)` because `AnonymousAuthenticationToken.isAuthenticated()` returns `true`. Clear `user.id` in a `finally` block.
-- If correlation IDs must appear on Spring Security's own log output, the request filter needs `@Order(SecurityProperties.DEFAULT_FILTER_ORDER - 1)`.
+- **What the MDC filter is still for.** Not `trace.id`. ~~Two other things: (a) an application-defined `correlation.id` from an inbound `X-Correlation-ID` header, via `OncePerRequestFilter` (`Enriching_Logs_With_MDC.md` §3.1) — optional for us, since we have no upstream caller supplying one and §3 says to skip 3.1/3.2 when `traceId` suffices; and~~ *(part (a) struck by [ticket 27](27-inbound-trace-context.md) §6: a caller-supplied correlation ID reintroduces what the trace restart removes)* One thing: (b) `user.id`, via a separate `MdcUserFilter` registered **inside** the Spring Security chain with `http.addFilterAfter(new MdcUserFilter(), AnonymousAuthenticationFilter.class)` (§3.4). Placement is load-bearing: register it as a `@Component` and it runs before authentication and sees nothing. It must check `!(auth instanceof AnonymousAuthenticationToken)` because `AnonymousAuthenticationToken.isAuthenticated()` returns `true`. Clear `user.id` in a `finally` block.
+- ~~If correlation IDs must appear on Spring Security's own log output, the request filter needs `@Order(SecurityProperties.DEFAULT_FILTER_ORDER - 1)`.~~ *(Struck by [ticket 27](27-inbound-trace-context.md) §6: no correlation-ID filter remains to order.)*
 - Do **not** use Logback's built-in `MDCInsertingServletFilter` — `Enriching_Logs_With_MDC.md` §3.1 explicitly rejects it, because it sets client IP and query string, both on the prohibited list.
 - Async propagation: `ContextPropagatingTaskDecorator` on the executor. Relevant to us only if the stubbed `EmailService` is `@Async`. Spring Security context propagates too (Spring Security 6+ registers its accessor).
 - Cleanup discipline (`Enriching_Logs_With_MDC.md` §3.3): `putCloseable` for a single key with no catch-block logging; `put` + `remove` in `finally` for multiple keys or when a catch block logs; **never** `MDC.clear()` outside a thread-owning entry point — it wipes `traceId`/`spanId`.
@@ -293,7 +293,7 @@ Both are satisfiable simultaneously: emit `session.hash` (a session-scoped, non-
 
 So: Spring Boot's built-in ECS format is the mandated *base*, and a thin subclass of `StructuredLogEncoder` is required on top of it.
 
-Carry the risk warning forward into the design: `Custom_Structured_Log_Encoder.md` §1 flags that `StructuredLogEncoder` lives in `org.springframework.boot.logging.logback` and is **not a documented public extension point** — its API may change without a migration guide, and the encoder must be retested after every Spring Boot upgrade.
+Carry the risk warning forward into the design: `Custom_Structured_Log_Encoder.md` §1 flags that `StructuredLogEncoder` lives in `org.springframework.boot.logging.logback` and is **not a documented public extension point** — its API may change without a migration guide, and the encoder must be retested after every Spring Boot upgrade. *Consolidated into the register (ticket 33): R-AUD-001. Amend the table by ID, not this list.*
 
 #### Dependencies
 
@@ -308,7 +308,7 @@ No third-party log-encoder dependency is mandated. Nothing in the standard requi
 | `@Observed` annotation support | `org.aspectj:aspectjweaver` | BOM-managed | no — only if we use `@Observed` |
 | Field-path masking | `net.logstash.logback:logstash-logback-encoder` | **no version given** in the recipe | no — see item 5 |
 
-Every version is BOM-managed. No recipe pins a literal version string for any logging dependency. If the design needs pinned versions (per the org's exact-version preference), that is a decision for us to record, not a value to extract.
+Every version is BOM-managed. No recipe pins a literal version string for any logging dependency. If the design needs pinned versions (per the org's exact-version preference), that is a decision for us to record, not a value to extract. *Consolidated into the register (ticket 33): R-BLD-003. Amend the table by ID, not this list.*
 
 #### Encoder registration
 
@@ -335,7 +335,7 @@ Three Enforced Constraints from app standard §4 and §3.5, all of which shape o
 
 Rolling policy: `SizeAndTimeBasedRollingPolicy` is the recommended class for higher volume; Spring Boot defaults are 10 MB and 7 archives, tunable via `logging.logback.rollingpolicy.*` (`file-name-pattern`, `max-file-size`, `max-history`, `total-size-cap`, `clean-history-on-start`).
 
-Retention: the app is **not** responsible for the 90-day TTL. App standard §3.5 note: retention is enforced by the central platform's index lifecycle policy. The User Access Standard §3.3 sets the 90-day minimum and says durability may be met by local DB storage *or* by routing to an external logging system — which, combined with the PRD's "no dedicated table required", means structured logs plus a documented platform retention policy is compliant. Record the platform-side configuration as an integrator obligation in the deferral register.
+Retention: the app is **not** responsible for the 90-day TTL. App standard §3.5 note: retention is enforced by the central platform's index lifecycle policy. The User Access Standard §3.3 sets the 90-day minimum and says durability may be met by local DB storage *or* by routing to an external logging system — which, combined with the PRD's "no dedicated table required", means structured logs plus a documented platform retention policy is compliant. Record the platform-side configuration as an integrator obligation in the deferral register. *Consolidated into the register (ticket 33): R-AUD-011. Amend the table by ID, not this list.*
 
 Also required: **alert when audit logging itself fails** (§3.4). If audit events cannot be written, raise an alert rather than silently continuing.
 
@@ -350,7 +350,7 @@ Enforcement is **primarily call-site discipline**, with encoder-level masking as
 - `Sensitive_Data_Masking_For_Logs.md` §5 makes prevention the primary control: exclude at source, because once written a value is in the central platform. The single most common defect it names is passing a domain object to `addKeyValue` — every field gets serialised. Log named safe fields only. §4 Anti-patterns in the app standard states the same as an Enforced Constraint: never pass domain objects via `toString()`.
 - §6 is conditional, and this matters for us: "This section is only relevant if the application uses `logstash-logback-encoder` as its Logback encoder. If the application does not use this encoder, skip this section and rely on prevention at the source." So `MaskingJsonGeneratorDecorator` is **not mandatory**.
 - **`MaskingJsonGeneratorDecorator` is incompatible with our chosen encoder.** The recipe configures it inside `net.logstash.logback.encoder.LogstashEncoder`. We are required to run a subclass of Spring Boot's `StructuredLogEncoder` with `<format>ecs</format>` (item 4). One appender cannot use both encoders. Conclusion: we do prevention at source, and we do not implement Logback masking. Record as an ADR.
-- App standard §3.5 nonetheless states as an Enforced Constraint that masking be applied "at the application logging boundary — for example, using a custom Logback converter, a `PatternLayout` masking rule, or a structured log encoder extension". Our custom encoder *is* a structured log encoder extension, so the compliant resolution is to add a redaction pass inside `CustomStructuredLogEncoder.postProcess(...)` rather than adopt a second encoder. Masking by **field path**, not by value, is the prescribed approach.
+- App standard §3.5 nonetheless states as an Enforced Constraint that masking be applied "at the application logging boundary — for example, using a custom Logback converter, a `PatternLayout` masking rule, or a structured log encoder extension". Our custom encoder *is* a structured log encoder extension, so the compliant resolution is to add a redaction pass inside `CustomStructuredLogEncoder.postProcess(...)` rather than adopt a second encoder. Masking by **field path**, not by value, is the prescribed approach. *Consolidated into the ADR routing (ticket 34): REJ-001. Amend by ID, not this list.*
 - Masking applies to JSON fields only, never to `message`. Sensitive values must be kept out of `message` by construction — which our "static message string" rule already enforces.
 
 The prohibition list (app standard §3.3 "What must NOT be logged", plus User Access Standard §3.4), filtered to what our app actually handles:
@@ -391,7 +391,7 @@ Concrete shape for our app, following the recipe:
 - The UUID column: `@Column(nullable = false, unique = true, columnDefinition = "UUID", insertable = false, updatable = false)` with a DB default of `gen_random_uuid()`. The `insertable = false, updatable = false` pair is what lets the database default fire. **Cross-reference ticket 12 (data model reconciliation): this implies a `uuid` column distinct from the primary key.**
 - `AuditLogger` as a `@Component` with one method per event type (`loginSuccess`, `loginFailure`, `accessDenied`, `logout`, plus ours: `registrationSuccess`, `accountLocked`, `throttleBreached`, `passwordResetRequested`, `passwordResetCompleted`, `sessionStarted`, `sessionEnded`, `adminUserStatusChanged`, `adminUserRoleChanged`, `adminUserDeleted`, `adminUserListed`).
 - `AuditLogger` owns **no** HTTP concerns — status codes and response bodies stay in the handler. Keeps it testable with no servlet container.
-- Testing: attach a Logback `ListAppender` to the `"audit"` logger, assert on `ILoggingEvent.getKeyValuePairs()`. No integration test needed for schema compliance. Include negative assertions — `doesNotContainKey("user.id")` on failure events, `doesNotContainKey("user.name")`, `doesNotContainKey("user.hash")` everywhere. **Feeds ticket 16 (test plan).**
+- Testing: attach a Logback `ListAppender` to the `"audit"` logger, assert on `ILoggingEvent.getKeyValuePairs()`. No integration test needed for schema compliance. Include negative assertions — `doesNotContainKey("user.id")` on failure events, `doesNotContainKey("user.name")`, `doesNotContainKey("user.hash")` everywhere. **Feeds ticket 16 (test plan).** *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-AUD-007, T-AUD-009, T-AUD-008. Amend the table by ID, not this list.*
 
 Spring wiring that must exist for the events to fire at all:
 
@@ -415,7 +415,7 @@ Direct contradiction between two documents in the same standard.
 - `Structured_Logging_Application_Standard.md` §3.3 "What must NOT be logged" lists **"Client IP addresses"**. §2.1 repeats it for request logging, §5 makes it a release test ("Request logs exclude client IP addresses…"), and `Enriching_Logs_With_MDC.md` §3.1 carries a Warning against it and rejects `MDCInsertingServletFilter` specifically because it sets client IP.
 - `Logging_AuthN_And_AuthZ_Events.md` §4 states the opposite for auth events: always include `source.ip` on every event, as it is required for audit and incident investigation. §10 Verification and §11 Key Takeaways both require it. `Centralising_Audit_Logging_With_A_Typed_Module.md` §7 makes it a key decision: `source.ip` on every security event. `Log_Schema.md` defines `source.ip` as a first-class field.
 
-Resolution: the prohibition is scoped to **general request logging**; the AuthN recipe is the specific rule for **security events**, and specific beats general. Include `source.ip` on authentication, lockout, logout, and authorisation-denied events (`WebAuthenticationDetails.getRemoteAddress()` for Spring Security events, `request.getRemoteAddr()` elsewhere); exclude it from request-boundary and business logs. Without `source.ip` the PRD's Story 3 IP-throttling event is not investigable. Record as an ADR with both citations, because a compliance reviewer reading only §3.3 will flag it.
+Resolution: the prohibition is scoped to **general request logging**; the AuthN recipe is the specific rule for **security events**, and specific beats general. Include `source.ip` on authentication, lockout, logout, and authorisation-denied events (`WebAuthenticationDetails.getRemoteAddress()` for Spring Security events, `request.getRemoteAddr()` elsewhere); exclude it from request-boundary and business logs. Without `source.ip` the PRD's Story 3 IP-throttling event is not investigable. Record as an ADR with both citations, because a compliance reviewer reading only §3.3 will flag it. *Dropped in the ADR routing (ticket 34): superseded; see its routing §4.*
 
 #### C2 — `user.id` on lockout: required by the PRD's intent, forbidden by the recipes
 
@@ -425,7 +425,7 @@ The User Access Standard §3.4 `WARN` description resolves it, and it is the gov
 
 #### C3 — Level mismatch on lockout: `ERROR` vs `WARN`
 
-`Logging_AuthN_And_AuthZ_Events.md` §4 and §11 require lockout at **`ERROR`** ("Lockout indicates an active attack pattern"). The User Access Standard §3.4 Log Levels puts "account lockout transitions" under **`WARN`**. Use `ERROR`, per the logging standard, which owns the level contract and gives an explicit rationale; also set `event.severity: high` and `error_follow_up_action: true`. Flag the discrepancy.
+`Logging_AuthN_And_AuthZ_Events.md` §4 and §11 require lockout at **`ERROR`** ("Lockout indicates an active attack pattern"). The User Access Standard §3.4 Log Levels puts "account lockout transitions" under **`WARN`**. Use `ERROR`, per the logging standard, which owns the level contract and gives an explicit rationale; also set `event.severity: high` and `error_follow_up_action: true`. Flag the discrepancy. *Consolidated into the register (ticket 33): R-STD-009. Amend the table by ID, not this list.*
 
 #### C4 — "Username or principal ID" in the audit contract vs the cleartext ban
 
@@ -441,12 +441,12 @@ See item 5. `MaskingJsonGeneratorDecorator` requires `LogstashEncoder`; we requi
 
 #### C7 — Schema defects and gaps to record
 
-- `session.hash` example is MD5-length while the prose says SHA-256 (item 3).
-- §3.1 names `thread.name` / `logger.name`; `Log_Schema.md` names `process.thread.name` / `log.logger`.
-- `auth.method`, `session.max_inactive_interval`, `export.id` are used by recipes but undefined in `Log_Schema.md`.
-- No `event.action` value distinguishes role change from enable/disable from delete (item 2).
-- No `event.category` value for identity/authentication; `process` is the catch-all.
-- `Log_Schema.md`'s own title scopes it to "Batch and Interface Applications", yet the User Access Standard §3.4 and every auth recipe bind interactive web applications to it. Treat the binding as authoritative and the title as stale.
+- `session.hash` example is MD5-length while the prose says SHA-256 (item 3). *Consolidated into the register (ticket 33): R-STD-006. Amend the table by ID, not this list.*
+- §3.1 names `thread.name` / `logger.name`; `Log_Schema.md` names `process.thread.name` / `log.logger`. *Consolidated into the register (ticket 33): R-STD-002. Amend the table by ID, not this list.*
+- `auth.method`, `session.max_inactive_interval`, `export.id` are used by recipes but undefined in `Log_Schema.md`. *Consolidated into the register (ticket 33): R-STD-003. Amend the table by ID, not this list.*
+- No `event.action` value distinguishes role change from enable/disable from delete (item 2). *Consolidated into the register (ticket 33): R-STD-004. Amend the table by ID, not this list.*
+- No `event.category` value for identity/authentication; `process` is the catch-all. *Consolidated into the register (ticket 33): R-STD-005. Amend the table by ID, not this list.*
+- `Log_Schema.md`'s own title scopes it to "Batch and Interface Applications", yet the User Access Standard §3.4 and every auth recipe bind interactive web applications to it. Treat the binding as authoritative and the title as stale. *Consolidated into the register (ticket 33): R-STD-007. Amend the table by ID, not this list.*
 
 #### C8 — The PRD's actor + target of admin actions: **the target must be a UUID, under `user.target.id`**
 
@@ -463,8 +463,8 @@ Finding, in four steps:
 
 **Two obligations this creates:**
 
-- **Schema amendment.** `user.target.id` is not in `Log_Schema.md`, so using it is a documented extension. Raise it for addition to the org schema (the same route by which `error.category` exists as a documented custom extension — `Custom_Structured_Log_Encoder.md` §4.1 states `error.category` is not part of official ECS and is a custom field extension defined in `Log_Schema.md`). Record in the deferral register (ticket 17) and the audit catalogue (ticket 13).
-- **Encoder check.** `user` is **not** one of the objects the ECS formatter pre-seals — the sealed set is `error`, `service`, `log`, `process`, `ecs` (`Custom_Structured_Log_Encoder.md` §3.1 and `Log_Schema.md`). So `addKeyValue("user.target.id", uuid)` writes as a flat root-level key without a JSON writing error, the same way `user.id` already does. No underscore workaround needed, and no encoder change. **Verify this empirically on first implementation** — it is an inference from the documented sealed-object list, not something any recipe demonstrates.
+- **Schema amendment.** `user.target.id` is not in `Log_Schema.md`, so using it is a documented extension. Raise it for addition to the org schema (the same route by which `error.category` exists as a documented custom extension — `Custom_Structured_Log_Encoder.md` §4.1 states `error.category` is not part of official ECS and is a custom field extension defined in `Log_Schema.md`). Record in the deferral register (ticket 17) and the audit catalogue (ticket 13). *Consolidated into the register (ticket 33): R-STD-008. Amend the table by ID, not this list.*
+- **Encoder check.** `user` is **not** one of the objects the ECS formatter pre-seals — the sealed set is `error`, `service`, `log`, `process`, `ecs` (`Custom_Structured_Log_Encoder.md` §3.1 and `Log_Schema.md`). So `addKeyValue("user.target.id", uuid)` writes as a flat root-level key without a JSON writing error, the same way `user.id` already does. No underscore workaround needed, and no encoder change. **Verify this empirically on first implementation** — it is an inference from the documented sealed-object list, not something any recipe demonstrates. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-AUD-010. Amend the table by ID, not this list.*
 
 The admin role-change line, complete:
 
@@ -495,7 +495,7 @@ Two notes on that line. `url.path` contains the target UUID — acceptable, sinc
 
 #### C9 — Enumeration-resistant password reset constrains the reset-request log
 
-PRD Story 6 requires a generic success response regardless of whether the email is registered. The same reasoning that strips `user.id` from login failures applies: a `password-reset` request event carrying `user.id` reveals, to a log reader, which submitted addresses were real. Omit `user.id` on **reset-requested**; include it on **reset-completed**, where the token has already proved the account exists. The standards do not state this explicitly — it is derived from the recipe's stated principle (§3: do not log an identifier that confirms account existence) applied to the reset flow. Record as an ADR and cross-reference ticket 10 (credential flows) and ticket 15 (threat model).
+PRD Story 6 requires a generic success response regardless of whether the email is registered. The same reasoning that strips `user.id` from login failures applies: a `password-reset` request event carrying `user.id` reveals, to a log reader, which submitted addresses were real. Omit `user.id` on **reset-requested**; include it on **reset-completed**, where the token has already proved the account exists. The standards do not state this explicitly — it is derived from the recipe's stated principle (§3: do not log an identifier that confirms account existence) applied to the reset flow. Record as an ADR and cross-reference ticket 10 (credential flows) and ticket 15 (threat model). *Consolidated into the ADR routing (ticket 34): REJ-002. Amend by ID, not this list.*
 
 ---
 
@@ -509,4 +509,196 @@ PRD Story 6 requires a generic success response regardless of whether the email 
 6. **Masking is call-site prevention**, plus redaction inside our own encoder. The Logstash masking decorator is incompatible with our encoder and is not adopted.
 7. **The target of an admin action is a UUID in `user.target.id`** (ECS-sanctioned reuse location), never a username or email. `user.id` remains the acting admin. Requires a documented org-schema extension.
 
-Open items for the deferral register (ticket 17): C1 `source.ip` ADR; C3 lockout level discrepancy; C6 masking-encoder ADR; C7 schema defects; C8 `user.target.id` schema amendment; C9 reset-request identity omission ADR; `session.hash` HMAC-vs-plain-digest decision; platform-side 90-day retention configuration; dependency version pinning; retest-the-custom-encoder-on-every-Spring-Boot-upgrade obligation.
+Open items for the deferral register (ticket 17): C1 `source.ip` ADR; C3 lockout level discrepancy; C6 masking-encoder ADR; C7 schema defects; C8 `user.target.id` schema amendment; C9 reset-request identity omission ADR; `session.hash` HMAC-vs-plain-digest decision; platform-side 90-day retention configuration; dependency version pinning; retest-the-custom-encoder-on-every-Spring-Boot-upgrade obligation. *Consolidated into the register (ticket 33): R-AUD-001, R-AUD-011, R-BLD-003, R-STD-008, R-STD-009. Amend the table by ID, not this list.*
+
+---
+
+## Amendment from ticket 11
+
+**C8's schema-amendment request is scoped to one field and owes three.**
+
+C8 raises `user.target.id` as a documented extension because it is absent from `Log_Schema.md`. By the same
+test, **`user.target.roles`** — used in this ticket's own worked example at the role-change event — is equally
+absent and equally an extension. It is currently used without being registered. *Consolidated into the register (ticket 33): R-STD-008. Amend the table by ID, not this list.*
+
+[Decide the admin module, role model, and initial admin bootstrap](11-admin-module-role-model-and-bootstrap.md)
+adds a third: **`user.target.unlockReason`**, a closed enum
+(`USER_REQUEST | FALSE_POSITIVE | PASSWORD_RESET_COMPLETED | OTHER`) on the admin unlock event. It is an enum
+and not free text deliberately — an admin typing "unlocking for alice@example.com, she called in" writes
+cleartext PII into a stream this ticket bans it from, and a newline in that string breaks the "NDJSON to stdout,
+one event per line" Enforced Constraint. An enum is also queryable, which free text in a log is not.
+
+So the amendment package is **three fields**: `user.target.id`, `user.target.roles`, `user.target.unlockReason`. *Consolidated into the register (ticket 33): R-AUD-002, R-STD-008. Amend the table by ID, not this list.*
+
+Ticket 11 also adds one field to an event this ticket already names: **`user.target.count`** on
+`adminUserListed`, carrying the number of rows returned. That is the audit half of the admin list's
+minimisation control — a hard page cap plus a recorded row count turns an unmonitored bulk export of every
+email in the system into a bounded, recorded one. Whether `count` needs the same extension treatment is
+ticket 13's call; `user.target` is an ECS-sanctioned reuse location but `count` is not an ECS `user` field. *Consolidated into the register (ticket 33): R-AUD-002. Amend the table by ID, not this list.*
+
+Worth carrying into ticket 13's retention discussion: this ticket concluded the application is **not**
+responsible for the 90-day TTL, which is the central platform's index lifecycle policy. That produces an
+asymmetry ticket 11 relies on and cannot control — the accountability record for an admin unlock has a lifetime
+set by a system nobody on this project configures, while the tombstone it relates to is retained indefinitely.
+
+---
+
+## Amendment from ticket 12 (data model reconciliation)
+
+**The `uuid` mapping recorded in C8's cross-reference does not run on H2, and the column it describes no longer
+exists.** Three faults in
+`@Column(nullable = false, unique = true, columnDefinition = "UUID", insertable = false, updatable = false)` with a
+database default of `gen_random_uuid()`:
+
+- **`gen_random_uuid()` is not an H2 function.** H2's is `RANDOM_UUID()`; `GEN_RANDOM_UUID` is registered only inside
+  H2's PostgreSQL compatibility mode (`org.h2.mode.FunctionsPostgreSQL`), and native support is still an open upstream
+  request. It is a core PostgreSQL function from PG 13 onward, which is where the instruction came from.
+- `columnDefinition = "UUID"` has no MySQL equivalent, so it cannot be one spelling for three databases.
+- `insertable = false` means Hibernate never writes the column and needs a generation annotation to read it back.
+
+**"This implies a `uuid` column distinct from the primary key" is withdrawn.** Ticket 12 makes the UUID the **sole**
+primary key, named `id`, application-generated via `@UuidGenerator` with no database default anywhere. Nothing else in
+this ticket changes: `user.id` and `user.target.id` both resolve to `users.id`, both are UUIDs, `AppUserDetails` still
+carries the `UUID userId` because `Authentication.getName()` returns a username, and the UUID-keyed admin routes that
+C4's worked example logs as `url.path` are unaffected.
+
+One consequence worth noting for C8's "putting the target's UUID in `user.id` would silently corrupt every
+'what did this user do' query": with a single identifier there is no longer a second value that could be logged by
+mistake in either field, so the risk narrows from "wrong column" to "wrong entity".
+
+---
+
+## Amendment from ticket 13 (audit event catalogue)
+
+[Build the audit event catalogue](13-audit-event-catalogue.md) consumed this extraction and reverses
+two of its conflict resolutions, widens a third, and shrinks the extension package. The precedence rule
+it recorded, and cites rather than re-argues: **governing user standard > logging standard > recipes.**
+
+**C1 is withdrawn.** This ticket resolved the `source.ip` contradiction in favour of cleartext on
+security events, specific-beats-general. Ticket 09 then specified a keyed HMAC, and ticket 13 settles
+it as **hashed everywhere, cleartext nowhere** — which satisfies §3.3's prohibition *and* the recipe's
+investigability intent, and has an ASVS basis (16.2.5, logging enforced by the data's protection level,
+with session tokens hashed or masked as its example; ASVS does not name IPs, so the citation is the
+general rule plus V16's control objective). C1's ADR is replaced by a narrower one: we deviate from the
+AuthN recipe's `source.ip`, not from §3.3. *Consolidated into the ADR routing (ticket 34): ADR-054. Amend by ID, not this list.*
+
+**The field name this ticket carried would have been rejected at ingest.** `source.ip.hash` is
+prohibited: ECS types `source.ip` as `ip` (core), this schema types it `string`, and either way a
+sub-field makes `source.ip` an object where every other platform producer emits a scalar. Use
+**`source.ip_hash`**. *Consolidated into the register (ticket 33): R-AUD-002. Amend the table by ID, not this list.*
+
+**C3 is reversed: lockout logs at WARN, not ERROR.** Three authorities agree against one recipe — the
+Standalone standard §3.4 Log Levels states WARN, its test list repeats it, and §3.3's own definition
+reserves ERROR for "operations that failed and could not recover", which a 20-minute auto-lifting
+lockout is not. The AuthN recipe's `log.atError()` and `error_code: 423` lose. Ticket 06 also
+guarantees the wire is always 401 on that path, so `error_code` is aligned to 401 and the log never
+implies a status the wire never sent. *Consolidated into the register (ticket 33): R-STD-009. Amend the table by ID, not this list.*
+
+**C4 is too narrow.** This ticket added `http.request.method` + `url.path` to admin audit events. §3.3
+requires them on **every** audit event ("All audit events must include … Request path, HTTP method, and
+correlation ID"), so they are mandatory context on every request-scoped row. One qualification:
+`url.path` is the **matched route pattern** from `HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE`, not
+the requested URI — five admin endpoints carry a UUID in the path, so the raw URI is unique per target
+rather than per endpoint, and the Standalone standard **externalises the API base path via application
+properties**, so any saved query keyed on a literal path breaks when a deployer changes it.
+
+**C2 and C9 stand unchanged.** C5 stands: `user.name` and `user.hash` are never emitted — and ECS
+confirms `user.hash` is a legitimate field, so the ban is a security judgement, not a schema one.
+
+**C8's extension package shrinks from a request for five fields to three.** Verified against the ECS
+reference: **`user.target.*` is a documented field-reuse location** ("Targeted user of action taken")
+and **`user.roles` is a real ECS field**. So `user.target.id` and `user.target.roles` are **valid ECS
+that `Log_Schema.md` is behind on** — a materially easier amendment than "please add our invention". *Consolidated into the register (ticket 33): R-STD-008. Amend the table by ID, not this list.*
+Genuinely custom: `user.target.unlock_reason`, `user.target.count`, `source.ip_hash`. Ticket 11's
+`unlockReason` is **renamed to `unlock_reason`**, since camelCase matches neither ECS's underscore *Consolidated into the register (ticket 33): R-AUD-002. Amend the table by ID, not this list.*
+convention nor this corpus; values stay upper-snake. `labels.*` was rejected for `count` because ECS
+stores every `labels` value as keyword, which would strip a numeric count of numeric aggregation, and
+that count is half a control. `query.count` reuse was rejected because its description is MPDS-scoped.
+
+This ticket's inference that `user` is not pre-sealed and so `addKeyValue("user.target.id", …)` writes
+cleanly **remains an inference** and is now a named first-implementation test rather than a note. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-AUD-010. Amend the table by ID, not this list.*
+
+**Two additions to the emitter picture.** The sixteen named `AuditLogger` methods this ticket proposed
+are replaced by a closed `AuditEvent` enum plus one `emit(event, context)`, because 40 rows would be 40
+near-identical builder chains; the `"audit"` logger name, the dedicated appender and the underscore
+`error_*` keys all survive, so no Enforced Constraint is touched. And **`emit` exposes no throwable
+parameter**: because `.setCause(e)` auto-populates `error.message` and `error.stack_trace`, any
+exception whose message carries request content would reach the audit stream with no call site naming
+it — including a malformed credential body. Record `error.type` where the class matters; throwables stay
+on the application logger.
+
+**`session.hash` and `MdcUserFilter`.** `session.hash` is confirmed as specified here. One constraint *Consolidated into the register (ticket 33): R-STD-006. Amend the table by ID, not this list.*
+added: `user.id` on a failure row is set **explicitly at the listener, never via MDC**, because
+`MdcUserFilter` puts it on every line in a request and on a pre-auth path it must stay absent or the
+UUID leaks onto unrelated rows.
+
+**Retention is answered, not deferred.** This ticket's reading — the app is not responsible for the TTL
+— stands, and ticket 13 adds the in-app half: a dedicated rolling file appender with a daily pattern
+and `max-history: 90` and **no `total-size-cap`**, the omission being deliberate and asserted, because a
+cap silently deletes the oldest archives while every config value still reads compliant. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-AUD-011. Amend the table by ID, not this list.* *Consolidated into the register (ticket 33): R-AUD-011. Amend the table by ID, not this list.*
+
+---
+
+## Amendment from ticket 21 (observability signals)
+
+**The `spring-boot-starter-opentelemetry` chosen here for `trace.id` also turns on OTLP *metrics* export,
+to `http://localhost:4318/v1/metrics`, every 60 seconds, with a WARN per failed publish.** Nobody decided
+that, and it becomes live behaviour the moment ticket 21's actuator starter lands. Verified in
+[the verification asset](../research/boot-4.1-actuator-observability-and-nist-throttling-verification.md)
+§5, §9, §10, §11.
+
+**Why it was invisible, which is the part worth recording.** The three OTLP signals are gated
+asymmetrically, and this is structural rather than a documentation oddity:
+
+- **Traces** need `management.opentelemetry.tracing.export.otlp.endpoint`. Its `ConnectionDetails` bean is
+  `@ConditionalOnProperty(endpoint)` and the exporters are `@ConditionalOnBean(ConnectionDetails)`, so no
+  property means no exporter.
+- **Logs** need `management.opentelemetry.logging.export.otlp.endpoint` **and** a Logback appender Boot does
+  not ship, declared in `logback-spring.xml` and handed an `OpenTelemetry` instance programmatically at
+  startup.
+- **Metrics** need nothing. Their `ConnectionDetails` bean carries **no `@ConditionalOnProperty`** — only
+  `@ConditionalOnMissingBean` — so it always exists, and `OtlpMetricsPropertiesConfigAdapter#url()` falls
+  through to Micrometer's `OtlpConfig.super::url`, which hardcodes the loopback address after checking
+  `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` and `OTEL_EXPORTER_OTLP_ENDPOINT`.
+
+So this ticket adopted the starter for the one signal that requires an explicit property and silently
+acquired the one that requires none. The Boot properties appendix shows a blank default for
+`management.otlp.metrics.export.url`, because the default lives one layer down in Micrometer — which is how
+it hides from exactly the kind of config review this map performs.
+
+Two consequences beyond the noise itself. The WARN lands once a minute in the stream
+[ticket 13](13-audit-event-catalogue.md) spent a whole ticket keeping clean, where "unexpected spikes in
+ERROR or WARN volume" is a named §6 alert signal — so the exporter would be alerting on itself. And it is a
+periodic outbound connection from an application whose egress
+[ticket 24](24-secrets-and-configuration-handling.md) never scoped.
+
+No change to this ticket's tracing decision: the starter is still the right choice, and
+`management.tracing.propagation.type: w3c` is unaffected. What changes is that the starter is no longer a
+single-signal decision, and the metrics signal has to be switched off explicitly — see ticket 21 and
+ticket 24. The kill switch is `management.otlp.metrics.export.enabled: false`; a property with no value
+does **not** work, because absence is precisely what triggers the fallback.
+
+---
+
+## Amendment from ticket 27 (inbound trace context)
+
+**Every inbound trace is restarted at the boundary.** A header-stripping wrapper at `Ordered.HIGHEST_PRECEDENCE`
+removes `traceparent`, `tracestate`, `b3`, `X-B3-*` and `baggage` before `ServerHttpObservationFilter` reads them.
+So the `trace.id` this ticket adopted the OTel starter for is always server-generated.
+`management.tracing.propagation.*` stays at its defaults. Detail is in
+[ticket 27](27-inbound-trace-context.md) §4.
+
+**Baggage is off.** `management.tracing.baggage.enabled=false` applies in every profile. Nothing uses baggage, and
+it becomes caller-controlled MDC the moment a name is added to `correlation.fields`. The test is behavioural:
+
+- set a probe key in `correlation.fields` / `remote-fields`;
+- send it as a `baggage:` entry and as its own header;
+- assert it reaches neither MDC nor the log line. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-AUD-012. Amend the table by ID, not this list.*
+
+**Reopening trigger:** any ticket that needs a correlation field. *Consolidated into the register (ticket 33): R-OBS-014. Amend the table by ID, not this list.*
+
+**`correlation.id` is dropped**, as struck in place above (Tier D, and line 277 part (a) with the `@Order` note
+after it). The `MDCInsertingServletFilter` ban stays.
+
+**Line 276 note:** the test suite's sampling probability of `1.0` must be overridden to `0.0` for ticket 16 row 4's
+sampling case. Otherwise the assertion passes whatever the caller sends.

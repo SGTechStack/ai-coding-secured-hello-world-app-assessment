@@ -71,7 +71,7 @@ Rate Limiting, HTTP Security), §6 Required Runtime Configuration, plus §1 Scop
 | 4 | Breached-password screening (absent) | **Behind — normative SHALL, and the standard omits it** | 07, 01, 10, 12 |
 | 5 | BCrypt work factor + 72-byte truncation | Silent — must be decided; two 2025 CVEs are load-bearing here | 07, 06, 16, 17 |
 | 6 | `SameSite=Lax` on session cookie | **Behind** — `Strict` is now preferred and costs nothing here | 08, 14, 15 |
-| 7 | Argon2id vs BCrypt | Standard's preference is current; the PRD's BCrypt is the weaker option | 07, 17, 12 |
+| 7 | Argon2id vs BCrypt | Standard's preference is current; the PRD's BCrypt is the weaker option | 07, 17, 12 | *Consolidated into the ADR routing (ticket 34): ADR-001. Amend by ID, not this list.*
 
 ---
 
@@ -103,10 +103,10 @@ Note also OWASP Top 10:2025 A07 lists rotation and complexity requirements as pr
 stop ([A07:2025 Authentication Failures](https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/)). The account
 hygiene jobs are already out of scope on the map, so this is currently moot — but the deferral note in ticket 17 should
 say *we are not implementing credential expiry, and would not, because NIST prohibits it*, rather than implying it is
-merely deferred work someone should pick up later.
+merely deferred work someone should pick up later. *Consolidated into the register (ticket 33): R-CRED-002. Amend the table by ID, not this list.*
 
 **Flagged to:** 07 (Decide the password policy and hashing parameters) for the policy call; 12 (data model) for the
-history table; 17 (deferral register) for the expiry wording.
+history table; 17 (deferral register) for the expiry wording. *Consolidated into the register (ticket 33): R-CRED-002. Amend the table by ID, not this list.*
 
 ---
 
@@ -142,7 +142,7 @@ uniform draw over the full printable-ASCII set with no class quotas (which satis
 overwhelming probability at 12 characters, and exceeds it in strength). Keep the user-chosen validator to length,
 blocklist, and the 72-byte ceiling — nothing else. If ticket 11's admin bootstrap reuses the generator, it inherits
 this. If the compliance reviewer insists on literal class quotas, that is an ADR: cite Appendix A.3 and note the
-entropy cost.
+entropy cost. *Dropped in the ADR routing (ticket 34): superseded; see its routing §4.*
 
 **Flagged to:** 07; 10 (credential flows) for the shared validator boundary; 11 (admin bootstrap) for the generator.
 
@@ -195,7 +195,7 @@ The standard's fixed 20-minute auto-lift is defensible and worth keeping as the 
 justified in Failure Path 2 to prevent mass-lockout DoS, which is the current concern, correctly handled.
 
 **Flagged to:** 09 (Decide lockout and dual rate limiting semantics) — this is the ticket the item names; 15 (threat
-model) for lockout-as-DoS; 16 (test plan) for the observation-window and 429-reachability tests.
+model) for lockout-as-DoS; 16 (test plan) for the observation-window and 429-reachability tests. *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-LCK-001, T-RL-002. Amend the table by ID, not this list.*
 
 ---
 
@@ -326,7 +326,7 @@ path is fragile and has been broken by a security fix before.
    passphrases over 72 bytes is a bad trade for this app.
 4. Set the work factor by measurement on the target hardware, floor of 10, target ≤ 1s per verify. Record the measured
    number and the machine in the ADR, because the number is meaningless without them. Externalise it as configuration,
-   which the standard already requires.
+   which the standard already requires. *Consolidated into the ADR routing (ticket 34): ADR-001 (attached amendment). Amend by ID, not this list.*
 
 **Supplementary finding, and it is a live conflict.** NIST SP 800-63B-4 §3.1.1.2 requires **15 characters minimum**
 for a password used as single-factor authentication; 8 is permitted only when the password is part of a multi-factor
@@ -336,11 +336,11 @@ MFA. NIST additionally says verifiers SHOULD permit at least 64 characters, SHOU
 space, SHOULD accept Unicode (counting each code point as one character, NFC-normalised before hashing), and SHALL
 allow password managers and paste. Ticket 07 must either raise the minimum to 15 or write an ADR accepting 12 with the
 citation stated — and note the interaction: a 15-character floor with a 72-byte ceiling is a narrower band than it
-looks for non-ASCII input.
+looks for non-ASCII input. *Consolidated into the ADR routing (ticket 34): ADR-002. Amend by ID, not this list.*
 
 **Flagged to:** 07 (work factor, max length, minimum length); 06 (error envelope for the rejection, and the timing
 side-channel precedent); 14 (frontend must count bytes, allow paste, allow all characters); 16 (test plan: a >72-byte
-password must be rejected by *our* validator, not by the encoder); 17 (ADR if 12 characters is retained).
+password must be rejected by *our* validator, not by the encoder); 17 (ADR if 12 characters is retained). *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-CRED-001. Amend the table by ID, not this list.*
 
 ---
 
@@ -387,13 +387,13 @@ cookie-authenticated cross-origin API exactly, including its warning against all
 
 **Recommendation for ticket 08:** upgrade session and CSRF cookies to `SameSite=Strict`, add the `__Host-` prefix, keep
 `HttpOnly` + `Secure` + no `Domain` + `Path=/`, keep the CSRF token. Record it as a deviation-stricter-than-standard,
-which needs no ADR justification beyond this citation. Note the local-dev friction: `__Host-` and `Secure` require
+which needs no ADR justification beyond this citation. Note the local-dev friction: `__Host-` and `Secure` require *Consolidated into the register (ticket 33): R-SES-004. Amend the table by ID, not this list.*
 HTTPS, and the PRD concedes local dev is HTTP — so the cookie name and `Secure` flag must be profile-driven, and that
-belongs in the HTTPS/HSTS handover notes the map already lists.
+belongs in the HTTPS/HSTS handover notes the map already lists. *Consolidated into the register (ticket 33): R-CFG-004. Amend the table by ID, not this list.*
 
 **Flagged to:** 08 (Decide session management and the CSRF contract); 14 (frontend architecture — CORS credentials and
 the cross-origin call shape); 15 (threat model — sibling-subdomain and subdomain-takeover path); 16 (cookie attribute
-assertions).
+assertions). *Superseded by the [test-plan table](../../../docs/test-plan/test-plan.md) (ticket 32): T-SES-002. Amend the table by ID, not this list.*
 
 ---
 
@@ -423,7 +423,7 @@ high as practical and raised over time, and a stored reference to the scheme and
 (SHOULD) an additional keyed hash or encryption pass with a verifier-only secret key held in an HSM or TEE — a pepper,
 in OWASP's vocabulary, which OWASP likewise offers as optional defence in depth. Both are SHOULDs; we are not taking
 them, and the reason is on the map: secrets handling for non-local environments is unresolved. Worth a line in the
-deferral register rather than silence.
+deferral register rather than silence. *Consolidated into the register (ticket 33): R-CRED-004. Amend the table by ID, not this list.*
 
 **What makes the trade-off bounded.** Spring Security ships `Argon2PasswordEncoder` and `SCryptPasswordEncoder`
 alongside `BCryptPasswordEncoder`, and `DelegatingPasswordEncoder` stores the algorithm id in the hash itself
@@ -446,7 +446,7 @@ the credential column for the prefixed format plus room for a longer Argon2 hash
 - Mitigations we take: work factor ≥ 10 tuned by measurement, `DelegatingPasswordEncoder` so the hash records its own
   algorithm and cost, a 72-byte cap enforced in our own validator, and breached-password screening (item 4) which
   reduces the population of crackable hashes far more than the algorithm choice does.
-- Not taken: pepper / keyed second pass (NIST SHOULD, OWASP optional) — blocked on unresolved secrets handling.
+- Not taken: pepper / keyed second pass (NIST SHOULD, OWASP optional) — blocked on unresolved secrets handling. *Consolidated into the register (ticket 33): R-CRED-004. Amend the table by ID, not this list.*
 
 **Flagged to:** 07 (parameters); 17 (the ADR — this item exists to feed it); 12 (credential column width and the `{id}`
 prefix).

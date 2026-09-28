@@ -64,7 +64,7 @@ Two independently deployable artifacts:
   `X-Forwarded-*` headers correctly, or the `Secure` cookie will never be returned by the browser.
 - IP-based rate limiting/DDoS mitigation is expected to be handled by a WAF or equivalent
   edge/CDN layer in front of this app, not by the application itself — see "Known architectural
-  limitations" below for why.
+  limitations" below and `docs/adr/no-ip-rate-limiting-waf-delegated.md` for why.
 
 ## Request flow (example: login)
 
@@ -269,7 +269,9 @@ Security at all). `backend/pom.xml` declares `spring-boot-h2console` explicitly 
   instances, and using threat-intel IP reputation this app has no visibility into), which an
   application-layer in-memory throttle fundamentally cannot do correctly in a multi-instance or
   DDoS-scale scenario. `LoginAttemptService` only tracks per-account failed-login lockout, which
-  is a distinct control from IP-based rate limiting.
+  is a distinct control from IP-based rate limiting. See
+  `docs/adr/no-ip-rate-limiting-waf-delegated.md` for the full decision record, including the
+  deployment prerequisite this creates (a WAF/edge layer is required in front of this app).
 - No real SMTP; `LoggingEmailService` is an explicit, PRD-documented stub — see
   `PRODUCT.md`.
 - No SCIM/JIT account provisioning — judged not applicable to this app's self-service

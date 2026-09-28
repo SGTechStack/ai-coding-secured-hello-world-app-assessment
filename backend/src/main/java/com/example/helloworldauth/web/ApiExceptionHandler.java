@@ -2,6 +2,7 @@ package com.example.helloworldauth.web;
 
 import com.example.helloworldauth.auth.AuthenticationFailedException;
 import com.example.helloworldauth.auth.RegistrationConflictException;
+import com.example.helloworldauth.auth.TooManyRequestsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,6 +25,13 @@ public class ApiExceptionHandler {
     public ResponseEntity<Map<String, String>> onConflict(RegistrationConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
             .body(Map.of("error", "conflict", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<Map<String, String>> onThrottled(TooManyRequestsException ex) {
+        // IP-level throttle tripped (ticket 07). Generic body — no per-account detail.
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .body(Map.of("error", "too_many_requests", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -4,10 +4,10 @@
 
 **Blocked by:** 04.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] N consecutive failures on one account within the window → account locked via `locked_until` for the cooldown
-- [ ] Correct password after the cooldown → login succeeds and `failed_login_attempts` resets
-- [ ] IP-level throttling engages on repeated failures across multiple usernames from one IP, independent of per-account lockout
-- [ ] Audit log line when a lockout is triggered
-- [ ] Integration tests: lockout after N failures; reset after cooldown; IP throttling independent of account lockout
+- [x] N consecutive failures on one account within the window → account locked via `locked_until` for the cooldown
+- [x] Correct password after the cooldown → login succeeds and `failed_login_attempts` resets
+- [x] IP-level throttling engages on repeated failures across multiple usernames from one IP, independent of per-account lockout
+- [x] Audit log line when a lockout is triggered
+- [x] Integration tests: lockout after N failures; reset after cooldown; IP throttling independent of account lockout

@@ -32,7 +32,8 @@ public class LoginController {
     public Map<String, String> login(@Valid @RequestBody LoginRequest request,
                                      HttpServletRequest httpRequest,
                                      jakarta.servlet.http.HttpServletResponse httpResponse) {
-        User user = loginService.authenticate(request.username(), request.password());
+        User user = loginService.authenticate(
+            request.username(), request.password(), httpRequest.getRemoteAddr());
 
         // Establish an authenticated server-side session. session-fixation
         // protection (configured in SecurityConfig) rotates the id on login.

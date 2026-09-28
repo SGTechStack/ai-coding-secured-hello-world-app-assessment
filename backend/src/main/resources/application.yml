@@ -26,3 +26,14 @@ server:
 app:
   cors:
     frontend-origin: http://localhost:3000
+  security:
+    lockout:
+      # Account lockout (ticket 07): Nth consecutive failure locks the account
+      # for the cooldown by setting locked_until.
+      max-attempts: 5
+      cooldown-minutes: 15
+    throttle:
+      # IP-level throttle (ticket 07): failures from one client IP across any
+      # usernames within the window; once exceeded the IP gets HTTP 429.
+      max-failures: 10
+      window-minutes: 15

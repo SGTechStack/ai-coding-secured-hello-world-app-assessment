@@ -26,17 +26,26 @@ public class LoginService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final FailedLoginRecorder failedLoginRecorder;
+    private final IpThrottlingService ipThrottling;
 
     public LoginService(UserRepository users, PasswordEncoder passwordEncoder,
-                        FailedLoginRecorder failedLoginRecorder) {
+                        FailedLoginRecorder failedLoginRecorder,
+                        IpThrottlingService ipThrottling) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.failedLoginRecorder = failedLoginRecorder;
+        this.ipThrottling = ipThrottling;
     }
 
-    public User authenticate(String username, String rawPassword) {
+    public User authenticate(String username, String rawPassword, String clientIp) {
+        // IP-level throttle is checked BEFORE credential verification and is
+        // independent of per-account lockout: it blunts spraying from one source
+        // (throws 429) before any single account can be locked out by that source.
+        ipThrottling.checkAllowed(clientIp);
+
         Optional<User> maybe = users.findByUsername(username);
         if (maybe.isEmpty()) {
+            ipThrottling.recordFailure(clientIp);
             audit.info("login failure username={} reason=unknown", username);
             throw new AuthenticationFailedException();
         }
@@ -53,6 +62,7 @@ public class LoginService {
         if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             // Persisted in a separate committed transaction so it survives the throw.
             failedLoginRecorder.recordFailure(username);
+            ipThrottling.recordFailure(clientIp);
             throw new AuthenticationFailedException();
         }
 

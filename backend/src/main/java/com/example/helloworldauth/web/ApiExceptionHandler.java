@@ -1,5 +1,7 @@
 package com.example.helloworldauth.web;
 
+import com.example.helloworldauth.admin.AdminUserNotFoundException;
+import com.example.helloworldauth.admin.SelfActionForbiddenException;
 import com.example.helloworldauth.auth.AuthenticationFailedException;
 import com.example.helloworldauth.auth.InvalidResetTokenException;
 import com.example.helloworldauth.auth.RegistrationConflictException;
@@ -40,6 +42,19 @@ public class ApiExceptionHandler {
         // Generic 400 for unknown/expired/used token — never reveal which case.
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of("error", "invalid_reset_token", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SelfActionForbiddenException.class)
+    public ResponseEntity<Map<String, String>> onSelfAction(SelfActionForbiddenException ex) {
+        // Story 9 self-action guard — an admin cannot change their own account status.
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "self_action_forbidden", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AdminUserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> onAdminUserNotFound(AdminUserNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(Map.of("error", "not_found", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

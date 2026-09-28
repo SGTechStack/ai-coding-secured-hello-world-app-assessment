@@ -124,6 +124,30 @@ export async function fetchAdminUsers() {
   return response.json();
 }
 
+/**
+ * Enables or disables a target account (Story 9). Admin-only PATCH under
+ * `/api/admin/**`; the backend enforces the role guard server-side and rejects
+ * an admin toggling their OWN account (400). State-changing, so it follows the
+ * same CSRF-header pattern as the other write calls. Returns the updated user
+ * projection on success; throws with the server message otherwise.
+ */
+export async function setUserEnabled(userId, enabled) {
+  await apiFetch("/api/ping");
+  const response = await apiFetch(`/api/admin/users/${userId}/enabled`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "X-XSRF-TOKEN": csrfToken(),
+    },
+    body: JSON.stringify({ enabled }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message ?? `set enabled failed: ${response.status}`);
+  }
+  return data;
+}
+
 /** Fetches the protected greeting. Returns null when unauthenticated (401). */
 export async function fetchGreeting() {
   const response = await apiFetch("/api/hello");

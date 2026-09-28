@@ -4,12 +4,12 @@
 
 **Blocked by:** 11.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Status-toggle endpoint (ADMIN only) flips another account's `enabled` flag
-- [ ] A disabled user can no longer log in
-- [ ] An admin toggling their own account is rejected (self-action guard)
-- [ ] CSRF enforced on the endpoint
-- [ ] Audit log line for enable/disable (actor + target)
-- [ ] React admin control toggles status and reflects the new state
-- [ ] Integration tests: toggle disables/enables; disabled user login blocked; admin cannot disable self
+- [x] Status-toggle endpoint (ADMIN only) flips another account's `enabled` flag
+- [x] A disabled user can no longer log in
+- [x] An admin toggling their own account is rejected (self-action guard)
+- [x] CSRF enforced on the endpoint
+- [x] Audit log line for enable/disable (actor + target)
+- [x] React admin control toggles status and reflects the new state
+- [x] Integration tests: toggle disables/enables; disabled user login blocked; admin cannot disable self

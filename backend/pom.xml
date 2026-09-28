@@ -23,6 +23,21 @@
         <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>3.6.0</maven-failsafe-plugin.version>
         <archunit.version>1.5.1</archunit.version>
+
+        <!-- Build gates (ticket 03). Paths are relative to this module; moving a file is a one-line change here. -->
+        <test-plan.path>${project.basedir}/../docs/test-plan/test-plan.md</test-plan.path>
+        <traceability.ledger.path>${project.basedir}/../docs/test-plan/pending-ledger.txt</traceability.ledger.path>
+        <traceability.frontend.dir>${project.basedir}/../frontend</traceability.frontend.dir>
+        <register.path>${project.basedir}/../docs/register/register.md</register.path>
+        <register.compliance.path>${project.basedir}/../docs/register/deferral-register.md</register.compliance.path>
+        <register.handover.path>${project.basedir}/../docs/register/handover.md</register.handover.path>
+        <!-- -Dregister.regenerate=true rewrites both renderings instead of checking them (ADR-069). -->
+        <register.regenerate>false</register.regenerate>
+        <dependency-check-maven.version>13.0.0</dependency-check-maven.version>
+        <!-- Fail on any dependency finding of CVSS 7.0 or higher, High and Critical (R-BLD-007; R-BLD-010). -->
+        <dependency-check.failBuildOnCVSS>7</dependency-check.failBuildOnCVSS>
+        <pitest-maven.version>1.30.0</pitest-maven.version>
+        <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
     </properties>
 
@@ -113,6 +128,16 @@
                 <configuration>
                     <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
+                    <!-- Inputs of the traceability gate (ADR-068) and the register drift gate (ADR-069). -->
+                    <systemPropertyVariables>
+                        <test-plan.path>${test-plan.path}</test-plan.path>
+                        <traceability.ledger.path>${traceability.ledger.path}</traceability.ledger.path>
+                        <traceability.frontend.dir>${traceability.frontend.dir}</traceability.frontend.dir>
+                        <register.path>${register.path}</register.path>
+                        <register.compliance.path>${register.compliance.path}</register.compliance.path>
+                        <register.handover.path>${register.handover.path}</register.handover.path>
+                        <register.regenerate>${register.regenerate}</register.regenerate>
+                    </systemPropertyVariables>
                 </configuration>
                 <executions>
                     <execution>
@@ -123,6 +148,116 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <!-- OWASP Dependency-Check in verify, failing at the CVSS threshold (R-BLD-007; R-BLD-010).
+                     NVD_API_KEY, when set, speeds up the NVD download. -Ddependency-check.skip=true is for local
+                     inner loops only; a release build never sets it (backend/README.md). -->
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${dependency-check-maven.version}</version>
+                <configuration>
+                    <failBuildOnCVSS>${dependency-check.failBuildOnCVSS}</failBuildOnCVSS>
+                    <!-- OSS Index now needs an account; without one its remote errors warn instead of failing. -->
+                    <ossIndexWarnOnlyOnRemoteErrors>true</ossIndexWarnOnlyOnRemoteErrors>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <!-- PIT over the security-decision classes (spec, Mandatory gates 7). Run with -Pmutation. -->
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-maven</artifactId>
+                    <version>${pitest-maven.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.pitest</groupId>
+                            <artifactId>pitest-junit5-plugin</artifactId>
+                            <version>${pitest-junit5-plugin.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <mutationThreshold>85</mutationThreshold>
+                        <!-- The scope, matched by class name so it holds whichever package a ticket picks. A ticket
+                             that builds one of these classes keeps its entry matching the real class name. -->
+                        <targetClasses>
+                            <!-- the lockout counter and ladder -->
+                            <param>sg.securedhello.*LockoutCounter*</param>
+                            <param>sg.securedhello.*LockoutLadder*</param>
+                            <param>sg.securedhello.*AdminActionGuard*</param>
+                            <param>sg.securedhello.*SourceKeyResolver*</param>
+                            <!-- the PasswordService policy -->
+                            <param>sg.securedhello.*PasswordPolicy*</param>
+                            <!-- token hashing and consume -->
+                            <param>sg.securedhello.*TokenHash*</param>
+                            <param>sg.securedhello.*TokenConsum*</param>
+                            <!-- the TOTP window and replay check -->
+                            <param>sg.securedhello.*TotpWindow*</param>
+                            <param>sg.securedhello.*TotpReplay*</param>
+                            <!-- emitter key validation -->
+                            <param>sg.securedhello.*EmitterKeyValidat*</param>
+                        </targetClasses>
+                        <!-- Until those classes exist there is nothing to mutate; that alone must not fail. -->
+                        <failWhenNoMutations>false</failWhenNoMutations>
+                        <timestampedReports>false</timestampedReports>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- Active only when NVD_API_KEY is set: an empty key is refused by the NVD API, no key is not. -->
+            <id>nvd-api-key</id>
+            <activation>
+                <property>
+                    <name>env.NVD_API_KEY</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <configuration>
+                            <nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>mutation</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <executions>
+                            <execution>
+                                <id>mutation-coverage</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>mutationCoverage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

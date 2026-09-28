@@ -1,0 +1,39 @@
+package sg.securedhello.security;
+
+import java.util.List;
+import java.util.Map;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.http.HttpMethod;
+import org.springframework.validation.annotation.Validated;
+
+/**
+ * The authorization matrix (ADR-043): which routes are open to anyone, and which role reaches which route. It binds
+ * once at context refresh; a restart is the only reload path.
+ *
+ * <p>{@link SecurityConfig} applies it in a fixed order: the whitelist first, then the explicit role-definition
+ * {@code denyAll()}, then the role guards, then {@code anyRequest().denyAll()}. A route with no row is denied.
+ *
+ * @param whitelist routes open to anyone, including anonymous callers
+ * @param roles     for each role name ({@code USER} or {@code ADMIN}), the routes that role may call
+ */
+@Validated
+@ConfigurationProperties("app.security.authorization")
+public record AuthorizationMatrix(
+        @DefaultValue List<@Valid Route> whitelist,
+        @DefaultValue Map<@Pattern(regexp = "USER|ADMIN") String, List<@Valid Route>> roles) {
+
+    /**
+     * One matrix entry: an explicit method and a path pattern.
+     *
+     * @param method the HTTP method; every entry names one
+     * @param path   a {@code PathPattern} under {@code /api}
+     */
+    public record Route(@NotNull HttpMethod method, @NotNull @Pattern(regexp = "/api(/.*)?") String path) {
+    }
+}

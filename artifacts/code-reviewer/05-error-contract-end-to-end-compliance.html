@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 05-error-contract-end-to-end</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/1/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN 0/0/1/1</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t05-error-contract</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 05: error contract end to end. Run inline (no subagents available), on the tree merged with <code>zacharylim</code> 241a4ee. Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify</code> green: Surefire 331 tests, Failsafe 2 (<code>ErrorContractDriftIT</code>), 0 failures. Frontend: <code>tsc -b</code>, oxlint, prettier check, Vitest 46/46 (with coverage thresholds), <code>vite build</code> all pass.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">One writer, one enum, four small producers. The status fallback lives once, in <code>ErrorCode.forStatus</code>. The renderer sits in test sources beside its drift gate.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/1/1</td><td class="p-2">All six acceptance criteria are covered. Medium: <code>MatrixAndAdviceTest</code> boots one extra cached context, with extra matrix rows and a probe controller, because no real routes exist yet. The reason is stated in its Javadoc. Low: the SPA's <code>ERROR_CODES</code> and MSW fixtures are hand-written. A Vitest test pins them to the generated schema, so they cannot drift silently.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">The semgrep CLI is not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Default deny holds and <code>/api/admin/roles/**</code> is <code>denyAll()</code>. <code>detail</code> is constant and no stack trace or exception message reaches a body (as-13). <code>sendError</code> is forbidden by ArchUnit. Low: <code>instance</code> echoes the request path. It is JSON-encoded and served as <code>application/problem+json</code> with nosniff.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">The typed client (<code>src/lib/api</code>) branches on <code>code</code> only (REJ-092). The fixed <code>Accept</code> header is sent without <code>X-Requested-With</code>, with <code>credentials: 'include'</code>. The ticket adds no components.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">WARN</td><td class="p-2">0/0/1/1</td><td class="p-2">Medium (security): every <code>AccessDeniedException</code>, including a CSRF failure, currently maps to <code>ACCESS_DENIED</code>. <code>CSRF_TOKEN_INVALID</code> needs ticket 09's CSRF denied handler, which wraps the same writer. Low (logging): an unhandled exception is logged at ERROR with its stack trace, with no rate limit. Constructor injection, a <code>@Validated</code> record matrix, the explicit entry point and denied handler, and disabled request cache and default logout are all fine.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None.</p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

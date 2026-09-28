@@ -4,11 +4,11 @@
 
 **Blocked by:** 01.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `users` entity matches the data model, with unique constraints on username and email
-- [ ] `password_reset_tokens` entity matches the data model, storing only the token hash (never plaintext)
-- [ ] Spring Data repositories for both, with the finder methods the later slices need (by username, by email, by token hash)
-- [ ] `BCryptPasswordEncoder` bean registered
-- [ ] Schema created on startup for the dev profile; portable to Postgres/MySQL
-- [ ] Repository slice tests confirm persistence and the unique constraints
+- [x] `users` entity matches the data model, with unique constraints on username and email
+- [x] `password_reset_tokens` entity matches the data model, storing only the token hash (never plaintext)
+- [x] Spring Data repositories for both, with the finder methods the later slices need (by username, by email, by token hash)
+- [x] `BCryptPasswordEncoder` bean registered
+- [x] Schema created on startup for the dev profile; portable to Postgres/MySQL
+- [x] Repository slice tests confirm persistence and the unique constraints

@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { register } from "../api/client.js";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function RegisterForm({ onRegistered }) {
   const [username, setUsername] = useState("");
@@ -21,30 +25,55 @@ export default function RegisterForm({ onRegistered }) {
   }
 
   if (done) {
-    return <p data-testid="register-success">Account created for {username}.</p>;
+    return (
+      <Alert data-testid="register-success">
+        <AlertDescription>Account created for {username}.</AlertDescription>
+      </Alert>
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="register">
-      <label>
-        Username
-        <input value={username} onChange={(e) => setUsername(e.target.value)} name="username" />
-      </label>
-      <label>
-        Email
-        <input value={email} onChange={(e) => setEmail(e.target.value)} name="email" type="email" />
-      </label>
-      <label>
-        Password
-        <input
+    <form onSubmit={handleSubmit} aria-label="register" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="register-username">Username</Label>
+        <Input
+          id="register-username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          name="username"
+          autoComplete="username"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="register-email">Email</Label>
+        <Input
+          id="register-email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          name="email"
+          type="email"
+          autoComplete="email"
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="register-password">Password</Label>
+        <Input
+          id="register-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           name="password"
           type="password"
+          autoComplete="new-password"
         />
-      </label>
-      {error && <p role="alert" data-testid="register-error">{error}</p>}
-      <button type="submit">Register</button>
+      </div>
+      {error && (
+        <Alert variant="destructive" data-testid="register-error">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Button type="submit" className="w-full">
+        Register
+      </Button>
     </form>
   );
 }

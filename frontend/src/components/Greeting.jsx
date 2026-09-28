@@ -13,10 +13,22 @@ export default function Greeting() {
   }, []);
 
   if (!loaded) {
-    return <p data-testid="greeting-loading">Loading…</p>;
+    return (
+      <p data-testid="greeting-loading" className="text-sm text-muted-foreground">
+        Loading…
+      </p>
+    );
   }
   if (message === null) {
-    return <p data-testid="greeting-gated">Please log in to see your greeting.</p>;
+    return (
+      <p data-testid="greeting-gated" className="text-sm text-muted-foreground">
+        Please log in to see your greeting.
+      </p>
+    );
   }
-  return <p data-testid="greeting">{message}</p>;
+  return (
+    <p data-testid="greeting" className="text-2xl font-semibold tracking-tight">
+      {message}
+    </p>
+  );
 }

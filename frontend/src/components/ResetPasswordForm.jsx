@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { confirmPasswordReset } from "../api/client.js";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /** Minimum new-password length, mirrored from the backend strength policy. */
 const MIN_PASSWORD_LENGTH = 12;
@@ -40,25 +44,39 @@ export default function ResetPasswordForm({ token: tokenProp }) {
 
   if (done) {
     return (
-      <p data-testid="reset-password-success">
-        Your password has been reset. You can now sign in with your new password.
-      </p>
+      <Alert data-testid="reset-password-success">
+        <AlertDescription>
+          Your password has been reset. You can now sign in with your new password.
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="reset password">
-      <label>
-        New password
-        <input
+    <form
+      onSubmit={handleSubmit}
+      aria-label="reset password"
+      className="flex flex-col gap-4"
+    >
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="reset-new-password">New password</Label>
+        <Input
+          id="reset-new-password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           name="newPassword"
           type="password"
+          autoComplete="new-password"
         />
-      </label>
-      {error && <p role="alert" data-testid="reset-password-error">{error}</p>}
-      <button type="submit">Set new password</button>
+      </div>
+      {error && (
+        <Alert variant="destructive" data-testid="reset-password-error">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Button type="submit" className="w-full">
+        Set new password
+      </Button>
     </form>
   );
 }

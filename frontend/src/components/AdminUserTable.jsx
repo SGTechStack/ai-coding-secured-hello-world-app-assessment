@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
 import { fetchAdminUsers, setUserEnabled, changeUserRole, deleteUser } from "../api/client.js";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 /**
  * Admin user table (Story 8/9). Loads and renders the user list from
@@ -100,79 +110,104 @@ export default function AdminUserTable() {
   }
 
   if (loading) {
-    return <p data-testid="admin-users-loading">Loading users…</p>;
-  }
-
-  if (error) {
     return (
-      <p role="alert" data-testid="admin-users-error">
-        {error}
+      <p data-testid="admin-users-loading" className="text-sm text-muted-foreground">
+        Loading users…
       </p>
     );
   }
 
+  if (error) {
+    return (
+      <Alert variant="destructive" data-testid="admin-users-error">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
-    <>
+    <div className="flex flex-col gap-3">
       {actionError && (
-        <p role="alert" data-testid="admin-users-action-error">
-          {actionError}
-        </p>
+        <Alert variant="destructive" data-testid="admin-users-action-error">
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
       )}
-      <table data-testid="admin-users-table" aria-label="user list">
-        <caption>Users</caption>
-        <thead>
-          <tr>
-            <th scope="col">Username</th>
-            <th scope="col">Email</th>
-            <th scope="col">Role</th>
-            <th scope="col">Enabled</th>
-            <th scope="col">Created</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.username} data-testid="admin-user-row">
-              <td>{u.username}</td>
-              <td>{u.email}</td>
-              <td>
-                <select
-                  data-testid="admin-user-role"
-                  value={u.role}
-                  onChange={(e) => handleRoleChange(u, e.target.value)}
-                  disabled={pendingId === u.username}
-                  aria-label={`Role for ${u.username}`}
-                >
-                  <option value="USER">USER</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </td>
-              <td>{u.enabled ? "Yes" : "No"}</td>
-              <td>{u.createdAt}</td>
-              <td>
-                <button
-                  type="button"
-                  data-testid="admin-user-toggle"
-                  onClick={() => handleToggle(u)}
-                  disabled={pendingId === u.username}
-                  aria-label={`${u.enabled ? "Disable" : "Enable"} ${u.username}`}
-                >
-                  {u.enabled ? "Disable" : "Enable"}
-                </button>
-                <button
-                  type="button"
-                  data-testid="admin-user-delete"
-                  onClick={() => handleDelete(u)}
-                  disabled={pendingId === u.username}
-                  aria-label={`Delete ${u.username}`}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
+      <div className="overflow-hidden rounded-lg border">
+        <Table data-testid="admin-users-table" aria-label="user list">
+          <caption className="sr-only">Users</caption>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead scope="col">Username</TableHead>
+              <TableHead scope="col">Email</TableHead>
+              <TableHead scope="col">Role</TableHead>
+              <TableHead scope="col">Enabled</TableHead>
+              <TableHead scope="col">Created</TableHead>
+              <TableHead scope="col" className="text-right">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((u) => (
+              <TableRow key={u.username} data-testid="admin-user-row">
+                <TableCell className="font-medium">{u.username}</TableCell>
+                <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                <TableCell>
+                  <select
+                    data-testid="admin-user-role"
+                    value={u.role}
+                    onChange={(e) => handleRoleChange(u, e.target.value)}
+                    disabled={pendingId === u.username}
+                    aria-label={`Role for ${u.username}`}
+                    className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="USER">USER</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={
+                      u.enabled
+                        ? "inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                        : "inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                    }
+                  >
+                    {u.enabled ? "Yes" : "No"}
+                  </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{u.createdAt}</TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      data-testid="admin-user-toggle"
+                      onClick={() => handleToggle(u)}
+                      disabled={pendingId === u.username}
+                      aria-label={`${u.enabled ? "Disable" : "Enable"} ${u.username}`}
+                    >
+                      {u.enabled ? "Disable" : "Enable"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      data-testid="admin-user-delete"
+                      onClick={() => handleDelete(u)}
+                      disabled={pendingId === u.username}
+                      aria-label={`Delete ${u.username}`}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }

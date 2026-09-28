@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { logout } from "../api/client.js";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /**
  * Logout control. Ends the server-side session, then notifies the parent so it
@@ -24,11 +26,15 @@ export default function LogoutButton({ onLoggedOut }) {
   }
 
   return (
-    <div>
-      <button type="button" onClick={handleClick} disabled={busy}>
+    <div className="flex flex-col items-end gap-2">
+      <Button type="button" variant="outline" onClick={handleClick} disabled={busy}>
         Log out
-      </button>
-      {error && <p role="alert" data-testid="logout-error">{error}</p>}
+      </Button>
+      {error && (
+        <Alert variant="destructive" data-testid="logout-error">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }

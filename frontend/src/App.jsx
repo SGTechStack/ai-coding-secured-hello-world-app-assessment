@@ -7,6 +7,14 @@ import ResetPasswordForm from "./components/ResetPasswordForm.jsx";
 import Greeting from "./components/Greeting.jsx";
 import LogoutButton from "./components/LogoutButton.jsx";
 import AdminUserTable from "./components/AdminUserTable.jsx";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 /**
  * App shell. Composes the auth slices into a usable UI:
@@ -51,62 +59,111 @@ export default function App() {
   // A password-reset link (?token=...) takes over the whole view.
   if (resetToken) {
     return (
-      <main>
-        <h1>Reset your password</h1>
-        <ResetPasswordForm token={resetToken} />
+      <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
+        <Card className="w-full max-w-md" size="default">
+          <CardHeader>
+            <CardTitle className="text-xl">Reset your password</CardTitle>
+            <CardDescription>Choose a new password for your account.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResetPasswordForm token={resetToken} />
+          </CardContent>
+        </Card>
       </main>
     );
   }
 
   if (!checked) {
     return (
-      <main>
-        <h1>Hello World Auth</h1>
-        <p data-testid="app-loading">Loading…</p>
+      <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+        <p data-testid="app-loading" className="text-sm text-muted-foreground">
+          Loading…
+        </p>
       </main>
     );
   }
 
   if (session) {
     return (
-      <main>
-        <h1>Hello World Auth</h1>
-        <Greeting />
-        <LogoutButton onLoggedOut={handleLogout} />
-        {session.role === "ADMIN" && (
-          <section aria-label="admin">
-            <h2>Admin — users</h2>
-            <AdminUserTable />
-          </section>
-        )}
+      <main className="min-h-screen bg-muted/40">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
+          <header className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <h1 className="text-sm font-medium text-muted-foreground">
+                Hello World Auth
+              </h1>
+              <Greeting />
+            </div>
+            <LogoutButton onLoggedOut={handleLogout} />
+          </header>
+          {session.role === "ADMIN" && (
+            <section aria-label="admin" className="flex flex-col gap-3">
+              <h2 className="text-lg font-semibold tracking-tight">Admin — users</h2>
+              <AdminUserTable />
+            </section>
+          )}
+        </div>
       </main>
     );
   }
 
   return (
-    <main>
-      <h1>Hello World Auth</h1>
-      {showRegister ? (
-        <section aria-label="register">
-          <h2>Create an account</h2>
-          <RegisterForm onRegistered={() => setShowRegister(false)} />
-          <button type="button" onClick={() => setShowRegister(false)}>
-            Back to login
-          </button>
-        </section>
-      ) : (
-        <section aria-label="login">
-          <h2>Log in</h2>
-          <LoginForm onLoggedIn={(s) => setSession(s)} />
-          <button type="button" onClick={() => setShowRegister(true)}>
-            Create an account
-          </button>
-          <details>
-            <summary>Forgot password?</summary>
-            <ForgotPasswordForm />
-          </details>
-        </section>
-      )}
+    <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
+      <div className="flex w-full max-w-md flex-col gap-4">
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">Hello World Auth</h1>
+          <p className="text-sm text-muted-foreground">
+            Sign in to your account to continue.
+          </p>
+        </div>
+        {showRegister ? (
+          <section aria-label="register">
+            <Card size="default">
+              <CardHeader>
+                <CardTitle className="text-xl">Create an account</CardTitle>
+                <CardDescription>Register a new account to get started.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <RegisterForm onRegistered={() => setShowRegister(false)} />
+                <Button
+                  type="button"
+                  variant="link"
+                  className="self-center"
+                  onClick={() => setShowRegister(false)}
+                >
+                  Back to login
+                </Button>
+              </CardContent>
+            </Card>
+          </section>
+        ) : (
+          <section aria-label="login">
+            <Card size="default">
+              <CardHeader>
+                <CardTitle className="text-xl">Log in</CardTitle>
+                <CardDescription>Enter your credentials to sign in.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <LoginForm onLoggedIn={(s) => setSession(s)} />
+                <Button
+                  type="button"
+                  variant="link"
+                  className="self-center"
+                  onClick={() => setShowRegister(true)}
+                >
+                  Create an account
+                </Button>
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                    Forgot password?
+                  </summary>
+                  <ForgotPasswordForm />
+                </details>
+              </CardContent>
+            </Card>
+          </section>
+        )}
+      </div>
     </main>
   );
 }

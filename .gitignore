@@ -1,0 +1,28 @@
+# --- Backend (Maven) ---
+backend/target/
+
+# --- Frontend (Node / Vite) ---
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.local
+frontend/*.tsbuildinfo
+
+# Frontend production build is emitted into the backend static dir (single origin)
+backend/src/main/resources/static/
+
+# --- Tooling / logs ---
+*.log
+npm-debug.log*
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+App-Standards/
+
+# --- Local-only ---
+.claude/
+.scratch/

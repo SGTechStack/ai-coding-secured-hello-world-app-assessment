@@ -30,14 +30,14 @@ Key: ✅ met and tested · 🟡 met, but no test asserts it · ⚠️ knowingly 
 | | 2 cooldown elapses, then login succeeds | ✅ | T-LCK-002, T-LCK-006 |
 | | 3 IP throttle independent; attacker cannot lock out a user | ⚠️ | R-LCK-002: the IP throttle is independent of account lockout, as required. The PRD's promise that one source can't lock out a user isn't achievable while per-account lockout exists, because a few failures per lock period keep a user locked. |
 | 4 Logout | 1, 2 | ✅ | T-SES-007 |
-| 5 Hello | 1 body is `Hello, <username>` | 🟡 | T-ADM-013 asserts only that the call returns 200. No test checks the body. |
+| 5 Hello | 1 body is `Hello, <username>` | ✅ | T-ADM-013 (200 and the exact body for the caller's username) |
 | | 2 no session gets 401 | ✅ | T-AUTH-009, T-SES-007 |
 | 6 Reset request | 1 generic response | ✅ | T-AUTH-006 |
 | | 2 hashed token, expiry, EmailService called | ✅ | T-CRED-012, T-CRED-013, T-AUD-030. R-CRED-021: the stub logs the link in dev only, so self-service reset works in dev only. That follows from the PRD putting SMTP out of scope. |
 | 7 Reset confirm | 1 password updated, token used, sessions ended | ✅ | T-SES-014, T-CRED-014, T-CRED-015 |
 | | 2 expired token rejected | ✅ | T-CRED-013 |
 | | 3 reused token rejected | ✅ | T-CRED-014 |
-| 8 List users | 1 fields listed, never hashes | 🟡 | T-ADM-008 and T-ADM-016 cover "never hashes". No test checks that username, email, role, enabled and created-at are present. |
+| 8 List users | 1 fields listed, never hashes | ✅ | T-ADM-032 (username, email, role, enabled, created-at), T-ADM-008 and T-ADM-016 (never hashes) |
 | | 2 non-admin gets 403 | ✅ | T-ADM-013 |
 | 9 Enable/disable | 1 flag updated; disabled user can't log in | ✅➕ | T-SES-003, T-AUTH-006. R-ADM-008: when exactly two admins are enrolled, disabling either one is refused with 409. |
 | | 2 no self-disable | ✅ | T-ADM-003 |
@@ -45,7 +45,7 @@ Key: ✅ met and tested · 🟡 met, but no test asserts it · ⚠️ knowingly 
 | | 2 no self-demote | ✅ | T-ADM-003 |
 | 11 Delete | 1 account removed | ✅➕ | T-ADM-004. R-ADM-002: deletion also writes a tombstone. |
 | | 2 no self-delete | ✅ | T-ADM-003 |
-| 12 Bootstrap | 1 seed when no ADMIN exists | 🟡 | R-ADM-007 describes the seed. T-ADM-022 and T-ADM-023 only test refusal of bad configuration. No test starts on an empty database and asserts that the admin is created and hashed. |
+| 12 Bootstrap | 1 seed when no ADMIN exists | ✅➕ | T-ADM-033 (one admin on an empty database, hashed like any other account). R-ADM-007: the seed is also a forced-change credential, and go-live needs a second enrolled admin. |
 | | 2 no duplicate seed | ✅ | T-ADM-024, T-ADM-025 |
 
 ## Non-functional requirements
@@ -69,5 +69,4 @@ Key: ✅ met and tested · 🟡 met, but no test asserts it · ⚠️ knowingly 
 
 ## Open actions to close the PRD
 
-1. Add three small tests: the Story 5 body, the Story 8 list fields, and the Story 12 seed on an empty database.
-2. Sign off the three ⚠️ rows (1.1, 1.2, 3.3) as accepted PRD deviations. Each one already has a recorded reason.
+1. Sign off the three ⚠️ rows (1.1, 1.2, 3.3) as accepted PRD deviations. Each one already has a recorded reason.

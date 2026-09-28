@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
@@ -47,9 +48,9 @@ record TraceabilityGate(Set<String> rows, List<String> ledger, Map<String, Set<S
     List<String> problems() {
         List<String> problems = new ArrayList<>();
 
-        List<String> unknown = citations.entrySet().stream()
+        List<String> unknown = new TreeMap<>(citations).entrySet().stream()
                 .filter(entry -> !rows.contains(entry.getKey()))
-                .map(entry -> entry.getKey() + "  cited by " + String.join(", ", entry.getValue()))
+                .map(entry -> entry.getKey() + "  cited by " + String.join(", ", new TreeSet<>(entry.getValue())))
                 .toList();
         section(problems, "Tests cite IDs that are not rows in the test plan; fix the test or add the row:", unknown);
 

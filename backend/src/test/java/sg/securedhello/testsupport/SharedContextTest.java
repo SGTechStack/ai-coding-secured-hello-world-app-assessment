@@ -14,6 +14,7 @@ import org.springframework.test.context.bean.override.convention.TestBean;
  *   <li>a fresh temporary H2 file, and the test-only {@link TestSecrets}, both from
  *       {@link TemporaryH2FileInitializer};</li>
  *   <li>BCrypt cost 4, a test-speed setting that does not touch the security posture;</li>
+ *   <li>the session cleanup job off ({@code -}), so rows disappear only when a test acts;</li>
  *   <li>the {@code clock} bean replaced by the one suite-wide {@link MutableClock}, exposed as {@link #clock}.</li>
  * </ul>
  *
@@ -23,7 +24,9 @@ import org.springframework.test.context.bean.override.convention.TestBean;
  */
 @ActiveProfiles("dev")
 @ContextConfiguration(initializers = TemporaryH2FileInitializer.class)
-@TestPropertySource(properties = "app.security.password.bcrypt-strength=4")
+@TestPropertySource(properties = {"app.security.password.bcrypt-strength=4",
+        // No background session cleanup: it runs on Spring Session's own clock and would race row-counting tests.
+        "spring.session.jdbc.cleanup-cron=-"})
 public abstract class SharedContextTest {
 
     /** The suite-wide forward-only clock, which is also the context's {@code clock} bean. Advance it; never sleep. */

@@ -39,7 +39,16 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                // SPA sends the RAW cookie token back in the X-XSRF-TOKEN header.
+                // The default XorCsrfTokenRequestAttributeHandler expects the
+                // masked render value, which a cookie-reading SPA never sees, so
+                // use the plain handler that compares the raw token. Without this
+                // every state-changing request from the SPA is rejected — a bug
+                // MockMvc's .with(csrf()) cannot surface because it fakes the
+                // token plumbing end to end.
+                .csrfTokenRequestHandler(
+                    new org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler()))
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(sf -> sf.migrateSession()))

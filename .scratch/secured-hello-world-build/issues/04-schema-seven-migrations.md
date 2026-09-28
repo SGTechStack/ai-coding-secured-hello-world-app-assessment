@@ -22,10 +22,10 @@ H2 runs in file mode only, `LOCK_TIMEOUT=1000` is on the URL, `FILE_LOCK=NO` is 
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A fresh H2 file migrates V1–V7 and the context validates.
-- [ ] ADR-051's negative-test set passes: each deliberate schema drift makes startup fail.
-- [ ] A change to the Spring Session DDL fails the blob-hash check.
-- [ ] Index names follow `ux_` / `ix_`.
-- [ ] Deleting a user row cascades to its tokens, history and TOTP rows (REJ-035).
+- [x] A fresh H2 file migrates V1–V7 and the context validates.
+- [x] ADR-051's negative-test set passes: each deliberate schema drift makes startup fail.
+- [x] A change to the Spring Session DDL fails the blob-hash check.
+- [x] Index names follow `ux_` / `ix_`.
+- [x] Deleting a user row cascades to its tokens, history and TOTP rows (REJ-035).

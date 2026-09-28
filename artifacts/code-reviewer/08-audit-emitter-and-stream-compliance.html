@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 08-audit-emitter-and-stream</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">code-review PASS 0/0/1/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">react N/A</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN 0/0/1/2</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t08-audit</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 08: audit emitter and stream. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify -Ddependency-check.skip=true</code> green on the tree merged with tickets 03 and 09: Surefire 458 tests, Failsafe 6 (incl. <code>TraceabilityGateIT</code>, <code>AuditInventoryDriftIT</code>), 0 failures. <code>-Pmutation</code>: <code>EmitterKeyValidator</code> 14/14 killed (100%), whole scope 42/42 (100%), threshold 85.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Small single-purpose classes: the validator is one pure static decision; request fields, hashing and text neutralisation each have one home. Low: <code>AuditReason.None.code()</code> is an unreachable throw, needed because an empty enum must still implement the interface.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">PASS</td><td class="p-2">0/0/1/2</td><td class="p-2">All eight acceptance criteria covered. Medium: T-OBS-002/003 run on a real port via an own-boot probe application rather than the shared <code>ctx-port</code> context, because the logged trace id needs a probe filter inside the observation scope. Low: T-AUD-005 (login-success row), T-AUD-007 and T-AUD-014 are left to the tickets that add events. Low: <code>service.environment</code> is not yet set on log lines (T-AUD-001).</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">semgrep CLI not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">Audit logging (lm-4): dedicated file with 90 daily archives and a stdout copy; no client address, raw session id or throwable on audit rows; CR/LF/pipe stripped and raw URI capped at the single emitter; keyed HMAC correlation fields; inbound trace context and baggage cannot set correlation fields; canary scan suite-wide.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">N/A</td><td class="p-2">-</td><td class="p-2">No frontend changes.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">WARN</td><td class="p-2">0/0/1/2</td><td class="p-2">Medium (logging): <code>logback-spring.xml</code> replaces Boot's default logging configuration, so <code>logging.file.*</code>, <code>logging.threshold.*</code> and <code>logging.structured.format.*</code> no longer have any effect. Low: Boot's ECS properties emit an empty <code>service.node</code> object. Low: the console is ECS NDJSON in <code>dev</code> too (required by LOG §3.1; less readable locally). Constructor injection, <code>@Validated</code> record properties, no profile-specific logging: fine.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

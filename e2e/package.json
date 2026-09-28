@@ -1,0 +1,24 @@
+{
+  "name": "e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Gherkin (playwright-bdd) end-to-end acceptance suite for prd/assessment-prd.md",
+  "scripts": {
+    "bddgen": "bddgen",
+    "test": "bddgen && playwright test",
+    "test:green": "bddgen && playwright test --grep-invert \"@prd-gap|@known-defect\"",
+    "test:ui-only": "bddgen && playwright test --grep @ui",
+    "test:headed": "bddgen && playwright test --headed",
+    "test:story": "bddgen && playwright test --grep",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "22.20.4",
+    "bcryptjs": "3.0.3",
+    "playwright-bdd": "9.2.1",
+    "typescript": "5.9.3"
+  }
+}

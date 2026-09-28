@@ -27,6 +27,7 @@ import jakarta.servlet.ServletRequest;
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
@@ -66,6 +67,13 @@ final class ArchitectureRules {
             .should().accessTargetWhere(rawClientAddressRead())
             .because("the client address becomes a source key in SourceKeyResolver only (ADR-020)");
 
+    /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
+    static final ArchRule NO_REMEMBER_ME = noClasses()
+            .should().callMethodWhere(rememberMeCall())
+            .orShould().dependOnClassesThat()
+            .resideInAPackage("org.springframework.security.web.authentication.rememberme..")
+            .because("remember-me is an implicit persistent login, prohibited like a cookie Max-Age (REJ-008)");
+
     /** No class that declares {@code marker} on itself or on a method may be a Boot test slice. */
     static ArchRule noSliceOnClassesDeclaring(Class<? extends Annotation> marker) {
         return noClasses()
@@ -87,6 +95,12 @@ final class ArchitectureRules {
                         && access.getTargetOwner().isAssignableTo(ServletRequest.class)
                         || access.getName().equals("getRemoteAddress")
                         && access.getTargetOwner().isAssignableTo(WebAuthenticationDetails.class));
+    }
+
+    private static DescribedPredicate<JavaMethodCall> rememberMeCall() {
+        return DescribedPredicate.describe("HttpSecurity.rememberMe",
+                call -> call.getName().equals("rememberMe")
+                        && call.getTargetOwner().isAssignableTo(HttpSecurity.class));
     }
 
     private static DescribedPredicate<JavaClass> declare(Class<? extends Annotation> marker) {

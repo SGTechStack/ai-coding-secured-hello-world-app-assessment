@@ -77,6 +77,11 @@ class ArchitectureRulesSelfTest {
                 ArchitectureViolations.ProvingFullContext.class);
     }
 
+    @Test
+    void rememberMeIsCaught() {
+        assertViolates(ArchitectureRules.NO_REMEMBER_ME, ArchitectureViolations.EnablesRememberMe.class);
+    }
+
     private static void assertViolates(ArchRule rule, Class<?>... classes) {
         assertThat(rule.evaluate(importClasses(classes)).hasViolation()).as("%s violates the rule", classes[0]).isTrue();
     }

@@ -2,6 +2,7 @@ package sg.securedhello.architecture;
 
 import static sg.securedhello.architecture.ArchitectureRules.NO_AMBIENT_TIME;
 import static sg.securedhello.architecture.ArchitectureRules.NO_RAW_CLIENT_ADDRESS;
+import static sg.securedhello.architecture.ArchitectureRules.NO_REMEMBER_ME;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SLEEP;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SLICE_ON_PROVING_TESTS;
 
@@ -54,5 +55,11 @@ class ArchitectureTest {
     @Proves("T-RL-028")
     void onlyTheSourceKeyResolverReadsTheRawClientAddress() {
         NO_RAW_CLIENT_ADDRESS.check(MAIN);
+    }
+
+    /** REJ-008 names no test-plan row for remember-me; T-CFG-032 covers the cookie Max-Age half. */
+    @Test
+    void mainCodeNeverEnablesRememberMe() {
+        NO_REMEMBER_ME.check(MAIN);
     }
 }

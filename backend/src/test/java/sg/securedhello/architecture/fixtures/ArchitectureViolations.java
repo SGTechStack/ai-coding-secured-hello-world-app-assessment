@@ -16,6 +16,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 /**
  * Deliberate rule violations, fed to the rules by {@code ArchitectureRulesSelfTest} so that a rule that silently
@@ -115,6 +117,12 @@ public final class ArchitectureViolations {
     public static final class ReadsDetailsRemoteAddress {
         String read(WebAuthenticationDetails details) {
             return details.getRemoteAddress();
+        }
+    }
+
+    public static final class EnablesRememberMe {
+        void configure(HttpSecurity http) throws Exception {
+            http.rememberMe(Customizer.withDefaults());
         }
     }
 

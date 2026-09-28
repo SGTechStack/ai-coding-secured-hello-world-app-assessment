@@ -1,6 +1,9 @@
 # Base (production) configuration. The `dev` profile is the only other posture; there is no `test` profile (ADR-067).
 server:
   port: 8080
+  # Explicit, so cloud-platform detection never installs a RemoteIpValve with Tomcat's RFC 1918 default. The only
+  # forwarded-header trust is the one derived from app.security.client-ip (REJ-015; R-RL-007).
+  forward-headers-strategy: none
 
 spring:
   application:
@@ -13,6 +16,11 @@ app:
   security:
     password:
       bcrypt-strength: 12
+    # Source keys (ADR-020). The client address is the socket peer unless source=proxy, which needs
+    # trusted-proxies to name each proxy address; trusted-proxies has no default (R-RL-007).
+    client-ip:
+      source: socket
+      ipv6-prefix-length: 64
 
 # Actuator: health only, read-only, no details; everything else is denied (ADR-061).
 # Values equal to Boot's defaults are still written, because im8-review greps for the exposure property.

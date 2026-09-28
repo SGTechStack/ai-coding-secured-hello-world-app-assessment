@@ -8,9 +8,14 @@ import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 /**
  * Deliberate rule violations, fed to the rules by {@code ArchitectureRulesSelfTest} so that a rule that silently
@@ -86,6 +91,30 @@ public final class ArchitectureViolations {
     public static final class SleepsOnTimeUnit {
         void pause() throws InterruptedException {
             TimeUnit.MILLISECONDS.sleep(1);
+        }
+    }
+
+    public static final class ReadsHttpRemoteAddr {
+        String read(HttpServletRequest request) {
+            return request.getRemoteAddr();
+        }
+    }
+
+    public static final class ReadsServletRemoteAddr {
+        String read(ServletRequest request) {
+            return request.getRemoteAddr();
+        }
+    }
+
+    public static final class ReferencesRemoteAddr {
+        Function<HttpServletRequest, String> read() {
+            return HttpServletRequest::getRemoteAddr;
+        }
+    }
+
+    public static final class ReadsDetailsRemoteAddress {
+        String read(WebAuthenticationDetails details) {
+            return details.getRemoteAddress();
         }
     }
 

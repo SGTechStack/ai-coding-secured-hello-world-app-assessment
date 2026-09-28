@@ -47,6 +47,12 @@ app:
     client-ip:
       source: socket
       ipv6-prefix-length: 64
+  # The audit stream (ADR-055; ADR-056). The directory holds the dedicated audit file, read by logback-spring.xml.
+  audit:
+    directory: logs
+    url-path:
+      # Raw URIs on pre-handler rows are capped here, marker included (REJ-081).
+      max-length: 256
 
 # Actuator: health only, read-only, no details; everything else is denied (ADR-061).
 # Values equal to Boot's defaults are still written, because im8-review greps for the exposure property.
@@ -75,3 +81,16 @@ management:
     metrics:
       export:
         enabled: false
+  # Inbound trace context is restarted by TraceContextRestartFilter (ADR-063). Baggage is off (REJ-087). There is no
+  # trace exporter.
+  tracing:
+    baggage:
+      enabled: false
+
+# ECS service fields on every log line (LOG §5). The format itself is set in logback-spring.xml.
+logging:
+  structured:
+    ecs:
+      service:
+        name: secured-hello-world
+        version: "@project.version@"

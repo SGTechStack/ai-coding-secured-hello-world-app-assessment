@@ -94,6 +94,29 @@ class ArchitectureRulesSelfTest {
         assertViolates(ArchitectureRules.NO_REMEMBER_ME, ArchitectureViolations.EnablesRememberMe.class);
     }
 
+    @Test
+    void anEmitTakingAThrowableIsCaught() {
+        assertViolates(ArchitectureRules.emitTakesNoThrowable(ArchitectureViolations.EmitsWithThrowable.class),
+                ArchitectureViolations.EmitsWithThrowable.class);
+    }
+
+    @Test
+    void anEmitWithoutAThrowableIsAllowed() {
+        assertPasses(ArchitectureRules.AUDIT_EMIT_TAKES_NO_THROWABLE, sg.securedhello.audit.AuditEmitter.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.AttachesCause.class, ArchitectureViolations.LogsThrowable.class})
+    void aThrowableAttachedToALogEventIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.noThrowableAttachedIn("sg.securedhello.architecture.fixtures.."), violator);
+    }
+
+    @Test
+    void loggingWithoutAThrowableIsAllowed() {
+        assertPasses(ArchitectureRules.noThrowableAttachedIn("sg.securedhello.architecture.fixtures.."),
+                ArchitectureViolations.LogsWithoutThrowable.class);
+    }
+
     private static void assertViolates(ArchRule rule, Class<?>... classes) {
         assertThat(rule.evaluate(importClasses(classes)).hasViolation()).as("%s violates the rule", classes[0]).isTrue();
     }

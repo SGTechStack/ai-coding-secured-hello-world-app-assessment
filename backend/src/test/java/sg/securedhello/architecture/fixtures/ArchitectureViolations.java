@@ -195,4 +195,28 @@ public final class ArchitectureViolations {
         void proves() {
         }
     }
+
+    public static final class EmitsWithThrowable {
+        public void emit(Object event, Throwable cause) {
+        }
+    }
+
+    public static final class AttachesCause {
+        void log(org.slf4j.Logger audit, Exception e) {
+            audit.atError().setCause(e).log();
+        }
+    }
+
+    public static final class LogsThrowable {
+        void log(org.slf4j.Logger audit, Exception e) {
+            audit.error("failed", e);
+        }
+    }
+
+    public static final class LogsWithoutThrowable {
+        void log(org.slf4j.Logger audit) {
+            audit.atInfo().addKeyValue("k", "v").log();
+            audit.error("failed {}", "x");
+        }
+    }
 }

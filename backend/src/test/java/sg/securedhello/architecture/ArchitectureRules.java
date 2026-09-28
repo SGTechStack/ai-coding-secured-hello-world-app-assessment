@@ -30,6 +30,8 @@ import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
@@ -83,6 +85,19 @@ final class ArchitectureRules {
             .orShould().dependOnClassesThat()
             .resideInAPackage("org.springframework.security.web.authentication.rememberme..")
             .because("remember-me is an implicit persistent login, prohibited like a cookie Max-Age (REJ-008)");
+
+    /** ADR-036: the CSRF token lives in the session, never in a cookie ({@code csrf.spa()} builds on this class). */
+    static final ArchRule NO_CSRF_COOKIE = noClasses()
+            .should().dependOnClassesThat().areAssignableTo(CookieCsrfTokenRepository.class)
+            .because("the CSRF token is session-bound and header-only; no CSRF cookie exists (ADR-036)");
+
+    /**
+     * ADR-040: tests fetch a real token ({@code CsrfSession}). Spring Security's {@code csrf()} post-processor swaps
+     * the shared context's token repository for one that creates sessions, for every later test in that context.
+     */
+    static final ArchRule NO_CSRF_TEST_POST_PROCESSOR = noClasses()
+            .should().callMethod(SecurityMockMvcRequestPostProcessors.class, "csrf")
+            .because("csrf() replaces the session-safe token repository in the shared context (ADR-040)");
 
     /** No class that declares {@code marker} on itself or on a method may be a Boot test slice. */
     static ArchRule noSliceOnClassesDeclaring(Class<? extends Annotation> marker) {

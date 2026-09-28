@@ -22,6 +22,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 /**
  * Deliberate rule violations, fed to the rules by {@code ArchitectureRulesSelfTest} so that a rule that silently
@@ -152,6 +154,18 @@ public final class ArchitectureViolations {
     public static final class EnablesRememberMe {
         void configure(HttpSecurity http) throws Exception {
             http.rememberMe(Customizer.withDefaults());
+        }
+    }
+
+    public static final class StoresCsrfInACookie {
+        void configure(HttpSecurity http) throws Exception {
+            http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+        }
+    }
+
+    public static final class UsesCsrfPostProcessor {
+        Object token() {
+            return SecurityMockMvcRequestPostProcessors.csrf();
         }
     }
 

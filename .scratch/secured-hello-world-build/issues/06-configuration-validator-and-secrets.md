@@ -16,11 +16,11 @@ Each key is distinct material (ADR-052). At context refresh, before the port ope
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Each missing or malformed secret stops startup before the port opens, with a message naming the property but not its value.
-- [ ] Each prohibited setting stops startup.
-- [ ] An in-memory or unset datasource URL stops startup.
-- [ ] Reusing one key for two purposes stops startup.
-- [ ] A valid configuration logs one fingerprint per key.
-- [ ] The T-CFG override tests go through `SPRING_APPLICATION_JSON` and assert its arrival first (T-CFG-010).
+- [x] Each missing or malformed secret stops startup before the port opens, with a message naming the property but not its value.
+- [x] Each prohibited setting stops startup.
+- [x] An in-memory or unset datasource URL stops startup.
+- [x] Reusing one key for two purposes stops startup.
+- [x] A valid configuration logs one fingerprint per key.
+- [x] The T-CFG override tests go through `SPRING_APPLICATION_JSON` and assert its arrival first (T-CFG-010).

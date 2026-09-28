@@ -2,6 +2,9 @@ package com.assessment.securedhelloworld.auth;
 
 import jakarta.validation.constraints.NotBlank;
 
+/**
+ * Request body for {@code POST /api/login}.
+ */
 public class LoginRequest {
 
     @NotBlank

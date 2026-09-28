@@ -21,3 +21,12 @@ server:
     session:
       cookie:
         secure: false
+
+logging:
+  file:
+    path: ./logs
+  structured:
+    format:
+      console: ~
+      file: ecs
+    

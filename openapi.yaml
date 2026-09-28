@@ -1,0 +1,345 @@
+openapi: 3.0.3
+info:
+  title: Secured Hello World App API
+  version: "1.0"
+  description: >
+    Reference implementation of username/password authentication with
+    server-side sessions. See /ARCHITECTURE.md for the full system design;
+    this spec covers only the external REST surface.
+servers:
+  - url: http://localhost:8080
+    description: Local dev backend
+
+security:
+  - sessionCookie: []
+
+paths:
+  /api/csrf:
+    get:
+      summary: Prime the CSRF token cookie
+      description: >
+        Forces resolution of the deferred CSRF token so the XSRF-TOKEN
+        cookie is issued to the caller. Public — must be callable before
+        any session exists.
+      security: []
+      tags: [auth]
+      responses:
+        "200":
+          description: CSRF cookie set on the response.
+
+  /api/register:
+    post:
+      summary: Register a new account
+      security: []
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrationRequest"
+      responses:
+        "201":
+          description: Account created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username: { type: string }
+        "400":
+          description: Validation failed (weak password, malformed username/email).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
+        "409":
+          description: Username or email already registered.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/login:
+    post:
+      summary: Log in and establish a session
+      security: []
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: >
+            Login succeeded; a session cookie is set. If the account has
+            forcePasswordChange set, every endpoint except
+            /api/auth/change-password, /api/logout and /api/csrf will
+            subsequently return 403 PASSWORD_CHANGE_REQUIRED until the
+            password is changed.
+        "401":
+          description: >
+            Invalid credentials, unknown username, locked account, or
+            throttled IP — always the same generic message (enumeration
+            resistance).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/logout:
+    post:
+      summary: Log out and invalidate the current session
+      tags: [auth]
+      responses:
+        "200":
+          description: Session invalidated.
+
+  /api/hello:
+    get:
+      summary: Authenticated greeting; also the frontend's "who am I" check
+      tags: [hello]
+      responses:
+        "200":
+          description: >
+            Greeting, username, and role for the authenticated user. The
+            role is used by the frontend to gate role-restricted UI (e.g.
+            the "Manage users" entry point) rather than relying solely on
+            a reactive 403 after the user clicks through.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Hello, alice" }
+                  username: { type: string }
+                  role: { type: string, enum: [USER, ADMIN] }
+        "401":
+          description: Not authenticated.
+        "403":
+          description: forcePasswordChange is set on the current account.
+
+  /api/auth/change-password:
+    post:
+      summary: Change the current user's password (self-service, requires current password)
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChangeRequest"
+      responses:
+        "200":
+          description: >
+            Password changed; forcePasswordChange cleared if it was set.
+        "400":
+          description: Wrong current password, or new password fails the strength policy.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/password-reset/request:
+    post:
+      summary: Request a password reset email
+      security: []
+      tags: [password-reset]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: >
+            Always returns the same generic success message, whether or
+            not the email is registered (enumeration resistance).
+
+  /api/password-reset/confirm:
+    post:
+      summary: Confirm a password reset with a single-use token
+      security: []
+      tags: [password-reset]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, newPassword]
+              properties:
+                token: { type: string }
+                newPassword: { type: string, minLength: 12 }
+      responses:
+        "200":
+          description: >
+            Password reset; all existing sessions for the account are
+            invalidated.
+        "400":
+          description: Invalid, expired, or already-used token; or weak new password.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/admin/users:
+    get:
+      summary: List all user accounts (ADMIN only)
+      tags: [admin]
+      responses:
+        "200":
+          description: All accounts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminUserView" }
+        "403":
+          description: Caller is not an ADMIN, or forcePasswordChange is set.
+
+  /api/admin/users/{id}/status:
+    patch:
+      summary: Enable or disable a user account (ADMIN only)
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        "200": { description: Status updated. }
+        "400": { description: Attempted to disable one's own account. }
+        "403": { description: Caller is not an ADMIN. }
+        "404": { description: No such user. }
+
+  /api/admin/users/{id}/role:
+    patch:
+      summary: Change a user's role (ADMIN only)
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [USER, ADMIN] }
+      responses:
+        "200": { description: Role updated. }
+        "400": { description: Attempted to change one's own role. }
+        "403": { description: Caller is not an ADMIN. }
+        "404": { description: No such user. }
+
+  /api/admin/users/{id}:
+    delete:
+      summary: Delete a user account (ADMIN only)
+      tags: [admin]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200": { description: Account deleted. }
+        "400": { description: Attempted to delete one's own account. }
+        "403": { description: Caller is not an ADMIN. }
+        "404": { description: No such user. }
+
+  /actuator/health:
+    get:
+      summary: Liveness/readiness probe
+      description: Public; no other actuator endpoint is exposed or unauthenticated.
+      security: []
+      tags: [observability]
+      responses:
+        "200":
+          description: Service is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: UP }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: >
+        Server-side session cookie, HttpOnly + Secure (outside the dev
+        profile). Mutating requests additionally require the X-XSRF-TOKEN
+        header (see /api/csrf).
+
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+
+  schemas:
+    RegistrationRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          pattern: "^[a-zA-Z0-9_.-]+$"
+          description: Letters, digits, '.', '_' and '-' only (prevents log-injection via username).
+        email: { type: string, format: email }
+        password: { type: string, minLength: 12 }
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    PasswordChangeRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string, minLength: 12 }
+
+    AdminUserView:
+      type: object
+      description: Never includes the password hash.
+      properties:
+        id: { type: integer, format: int64 }
+        username: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [USER, ADMIN] }
+        enabled: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        error: { type: string, example: "Validation failed" }
+        fields:
+          type: object
+          additionalProperties: { type: string }
+
+tags:
+  - name: auth
+  - name: hello
+  - name: password-reset
+  - name: admin
+  - name: observability

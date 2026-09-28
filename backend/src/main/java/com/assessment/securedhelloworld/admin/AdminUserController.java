@@ -15,8 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST surface for {@link AdminUserService} — gated by
+ * {@code hasRole("ADMIN")} in {@code SecurityConfig}, not by any
+ * annotation on this class.
+ */
 @RestController
 @RequestMapping("/api/admin/users")
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 public class AdminUserController {
 
     private final AdminUserService adminUserService;

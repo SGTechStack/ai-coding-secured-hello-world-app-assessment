@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Technical Architecture Document</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+h1, h2, h3, h4 { border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; margin-top: 2rem; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; }
+th, td { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+th { background: #f2f2f2; }
+code { background: #f5f5f5; padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.9em; }
+pre { background: #f5f5f5; padding: 1rem; overflow-x: auto; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+blockquote { color: #555; border-left: 3px solid #ccc; margin: 0.3rem 0; padding-left: 0.8rem; font-size: 0.9rem; }
+pre.mermaid { background: #fff; border: 1px solid #ddd; }
+</style>
+</head>
+<body>
+<h1>Technical Architecture Document</h1>
+<blockquote>Generated: 2026-09-28T11:46:28+08:00</blockquote>
+<blockquote>Project: secured-hello-world-app (directory name; no top-level manifest name found — backend artifact <code>secured-hello-world-backend</code>, frontend package <code>frontend</code>)</blockquote>
+<h2>1. Architecture Narrative</h2>
+<h3>1.1 System Overview</h3>
+<p>A two-origin reference implementation of username/password authentication ("Secured Hello World App"), per <code>PRODUCT.md</code>. A React 19 + Vite + TypeScript single-page frontend (<code>frontend/</code>, served at <code>localhost:3000</code> in dev) talks over REST/JSON to a Spring Boot 4.1.0 + Spring Security 7.1.0 + Spring Session + Spring Data JPA backend (<code>backend/</code>, served at <code>localhost:8080</code> in dev), backed by H2 (file/mem, Postgres-portable schema). Auth is server-side session via a secure HttpOnly cookie (not JWT). The product goal is demonstrating correct security plumbing — BCrypt hashing, account lockout, IP throttling, enumeration-resistant login errors, CSRF/CORS, session invalidation on logout/password-reset, and role-gated admin user management — rather than visual polish.</p>
+<blockquote><strong>Change since prior report (2026-09-28 09:41):</strong> <code>backend/pom.xml</code>'s <code>spring-boot-starter-parent</code> was upgraded from <code>3.3.4</code> to <code>4.1.0</code>, resolving both High-severity CVEs previously flagged in Section 6 (transitive Spring Framework 6.1.13 → 7.0.8; Tomcat 10.1.30 → 11.0.22). See Section 6 and <code>dependency-vuln-scan.md</code> for the full re-scan.</blockquote>
+<h3>1.2 Module Summary</h3>
+<table><thead><tr><th>Module</th><th>Source Files</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>auth</code> (backend)</td><td><code>LoginService</code>, <code>LoginController</code>, <code>LogoutController</code>, <code>LoginAttemptService</code>, <code>AppUserDetails(Service)</code>, <code>ClientIpResolver</code>, <code>AuthenticationFailedException</code>, <code>LoginRequest</code></td><td>Login/logout orchestration, generic-error enumeration resistance, per-account lockout, per-IP throttling, session establishment via <code>SessionRegistry</code>.</td></tr>
+<tr><td><code>user</code> (backend)</td><td><code>User</code>, <code>Role</code>, <code>UserRepository</code></td><td>JPA entity/repository for registered accounts (credentials, role, lockout state).</td></tr>
+<tr><td><code>registration</code> (backend)</td><td><code>RegistrationService</code>, <code>RegistrationController</code>, <code>RegistrationRequest</code>, <code>DuplicateAccountException</code></td><td>New-account creation with uniqueness checks on username/email and password policy validation.</td></tr>
+<tr><td><code>passwordreset</code> (backend)</td><td><code>PasswordResetService</code>, <code>PasswordResetController</code>, <code>PasswordResetToken(Repository)</code>, <code>EmailService</code>/<code>LoggingEmailService</code>, <code>InvalidResetTokenException</code>, request DTOs</td><td>Single-use hashed reset tokens (15–30 min expiry), session invalidation for the target user on reset, stub email delivery (logs the link instead of sending mail).</td></tr>
+<tr><td><code>admin</code> (backend)</td><td><code>AdminUserService</code>, <code>AdminUserController</code>, <code>AdminUserView</code>, <code>UpdateStatusRequest</code>, <code>UpdateRoleRequest</code>, <code>SelfActionForbiddenException</code>, <code>UserNotFoundException</code></td><td>Role-gated (<code>ADMIN</code>) CRUD-lite operations on other users: list, enable/disable, role change, delete — with self-action guardrails.</td></tr>
+<tr><td><code>bootstrap</code> (backend)</td><td><code>AdminBootstrapRunner</code>, <code>AdminBootstrapProperties</code></td><td>Seeds a configured initial <code>ADMIN</code> account on first startup if none exists.</td></tr>
+<tr><td><code>config</code> (backend)</td><td><code>SecurityConfig</code>, <code>CsrfTokenController</code></td><td>Central Spring Security filter chain wiring: CORS, CSRF (cookie-based double-submit), session management, authorization rules, password encoder.</td></tr>
+<tr><td><code>web</code> (backend)</td><td><code>ApiExceptionHandler</code></td><td><code>@ControllerAdvice</code> translating domain exceptions to structured JSON error responses.</td></tr>
+<tr><td><code>hello</code> (backend)</td><td><code>HelloController</code></td><td>Authenticated-only greeting endpoint, the app's namesake demo capability.</td></tr>
+<tr><td>Auth flow (frontend)</td><td><code>LoginForm.tsx</code>, <code>RegisterForm.tsx</code>, <code>ForgotPasswordForm.tsx</code>, <code>ResetPasswordForm.tsx</code>, <code>AuthContext.tsx</code></td><td>Forms + <code>AuthContext</code> React context tracking <code>anonymous</code>/<code>authenticated</code>/<code>loading</code> session status via <code>/api/hello</code> probing.</td></tr>
+<tr><td>Post-login views (frontend)</td><td><code>HelloPage.tsx</code>, <code>AdminUsersPage.tsx</code></td><td>Authenticated greeting screen; admin console table (enable/disable, role toggle, delete per row).</td></tr>
+<tr><td>API client (frontend)</td><td><code>api.ts</code></td><td><code>fetch</code> wrapper: credentialed requests, CSRF cookie-to-header echo (<code>XSRF-TOKEN</code> → <code>X-XSRF-TOKEN</code>), typed error handling via <code>ApiError</code>.</td></tr>
+<tr><td>App shell (frontend)</td><td><code>App.tsx</code>, <code>main.tsx</code></td><td>View-state router (no library — plain <code>useState</code> view enum) wiring auth status to the six screens.</td></tr>
+</tbody></table>
+<h3>1.3 Module Interaction Diagram</h3>
+<pre class="mermaid">graph TD
+  subgraph Frontend[&quot;Frontend (SPA, localhost:3000)&quot;]
+    FE_Auth[Login/Register/Forgot/Reset Forms]
+    FE_Hello[Hello Page]
+    FE_Admin[Admin Users Page]
+    FE_Api[api.ts client]
+    FE_Auth --&gt; FE_Api
+    FE_Hello --&gt; FE_Api
+    FE_Admin --&gt; FE_Api
+  end
+
+  subgraph Controllers[&quot;Controller Layer&quot;]
+    LoginCtrl[LoginController]
+    LogoutCtrl[LogoutController]
+    RegCtrl[RegistrationController]
+    PwResetCtrl[PasswordResetController]
+    AdminCtrl[AdminUserController]
+    HelloCtrl[HelloController]
+    CsrfCtrl[CsrfTokenController]
+  end
+
+  subgraph Security[&quot;Security Filter Chain&quot;]
+    SecConfig[SecurityConfig: CORS+CSRF+SessionMgmt+Authz]
+  end
+
+  subgraph Services[&quot;Service Layer&quot;]
+    LoginSvc[LoginService] --&gt; LoginAttemptSvc[LoginAttemptService]
+    LoginSvc --&gt; UserRepo[UserRepository]
+    RegSvc[RegistrationService] --&gt; UserRepo
+    PwResetSvc[PasswordResetService] --&gt; UserRepo
+    PwResetSvc --&gt; TokenRepo[PasswordResetTokenRepository]
+    PwResetSvc --&gt; EmailSvc[EmailService / LoggingEmailService]
+    AdminSvc[AdminUserService] --&gt; UserRepo
+    BootstrapRunner[AdminBootstrapRunner] --&gt; UserRepo
+  end
+
+  subgraph Database[&quot;Database Layer (H2)&quot;]
+    UserRepo
+    TokenRepo
+  end
+
+  FE_Api -.-&gt;|REST/JSON + session cookie + CSRF header| SecConfig
+  SecConfig --&gt; LoginCtrl
+  SecConfig --&gt; LogoutCtrl
+  SecConfig --&gt; RegCtrl
+  SecConfig --&gt; PwResetCtrl
+  SecConfig --&gt; AdminCtrl
+  SecConfig --&gt; HelloCtrl
+  SecConfig --&gt; CsrfCtrl
+
+  LoginCtrl --&gt; LoginSvc
+  RegCtrl --&gt; RegSvc
+  PwResetCtrl --&gt; PwResetSvc
+  AdminCtrl --&gt; AdminSvc</pre>
+<h3>1.4 Module Interactions</h3>
+<p>The frontend's <code>api.ts</code> is the sole bridge to the backend: every form component calls a typed method on <code>api</code>, which issues a credentialed <code>fetch</code> (cookies always included) and, for mutating verbs, echoes the <code>XSRF-TOKEN</code> cookie into an <code>X-XSRF-TOKEN</code> header to satisfy Spring Security's cookie-based CSRF double-submit check configured in <code>SecurityConfig</code>. All backend endpoints pass through the single <code>SecurityFilterChain</code> bean in <code>SecurityConfig</code>, which applies CORS (single allowed origin, credentials enabled), CSRF (except <code>/h2-console/<strong></code>), session management (unlimited concurrent sessions tracked via <code>SessionRegistry</code>), and authorization rules (<code>/api/register</code>, <code>/api/login</code>, <code>/api/password-reset/</strong></code>, <code>/api/csrf</code> are <code>permitAll</code>; <code>/api/admin/**</code> requires <code>ROLE_ADMIN</code>; everything else requires authentication). <code>LoginService</code> depends on <code>LoginAttemptService</code> for both per-account lockout and per-IP throttling before ever touching <code>UserRepository</code>, and on <code>SessionRegistry</code> to register the new session after establishing a <code>SecurityContext</code>. <code>PasswordResetService</code> depends on both <code>UserRepository</code> and <code>PasswordResetTokenRepository</code>, and on <code>EmailService</code> (implemented by the dev-only <code>LoggingEmailService</code> stub) to hand off the reset link. <code>AdminUserService</code> depends only on <code>UserRepository</code>, applying self-action guards (<code>requireNotSelf</code>) before delegating to admin-triggered mutations. <code>AdminBootstrapRunner</code> is an <code>ApplicationRunner</code> that depends on <code>UserRepository</code> and <code>AdminBootstrapProperties</code> (bound from <code>app.admin.*</code> config) to seed the first admin account exactly once, at startup, if none exists.</p>
+<h3>1.5 Execution Flow</h3>
+<p><strong>Request lifecycle (typical mutating request, e.g. login):</strong> Browser sends <code>POST /api/login</code> with the session cookie (if any) and <code>X-XSRF-TOKEN</code> header → Spring's servlet filter chain validates CORS origin, then CSRF token against the cookie, then reaches <code>LoginController</code> → <code>LoginService.login()</code> resolves the client IP (<code>ClientIpResolver</code>, honoring <code>X-Forwarded-For</code> if present), asserts the IP is not throttled, looks up the user (returning a generic <code>AuthenticationFailedException</code> if absent — enumeration resistance), checks account lock state, verifies the BCrypt password hash, and on success calls <code>ChangeSessionIdAuthenticationStrategy</code> (session fixation protection) before persisting the <code>SecurityContext</code> into the HTTP session and registering it with <code>SessionRegistry</code>. <code>ApiExceptionHandler</code> (a <code>@ControllerAdvice</code>) converts any thrown domain exception (<code>AuthenticationFailedException</code>, <code>DuplicateAccountException</code>, <code>InvalidResetTokenException</code>, <code>SelfActionForbiddenException</code>, <code>UserNotFoundException</code>, validation errors) into a structured JSON error body.</p>
+<p><strong>Background/initialisation process:</strong> On application startup, <code>AdminBootstrapRunner</code> (an <code>ApplicationRunner</code>) checks <code>UserRepository.countByRole(ADMIN)</code>; if zero, it creates the configured admin account (<code>app.admin.username</code>/<code>app.admin.password</code> from <code>application.yml</code>, defaulting to <code>admin</code>/<code>ChangeMe123456!</code> in this reference config) using the same <code>BCryptPasswordEncoder</code> bean as normal registrations.</p>
+<p><strong>Event flow (password reset):</strong> <code>POST /api/password-reset/request</code> → <code>PasswordResetService.requestReset()</code> always returns a generic success message (enumeration resistance) regardless of whether the email exists, generates a plaintext token, persists only its hash with a 15–30 min expiry (<code>app.security.password-reset.token-expiry-minutes</code>), and calls <code>EmailService.sendPasswordResetEmail()</code> (in dev, <code>LoggingEmailService</code> logs the link instead of sending mail) → <code>POST /api/password-reset/confirm</code> validates the token hash match, expiry, and single-use (<code>isUsed</code>) state, updates the password hash, and invalidates all existing sessions for that user via <code>SessionRegistry</code> lookup.</p>
+<h3>1.6 Execution Flow Diagrams</h3>
+<pre class="mermaid">sequenceDiagram
+    participant FE as Frontend (LoginForm)
+    participant API as api.ts
+    participant SEC as SecurityFilterChain
+    participant CTRL as LoginController
+    participant SVC as LoginService
+    participant ATT as LoginAttemptService
+    participant REPO as UserRepository
+    participant SESS as SessionRegistry
+
+    FE-&gt;&gt;API: login({username, password})
+    API-&gt;&gt;SEC: POST /api/login (cookie + X-XSRF-TOKEN)
+    SEC-&gt;&gt;SEC: validate CORS + CSRF
+    SEC-&gt;&gt;CTRL: forward request
+    CTRL-&gt;&gt;SVC: login(request, httpRequest, httpResponse)
+    SVC-&gt;&gt;ATT: assertIpNotThrottled(clientIp)
+    alt IP throttled
+        ATT--&gt;&gt;SVC: throw AuthenticationFailedException
+        SVC--&gt;&gt;CTRL: propagate exception
+        CTRL--&gt;&gt;FE: 401 generic error
+    else IP OK
+        SVC-&gt;&gt;REPO: findByUsername(username)
+        alt user not found or locked or bad password
+            SVC-&gt;&gt;ATT: recordFailureForIp / recordFailedAttempt
+            SVC--&gt;&gt;CTRL: throw AuthenticationFailedException
+            CTRL--&gt;&gt;FE: 401 generic error (no enumeration)
+        else credentials valid
+            SVC-&gt;&gt;ATT: recordSuccess(user)
+            SVC-&gt;&gt;SVC: establishSession (rotate session id)
+            SVC-&gt;&gt;SESS: registerNewSession
+            SVC--&gt;&gt;CTRL: return
+            CTRL--&gt;&gt;FE: 200 OK (Set-Cookie: session)
+        end
+    end</pre>
+<h2>2. Software Module Catalog</h2>
+<h4>auth</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>backend/src/main/java/com/assessment/securedhelloworld/auth/*.java</code></li>
+<li><strong>Purpose:</strong> Orchestrates login/logout, credential verification, session establishment, per-account lockout, and per-IP throttling.</li>
+<li><strong>Dependencies:</strong> <code>user</code> (UserRepository), Spring Security core (SessionRegistry, PasswordEncoder), <code>config</code> (indirectly, via the shared filter chain).</li>
+</ul>
+<p><strong>Module Interactions:</strong> <code>LoginService</code> is the aggregation point calling into <code>LoginAttemptService</code> for rate-limiting decisions and <code>UserRepository</code> for credential lookups, then manually driving Spring Security's session APIs (<code>SessionAuthenticationStrategy</code>, <code>SecurityContextRepository</code>, <code>SessionRegistry</code>) rather than relying on <code>AuthenticationManager</code>/<code>UsernamePasswordAuthenticationFilter</code>, giving it full control over the generic-error and lockout semantics the PRD requires.</p>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>LoginService.login</code></td><td><code>LoginRequest, HttpServletRequest, HttpServletResponse</code></td><td><code>void</code></td><td>Full login flow: IP throttle check, credential check, lockout check, session establishment.</td></tr>
+<tr><td><code>LoginAttemptService.assertIpNotThrottled</code></td><td><code>String clientIp</code></td><td><code>void</code> (throws)</td><td>Rejects requests from an IP that has exceeded <code>app.security.ip-throttle.max-attempts</code> within the configured window.</td></tr>
+<tr><td><code>LoginAttemptService.recordFailedAttempt</code></td><td><code>User</code></td><td><code>void</code></td><td>Increments the account's failed-attempt counter and applies <code>lockedUntil</code> once the threshold is reached.</td></tr>
+<tr><td><code>ClientIpResolver.resolve</code></td><td><code>HttpServletRequest</code></td><td><code>String</code></td><td>Resolves the effective client IP, honoring <code>X-Forwarded-For</code>.</td></tr>
+<tr><td><code>LogoutController.logout</code></td><td>—</td><td><code>void</code>/<code>204</code></td><td>Invalidates the current HTTP session server-side.</td></tr>
+</tbody></table>
+<h4>user</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>User.java</code>, <code>Role.java</code>, <code>UserRepository.java</code></li>
+<li><strong>Purpose:</strong> Core account entity (JPA) and its Spring Data repository.</li>
+<li><strong>Dependencies:</strong> None (leaf module); depended on by <code>auth</code>, <code>registration</code>, <code>passwordreset</code>, <code>admin</code>, <code>bootstrap</code>.</li>
+</ul>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>User.isLocked</code></td><td><code>Instant now</code></td><td><code>boolean</code></td><td>True if <code>lockedUntil</code> is set and in the future.</td></tr>
+<tr><td><code>UserRepository.findByUsername</code> / <code>findByEmail</code></td><td><code>String</code></td><td><code>Optional&lt;User&gt;</code></td><td>Lookup by unique fields.</td></tr>
+<tr><td><code>UserRepository.existsByUsername</code> / <code>existsByEmail</code></td><td><code>String</code></td><td><code>boolean</code></td><td>Uniqueness checks used by registration.</td></tr>
+<tr><td><code>UserRepository.countByRole</code></td><td><code>Role</code></td><td><code>long</code></td><td>Used by <code>AdminBootstrapRunner</code> to detect whether an admin already exists.</td></tr>
+</tbody></table>
+<h4>registration</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>RegistrationService.java</code>, <code>RegistrationController.java</code>, <code>RegistrationRequest.java</code>, <code>DuplicateAccountException.java</code></li>
+<li><strong>Purpose:</strong> New-account creation with uniqueness and password-policy validation (length ≥ 12, enforced via <code>@Valid</code> + <code>RegistrationRequest</code> constraints).</li>
+<li><strong>Dependencies:</strong> <code>user</code> (UserRepository), Spring Security <code>PasswordEncoder</code>.</li>
+</ul>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>RegistrationService.register</code></td><td><code>RegistrationRequest</code></td><td><code>User</code></td><td>Validates uniqueness, hashes password, persists new <code>User</code> with default <code>Role.USER</code>.</td></tr>
+</tbody></table>
+<h4>passwordreset</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>PasswordResetService.java</code>, <code>PasswordResetController.java</code>, <code>PasswordResetToken(Repository).java</code>, <code>EmailService.java</code>, <code>LoggingEmailService.java</code>, <code>PasswordResetRequestRequest.java</code>, <code>PasswordResetConfirmRequest.java</code>, <code>InvalidResetTokenException.java</code></li>
+<li><strong>Purpose:</strong> Single-use, hashed, time-boxed password reset tokens; invalidates all sessions for the target user on successful reset.</li>
+<li><strong>Dependencies:</strong> <code>user</code> (UserRepository), <code>SessionRegistry</code> (for invalidation), <code>EmailService</code> (stub implementation in this reference build).</li>
+</ul>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>PasswordResetService.requestReset</code></td><td><code>PasswordResetRequestRequest</code></td><td><code>void</code></td><td>Generates token, persists hash, emails link; always returns generically regardless of email existence.</td></tr>
+<tr><td><code>PasswordResetService.confirmReset</code></td><td><code>PasswordResetConfirmRequest</code></td><td><code>void</code></td><td>Validates token (hash match, not expired, not used), updates password, invalidates existing sessions.</td></tr>
+<tr><td><code>PasswordResetService.hashToken</code> / <code>matchesToken</code></td><td><code>String</code></td><td><code>String</code>/<code>boolean</code></td><td>Token hashing (never stores plaintext) and constant-time-ish comparison.</td></tr>
+</tbody></table>
+<h4>admin</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>AdminUserService.java</code>, <code>AdminUserController.java</code>, <code>AdminUserView.java</code>, <code>UpdateStatusRequest.java</code>, <code>UpdateRoleRequest.java</code>, <code>SelfActionForbiddenException.java</code>, <code>UserNotFoundException.java</code></li>
+<li><strong>Purpose:</strong> Role-gated (<code>ADMIN</code>) management of other users' accounts, with self-action guardrails (an admin cannot disable/demote/delete themself).</li>
+<li><strong>Dependencies:</strong> <code>user</code> (UserRepository).</li>
+</ul>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>AdminUserService.listUsers</code></td><td>—</td><td><code>List&lt;AdminUserView&gt;</code></td><td>Returns all accounts as safe view DTOs (no password hash exposed).</td></tr>
+<tr><td><code>AdminUserService.updateEnabled</code></td><td><code>Long id, boolean, Long actingAdminId</code></td><td><code>void</code></td><td>Toggles account enablement; blocks self-action.</td></tr>
+<tr><td><code>AdminUserService.updateRole</code></td><td><code>Long id, Role, Long actingAdminId</code></td><td><code>void</code></td><td>Changes role; blocks self-action.</td></tr>
+<tr><td><code>AdminUserService.deleteUser</code></td><td><code>Long id, Long actingAdminId</code></td><td><code>void</code></td><td>Deletes account; blocks self-action.</td></tr>
+<tr><td><code>AdminUserService.requireNotSelf</code></td><td><code>Long targetId, Long actingAdminId</code></td><td><code>void</code> (throws)</td><td>Guardrail shared by all three mutating operations.</td></tr>
+</tbody></table>
+<h4>bootstrap</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>AdminBootstrapRunner.java</code>, <code>AdminBootstrapProperties.java</code></li>
+<li><strong>Purpose:</strong> Seeds a single initial <code>ADMIN</code> account on first startup from <code>app.admin.*</code> configuration, only if no admin exists yet.</li>
+<li><strong>Dependencies:</strong> <code>user</code> (UserRepository), <code>PasswordEncoder</code>.</li>
+</ul>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>AdminBootstrapRunner.run</code></td><td><code>ApplicationArguments</code></td><td><code>void</code></td><td>Startup hook; no-op if <code>UserRepository.countByRole(ADMIN) &gt; 0</code>.</td></tr>
+</tbody></table>
+<h4>config</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>SecurityConfig.java</code>, <code>CsrfTokenController.java</code></li>
+<li><strong>Purpose:</strong> Central Spring Security wiring — CORS, CSRF, session management, authorization matcher rules, password encoder bean.</li>
+<li><strong>Dependencies:</strong> None internal; wraps all HTTP-facing modules.</li>
+</ul>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>SecurityConfig.filterChain</code></td><td><code>HttpSecurity, CorsConfigurationSource, SessionRegistry</code></td><td><code>SecurityFilterChain</code></td><td>The single security filter chain bean for the whole app.</td></tr>
+<tr><td><code>SecurityConfig.corsConfigurationSource</code></td><td><code>Environment</code></td><td><code>CorsConfigurationSource</code></td><td>Single allowed origin (from <code>app.frontend.origin</code>), credentials enabled.</td></tr>
+<tr><td><code>CsrfTokenController.getCsrfToken</code></td><td><code>CsrfToken</code></td><td><code>Map</code></td><td>Forces resolution of the deferred CSRF token so the cookie is issued to the SPA on first load.</td></tr>
+</tbody></table>
+<h4>web</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>ApiExceptionHandler.java</code></li>
+<li><strong>Purpose:</strong> <code>@ControllerAdvice</code> centralising domain-exception-to-JSON-error translation.</li>
+<li><strong>Dependencies:</strong> All controller-layer modules (implicitly, via exception types).</li>
+</ul>
+<h4>hello</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>HelloController.java</code></li>
+<li><strong>Purpose:</strong> The namesake authenticated greeting endpoint (<code>GET /api/hello</code>), gated by the default <code>anyRequest().authenticated()</code> rule.</li>
+<li><strong>Dependencies:</strong> None beyond the security context (reads the authenticated principal).</li>
+</ul>
+<h4>Frontend — Auth flow (<code>LoginForm</code>, <code>RegisterForm</code>, <code>ForgotPasswordForm</code>, <code>ResetPasswordForm</code>, <code>AuthContext</code>)</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>frontend/src/{LoginForm,RegisterForm,ForgotPasswordForm,ResetPasswordForm,AuthContext}.tsx</code></li>
+<li><strong>Purpose:</strong> Renders the four unauthenticated-flow forms and tracks session status (<code>anonymous</code>/<code>authenticated</code>/<code>loading</code>) for the whole app via <code>AuthContext</code>.</li>
+<li><strong>Dependencies:</strong> <code>api.ts</code>.</li>
+</ul>
+<h4>Frontend — Post-login views (<code>HelloPage</code>, <code>AdminUsersPage</code>)</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>frontend/src/{HelloPage,AdminUsersPage}.tsx</code></li>
+<li><strong>Purpose:</strong> Authenticated greeting screen and the admin console table (list/enable-disable/role-toggle/delete per row).</li>
+<li><strong>Dependencies:</strong> <code>api.ts</code>.</li>
+</ul>
+<h4>Frontend — API client (<code>api.ts</code>)</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>frontend/src/api.ts</code></li>
+<li><strong>Purpose:</strong> Single <code>fetch</code> wrapper: always-credentialed requests, CSRF cookie→header echo, typed <code>ApiError</code>.</li>
+<li><strong>Dependencies:</strong> None (leaf); depended on by every view module.</li>
+</ul>
+<table><thead><tr><th>Function / Method</th><th>Parameters</th><th>Returns</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>apiFetch&lt;T&gt;</code></td><td><code>path, RequestOptions</code></td><td><code>Promise&lt;T&gt;</code></td><td>Shared fetch wrapper: credentials, CSRF header injection, JSON error parsing.</td></tr>
+<tr><td><code>primeCsrfToken</code></td><td>—</td><td><code>Promise&lt;void&gt;</code></td><td>Warms the CSRF cookie via <code>GET /api/csrf</code> on app load.</td></tr>
+<tr><td><code>api.login</code> / <code>api.register</code> / <code>api.hello</code> / <code>api.adminListUsers</code> / etc.</td><td>varies</td><td><code>Promise&lt;T&gt;</code></td><td>Typed endpoint bindings.</td></tr>
+</tbody></table>
+<h4>Frontend — App shell (<code>App.tsx</code>, <code>main.tsx</code>)</h4>
+<ul>
+<li><strong>Source Files:</strong> <code>frontend/src/{App,main}.tsx</code></li>
+<li><strong>Purpose:</strong> View-state routing (plain <code>useState</code> enum, no router library) wiring <code>AuthContext</code> status to the six screens.</li>
+<li><strong>Dependencies:</strong> All frontend view modules, <code>AuthContext</code>.</li>
+</ul>
+<h2>3. Technology Decisions</h2>
+<p>No ADR documents were found under any of the conventional locations (<code>docs/adr/</code>, <code>adr/</code>, <code>docs/decisions/</code>, <code>docs/architecture/decisions/</code>, <code>doc/adr/</code>, <code>architecture/decisions/</code>). The decisions below are <strong>inferred from the codebase</strong> (framework choice, auth approach, database) per the skill's fallback instruction — they are not sourced from a written ADR and rationale is reconstructed, not quoted.</p>
+<h3>3.1 Decision Index</h3>
+<table><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Date</th><th>Related Dependencies</th></tr></thead><tbody>
+<tr><td>INF-1</td><td>Server-side session auth over JWT</td><td>Accepted (inferred)</td><td>N/A</td><td><code>spring-session-core</code>, <code>spring-boot-starter-security</code></td></tr>
+<tr><td>INF-2</td><td>H2 embedded database for reference/dev</td><td>Accepted (inferred)</td><td>N/A</td><td><code>com.h2database:h2</code></td></tr>
+<tr><td>INF-3</td><td>React 19 + Vite + TypeScript (no CSS framework / router library yet)</td><td>Accepted (inferred)</td><td>N/A</td><td><code>react</code>, <code>react-dom</code>, <code>vite</code>, <code>typescript</code></td></tr>
+<tr><td>INF-4</td><td>BCrypt for password hashing</td><td>Accepted (inferred)</td><td>N/A</td><td><code>spring-security-crypto</code> (transitively via <code>spring-boot-starter-security</code>)</td></tr>
+</tbody></table>
+<h3>3.2 Decision Details</h3>
+<h4>Server-side session auth over JWT</h4>
+<ul>
+<li><strong>Status:</strong> Accepted (inferred)</li>
+<li><strong>Date:</strong> N/A (no ADR)</li>
+</ul>
+<table><thead><tr><th>Option</th><th>Description</th><th>Pros</th><th>Cons</th></tr></thead><tbody>
+<tr><td>Server-side session (cookie, <code>HttpOnly</code>, <code>Secure</code>)</td><td>Spring Session + <code>SecurityContextRepository</code> persisting to the HTTP session (chosen)</td><td>Trivial server-side revocation (logout, password-reset invalidate sessions immediately); no token-replay window; <code>HttpOnly</code> cookie is inaccessible to XSS-injected JS</td><td>Requires CORS <code>credentials: true</code> + matching CSRF protection for cross-origin SPA; less naturally stateless/horizontally-scalable without a shared session store</td></tr>
+<tr><td>JWT (stateless bearer token)</td><td>Signed token carried in <code>Authorization</code> header or storage</td><td>Stateless, no server-side session store needed; scales horizontally without sticky sessions</td><td>Revocation is hard (must maintain a blocklist or short expiry + refresh); token leakage (e.g., via XSS if stored in localStorage) is harder to contain than an <code>HttpOnly</code> cookie</td></tr>
+</tbody></table>
+<p><strong>Chosen Option:</strong> Server-side session (cookie-based)</p>
+<p><strong>Rationale (inferred):</strong> <code>PRODUCT.md</code> explicitly documents JWT as "an alternative in the PRD appendix, not built" — the product's stated goal is demonstrating session invalidation on logout and password reset, which is native to server-side sessions and requires extra bookkeeping under JWT. <code>SecurityConfig</code>'s CSRF, CORS-with-credentials, and <code>SessionRegistry</code>-backed lockout/invalidation wiring is built entirely around the session model.</p>
+<h4>H2 embedded database</h4>
+<ul>
+<li><strong>Status:</strong> Accepted (inferred)</li>
+</ul>
+<table><thead><tr><th>Option</th><th>Description</th><th>Pros</th><th>Cons</th></tr></thead><tbody>
+<tr><td>H2 (file/mem)</td><td><code>com.h2database:h2</code>, runtime scope (chosen)</td><td>Zero external setup for a reference/demo app; fast test startup; SQL dialect close enough to Postgres for schema portability</td><td>Not representative of a production RDBMS's operational characteristics (connection pooling behavior, locking, replication)</td></tr>
+<tr><td>PostgreSQL</td><td>External Postgres instance</td><td>Production-representative; supports concurrent access patterns realistically</td><td>Requires provisioning infrastructure — explicitly out of scope per <code>PRODUCT.md</code> ("containerization/CI/CD/hosting infra" is out of scope)</td></tr>
+</tbody></table>
+<p><strong>Chosen Option:</strong> H2</p>
+<p><strong>Rationale (inferred):</strong> <code>PRODUCT.md</code> describes the schema as "Postgres-portable," signalling H2 was chosen as a zero-infrastructure stand-in with an explicit intent to swap to Postgres in a real deployment, not as a permanent choice.</p>
+<h4>React 19 + Vite + TypeScript, no UI/router library</h4>
+<ul>
+<li><strong>Status:</strong> Accepted (inferred)</li>
+</ul>
+<table><thead><tr><th>Option</th><th>Description</th><th>Pros</th><th>Cons</th></tr></thead><tbody>
+<tr><td>Plain <code>useState</code> view-enum routing (chosen)</td><td><code>App.tsx</code>'s <code>View</code> union type + <code>setView</code></td><td>Zero extra dependency for a 6-screen app; trivial to reason about</td><td>Would not scale past a handful of screens; no browser history/back-button support beyond the one <code>window.location.pathname</code> check for <code>/reset-password</code></td></tr>
+<tr><td>React Router / TanStack Router</td><td>Declarative route config</td><td>Scales to real navigation, deep-linking, back-button</td><td>Unnecessary dependency weight for a fixed 6-screen demo</td></tr>
+</tbody></table>
+<p><strong>Chosen Option:</strong> Plain <code>useState</code> enum</p>
+<p><strong>Rationale (inferred):</strong> Consistent with <code>PRODUCT.md</code>'s framing of "six screens/views exist today" and the project's minimal-scope, reference-implementation goal — adding a router would be premature abstraction for the current surface area.</p>
+<h2>4. Database Design</h2>
+<h3>4.1 Entity-Relationship Diagram</h3>
+<pre class="mermaid">erDiagram
+    USERS {
+        bigint id PK
+        varchar username UK &quot;not null&quot;
+        varchar email UK &quot;not null&quot;
+        varchar password_hash &quot;not null&quot;
+        varchar role &quot;not null, enum: USER/ADMIN&quot;
+        boolean enabled &quot;not null, default true&quot;
+        int failed_login_attempts &quot;not null, default 0&quot;
+        timestamp locked_until &quot;nullable&quot;
+        timestamp created_at &quot;not null&quot;
+    }
+    PASSWORD_RESET_TOKENS {
+        bigint id PK
+        bigint user_id FK &quot;not null, references USERS.id (no JPA @ManyToOne — plain Long FK)&quot;
+        varchar token_hash UK &quot;not null&quot;
+        timestamp expires_at &quot;not null&quot;
+        timestamp used_at &quot;nullable&quot;
+    }
+    USERS ||--o{ PASSWORD_RESET_TOKENS : &quot;requests&quot;</pre>
+<p>No formal SQL migration files (e.g. Flyway/Liquibase) were found under <code>backend/src/main/resources</code>; schema is generated by Hibernate DDL auto (JPA <code>@Entity</code> annotations on <code>User</code> and <code>PasswordResetToken</code> are the sole source of truth for table structure in this reference build).</p>
+<h3>4.2 Major Data Structures</h3>
+<table><thead><tr><th>Structure</th><th>Type</th><th>Used By</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>LoginRequest</code></td><td>Request DTO</td><td><code>LoginController</code></td><td><code>{username, password}</code> — both <code>@NotBlank</code>.</td></tr>
+<tr><td><code>RegistrationRequest</code></td><td>Request DTO</td><td><code>RegistrationController</code></td><td><code>{username, email, password}</code> — password <code>@Size(min=12)</code>.</td></tr>
+<tr><td><code>PasswordResetRequestRequest</code></td><td>Request DTO</td><td><code>PasswordResetController</code></td><td><code>{email}</code>.</td></tr>
+<tr><td><code>PasswordResetConfirmRequest</code></td><td>Request DTO</td><td><code>PasswordResetController</code></td><td><code>{token, newPassword}</code>.</td></tr>
+<tr><td><code>UpdateStatusRequest</code></td><td>Request DTO</td><td><code>AdminUserController</code></td><td><code>{enabled: boolean}</code>.</td></tr>
+<tr><td><code>UpdateRoleRequest</code></td><td>Request DTO</td><td><code>AdminUserController</code></td><td>`{role: USER\</td><td>ADMIN}`.</td></tr>
+<tr><td><code>AdminUserView</code></td><td>Response DTO</td><td><code>AdminUserController</code></td><td>Safe projection of <code>User</code> (no password hash) — <code>{id, username, email, role, enabled, createdAt}</code>.</td></tr>
+<tr><td><code>CurrentUserRole</code> / <code>AdminUserView</code> (frontend)</td><td>TS interface</td><td><code>api.ts</code>, <code>AdminUsersPage.tsx</code></td><td>Mirrors the backend <code>AdminUserView</code> shape for the admin table.</td></tr>
+<tr><td>API error body</td><td>JSON shape</td><td><code>ApiExceptionHandler</code>, <code>api.ts</code>'s <code>ApiError</code></td><td><code>{error: string}</code> — consumed by the frontend's generic error-message rendering.</td></tr>
+</tbody></table>
+<h2>5. Dependency Inventory</h2>
+<h3>5.1 Production Dependencies — Backend (Maven, <code>backend/pom.xml</code>, resolved via <code>mvn dependency:tree</code>)</h3>
+<p>Directly declared in <code>pom.xml</code> (compile/runtime scope):</p>
+<table><thead><tr><th>Package</th><th>Version</th><th>Licence</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>org.springframework.boot:spring-boot-starter-web</td><td>4.1.0</td><td>Apache-2.0</td><td>REST controllers, embedded Tomcat, Jackson JSON.</td></tr>
+<tr><td>org.springframework.boot:spring-boot-starter-security</td><td>4.1.0</td><td>Apache-2.0</td><td>Spring Security auto-configuration.</td></tr>
+<tr><td>org.springframework.boot:spring-boot-starter-data-jpa</td><td>4.1.0</td><td>Apache-2.0</td><td>Hibernate + Spring Data repositories.</td></tr>
+<tr><td>org.springframework.boot:spring-boot-starter-validation</td><td>4.1.0</td><td>Apache-2.0</td><td>Bean Validation (<code>@NotBlank</code>, <code>@Size</code>, etc.) on request DTOs.</td></tr>
+<tr><td>org.springframework.boot:spring-boot-starter-actuator</td><td>4.1.0</td><td>Apache-2.0</td><td>Health/metrics endpoints.</td></tr>
+<tr><td>org.springframework.boot:spring-boot-h2console</td><td>4.1.0</td><td>Apache-2.0</td><td>H2 console auto-configuration (split out of the monolithic autoconfigure jar in Spring Boot 4).</td></tr>
+<tr><td>org.springframework.session:spring-session-core</td><td>(Spring Boot 4.1.0 managed)</td><td>Apache-2.0</td><td>Session abstraction backing <code>SecurityContextRepository</code>.</td></tr>
+<tr><td>com.h2database:h2</td><td>2.4.240 (runtime)</td><td>MPL-2.0 / EPL-1.0</td><td>Embedded/dev database.</td></tr>
+</tbody></table>
+<p>Key resolved transitive production dependencies (97 compile/runtime-scope artifacts per <code>mvn dependency:tree</code>):</p>
+<table><thead><tr><th>Package</th><th>Version</th><th>Licence</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>org.springframework:spring-web / spring-webmvc / spring-core / spring-context / spring-beans / spring-aop / spring-expression / spring-jdbc / spring-orm / spring-tx / spring-jcl</td><td>7.0.8</td><td>Apache-2.0</td><td>Spring Framework core (see Section 6 — CVE-2024-38819 now resolved, fixed at 6.1.14, well below 7.0.8).</td></tr>
+<tr><td>org.springframework.security:spring-security-core / -config / -web / -crypto</td><td>7.1.0</td><td>Apache-2.0</td><td>Security framework: authn/authz, CSRF, password hashing support.</td></tr>
+<tr><td>org.apache.tomcat.embed:tomcat-embed-core / -el / -websocket</td><td>11.0.22</td><td>Apache-2.0</td><td>Embedded servlet container (see Section 6 — CVE-2024-50379/56337 now resolved, fixed at 11.0.3, well below 11.0.22).</td></tr>
+<tr><td>org.hibernate.orm:hibernate-core</td><td>7.4.1.Final</td><td>LGPL-2.1</td><td>JPA provider.</td></tr>
+<tr><td>tools.jackson.core:jackson-databind (+ core/annotations)</td><td>3.1.4</td><td>Apache-2.0</td><td>JSON serialization (Jackson moved from <code>com.fasterxml.jackson</code> to <code>tools.jackson</code> group in the Jackson 3.x line pulled by Spring Boot 4).</td></tr>
+<tr><td>com.zaxxer:HikariCP</td><td>7.0.2</td><td>Apache-2.0</td><td>JDBC connection pool.</td></tr>
+<tr><td>ch.qos.logback:logback-classic / -core</td><td>1.5.34</td><td>EPL-1.0 / LGPL-2.1</td><td>Logging implementation.</td></tr>
+<tr><td>org.yaml:snakeyaml</td><td>2.6</td><td>Apache-2.0</td><td>YAML parsing for <code>application.yml</code>.</td></tr>
+<tr><td>org.hibernate.validator:hibernate-validator</td><td>9.1.0.Final</td><td>Apache-2.0</td><td>Bean Validation implementation.</td></tr>
+<tr><td>jakarta.persistence / jakarta.validation / jakarta.annotation / jakarta.transaction (APIs)</td><td>(Spring Boot 4.1.0 managed)</td><td>EPL-2.0</td><td>Jakarta EE specification jars.</td></tr>
+</tbody></table>
+<p><em>(Deeper transitive leaves — e.g. <code>jandex</code>, <code>classmate</code>, <code>jboss-logging</code>, <code>antlr4-runtime</code>, <code>aspectjweaver</code>, <code>micrometer-</em></code>, <code>jaxb-<em></code> — omitted from this table for brevity; full list captured in the raw <code>mvn dependency:tree</code> output, 97 compile/runtime-scope + 31 test-scope artifacts.)</em></p>
+<h3>5.1b Production Dependencies — Frontend (<code>frontend/package.json</code>)</h3>
+<table><thead><tr><th>Package</th><th>Version</th><th>Licence</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>react</td><td>^19.2.8 (resolved 19.3.0)</td><td>MIT</td><td>UI library.</td></tr>
+<tr><td>react-dom</td><td>^19.2.8 (resolved 19.3.0)</td><td>MIT</td><td>React DOM renderer.</td></tr>
+</tbody></table>
+<p>Resolved transitive production dependency:</p>
+<table><thead><tr><th>Package</th><th>Version</th><th>Licence</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>scheduler</td><td>0.28.0</td><td>MIT</td><td>React's internal task scheduler (transitive via <code>react-dom</code>).</td></tr>
+</tbody></table>
+<h3>5.2 Development Dependencies</h3>
+<p><strong>Backend (test scope, 31 artifacts via <code>mvn dependency:tree</code>):</strong> <code>spring-boot-starter-test</code> (4.1.0), <code>spring-boot-webmvc-test</code> (4.1.0), <code>spring-boot-data-jpa-test</code> (4.1.0), <code>spring-security-test</code> (7.1.0), and their transitives (JUnit Jupiter, Mockito, AssertJ, Awaitility, Hamcrest, JSONassert, XMLUnit, etc.).</p>
+<p><strong>Frontend (<code>devDependencies</code> in <code>package.json</code>, 88 resolved packages incl. nested via <code>npm ls</code>):</strong></p>
+<table><thead><tr><th>Package</th><th>Version</th><th>Licence</th><th>Purpose</th></tr></thead><tbody>
+<tr><td>typescript</td><td>~6.0.2 (resolved as declared range)</td><td>Apache-2.0</td><td>Type checking / build (<code>tsc -b</code>).</td></tr>
+<tr><td>vite</td><td>^8.3.0</td><td>MIT</td><td>Dev server &amp; bundler.</td></tr>
+<tr><td>@vitejs/plugin-react</td><td>^6.1.1</td><td>MIT</td><td>React Fast Refresh + JSX transform for Vite.</td></tr>
+<tr><td>oxlint</td><td>^1.81.0 (resolved 1.85.0)</td><td>MIT</td><td>Linting (<code>npm run lint</code>).</td></tr>
+<tr><td>@types/node, @types/react, @types/react-dom</td><td>^24.13.3 / ^19.2.18 / ^19.2.7</td><td>MIT</td><td>TypeScript type declarations.</td></tr>
+</tbody></table>
+<h3>5.3 Summary</h3>
+<ul>
+<li><strong>Backend:</strong> 10 directly-declared dependencies in <code>pom.xml</code> (8 compile/runtime + 4 test-scope: <code>spring-boot-starter-test</code>, <code>spring-boot-webmvc-test</code>, <code>spring-boot-data-jpa-test</code>, <code>spring-security-test</code>); <strong>97 total resolved compile/runtime-scope artifacts</strong> and <strong>31 total resolved test-scope artifacts</strong> per <code>mvn dependency:tree</code>.</li>
+<li><strong>Frontend:</strong> 2 directly-declared production dependencies, 7 directly-declared devDependencies in <code>package.json</code>; <strong><code>npm audit</code>/<code>npm ls</code> reports 4 prod, 88 dev, 46 optional (91 total resolved packages)</strong> in the full dependency graph — unchanged since the prior report.</li>
+<li><strong>Licence distribution:</strong> overwhelmingly permissive (Apache-2.0, MIT) across both stacks; backend carries a small number of LGPL-2.1/EPL-1.0/EPL-2.0 components typical of the Jakarta EE / Hibernate / Logback ecosystem (<code>hibernate-core</code>, <code>logback-<em></code>, <code>jakarta.</em></code> APIs) and H2's dual MPL-2.0/EPL-1.0 licence — none of these are copyleft in a way that affects proprietary use of application code (LGPL/EPL apply only to the libraries themselves, not to code merely linking/calling them).</li>
+</ul>
+<h2>6. Vulnerability Findings</h2>
+<p>Full detail, scanner methodology, and remediation guidance: see <a href="./dependency-vuln-scan.md"><code>dependency-vuln-scan.md</code></a> in this same output folder.</p>
+<h3>6.1 Summary</h3>
+<ul>
+<li>Critical: 0</li>
+<li>High: 0 — both prior High findings resolved by the <code>spring-boot-starter-parent</code> 3.3.4 → 4.1.0 upgrade</li>
+<li>Medium: 0</li>
+<li>Low: 0</li>
+</ul>
+<p><strong>No known vulnerabilities found.</strong> Verified via a full automated OWASP dependency-check run (99 backend dependencies scanned against cached NVD data) and <code>npm audit</code> (0 vulnerabilities, unchanged from prior report).</p>
+<h3>6.2 Findings</h3>
+<p>None.</p>
+<h3>6.3 Remediation</h3>
+<p>None required. The <code>spring-boot-starter-parent</code> upgrade from <code>3.3.4</code> to <code>4.1.0</code> (already applied in <code>backend/pom.xml</code>) resolved both prior High findings:</p>
+<ul>
+<li>CVE-2024-38819 (Spring path traversal): fixed at Spring Framework 6.1.14; current resolved version is <strong>7.0.8</strong>.</li>
+<li>CVE-2024-50379 / CVE-2024-56337 (Tomcat RCE): fixed at Tomcat 11.0.3 (11.x line); current resolved version is <strong>11.0.22</strong>.</li>
+</ul>
+<p>Frontend requires no remediation — <code>npm audit</code> reports zero vulnerabilities. See <code>dependency-vuln-scan.md</code> for full scanner methodology and notes.</p>
+<script>mermaid.initialize({ startOnLoad: true });</script>
+</body>
+</html>

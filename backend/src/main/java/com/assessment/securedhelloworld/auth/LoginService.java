@@ -2,6 +2,9 @@ package com.assessment.securedhelloworld.auth;
 
 import com.assessment.securedhelloworld.user.User;
 import com.assessment.securedhelloworld.user.UserRepository;
+import com.assessment.securedhelloworld.logging.LogSanitizer;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.time.Instant;
+import java.time.Clock;
 
 /**
  * Login orchestration: credential check, generic-error enumeration
@@ -41,46 +44,72 @@ public class LoginService {
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
     private final LoginAttemptService loginAttemptService;
     private final SessionRegistry sessionRegistry;
+    private final LoginCountService loginCountService;
+    private final Clock clock;
+    private final Counter loginSuccessCounter;
+    private final Counter loginFailureCounter;
 
     public LoginService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             LoginAttemptService loginAttemptService,
-            SessionRegistry sessionRegistry) {
+            SessionRegistry sessionRegistry,
+            LoginCountService loginCountService,
+            Clock clock,
+            MeterRegistry meterRegistry) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.loginAttemptService = loginAttemptService;
         this.sessionRegistry = sessionRegistry;
+        this.loginCountService = loginCountService;
+        this.clock = clock;
+        this.loginSuccessCounter = Counter.builder("app.auth.login")
+                .tag("outcome", "success")
+                .description("Login attempts by outcome (this instance only - see login_counts table for the fleet-wide total)")
+                .register(meterRegistry);
+        this.loginFailureCounter = Counter.builder("app.auth.login")
+                .tag("outcome", "failure")
+                .description("Login attempts by outcome (this instance only - see login_counts table for the fleet-wide total)")
+                .register(meterRegistry);
     }
 
     @Transactional(noRollbackFor = AuthenticationFailedException.class)
     public void login(LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        String clientIp = ClientIpResolver.resolve(httpRequest);
-        loginAttemptService.assertIpNotThrottled(clientIp);
-
         User user = userRepository.findByUsername(request.getUsername()).orElse(null);
 
         if (user == null) {
-            loginAttemptService.recordFailureForIp(clientIp);
-            log.info("Login failed: unknown username, ip={}", clientIp);
+            loginFailureCounter.increment();
+            loginCountService.increment(LoginOutcome.FAILURE);
+            log.info("Login failed: unknown username");
             throw new AuthenticationFailedException();
         }
 
-        if (user.isLocked(Instant.now())) {
-            log.info("Login rejected: account locked username={}", user.getUsername());
+        if (user.isLocked(clock.instant())) {
+            loginFailureCounter.increment();
+            loginCountService.increment(LoginOutcome.FAILURE);
+            log.info("Login rejected: account locked username={}", LogSanitizer.sanitize(user.getUsername()));
             throw new AuthenticationFailedException();
         }
 
         if (!user.isEnabled() || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            loginAttemptService.recordFailureForIp(clientIp);
-            loginAttemptService.recordFailedAttempt(user);
-            log.info("Login failed: bad credentials username={}", user.getUsername());
+            boolean justLocked = user.recordFailedAttempt(loginAttemptService.policy(), clock);
+            userRepository.save(user);
+            if (justLocked) {
+                log.warn("Account locked username={} attempts={}",
+                        LogSanitizer.sanitize(user.getUsername()), user.getFailedLoginAttempts());
+            }
+            loginFailureCounter.increment();
+            loginCountService.increment(LoginOutcome.FAILURE);
+            log.info("Login failed: bad credentials username={}", LogSanitizer.sanitize(user.getUsername()));
             throw new AuthenticationFailedException();
         }
 
-        loginAttemptService.recordSuccess(user);
+        user.recordSuccess(clock);
+        userRepository.save(user);
         establishSession(user, httpRequest, httpResponse);
-        log.info("Login succeeded username={}", user.getUsername());
+        loginSuccessCounter.increment();
+        loginCountService.increment(LoginOutcome.SUCCESS);
+        log.info("Login succeeded username={}", LogSanitizer.sanitize(user.getUsername()));
     }
 
     private void establishSession(User user, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {

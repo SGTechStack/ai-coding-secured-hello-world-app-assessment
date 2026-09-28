@@ -6,7 +6,6 @@ import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { ResetPasswordForm } from './ResetPasswordForm';
 import { HelloPage } from './HelloPage';
 import { AdminUsersPage } from './AdminUsersPage';
-import { api } from './api';
 
 type View = 'login' | 'register' | 'forgot-password' | 'reset-password' | 'hello' | 'admin';
 
@@ -19,21 +18,14 @@ function initialView(): View {
 }
 
 function AppContent() {
-  const { status, refresh } = useAuth();
+  const { status, username, refresh } = useAuth();
   const [view, setView] = useState<View>(initialView());
-  const [greeting, setGreeting] = useState('');
 
   useEffect(() => {
     if (status === 'authenticated' && (view === 'login' || view === 'register')) {
       setView('hello');
     }
   }, [status, view]);
-
-  useEffect(() => {
-    if (view === 'hello') {
-      api.hello().then(setGreeting).catch(() => {});
-    }
-  }, [view]);
 
   if (status === 'loading') {
     return <p>Loading…</p>;
@@ -68,7 +60,7 @@ function AppContent() {
     return <AdminUsersPage onNavigateBack={() => setView('hello')} />;
   }
 
-  return <HelloPage greeting={greeting} onNavigateToAdmin={() => setView('admin')} />;
+  return <HelloPage greeting={`Hello, ${username}`} onNavigateToAdmin={() => setView('admin')} />;
 }
 
 export default function App() {

@@ -2,6 +2,9 @@ package com.assessment.securedhelloworld.admin;
 
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * Request body for {@code PATCH /api/admin/users/{id}/status}.
+ */
 public class UpdateStatusRequest {
 
     @NotNull

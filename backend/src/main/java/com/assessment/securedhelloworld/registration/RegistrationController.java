@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * Public self-service account creation ({@code POST /api/register}).
+ */
 @RestController
 public class RegistrationController {
 

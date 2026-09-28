@@ -4,6 +4,7 @@ import { api, ApiError, primeCsrfToken } from './api';
 interface AuthState {
   status: 'loading' | 'authenticated' | 'anonymous';
   username: string | null;
+  role: 'USER' | 'ADMIN' | null;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -13,16 +14,18 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthState['status']>('loading');
   const [username, setUsername] = useState<string | null>(null);
+  const [role, setRole] = useState<AuthState['role']>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const greeting = await api.hello();
-      const match = greeting.match(/^Hello, (.+)$/);
-      setUsername(match ? match[1] : greeting);
+      const hello = await api.hello();
+      setUsername(hello.username);
+      setRole(hello.role);
       setStatus('authenticated');
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         setUsername(null);
+        setRole(null);
         setStatus('anonymous');
       } else {
         throw error;
@@ -33,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await api.logout();
     setUsername(null);
+    setRole(null);
     setStatus('anonymous');
   }, []);
 
@@ -41,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <AuthContext.Provider value={{ status, username, refresh, logout }}>
+    <AuthContext.Provider value={{ status, username, role, refresh, logout }}>
       {children}
     </AuthContext.Provider>
   );

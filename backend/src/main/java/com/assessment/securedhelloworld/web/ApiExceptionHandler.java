@@ -3,8 +3,11 @@ package com.assessment.securedhelloworld.web;
 import com.assessment.securedhelloworld.admin.SelfActionForbiddenException;
 import com.assessment.securedhelloworld.admin.UserNotFoundException;
 import com.assessment.securedhelloworld.auth.AuthenticationFailedException;
+import com.assessment.securedhelloworld.auth.InvalidCurrentPasswordException;
 import com.assessment.securedhelloworld.passwordreset.InvalidResetTokenException;
 import com.assessment.securedhelloworld.registration.DuplicateAccountException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,6 +25,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
     @ExceptionHandler(AuthenticationFailedException.class)
     public ResponseEntity<Map<String, String>> handleAuthenticationFailed(AuthenticationFailedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -30,6 +35,12 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(InvalidResetTokenException.class)
     public ResponseEntity<Map<String, String>> handleInvalidResetToken(InvalidResetTokenException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidCurrentPassword(InvalidCurrentPasswordException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", ex.getMessage()));
     }
@@ -62,5 +73,19 @@ public class ApiExceptionHandler {
         body.put("error", "Validation failed");
         body.put("fields", fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    /**
+     * Catch-all for exceptions not handled by a more specific mapping
+     * above. Logs the full throwable at ERROR (with stack trace) so
+     * unexpected failures are never silent, but the response body stays
+     * generic — {@code ex.getMessage()} is never echoed to the client,
+     * consistent with this class's no-internal-detail-leakage contract.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleUnexpected(Exception ex) {
+        log.error("Unhandled exception while processing request", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "An unexpected error occurred"));
     }
 }

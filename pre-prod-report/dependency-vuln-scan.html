@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dependency Vulnerability Scan Report</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+body { font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.55; color: #1a1a1a; }
+h1, h2, h3, h4 { border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; margin-top: 2rem; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.92rem; }
+th, td { border: 1px solid #ccc; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+th { background: #f2f2f2; }
+code { background: #f5f5f5; padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.9em; }
+pre { background: #f5f5f5; padding: 1rem; overflow-x: auto; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+blockquote { color: #555; border-left: 3px solid #ccc; margin: 0.3rem 0; padding-left: 0.8rem; font-size: 0.9rem; }
+pre.mermaid { background: #fff; border: 1px solid #ddd; }
+</style>
+</head>
+<body>
+<h1>Dependency Vulnerability Scan Report</h1>
+<blockquote>Scan timestamp: 2026-09-28T11:46:28+08:00</blockquote>
+<blockquote>Project: secured-hello-world-app (backend: <code>secured-hello-world-backend</code>, frontend: <code>frontend</code>)</blockquote>
+<blockquote>Scanners used: <code>npm audit --json</code> (frontend); <code>mvn org.owasp:dependency-check-maven:13.0.0:check</code> (backend, full automated run against cached NVD data)</blockquote>
+<h2>Scan Plan</h2>
+<table><thead><tr><th>Manifest</th><th>Location</th><th>Scanner planned</th><th>Scanner actually used</th></tr></thead><tbody>
+<tr><td><code>package.json</code> + <code>package-lock.json</code></td><td><code>frontend/</code></td><td><code>npm audit --json</code></td><td><code>npm audit --json</code> (ran successfully)</td></tr>
+<tr><td><code>pom.xml</code></td><td><code>backend/</code></td><td><code>mvn org.owasp:dependency-check-maven:check</code></td><td>Ran successfully — local NVD mirror at <code>~/.m2/repository/org/owasp/dependency-check-data/11.0/</code> was refreshed earlier the same morning (09:33, within the skill's 24h freshness window), so Step 3 (NVD update) was skipped per the skill's rule and the cached data was used directly for the CVE match analysis.</td></tr>
+</tbody></table>
+<h2>Summary Table</h2>
+<table><thead><tr><th>Severity</th><th>Frontend (npm)</th><th>Backend (OWASP dependency-check)</th><th>Total</th></tr></thead><tbody>
+<tr><td>Critical</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>High</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Medium</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Low</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Info</td><td>0</td><td>0</td><td>0</td></tr>
+</tbody></table>
+<p><strong>No known vulnerabilities found.</strong></p>
+<h2>Prior Findings — Verified Resolved</h2>
+<p>The prior scan (2026-09-28 09:41) flagged 2 High findings against <code>spring-boot-starter-parent:3.3.4</code>. <code>backend/pom.xml</code> has since been upgraded to <code>spring-boot-starter-parent:4.1.0</code>. Both are confirmed resolved in this run:</p>
+<table><thead><tr><th>ID</th><th>Package</th><th>Previously Installed</th><th>Now Installed</th><th>Fixed At</th><th>Status</th></tr></thead><tbody>
+<tr><td>CVE-2024-38819</td><td>org.springframework:spring-web / spring-webmvc</td><td>6.1.13</td><td><strong>7.0.8</strong></td><td>6.1.14</td><td>✅ Resolved — 7.0.8 is far past the fixed version 6.1.14.</td></tr>
+<tr><td>CVE-2024-50379 / CVE-2024-56337</td><td>org.apache.tomcat.embed:tomcat-embed-core</td><td>10.1.30</td><td><strong>11.0.22</strong></td><td>11.0.3 (11.x line) / 10.1.35 / 9.0.99</td><td>✅ Resolved — 11.0.22 is well past the fixed version 11.0.3 for the 11.x line.</td></tr>
+</tbody></table>
+<p>Confirmed by direct inspection of <code>target/dependency-check-report.json</code>: neither CVE ID appears anywhere in the 99-dependency report (<code>grep -c "CVE-2024-38819\|CVE-2024-50379\|CVE-2024-56337"</code> → 0 matches), and the specific artifacts (<code>spring-core-7.0.8.jar</code>, <code>spring-web-7.0.8.jar</code>, <code>spring-webmvc-7.0.8.jar</code>, <code>spring-security-core-7.1.0.jar</code>, <code>tomcat-embed-core-11.0.22.jar</code>) each report <code>0</code> associated vulnerabilities.</p>
+<h2>Findings</h2>
+<p>None. Both scanners returned clean results.</p>
+<h2>Remediation Guidance</h2>
+<p>None required — no findings at any severity level in either stack.</p>
+<h2>Scanner Notes</h2>
+<ul>
+<li><strong>npm audit</strong>: ran cleanly against <code>frontend/package-lock.json</code>. Result: <code>0</code> vulnerabilities across all severities. <code>metadata.dependencies</code>: 4 prod, 88 dev, 46 optional, 91 total resolved packages.</li>
+<li><strong>OWASP dependency-check-maven (backend)</strong>: <code>org.owasp:dependency-check-maven:13.0.0</code> ran the full <code>check</code> goal (not just <code>dependency:tree</code> fallback, unlike the prior session). The Maven build itself still reported <code>BUILD FAILURE</code> because the plugin's <em>live</em> NVD API update sub-step failed (<code>NvdApiException: Invalid API Key, length of 0 too short...</code> — no <code>nvdApiKey</code> configured, same root cause as the prior run), logged as <code>[WARNING] Unable to update 1 or more Cached Web DataSource, using local data instead. Results may not include recent vulnerabilities.</code> The analysis phase itself completed successfully against the existing local NVD cache (refreshed 09:33 same day, well within the 24h freshness window per the skill's Step 3 rule) and wrote a complete JSON report (<code>target/dependency-check-report.json</code>, 99 scanned dependencies, 0 vulnerabilities). The "BUILD FAILURE" exit code reflects the plugin's own failOnError policy for the live-update sub-step, not a scan failure — the report was still generated and is treated as valid per the skill's fail-gracefully rule ("partial results with clear notes are better than no output").</li>
+<li><strong>Recommendation carried forward</strong>: for a fully live/current CVE match (rather than this morning's cached snapshot), configure <code>nvdApiKey</code> (free from https://nvd.nist.gov/developers/request-an-api-key) so the plugin can complete its own live update step without falling back to cache.</li>
+</ul>
+<script>mermaid.initialize({ startOnLoad: true });</script>
+</body>
+</html>

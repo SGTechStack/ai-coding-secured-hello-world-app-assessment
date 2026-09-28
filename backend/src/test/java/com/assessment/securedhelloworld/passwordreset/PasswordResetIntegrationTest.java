@@ -1,17 +1,12 @@
 package com.assessment.securedhelloworld.passwordreset;
 
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.assessment.securedhelloworld.user.User;
 import com.assessment.securedhelloworld.user.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
@@ -36,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("dev")
 class PasswordResetIntegrationTest {
 
-    private static final Pattern TOKEN_PATTERN = Pattern.compile("token=([A-Za-z0-9_-]+)");
+    private static final Pattern TOKEN_PATTERN = Pattern.compile("token=([A-Za-z0-9_.-]+)");
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,29 +45,10 @@ class PasswordResetIntegrationTest {
     @Autowired
     private PasswordResetTokenRepository tokenRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private LoggingEmailService loggingEmailService;
 
-    private ListAppender<ILoggingEvent> logAppender;
-
-    @BeforeEach
-    void attachLogAppender() {
-        logAppender = new ListAppender<>();
-        logAppender.start();
-        ((Logger) LoggerFactory.getLogger("ROOT")).addAppender(logAppender);
-    }
-
-    @AfterEach
-    void detachLogAppender() {
-        ((Logger) LoggerFactory.getLogger("ROOT")).detachAppender(logAppender);
-    }
-
-    private String lastLoggedResetLinkFor(String email) {
-        return logAppender.list.stream()
-                .map(ILoggingEvent::getFormattedMessage)
-                .filter(message -> message.contains(email) && message.contains("token="))
-                .reduce((first, second) -> second)
-                .orElseThrow(() -> new IllegalStateException("No reset link logged for " + email));
-    }
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     private User registerUser(String username, String rawPassword) {
         User user = new User(username, username + "@example.com", passwordEncoder.encode(rawPassword));
@@ -128,7 +104,7 @@ class PasswordResetIntegrationTest {
                         .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk());
 
-        String resetLink = lastLoggedResetLinkFor(user.getEmail());
+        String resetLink = loggingEmailService.lastLinkFor(user.getEmail());
         String token = extractToken(resetLink);
 
         mockMvc.perform(post("/api/password-reset/confirm")
@@ -150,12 +126,12 @@ class PasswordResetIntegrationTest {
     void confirmRejectsExpiredToken() throws Exception {
         User user = registerUser("reset-expired-user", "correct-horse-battery");
         PasswordResetToken expiredToken = new PasswordResetToken(
-                user.getId(), "expired-token-hash-value", Instant.now().minusSeconds(60));
+                user.getId(), "expired-selector", "expired-token-hash-value", Instant.now().minusSeconds(60));
         tokenRepository.save(expiredToken);
 
         mockMvc.perform(post("/api/password-reset/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(confirmResetPayload("plaintext-for-expired-token-hash-value", "brand-new-password123"))
+                        .content(confirmResetPayload("expired-selector.plaintext-for-expired-token-hash-value", "brand-new-password123"))
                         .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isBadRequest());
     }
@@ -170,7 +146,7 @@ class PasswordResetIntegrationTest {
                         .with(SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isOk());
 
-        String resetLink = lastLoggedResetLinkFor(user.getEmail());
+        String resetLink = loggingEmailService.lastLinkFor(user.getEmail());
         String token = extractToken(resetLink);
 
         mockMvc.perform(post("/api/password-reset/confirm")

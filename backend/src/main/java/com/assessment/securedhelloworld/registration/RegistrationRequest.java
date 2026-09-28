@@ -2,16 +2,21 @@ package com.assessment.securedhelloworld.registration;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
  * Registration request payload. Password strength (length >= 12) is
  * enforced here via {@link Size}; uniqueness of username/email is checked
- * in the service layer since it requires a database lookup.
+ * in the service layer since it requires a database lookup. The username
+ * {@link Pattern} constraint restricts stored usernames to characters
+ * that cannot forge or inject additional log lines when interpolated
+ * into a log message downstream (login, logout, admin actions).
  */
 public class RegistrationRequest {
 
     @NotBlank
+    @Pattern(regexp = "^[a-zA-Z0-9_.-]+$", message = "Username may only contain letters, digits, '.', '_' and '-'")
     private String username;
 
     @NotBlank

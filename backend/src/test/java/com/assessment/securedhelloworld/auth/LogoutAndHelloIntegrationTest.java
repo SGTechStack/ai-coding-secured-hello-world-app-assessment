@@ -2,10 +2,11 @@ package com.assessment.securedhelloworld.auth;
 
 import com.assessment.securedhelloworld.user.User;
 import com.assessment.securedhelloworld.user.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
@@ -20,7 +21,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -37,7 +38,7 @@ class LogoutAndHelloIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     private void registerUser(String username, String rawPassword) {
         User user = new User(username, username + "@example.com", passwordEncoder.encode(rawPassword));
@@ -65,7 +66,9 @@ class LogoutAndHelloIntegrationTest {
 
         mockMvc.perform(get("/api/hello").session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Hello, hello-user"));
+                .andExpect(jsonPath("$.message").value("Hello, hello-user"))
+                .andExpect(jsonPath("$.username").value("hello-user"))
+                .andExpect(jsonPath("$.role").value("USER"));
     }
 
     @Test

@@ -7,3 +7,6 @@ frontend/dist/
 .kiro/
 .claude/
 .agents/
+*.log
+**/javadoc/
+**/tsdoc/

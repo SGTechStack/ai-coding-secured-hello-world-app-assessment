@@ -6,6 +6,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+/**
+ * Adapts {@link UserRepository} lookups to Spring Security's
+ * {@link UserDetailsService} contract, wrapping each result in
+ * {@link AppUserDetails}.
+ */
 @Service
 public class AppUserDetailsService implements UserDetailsService {
 

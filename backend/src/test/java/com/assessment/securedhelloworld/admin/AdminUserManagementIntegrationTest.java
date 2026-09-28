@@ -3,10 +3,11 @@ package com.assessment.securedhelloworld.admin;
 import com.assessment.securedhelloworld.user.Role;
 import com.assessment.securedhelloworld.user.User;
 import com.assessment.securedhelloworld.user.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
@@ -39,7 +40,7 @@ class AdminUserManagementIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     private User createUser(String username, Role role) {
         User user = new User(username, username + "@example.com", passwordEncoder.encode("correct-horse-battery"));

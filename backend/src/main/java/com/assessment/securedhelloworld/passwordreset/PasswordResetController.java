@@ -8,6 +8,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * Public password-reset endpoints (request + confirm); both delegate to
+ * {@link PasswordResetService}.
+ */
 @RestController
 public class PasswordResetController {
 

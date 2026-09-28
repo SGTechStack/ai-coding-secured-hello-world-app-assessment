@@ -1,9 +1,10 @@
 package com.assessment.securedhelloworld.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -31,7 +32,7 @@ class SecurityHardeningIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     @Test
     void mutatingEndpointWithoutCsrfTokenIsRejected() throws Exception {
@@ -62,5 +63,20 @@ class SecurityHardeningIntegrationTest {
                         .header(HttpHeaders.ORIGIN, "http://evil.example.com")
                         .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.GET.name()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void responsesCarryARestrictiveContentSecurityPolicy() throws Exception {
+        mockMvc.perform(options("/api/hello")
+                        .header(HttpHeaders.ORIGIN, "http://localhost:3000")
+                        .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, HttpMethod.GET.name()))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Content-Security-Policy"))
+                .andExpect(header().string("Content-Security-Policy",
+                        org.hamcrest.Matchers.allOf(
+                                org.hamcrest.Matchers.containsString("default-src 'self'"),
+                                org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("unsafe-inline")),
+                                org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("unsafe-eval")),
+                                org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("*")))));
     }
 }

@@ -30,6 +30,7 @@ class AdminBootstrapIntegrationTest {
 
         assertThat(admin.getRole()).isEqualTo(Role.ADMIN);
         assertThat(admin.isEnabled()).isTrue();
+        assertThat(admin.isForcePasswordChange()).isTrue();
         assertThat(passwordEncoder.matches(adminBootstrapProperties.getPassword(), admin.getPasswordHash())).isTrue();
     }
 

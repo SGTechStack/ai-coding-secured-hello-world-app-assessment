@@ -6,7 +6,7 @@ interface HelloPageProps {
 }
 
 export function HelloPage({ greeting, onNavigateToAdmin }: HelloPageProps) {
-  const { logout } = useAuth();
+  const { logout, role } = useAuth();
 
   return (
     <div>
@@ -14,11 +14,13 @@ export function HelloPage({ greeting, onNavigateToAdmin }: HelloPageProps) {
       <button type="button" onClick={() => logout()}>
         Log out
       </button>
-      <p>
-        <button type="button" onClick={onNavigateToAdmin}>
-          Manage users
-        </button>
-      </p>
+      {role === 'ADMIN' && (
+        <p>
+          <button type="button" onClick={onNavigateToAdmin}>
+            Manage users
+          </button>
+        </p>
+      )}
     </div>
   );
 }

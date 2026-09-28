@@ -2,10 +2,18 @@ spring:
   application:
     name: secured-hello-world-backend
 
+logging:
+  structured:
+    format:
+      console: ecs
+      file: ecs
+
 server:
   port: 8080
+  forward-headers-strategy: framework
   servlet:
     session:
+      timeout: 15m
       cookie:
         http-only: true
         same-site: lax
@@ -18,11 +26,22 @@ app:
     username: admin
     password: ChangeMe123456!
   security:
+    max-concurrent-sessions: 5
     lockout:
       max-attempts: 5
       duration-minutes: 15
-    ip-throttle:
-      max-attempts: 20
-      window-minutes: 15
     password-reset:
       token-expiry-minutes: 30
+    account-lifecycle:
+      dormancy-days: 90
+      dormancy-check-cron: "0 0 3 * * *"
+    access-review:
+      cron: "0 30 3 * * *"
+      authorised-admin-usernames:
+        - admin
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

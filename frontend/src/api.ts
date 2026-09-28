@@ -83,7 +83,9 @@ export async function primeCsrfToken(): Promise<void> {
   });
 }
 
-export interface CurrentUserRole {
+export interface HelloResponse {
+  message: string;
+  username: string;
   role: 'USER' | 'ADMIN';
 }
 
@@ -101,7 +103,7 @@ export const api = {
   },
 
   hello() {
-    return apiFetch<string>('/api/hello');
+    return apiFetch<HelloResponse>('/api/hello');
   },
 
   requestPasswordReset(payload: { email: string }) {

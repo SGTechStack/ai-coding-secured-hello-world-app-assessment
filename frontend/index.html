@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      CSP delivered via meta tag (not a backend response header) because
+      this SPA's static assets can be hosted anywhere (CDN, static host,
+      etc.) independently of the Spring Boot API backend, which never
+      serves this document — a header set by the backend would not apply
+      to this page. connect-src includes the API origin since it is a
+      separate origin from wherever these static assets are served from;
+      VITE_API_BASE_URL controls that origin per environment (see
+      src/api.ts) and defaults to http://localhost:8080 for local dev.
+
+      CAVEAT: this meta tag is static HTML, not processed through Vite's
+      env-var substitution — connect-src below is hardcoded to the local
+      dev API origin. If VITE_API_BASE_URL is overridden for a non-local
+      environment, this directive must be updated (or generated at build/
+      deploy time) to match, or same-origin API calls will be blocked by
+      this very policy.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:8080; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
     <title>frontend</title>
   </head>
   <body>

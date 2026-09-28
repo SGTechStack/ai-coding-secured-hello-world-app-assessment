@@ -5,13 +5,14 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.assessment.securedhelloworld.user.User;
 import com.assessment.securedhelloworld.user.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,7 +40,7 @@ class RegistrationIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
     private ListAppender<ILoggingEvent> logAppender;
 
@@ -128,6 +129,17 @@ class RegistrationIntegrationTest {
                 .andExpect(status().isBadRequest());
 
         assertThat(userRepository.findByUsername("dana")).isEmpty();
+    }
+
+    @Test
+    void rejectsUsernameWithControlCharacters() throws Exception {
+        mockMvc.perform(post("/api/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registrationPayload("eve\r\nINJECTED", "eve@example.com", "correct-horse-battery"))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest());
+
+        assertThat(userRepository.findByEmail("eve@example.com")).isEmpty();
     }
 
     private static org.springframework.test.web.servlet.request.RequestPostProcessor csrf() {

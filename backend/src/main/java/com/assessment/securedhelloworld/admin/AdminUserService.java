@@ -4,6 +4,7 @@ import com.assessment.securedhelloworld.auth.AppUserDetails;
 import com.assessment.securedhelloworld.user.Role;
 import com.assessment.securedhelloworld.user.User;
 import com.assessment.securedhelloworld.user.UserRepository;
+import com.assessment.securedhelloworld.logging.LogSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Role-gated ({@code ADMIN}) management of other users' accounts:
+ * listing, enable/disable, role change, and deletion, each guarded so an
+ * admin can never perform these actions on their own account.
+ */
 @Service
 public class AdminUserService {
 
@@ -37,7 +43,7 @@ public class AdminUserService {
         target.setEnabled(enabled);
         userRepository.save(target);
         log.info("Admin action: {} actor={} target={}",
-                enabled ? "enable" : "disable", actingAdmin.getUsername(), target.getUsername());
+                enabled ? "enable" : "disable", LogSanitizer.sanitize(actingAdmin.getUsername()), LogSanitizer.sanitize(target.getUsername()));
     }
 
     @Transactional
@@ -48,7 +54,7 @@ public class AdminUserService {
         target.setRole(newRole);
         userRepository.save(target);
         log.info("Admin action: role-change actor={} target={} newRole={}",
-                actingAdmin.getUsername(), target.getUsername(), newRole);
+                LogSanitizer.sanitize(actingAdmin.getUsername()), LogSanitizer.sanitize(target.getUsername()), newRole);
     }
 
     @Transactional
@@ -57,7 +63,7 @@ public class AdminUserService {
         requireNotSelf(target, actingAdmin, "An admin cannot delete their own account");
 
         userRepository.delete(target);
-        log.info("Admin action: delete actor={} target={}", actingAdmin.getUsername(), target.getUsername());
+        log.info("Admin action: delete actor={} target={}", LogSanitizer.sanitize(actingAdmin.getUsername()), LogSanitizer.sanitize(target.getUsername()));
     }
 
     private User requireUser(Long userId) {

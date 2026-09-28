@@ -3,6 +3,9 @@ package com.assessment.securedhelloworld.passwordreset;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Email;
 
+/**
+ * Request body for {@code POST /api/password-reset/request}.
+ */
 public class PasswordResetRequestRequest {
 
     @NotBlank

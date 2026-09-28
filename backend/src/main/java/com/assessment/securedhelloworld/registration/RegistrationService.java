@@ -2,12 +2,20 @@ package com.assessment.securedhelloworld.registration;
 
 import com.assessment.securedhelloworld.user.User;
 import com.assessment.securedhelloworld.user.UserRepository;
+import com.assessment.securedhelloworld.logging.LogSanitizer;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * New-account creation: enforces username/email uniqueness and password
+ * strength, hashes the password before persisting, and records a
+ * business-event metric on success. Never logs the plaintext password.
+ */
 @Service
 public class RegistrationService {
 
@@ -15,10 +23,14 @@ public class RegistrationService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Counter registrationCounter;
 
-    public RegistrationService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public RegistrationService(UserRepository userRepository, PasswordEncoder passwordEncoder, MeterRegistry meterRegistry) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.registrationCounter = Counter.builder("app.registration.completed")
+                .description("Successful new-account registrations")
+                .register(meterRegistry);
     }
 
     @Transactional
@@ -36,7 +48,8 @@ public class RegistrationService {
         User user = new User(request.getUsername(), request.getEmail(), passwordHash);
         User saved = userRepository.save(user);
 
-        log.info("Registered new user username={}", saved.getUsername());
+        registrationCounter.increment();
+        log.info("Registered new user username={}", LogSanitizer.sanitize(saved.getUsername()));
         return saved;
     }
 }

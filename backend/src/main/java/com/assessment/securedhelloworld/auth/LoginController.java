@@ -8,6 +8,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Public login endpoint ({@code POST /api/login}); delegates all
+ * credential/lockout/throttle logic to {@link LoginService}.
+ */
 @RestController
 public class LoginController {
 

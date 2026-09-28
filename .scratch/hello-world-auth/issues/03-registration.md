@@ -4,13 +4,13 @@
 
 **Blocked by:** 02.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `POST` register endpoint creates a USER, enabled, BCrypt-hashed account on valid unique input
-- [ ] Duplicate username or email → validation error, no account created
-- [ ] Password shorter than 12 chars → validation error, no account created
-- [ ] Plaintext password never logged or persisted (verified)
-- [ ] CSRF token required and enforced on the endpoint
-- [ ] Audit log line on registration (actor/username, no password)
-- [ ] React register form submits, shows validation errors, and lands a created account
-- [ ] Integration tests: happy path, duplicate username, duplicate email, weak password
+- [x] `POST` register endpoint creates a USER, enabled, BCrypt-hashed account on valid unique input
+- [x] Duplicate username or email → validation error, no account created
+- [x] Password shorter than 12 chars → validation error, no account created
+- [x] Plaintext password never logged or persisted (verified)
+- [x] CSRF token required and enforced on the endpoint
+- [x] Audit log line on registration (actor/username, no password)
+- [x] React register form submits, shows validation errors, and lands a created account
+- [x] Integration tests: happy path, duplicate username, duplicate email, weak password

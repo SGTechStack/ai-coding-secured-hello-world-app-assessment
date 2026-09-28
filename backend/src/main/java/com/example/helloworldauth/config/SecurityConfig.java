@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(sf -> sf.migrateSession()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/ping").permitAll()
+                .requestMatchers("/api/ping", "/api/register").permitAll()
                 .anyRequest().authenticated())
             // No form-login/basic UI: this is a REST API driven by the SPA.
             .httpBasic(AbstractHttpConfigurer::disable)

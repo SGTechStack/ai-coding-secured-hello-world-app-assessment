@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 01-backend-skeleton-and-test-harness</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">build WARN 0/0/1/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">code-review PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">react N/A</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">springboot PASS 0/0/0/1</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">worktree-agent-a85f00aacb28d3ef2 (for t01-backend-skeleton)</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 01: backend skeleton and test harness. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">WARN</td><td class="p-2">0/0/1/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify</code> green: 60 tests, 0 failures. No JaCoCo 80% gate configured (not in spec or ticket).</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Small files, no dead code. Low: <code>ArchitectureRules</code> carries a custom ArchCondition inline; acceptable at this size.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">All seven acceptance criteria covered by tests; no repo coding-standards file exists yet.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">semgrep CLI not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2">as-13: exposure health only, show-details never, explicit denyAll. as-6: DelegatingPasswordEncoder, BCrypt 12. Other controls N/A at skeleton stage.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">N/A</td><td class="p-2">-</td><td class="p-2">No frontend changes.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Security: deny-by-default chain, CSRF on, no dev bypass, generated-password auto-config excluded. Tests: full contexts from a fixed named set. Low: <code>main()</code> uncovered by tests (covered by manual boot).</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm">None.</p>
+        </div>
+      </div>
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+        <summary class="font-semibold">build: WARN</summary>
+        <ul class="list-disc pl-6 text-sm mt-2">
+          <li>Medium: no JaCoCo coverage gate in <code>backend/pom.xml</code>. The build gates ticket (03) owns the gate set; left for it.</li>
+        </ul>
+      </details>
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+        <summary class="font-semibold">springboot: PASS</summary>
+        <ul class="list-disc pl-6 text-sm mt-2">
+          <li>Low: <code>SecuredHelloApplication.main</code> is not exercised by tests; verified by a manual jar boot on port 18001 (health 200 <code>{"status":"UP"}</code>, <code>/actuator/env</code> 403, <code>/actuator/health/diskSpace</code> 404).</li>
+        </ul>
+      </details>
+    </main>
+  </body>
+</html>

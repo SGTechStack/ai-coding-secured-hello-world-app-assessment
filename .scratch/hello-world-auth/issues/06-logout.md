@@ -4,11 +4,11 @@
 
 **Blocked by:** 04.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Logout endpoint invalidates the server-side session and clears the cookie
-- [ ] A pre-logout cookie replayed after logout is rejected as unauthenticated
-- [ ] CSRF enforced on the logout endpoint
-- [ ] Audit log line on logout (actor)
-- [ ] React logout control ends the session and returns the user to the unauthenticated view
-- [ ] Integration test: reused session cookie rejected after logout
+- [x] Logout endpoint invalidates the server-side session and clears the cookie
+- [x] A pre-logout cookie replayed after logout is rejected as unauthenticated
+- [x] CSRF enforced on the logout endpoint
+- [x] Audit log line on logout (actor)
+- [x] React logout control ends the session and returns the user to the unauthenticated view
+- [x] Integration test: reused session cookie rejected after logout

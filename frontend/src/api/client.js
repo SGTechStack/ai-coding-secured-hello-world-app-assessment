@@ -75,3 +75,20 @@ export async function fetchGreeting() {
   const data = await response.json();
   return data.message;
 }
+
+/**
+ * Ends the server-side session. Sends the CSRF token header like the other
+ * state-changing calls; the backend invalidates the session and clears the
+ * session cookie, so subsequent requests are unauthenticated.
+ */
+export async function logout() {
+  const response = await apiFetch("/api/logout", {
+    method: "POST",
+    headers: {
+      "X-XSRF-TOKEN": csrfToken(),
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`logout failed: ${response.status}`);
+  }
+}

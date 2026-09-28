@@ -15,12 +15,12 @@
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-agent
+**Status:** done (Dependency-Check wiring verified; no full NVD run without an API key)
 
-- [ ] A test citing an unknown T-ID fails `verify`.
-- [ ] Removing a ledger entry whose row has no test fails `verify`, and so does leaving an entry whose row has a test.
-- [ ] Hand-editing either rendering fails `verify`. Regenerating it passes.
-- [ ] The ten rows carry one level per requirement, and the renderings are regenerated.
-- [ ] Dependency-Check runs in `verify` and fails on the configured CVSS threshold.
-- [ ] `mvn -Pmutation` runs PIT with `--threshold=85` over the configured scope.
-- [ ] Neither `-DskipITs` nor `-Dmaven.test.skip` is used by any documented release command (R-BLD-009).
+- [x] A test citing an unknown T-ID fails `verify`.
+- [x] Removing a ledger entry whose row has no test fails `verify`, and so does leaving an entry whose row has a test.
+- [x] Hand-editing either rendering fails `verify`. Regenerating it passes.
+- [x] The ten rows carry one level per requirement, and the renderings are regenerated.
+- [x] Dependency-Check runs in `verify` and fails on the configured CVSS threshold. Bound to `verify` at CVSS 7; wiring checked with `help:effective-pom` and a bounded run. A full NVD run needs `NVD_API_KEY`.
+- [x] `mvn -Pmutation` runs PIT with `--threshold=85` over the configured scope.
+- [x] Neither `-DskipITs` nor `-Dmaven.test.skip` is used by any documented release command (R-BLD-009).

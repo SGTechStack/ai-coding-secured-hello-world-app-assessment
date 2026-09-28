@@ -148,6 +148,31 @@ export async function setUserEnabled(userId, enabled) {
   return data;
 }
 
+/**
+ * Changes a target account's role (Story 10). Admin-only PATCH under
+ * `/api/admin/**`; the backend enforces the role guard server-side, validates
+ * the role value (only USER or ADMIN accepted -> otherwise 400), and rejects an
+ * admin changing their OWN role (400 self-action guard). State-changing, so it
+ * follows the same CSRF-header pattern as the other write calls. Returns the
+ * updated user projection on success; throws with the server message otherwise.
+ */
+export async function changeUserRole(userId, role) {
+  await apiFetch("/api/ping");
+  const response = await apiFetch(`/api/admin/users/${userId}/role`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "X-XSRF-TOKEN": csrfToken(),
+    },
+    body: JSON.stringify({ role }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.message ?? `change role failed: ${response.status}`);
+  }
+  return data;
+}
+
 /** Fetches the protected greeting. Returns null when unauthenticated (401). */
 export async function fetchGreeting() {
   const response = await apiFetch("/api/hello");

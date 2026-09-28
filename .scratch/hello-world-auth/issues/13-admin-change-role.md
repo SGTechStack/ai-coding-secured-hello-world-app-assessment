@@ -4,12 +4,12 @@
 
 **Blocked by:** 11.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Role-change endpoint (ADMIN only) sets another account's role to a valid USER/ADMIN value
-- [ ] An invalid role value is rejected
-- [ ] An admin changing their own role is rejected (self-action guard)
-- [ ] CSRF enforced on the endpoint
-- [ ] Audit log line for role change (actor + target + new role)
-- [ ] React admin control changes role and reflects the new value
-- [ ] Integration tests: valid role change applied; admin cannot demote self
+- [x] Role-change endpoint (ADMIN only) sets another account's role to a valid USER/ADMIN value
+- [x] An invalid role value is rejected
+- [x] An admin changing their own role is rejected (self-action guard)
+- [x] CSRF enforced on the endpoint
+- [x] Audit log line for role change (actor + target + new role)
+- [x] React admin control changes role and reflects the new value
+- [x] Integration tests: valid role change applied; admin cannot demote self

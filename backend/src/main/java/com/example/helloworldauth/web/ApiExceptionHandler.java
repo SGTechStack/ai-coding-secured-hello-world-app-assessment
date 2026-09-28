@@ -8,6 +8,7 @@ import com.example.helloworldauth.auth.RegistrationConflictException;
 import com.example.helloworldauth.auth.TooManyRequestsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -65,5 +66,14 @@ public class ApiExceptionHandler {
             .orElse("validation failed");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of("error", "validation", "message", message));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> onUnreadable(HttpMessageNotReadableException ex) {
+        // Malformed/unparseable body — e.g. an invalid enum value for a role
+        // change (Story 10) that is neither USER nor ADMIN. Generic 400, no
+        // internal detail leaked from the parser message.
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "bad_request", "message", "malformed request body"));
     }
 }

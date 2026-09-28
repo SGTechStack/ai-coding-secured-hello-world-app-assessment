@@ -83,6 +83,24 @@ function routedFetch(listUsers, onPatch) {
   });
 }
 
+/**
+ * Like {@link routedFetch} but routes the role-change PATCH (`.../role`) to
+ * `onRolePatch`. Used by the Story 10 role-control tests.
+ */
+function routedFetchWithRole(listUsers, onRolePatch) {
+  return vi.fn((url, options = {}) => {
+    const method = options.method ?? "GET";
+    if (url.endsWith("/api/admin/users") && method === "GET") {
+      return Promise.resolve({ ok: true, json: async () => listUsers });
+    }
+    if (url.includes("/role") && method === "PATCH") {
+      return onRolePatch(url, options);
+    }
+    // /api/ping (CSRF priming) and anything else.
+    return Promise.resolve({ ok: true, json: async () => ({}) });
+  });
+}
+
 test("toggle disables an enabled account and reflects the new state", async () => {
   const users = [
     {
@@ -165,4 +183,86 @@ test("surfaces the self-action error and leaves the row unchanged", async () => 
   const row = within(screen.getByTestId("admin-user-row"));
   expect(row.getByText("Yes")).toBeInTheDocument();
   expect(row.getByTestId("admin-user-toggle")).toHaveTextContent("Disable");
+});
+
+test("role control changes a user's role and reflects the new value", async () => {
+  const users = [
+    {
+      id: "33333333-3333-3333-3333-333333333333",
+      username: "bob",
+      email: "bob@example.com",
+      role: "USER",
+      enabled: true,
+      createdAt: "2026-02-02T00:00:00Z",
+    },
+  ];
+  const rolePatch = vi.fn((url, options) => {
+    const body = JSON.parse(options.body);
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({ ...users[0], role: body.role }),
+    });
+  });
+  vi.stubGlobal("fetch", routedFetchWithRole(users, rolePatch));
+
+  render(<AdminUserTable />);
+
+  const select = await screen.findByTestId("admin-user-role");
+  expect(select).toHaveValue("USER");
+
+  await userEvent.selectOptions(select, "ADMIN");
+
+  // The PATCH was sent with role:ADMIN to the target's /role endpoint.
+  await waitFor(() => expect(rolePatch).toHaveBeenCalledTimes(1));
+  const [patchUrl, patchOptions] = rolePatch.mock.calls[0];
+  expect(patchUrl).toContain(
+    "/api/admin/users/33333333-3333-3333-3333-333333333333/role",
+  );
+  expect(patchOptions.method).toBe("PATCH");
+  expect(JSON.parse(patchOptions.body)).toEqual({ role: "ADMIN" });
+
+  // The control now reflects the new role.
+  await waitFor(() =>
+    expect(screen.getByTestId("admin-user-role")).toHaveValue("ADMIN"),
+  );
+});
+
+test("role control surfaces the self-action error and leaves the role unchanged", async () => {
+  const users = [
+    {
+      id: "44444444-4444-4444-4444-444444444444",
+      username: "admin",
+      email: "admin@example.com",
+      role: "ADMIN",
+      enabled: true,
+      createdAt: "2026-01-01T00:00:00Z",
+    },
+  ];
+  const rolePatch = vi.fn(() =>
+    Promise.resolve({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        error: "self_action_forbidden",
+        message: "an admin cannot change their own role",
+      }),
+    }),
+  );
+  vi.stubGlobal("fetch", routedFetchWithRole(users, rolePatch));
+
+  render(<AdminUserTable />);
+
+  const select = await screen.findByTestId("admin-user-role");
+  expect(select).toHaveValue("ADMIN");
+
+  await userEvent.selectOptions(select, "USER");
+
+  await waitFor(() =>
+    expect(screen.getByTestId("admin-users-action-error")).toHaveTextContent(
+      /admin cannot change their own role/i,
+    ),
+  );
+
+  // The control still shows ADMIN — the failed change did not flip local state.
+  expect(screen.getByTestId("admin-user-role")).toHaveValue("ADMIN");
 });

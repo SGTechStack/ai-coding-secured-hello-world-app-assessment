@@ -2,6 +2,7 @@ package com.example.helloworldauth.admin;
 
 import com.example.helloworldauth.user.User;
 import com.example.helloworldauth.user.UserRepository;
+import com.example.helloworldauth.user.Role;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,45 @@ public class AdminUserController {
         users.save(target);
         AUDIT.info("admin account {} actor={} target={}",
             enabled ? "enable" : "disable", actor, target.getUsername());
+
+        return AdminUserResponse.from(target);
+    }
+
+    /**
+     * Grants or revokes admin privileges by setting a target account's role
+     * (Story 10). Only a valid {@link com.example.helloworldauth.user.Role}
+     * value (USER or ADMIN) is accepted — an unknown value fails deserialization
+     * and is rejected with 400 before reaching this method, and a missing value
+     * fails {@code @NotNull} validation (also 400).
+     *
+     * <p>State-changing PATCH under {@code /api/admin/**}, so it inherits the
+     * ADMIN role guard and CSRF protection. The acting admin is taken from the
+     * security context — never from the request body. SELF-ACTION GUARD: an admin
+     * may not change their own role (they could demote themselves out of the
+     * admin role and lose access), so a target whose username equals the
+     * authenticated principal's is rejected with 400 and the account is left
+     * unchanged — the same mechanism the status-toggle endpoint uses.
+     */
+    @PatchMapping("/users/{id}/role")
+    public AdminUserResponse changeRole(@PathVariable UUID id,
+                                        @Valid @RequestBody ChangeRoleRequest request,
+                                        Authentication authentication) {
+        String actor = authentication != null ? authentication.getName() : "unknown";
+
+        User target = users.findById(id)
+            .orElseThrow(() -> new AdminUserNotFoundException("no account with id " + id));
+
+        if (target.getUsername().equals(actor)) {
+            AUDIT.info("admin self-action rejected actor={} target={} action=change-role",
+                actor, target.getUsername());
+            throw new SelfActionForbiddenException("an admin cannot change their own role");
+        }
+
+        Role newRole = request.role();
+        target.setRole(newRole);
+        users.save(target);
+        AUDIT.info("admin role change actor={} target={} newRole={}",
+            actor, target.getUsername(), newRole);
 
         return AdminUserResponse.from(target);
     }

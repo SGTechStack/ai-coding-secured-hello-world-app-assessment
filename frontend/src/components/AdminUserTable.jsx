@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchAdminUsers, setUserEnabled } from "../api/client.js";
+import { fetchAdminUsers, setUserEnabled, changeUserRole } from "../api/client.js";
 
 /**
  * Admin user table (Story 8/9). Loads and renders the user list from
@@ -60,6 +60,30 @@ export default function AdminUserTable() {
     }
   }
 
+  async function handleRoleChange(user, nextRole) {
+    if (nextRole === user.role) {
+      return;
+    }
+    setActionError("");
+    setPendingId(user.username);
+    try {
+      const updated = await changeUserRole(user.id, nextRole);
+      // Reflect the role the backend confirmed (fall back to the one we sent).
+      const confirmedRole =
+        typeof updated?.role === "string" ? updated.role : nextRole;
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === user.username ? { ...u, role: confirmedRole } : u,
+        ),
+      );
+    } catch (err) {
+      // Leave the row's role unchanged on failure (e.g. self-action guard 400).
+      setActionError(err.message);
+    } finally {
+      setPendingId(null);
+    }
+  }
+
   if (loading) {
     return <p data-testid="admin-users-loading">Loading users…</p>;
   }
@@ -96,7 +120,18 @@ export default function AdminUserTable() {
             <tr key={u.username} data-testid="admin-user-row">
               <td>{u.username}</td>
               <td>{u.email}</td>
-              <td>{u.role}</td>
+              <td>
+                <select
+                  data-testid="admin-user-role"
+                  value={u.role}
+                  onChange={(e) => handleRoleChange(u, e.target.value)}
+                  disabled={pendingId === u.username}
+                  aria-label={`Role for ${u.username}`}
+                >
+                  <option value="USER">USER</option>
+                  <option value="ADMIN">ADMIN</option>
+                </select>
+              </td>
               <td>{u.enabled ? "Yes" : "No"}</td>
               <td>{u.createdAt}</td>
               <td>

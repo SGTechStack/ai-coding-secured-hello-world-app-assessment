@@ -79,8 +79,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(problemAuthenticationEntryPoint)
                         .accessDeniedHandler(problemAccessDeniedHandler))
                 // The API never redirects: no saved request to return to, and no default /logout redirect. The cache
-                // must be a NullRequestCache, not disabled: disabling leaves ExceptionTranslationFilter its own
-                // session-backed cache, which creates a session for every anonymous request it refuses (ADR-040).
+                // is an explicit NullRequestCache (ADR-040), so no filter can fall back to the session-backed default.
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 .logout(LogoutConfigurer::disable)
                 .build();

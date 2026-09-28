@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 02-spa-skeleton-and-document-headers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/0/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN 0/0/1/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">springboot N/A</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t02-spa-skeleton</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 02: SPA skeleton and document headers. Checks run inline by the implementing agent (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Check</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Status</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">C/H/M/L</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="px-4 py-2">build</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0/0/0/0</td><td class="px-4 py-2">prettier --check, tsc -b, oxlint (0 warnings), vitest --coverage (12 tests, 100% on all four metrics, thresholds 80), vite build, fallow audit (no issues), npm audit (0 vulnerabilities), Playwright 4/4 (Chromium and Firefox).</td></tr>
+            <tr><td class="px-4 py-2">thermo-nuclear</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0/0/0/0</td><td class="px-4 py-2">Small skeleton. Unused shadcn Button and unused form and validation dependencies removed; duplicated policy parsing in the build tests extracted.</td></tr>
+            <tr><td class="px-4 py-2">code-review</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0/0/0/2</td><td class="px-4 py-2">Standards: no documented repo coding standards; no baseline smells found. Spec: two low-severity scope notes.</td></tr>
+            <tr><td class="px-4 py-2">semgrep</td><td class="px-4 py-2">SKIPPED</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Semgrep CLI is not installed on this machine.</td></tr>
+            <tr><td class="px-4 py-2">im8</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0/0/1/0</td><td class="px-4 py-2">as-9 PASS (templated meta tag plus Vite header; production script-src 'self', no unsafe-inline, unsafe-eval or wildcard). as-8 WARN: committed .env files (documented deviation R-CFG-012). lm-18 N/A (R-FE-003). Backend controls N/A for this changeset.</td></tr>
+            <tr><td class="px-4 py-2">react</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0/0/0/0</td><td class="px-4 py-2">QueryClient and router created once through lazy useState; pure render; no effects.</td></tr>
+            <tr><td class="px-4 py-2">springboot</td><td class="px-4 py-2">N/A</td><td class="px-4 py-2">—</td><td class="px-4 py-2">No Java in this changeset.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-500">None.</p>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">build</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100"><tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings</td></tr></tbody></table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">thermo-nuclear</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100"><tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings</td></tr></tbody></table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">code-review</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/e2e/document.spec.ts</td><td class="px-4 py-2">19</td><td class="px-4 py-2">Spec: T-E2E-001 reads "after loading and signing in". Sign-in does not exist yet, so the test covers the load half only; ticket 10 should extend it.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/index.html</td><td class="px-4 py-2">4</td><td class="px-4 py-2">Spec: on the dev server only, @vitejs/plugin-react injects the React Refresh preamble ahead of the referrer and CSP meta tags. The dev response header still covers it (REJ-060). The built document is compliant (T-BLD-010 and REJ-053 tests).</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">semgrep</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">SKIPPED</span></summary>
+        <table class="w-full text-sm border-t border-slate-100"><tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">Not run: the semgrep CLI is not installed.</td></tr></tbody></table>
+      </details>
+
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">im8</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/.env.development, frontend/.env.production</td><td class="px-4 py-2">1</td><td class="px-4 py-2">as-8 (LR 1, WARN): the .env files are committed rather than gitignored. This is the documented deviation R-CFG-012: build-time, non-secret VITE_* values only, and each file carries a header saying so. T-CFG-034 pins the .env.production key set and T-CFG-035 pins the placeholder API origin. Manual review: confirm every VITE_* value is safe to be public.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">react</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100"><tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings</td></tr></tbody></table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">springboot</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">N/A</span></summary>
+        <table class="w-full text-sm border-t border-slate-100"><tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No Java in this changeset.</td></tr></tbody></table>
+      </details>
+    </main>
+  </body>
+</html>

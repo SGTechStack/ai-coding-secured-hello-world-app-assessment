@@ -40,6 +40,12 @@ the ADR set, so a PRD deviation with a register row and no ADR is complete, not 
 `.scratch/` path. Each artefact carries its own rationale and its primary-source citations, and cross-references
 only surviving IDs (`ADR-…`, `R-…`, `T-…`). `threat-model/` moves to `docs/`. `research/`,
 `test-plan/transcription/` and `deferral-register/inventory/` die with `.scratch/`.
+*(Amended after ticket 18: **the spec is written to `docs/spec.md`, not to the tracker's default
+`.scratch/<slug>/spec.md`.** The rule assumed the spec survives, but this repo's tracker is local markdown and would
+have put the spec inside the directory being deleted. `docs/spec.md` follows the same citation rule as the rest of
+`docs/`. It must carry three things that otherwise exist only in ticket 18: the gate list, the Low Risk and
+population declarations, and the register and handover schema (REJ-075). The error contract's prose form is a build
+deliverable (R-AUTH-003), not spec content. Delete `.scratch/` only after `docs/spec.md` is committed.)*
 
 **Currency rule (settled):** the standard is authoritative but may be dated. Before adopting any
 control from it, verify it is still current practice against primary sources (NIST SP 800-63B-4,

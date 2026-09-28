@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 import sg.securedhello.build.RegisterTable.Row;
@@ -19,18 +18,16 @@ import sg.securedhello.build.RegisterTable.Row;
  */
 final class RegisterRenderer {
 
-    /** The operational groups, in deployment order: steps 1–7, then {@code L}. */
-    private static final Map<String, String> STEPS = Map.of(
-            "1", "1. Keys and generation commands",
-            "2", "2. Trusted-proxy configuration",
-            "3", "3. Time synchronisation",
-            "4", "4. Headers and origins",
-            "5", "5. Mail transport",
-            "6", "6. Log forwarding and retention",
-            "7", "7. Recovery rehearsal",
-            "L", "L. Limitations: what nobody can currently prove");
-
-    private static final List<String> STEP_ORDER = List.of("1", "2", "3", "4", "5", "6", "7", "L");
+    /** The operational groups, in deployment order; each heading starts with its {@code sequence} value. */
+    private static final List<String> STEPS = List.of(
+            "1. Keys and generation commands",
+            "2. Trusted-proxy configuration",
+            "3. Time synchronisation",
+            "4. Headers and origins",
+            "5. Mail transport",
+            "6. Log forwarding and retention",
+            "7. Recovery rehearsal",
+            "L. Limitations: what nobody can currently prove");
 
     private static final String NOTICE = "<!-- Generated from register.md by the register drift gate (ADR-069; "
             + "T-BLD-006). Do not edit: amend register.md by ID, then regenerate. -->";
@@ -57,9 +54,10 @@ final class RegisterRenderer {
     /** The rows with a sequence, grouped by deployment step 1–7 then {@code L}. */
     static String handover(RegisterTable table) {
         StringBuilder out = preamble("Operational handover", table);
-        for (String step : STEP_ORDER) {
+        for (String heading : STEPS) {
+            String step = heading.substring(0, 1);
             List<Row> rows = table.rows().stream().filter(row -> row.get("sequence").equals(step)).toList();
-            out.append("## ").append(STEPS.get(step)).append("\n\n");
+            out.append("## ").append(heading).append("\n\n");
             if (rows.isEmpty()) {
                 out.append("No rows.\n\n");
                 continue;

@@ -173,6 +173,8 @@ class TraceabilityGateTest {
                   test.skip(`T-AUTH-002 and T-HDR-004: two ids`, async ({ page }) => {})
                   it('T-AUTH-004 isn\\'t escaped away', () => {})
                   expect(x).toBe('T-AUTH-005')
+                  expect(/T-/.test('T-AUTH-006')).toBe(true)
+                  submit('T-AUTH-007')
                 })
                 """, "src/a.test.tsx");
 

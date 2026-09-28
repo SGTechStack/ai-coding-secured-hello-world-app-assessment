@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,9 +30,9 @@ class RegisterDriftIT {
         RegisterTable table = RegisterTable.read(path("register.path", "../docs/register/register.md"));
         Path compliance = path("register.compliance.path", "../docs/register/deferral-register.md");
         Path handover = path("register.handover.path", "../docs/register/handover.md");
-        Map<Path, String> renderings = Map.of(
-                compliance, RegisterRenderer.compliance(table, handover.getFileName().toString()),
-                handover, RegisterRenderer.handover(table));
+        Map<Path, String> renderings = new LinkedHashMap<>();
+        renderings.put(compliance, RegisterRenderer.compliance(table, handover.getFileName().toString()));
+        renderings.put(handover, RegisterRenderer.handover(table));
 
         List<String> problems = new ArrayList<>(table.problems());
         if (!problems.isEmpty()) {

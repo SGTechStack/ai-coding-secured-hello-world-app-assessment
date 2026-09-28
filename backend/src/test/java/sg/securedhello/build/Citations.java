@@ -31,7 +31,7 @@ final class Citations {
 
     /** A test or suite call and its literal name: {@code it('...'}, {@code test.skip("..."}, {@code describe(`...`}. */
     private static final Pattern TEST_NAME = Pattern.compile(
-            "\\b(?:describe|it|test)(?:\\.\\w+)*\\(\\s*(['\"`])((?:\\\\.|(?!\\1).)*)\\1", Pattern.DOTALL);
+            "(?<![.\\w])(?:describe|it|test)(?:\\.\\w+)*\\(\\s*(['\"`])((?:\\\\.|(?!\\1).)*)\\1", Pattern.DOTALL);
 
     private static final Pattern CITED_ID = Pattern.compile("\\bT-[A-Z][A-Z0-9]*-\\d+\\b");
 

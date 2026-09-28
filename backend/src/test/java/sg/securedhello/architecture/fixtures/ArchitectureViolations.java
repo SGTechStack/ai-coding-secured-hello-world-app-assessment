@@ -1,5 +1,6 @@
 package sg.securedhello.architecture.fixtures;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -12,6 +13,9 @@ import java.util.function.Function;
 
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -93,6 +97,31 @@ public final class ArchitectureViolations {
     public static final class SleepsOnTimeUnit {
         void pause() throws InterruptedException {
             TimeUnit.MILLISECONDS.sleep(1);
+        }
+    }
+
+    public static final class SendsErrorWithStatus {
+        void fail(HttpServletResponse response) throws IOException {
+            response.sendError(401);
+        }
+    }
+
+    public static final class SendsErrorWithMessage {
+        void fail(HttpServletResponse response) throws IOException {
+            response.sendError(500, "boom");
+        }
+    }
+
+    public static final class SendsErrorOnAWrapper {
+        void fail(HttpServletResponseWrapper response) throws IOException {
+            response.sendError(403);
+        }
+    }
+
+    /** Allowed: setting a status and writing through the writer. */
+    public static final class SetsStatus {
+        void fail(HttpServletResponse response) {
+            response.setStatus(401);
         }
     }
 

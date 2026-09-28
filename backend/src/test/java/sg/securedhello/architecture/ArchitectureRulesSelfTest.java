@@ -41,6 +41,18 @@ class ArchitectureRulesSelfTest {
     }
 
     @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.SendsErrorWithStatus.class,
+            ArchitectureViolations.SendsErrorWithMessage.class, ArchitectureViolations.SendsErrorOnAWrapper.class})
+    void sendErrorIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.NO_SEND_ERROR, violator);
+    }
+
+    @Test
+    void settingAStatusIsAllowed() {
+        assertPasses(ArchitectureRules.NO_SEND_ERROR, ArchitectureViolations.SetsStatus.class);
+    }
+
+    @ParameterizedTest
     @ValueSource(classes = {ArchitectureViolations.ReadsHttpRemoteAddr.class,
             ArchitectureViolations.ReadsServletRemoteAddr.class, ArchitectureViolations.ReferencesRemoteAddr.class,
             ArchitectureViolations.ReadsDetailsRemoteAddress.class})

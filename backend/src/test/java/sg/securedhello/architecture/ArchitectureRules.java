@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -61,6 +63,14 @@ final class ArchitectureRules {
     /** T-ARCH-006: a class that proves a control boots the full context, never a Boot test slice (ADR-065). */
     static final ArchRule NO_SLICE_ON_PROVING_TESTS = noSliceOnClassesDeclaring(Proves.class);
 
+    /**
+     * T-AUTH-011: nothing calls {@code HttpServletResponse.sendError}, which hands the body to the container's error
+     * page; every error body goes through {@code ProblemDetailWriter} (ADR-031).
+     */
+    static final ArchRule NO_SEND_ERROR = noClasses()
+            .should().callMethodWhere(sendErrorCall())
+            .because("every error body is written by ProblemDetailWriter; sendError is prohibited (ADR-031)");
+
     /** T-RL-028: only the resolver reads the raw client address; everything else uses the source key (ADR-020). */
     static final ArchRule NO_RAW_CLIENT_ADDRESS = noClasses()
             .that().doNotBelongToAnyOf(SourceKeyResolver.class)
@@ -87,6 +97,12 @@ final class ArchitectureRules {
                 call -> call.getName().equals("sleep")
                         && (call.getTargetOwner().isEquivalentTo(Thread.class)
                                 || call.getTargetOwner().isAssignableTo(TimeUnit.class)));
+    }
+
+    private static DescribedPredicate<JavaMethodCall> sendErrorCall() {
+        return DescribedPredicate.describe("HttpServletResponse.sendError",
+                call -> call.getName().equals("sendError")
+                        && call.getTargetOwner().isAssignableTo(HttpServletResponse.class));
     }
 
     private static DescribedPredicate<JavaAccess<?>> rawClientAddressRead() {

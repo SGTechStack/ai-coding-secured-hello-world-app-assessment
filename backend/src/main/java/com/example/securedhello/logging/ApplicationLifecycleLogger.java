@@ -16,6 +16,8 @@ import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.config.ApiProperties;
+import com.example.securedhello.config.LockoutProperties;
+import com.example.securedhello.config.RateLimitProperties;
 import com.example.securedhello.config.SessionProperties;
 
 /**
@@ -35,13 +37,19 @@ class ApplicationLifecycleLogger {
 
 	private final SessionProperties session;
 
+	private final LockoutProperties lockout;
+
+	private final RateLimitProperties rateLimit;
+
 	private final AuditLog auditLog;
 
 	ApplicationLifecycleLogger(Environment environment, ApiProperties api, SessionProperties session,
-			AuditLog auditLog) {
+			LockoutProperties lockout, RateLimitProperties rateLimit, AuditLog auditLog) {
 		this.environment = environment;
 		this.api = api;
 		this.session = session;
+		this.lockout = lockout;
+		this.rateLimit = rateLimit;
 		this.auditLog = auditLog;
 	}
 
@@ -59,6 +67,10 @@ class ApplicationLifecycleLogger {
 			.addKeyValue("config.session.timeout.idle", session.idleTimeout().toString())
 			.addKeyValue("config.session.timeout.absolute", session.absoluteTimeout().toString())
 			.addKeyValue("config.session.max_concurrent_per_account", session.maxConcurrentPerAccount())
+			.addKeyValue("config.lockout.threshold", lockout.threshold())
+			.addKeyValue("config.lockout.duration", lockout.duration().toString())
+			.addKeyValue("config.rate_limit.login.capacity", rateLimit.login().capacity())
+			.addKeyValue("config.rate_limit.login.period", rateLimit.login().period().toString())
 			.log("Application started");
 		auditLog.record(AuditEvent.success(AuditAction.APPLICATION_STARTUP));
 	}

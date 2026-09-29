@@ -26,6 +26,7 @@ import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.credential.PasswordPolicyException;
+import com.example.securedhello.ratelimit.RateLimitExceededException;
 
 /**
  * Turns every exception reaching Spring MVC into an RFC 9457 ProblemDetail with a {@code code}.
@@ -55,6 +56,20 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 				"The password does not meet the password policy.");
 		problem.setProperty("violations", exception.violations());
 		return problem;
+	}
+
+	/**
+	 * 429 {@code too_many_requests} with {@code Retry-After} for every rate limiter, audited with the
+	 * endpoint. The body uses the Standard's wording and never says which limit or key was hit.
+	 */
+	@ExceptionHandler(RateLimitExceededException.class)
+	ResponseEntity<ProblemDetail> handleRateLimited(RateLimitExceededException exception, HttpServletRequest request) {
+		auditLog.record(AuditEvent.failure(AuditAction.ACCESS_CONTROL, "rate_limited")
+			.request(request)
+			.sessionHashOf(request));
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+			.header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+			.body(ProblemResponses.problem(HttpStatus.TOO_MANY_REQUESTS, "too_many_requests", "too many requests"));
 	}
 
 	@ExceptionHandler(Exception.class)

@@ -22,8 +22,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Test seam for log output (spec Seam 4). Marks the end of the real application-log and audit-log
- * files, then returns every line written after the mark, each parsed as JSON. Reading the files
+ * Test seam for log output (spec Seam 4). Marks the end of the real application-log, audit-log and
+ * email files, then returns every line written after the mark, each parsed as JSON. Reading the files
  * the app is configured with (rather than a stand-in appender) proves both the format and the
  * destination. Parsing fails the test on any line that is not a single JSON object or that has
  * duplicate keys.
@@ -35,6 +35,10 @@ public final class LogCapture {
 	public static final String AUDIT_APPENDER = "AUDIT_FILE";
 
 	public static final String AUDIT_LOGGER = "audit";
+
+	public static final String EMAIL_APPENDER = "EMAIL_FILE";
+
+	public static final String EMAIL_LOGGER = "email";
 
 	private static final JsonMapper JSON = JsonMapper.builder()
 		.enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
@@ -48,16 +52,32 @@ public final class LogCapture {
 
 	private final long auditMark;
 
-	private LogCapture(Path applicationFile, Path auditFile) {
+	private final Path emailFile;
+
+	private final long emailMark;
+
+	private LogCapture(Path applicationFile, Path auditFile, Path emailFile) {
 		this.applicationFile = applicationFile;
 		this.auditFile = auditFile;
+		this.emailFile = emailFile;
 		this.applicationMark = size(applicationFile);
 		this.auditMark = size(auditFile);
+		this.emailMark = size(emailFile);
 	}
 
-	/** Starts capturing at the current end of both log files. */
+	/** Starts capturing at the current end of the application, audit and email log files. */
 	public static LogCapture start() {
-		return new LogCapture(applicationLogFile(), auditLogFile());
+		return new LogCapture(applicationLogFile(), auditLogFile(), emailLogFile());
+	}
+
+	/** The {@code EmailService} stub's file, standing in for a mailbox. */
+	public static Path emailLogFile() {
+		return file(context().getLogger(EMAIL_LOGGER), EMAIL_APPENDER);
+	}
+
+	/** Email-file lines written since the mark, each parsed as a JSON object. */
+	public List<JsonNode> email() {
+		return parse(linesSince(emailFile, emailMark));
 	}
 
 	public static Path applicationLogFile() {

@@ -107,6 +107,8 @@
 				<configuration>
 					<systemPropertyVariables>
 						<app.logging.directory>${project.build.directory}/test-logs</app.logging.directory>
+						<!-- A size rollover in the middle of a test would hide the lines it captured. -->
+						<app.logging.application-max-file-size>1GB</app.logging.application-max-file-size>
 					</systemPropertyVariables>
 				</configuration>
 			</plugin>

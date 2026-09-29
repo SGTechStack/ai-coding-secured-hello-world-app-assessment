@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
+import com.example.securedhello.ratelimit.RateLimitExceededException;
 import com.example.securedhello.security.SessionControl;
 import com.example.securedhello.web.ProblemResponses;
 
@@ -27,13 +28,16 @@ import com.example.securedhello.web.ProblemResponses;
  * {@code POST /login} and {@code POST /logout}. Login takes JSON {@code {username, password}} (JSON
  * rather than a form post, see {@code docs/agents/reviewer-decisions.md}); success starts a fresh
  * Session and returns the own Account, and every refusal is the same 401
- * {@code authentication_failed} body.
+ * {@code authentication_failed} body. Too many attempts on one username get 429 from the global
+ * handler.
  */
 @RestController
 @RequestMapping("${app.api.base-path}")
 class AuthenticationController {
 
 	static final String AUTHENTICATION_FAILED = "authentication_failed";
+
+	static final String ACCOUNT_LOCKED = "account_locked";
 
 	private static final String CLEAR_SITE_DATA = "Clear-Site-Data";
 
@@ -84,16 +88,21 @@ class AuthenticationController {
 	}
 
 	/**
-	 * One body for unknown username, wrong password and Disabled Account; no identity is logged. An
-	 * authenticated Session the request carried is ended.
+	 * One body for unknown username, wrong password, Locked and Disabled Account; the failed login is
+	 * logged without identity. The attempt that makes an Account Locked is also audited as a lockout
+	 * with that Account's UUID. An authenticated Session the request carried is ended.
 	 */
 	@ExceptionHandler(AuthenticationFailedException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
-	ProblemDetail authenticationFailed(HttpServletRequest request, HttpServletResponse response) {
+	ProblemDetail authenticationFailed(AuthenticationFailedException exception, HttpServletRequest request,
+			HttpServletResponse response) {
 		auditLog.record(AuditEvent.failure(AuditAction.USER_AUTHENTICATION, AUTHENTICATION_FAILED)
 			.passwordAuthentication()
 			.request(request)
 			.sessionHashOf(request));
+		exception.newlyLockedAccountId()
+			.ifPresent((accountId) -> auditLog.record(
+					AuditEvent.failure(AuditAction.ACCESS_CONTROL, ACCOUNT_LOCKED).userId(accountId).request(request)));
 		sessionControl.endAfterFailedLogin(request, response);
 		return ProblemResponses.problem(HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED,
 				"The username or password is incorrect.");
@@ -108,7 +117,7 @@ class AuthenticationController {
 		try {
 			return guard.authenticate(body.username(), body.password());
 		}
-		catch (AuthenticationFailedException ex) {
+		catch (AuthenticationFailedException | RateLimitExceededException ex) {
 			throw ex;
 		}
 		catch (RuntimeException ex) {

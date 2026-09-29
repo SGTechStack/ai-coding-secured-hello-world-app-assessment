@@ -55,6 +55,10 @@ class AuditLogTest {
 			assertThat(field(started, "config.api.max_request_body_bytes")).isEqualTo("16384");
 			assertThat(field(started, "config.session.timeout.idle")).isEqualTo("PT15M");
 			assertThat(field(started, "config.session.timeout.absolute")).isEqualTo("PT8H");
+			assertThat(field(started, "config.lockout.threshold")).isEqualTo("5");
+			assertThat(field(started, "config.lockout.duration")).isEqualTo("PT20M");
+			assertThat(field(started, "config.rate_limit.login.capacity")).isEqualTo("10");
+			assertThat(field(started, "config.rate_limit.login.period")).isEqualTo("PT1M");
 			assertThat(capture.applicationText()).noneMatch((line) -> line.contains("jdbc:h2"))
 				.noneMatch((line) -> line.contains("secured-hello-test"));
 

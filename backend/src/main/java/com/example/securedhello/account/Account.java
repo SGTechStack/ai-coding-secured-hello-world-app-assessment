@@ -1,5 +1,6 @@
 package com.example.securedhello.account;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -86,6 +87,36 @@ public class Account {
 
 	public boolean isPasswordChangeRequired() {
 		return passwordChangeRequired;
+	}
+
+	/** Whether the Account is Locked at the given instant. */
+	boolean isLocked(Instant now) {
+		return lockedUntil != null && now.isBefore(lockedUntil);
+	}
+
+	/**
+	 * Counts a wrong password. Once a lock has expired the count starts again; reaching the threshold
+	 * makes the Account Locked until {@code now + duration}. Wrong passwords during a lock are counted
+	 * but do not extend it.
+	 * @return whether this failure made the Account Locked
+	 */
+	boolean recordFailedLogin(Instant now, int threshold, Duration duration) {
+		if (lockedUntil != null && !isLocked(now)) {
+			lockedUntil = null;
+			failedLoginAttempts = 0;
+		}
+		failedLoginAttempts++;
+		if (lockedUntil == null && failedLoginAttempts >= threshold) {
+			lockedUntil = now.plus(duration);
+			return true;
+		}
+		return false;
+	}
+
+	/** A successful login clears the failure count and any expired lock. */
+	void recordSuccessfulLogin() {
+		failedLoginAttempts = 0;
+		lockedUntil = null;
 	}
 
 }

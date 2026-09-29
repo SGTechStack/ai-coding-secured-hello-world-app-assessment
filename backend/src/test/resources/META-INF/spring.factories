@@ -1,0 +1,2 @@
+org.springframework.test.context.TestExecutionListener=\
+com.example.securedhello.support.ResetRateLimitersListener

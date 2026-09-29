@@ -1,0 +1,30 @@
+package com.example.securedhello.config;
+
+import java.time.Duration;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
+
+/**
+ * Rate limits.
+ *
+ * @param login login attempts per username
+ */
+@Validated
+@ConfigurationProperties("app.rate-limit")
+public record RateLimitProperties(@Valid @NotNull Limit login) {
+
+	/**
+	 * At most {@code capacity} attempts per {@code period} for one key.
+	 *
+	 * @param capacity attempts allowed per period
+	 * @param period the period, refilled evenly
+	 */
+	public record Limit(@Min(1) int capacity, @NotNull Duration period) {
+	}
+
+}

@@ -27,8 +27,8 @@ import com.example.securedhello.support.MutableClock;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Sessions and their limits survive a restart: two application contexts, one after the other, on
- * the same file database, driven over real HTTP. Both contexts share one {@link MutableClock}.
+ * Sessions and their limits, and lockout state, survive a restart: two application contexts, one
+ * after the other, on the same file database, driven over real HTTP. Both contexts share one {@link MutableClock}.
  */
 class SessionRestartTest {
 
@@ -64,6 +64,33 @@ class SessionRestartTest {
 			second.getBean(MutableClock.class).advance(Duration.ofMinutes(15));
 
 			assertThat(me(base, session).statusCode()).isEqualTo(401);
+		}
+	}
+
+	@Test
+	void aLockedAccountStaysLockedAcrossARestartUntilTheLockExpires() throws Exception {
+		try (ConfigurableApplicationContext first = start()) {
+			String base = baseUrl(first);
+			Csrf csrf = csrf(base, null);
+			assertThat(postJson(base + "/api/register", csrf,
+					Map.of("username", "testuser123", "email", "testuser123@test.example.com", "password", PASSWORD))
+				.statusCode()).isEqualTo(201);
+			for (int attempt = 1; attempt <= 5; attempt++) {
+				assertThat(postJson(base + "/api/login", csrf,
+						Map.of("username", "testuser123", "password", "Wrong-Pass-4242"))
+					.statusCode()).isEqualTo(401);
+			}
+		}
+
+		try (ConfigurableApplicationContext second = start()) {
+			String base = baseUrl(second);
+			Csrf csrf = csrf(base, null);
+			Map<String, String> correct = Map.of("username", "testuser123", "password", PASSWORD);
+			assertThat(postJson(base + "/api/login", csrf, correct).statusCode()).isEqualTo(401);
+
+			second.getBean(MutableClock.class).advance(Duration.ofMinutes(20));
+
+			assertThat(postJson(base + "/api/login", csrf, correct).statusCode()).isEqualTo(200);
 		}
 	}
 

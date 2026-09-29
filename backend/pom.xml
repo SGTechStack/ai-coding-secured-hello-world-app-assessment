@@ -23,6 +23,10 @@
         <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>3.6.0</maven-failsafe-plugin.version>
         <archunit.version>1.5.1</archunit.version>
+        <!-- Boot 4.1.1 (newest 4.1.x) ships Tomcat 11.0.24. 11.0.25+ fixes CVE-2026-65637, -65905, -65182, -68525,
+             -65183, -66422, -68569, -65927, -68763 (CVSS 7.5-9.8) and -73180, -66299. Drop this override once
+             Boot manages 11.0.25 or later (R-BLD-007). -->
+        <tomcat.version>11.0.26</tomcat.version>
 
         <!-- Build gates (ticket 03). Paths are relative to this module; moving a file is a one-line change here. -->
         <test-plan.path>${project.basedir}/../docs/test-plan/test-plan.md</test-plan.path>

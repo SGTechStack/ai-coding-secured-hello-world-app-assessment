@@ -11,9 +11,14 @@ Covers PRD Story 1, happy path only.
 
 **Status:** ready-for-agent
 
-**IM8 controls:** `as-6` Password Salting and Hashing; `as-1` Input Validation; `as-5` Password
-Requirements; `lm-4` Audit Logging; `lm-19` Log Sanitisation. *ASVS: V2.1 Password Security, V6
-Stored Cryptography, V8 Data Protection.*
+**IM8 controls:** `as-6` Password Salting and Hashing; `lm-4` Audit Logging; `lm-19` Log
+Sanitisation. *ASVS: V2.1 Password Security, V6 Stored Cryptography, V8 Data Protection.*
+
+`as-1` Input Validation and `as-5` Password Requirements are **consumed** here and **delivered by
+ticket 05** — do not define the validation constraints or the password strength policy in this
+ticket. Ticket 05 requires the policy to live in exactly one reusable validator that registration
+and password reset both call; a second copy written here is the defect that requirement exists to
+prevent.
 
 - [ ] The `users` table exists with the fields the PRD's data model specifies: identifier,
       unique username, unique email, password hash, role enum of `USER`/`ADMIN`, enabled flag,

@@ -250,15 +250,23 @@ Four independent fronts open up after ticket 04: the **login/session** chain (06
 (16→17→18→19/20/21, 16→22), and the **inactivity** work (24, once 06 and 19 land). Ticket 23
 depends only on 01 and can be worked at any time. They can all be worked in parallel.
 
-## Design decisions to confirm
+## Design decisions (resolved)
 
-- **Ticket 14:** the PRD does not say whether a password reset should also clear
-  `failed_login_attempts` and `locked_until`. The tickets assume it should — a user who reset
-  their password because they were locked out otherwise stays locked out.
-- **Tickets 19-21:** the self-action guard is one shared rule applied three times, not three
-  independent checks. Implement it once in 19 and reuse it, rather than triplicating it.
-- **Ticket 22:** the forced-change gate is ordered *before* role authorization, so a gated admin
+These four points are where the PRD is silent and the tickets had to choose. They are **decided**,
+not open — an implementing agent follows them rather than re-deciding or pausing to ask.
+
+- **Ticket 14:** a password reset **does** also clear `failed_login_attempts` and `locked_until`.
+  The PRD does not say, but a user who reset their password *because* they were locked out would
+  otherwise still be locked out, which makes the recovery path useless in the case that most needs
+  it.
+- **Tickets 19-21:** the self-action guard is **one shared rule applied three times**, not three
+  independent checks. Implement it once in 19 and reuse it in 20 and 21. Three hand-written copies
+  of a privilege check is three chances for one of them to drift.
+- **Ticket 22:** the forced-change gate is ordered **before** role authorization, so a gated admin
   gets `PASSWORD_CHANGE_REQUIRED` rather than a 403 from the admin matcher. Both are 403s, so the
-  body code is what distinguishes them.
-- **Ticket 23:** the metrics endpoint is either authenticated or bound to a separate management
-  port. Either satisfies `as-7`; the ticket requires the choice be stated rather than assumed.
+  body code is the only thing distinguishing them — which is why the ordering is specified rather
+  than left to whichever filter happens to register first.
+- **Ticket 23:** the metrics endpoint is **either** authenticated **or** bound to a separate
+  management port — the implementer picks one, and either satisfies `as-7`. What the ticket does
+  not allow is leaving it open: the choice must be recorded, because an unstated decision here is
+  indistinguishable from an unsecured actuator surface.

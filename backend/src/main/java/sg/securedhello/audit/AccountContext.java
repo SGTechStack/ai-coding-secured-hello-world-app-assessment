@@ -33,6 +33,16 @@ public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason
         return new AccountContext(userId, reason);
     }
 
+    /** A source-axis throttle (row 5), which carries no identity. */
+    public static AccountContext sourceThrottled(SourceThrottleReason reason) {
+        return new AccountContext(null, reason);
+    }
+
+    /** A submitted-value throttle (row 6), which carries no identity by construction: the value may name no one. */
+    public static AccountContext identifierThrottled() {
+        return new AccountContext(null, IdentifierThrottleReason.RATE_LIMITED_IDENTIFIER);
+    }
+
     @Override
     public void writeTo(AuditFields fields) {
         if (userId != null) {

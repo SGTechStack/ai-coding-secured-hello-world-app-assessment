@@ -16,6 +16,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -42,6 +43,8 @@ import sg.securedhello.audit.SessionStartReason;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.profile.Profile;
+import sg.securedhello.security.ratelimit.AuthRateLimiter;
+import sg.securedhello.security.ratelimit.TooManyRequests;
 import sg.securedhello.session.SessionAttributes;
 import sg.securedhello.user.SignedInUser;
 
@@ -66,7 +69,8 @@ import tools.jackson.databind.json.JsonMapper;
  * </ol>
  *
  * <p>Every sign-in failure is the same 401 {@code AUTHENTICATION_FAILED} (ADR-033); a body that is not JSON
- * credentials is 400 {@code VALIDATION_FAILED}. A displaced session's next request is answered 401 too.
+ * credentials is 400 {@code VALIDATION_FAILED}, and a spent username budget is 429 {@code TOO_MANY_REQUESTS}. A
+ * displaced session's next request is answered 401 too.
  *
  * <p>Sign-out stays behind {@code CsrfFilter}, so a dead session without a token gets 403 (T-CSRF-005). It writes the
  * logout audit row, invalidates the session, sends {@code Clear-Site-Data} on every request, not only secure ones
@@ -86,9 +90,11 @@ public final class SignIn {
     private final ProblemDetailWriter writer;
     private final JsonMapper jsonMapper;
     private final Clock clock;
+    private final AuthRateLimiter limiter;
 
     SignIn(AuthenticationProvider provider, AuthenticationEventPublisher events, SessionRegistry sessionRegistry,
-            AuditEmitter audit, ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock) {
+            AuditEmitter audit, ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock,
+            AuthRateLimiter limiter) {
         this.authenticationManager = new ProviderManager(provider);
         this.authenticationManager.setAuthenticationEventPublisher(events);
         this.sessionRegistry = sessionRegistry;
@@ -96,6 +102,7 @@ public final class SignIn {
         this.writer = writer;
         this.jsonMapper = jsonMapper;
         this.clock = clock;
+        this.limiter = limiter;
     }
 
     /**
@@ -107,15 +114,13 @@ public final class SignIn {
      */
     public void configure(HttpSecurity http, CsrfTokenRepository csrfTokens, CsrfTokenRequestHandler csrfHandler,
             Duration idleWindow) {
-        JsonLoginFilter login = new JsonLoginFilter(authenticationManager, new JsonCredentialsConverter(jsonMapper));
+        JsonLoginFilter login = new JsonLoginFilter(authenticationManager,
+                new JsonCredentialsConverter(jsonMapper, limiter));
         login.setSessionAuthenticationStrategy(loginComposite(csrfTokens, csrfHandler, idleWindow));
         login.setSecurityContextRepository(new DelegatingSecurityContextRepository(
                 new RequestAttributeSecurityContextRepository(), new HttpSessionSecurityContextRepository()));
         login.setAuthenticationSuccessHandler(this::loginSucceeded);
-        login.setAuthenticationFailureHandler((request, response, failure) -> writer.write(request, response,
-                failure instanceof JsonCredentialsConverter.MalformedLoginException
-                        ? ErrorCode.VALIDATION_FAILED
-                        : ErrorCode.AUTHENTICATION_FAILED));
+        login.setAuthenticationFailureHandler(this::loginFailed);
 
         http.addFilterAt(login, UsernamePasswordAuthenticationFilter.class)
                 .addFilter(new ConcurrentSessionFilter(sessionRegistry, event ->
@@ -144,6 +149,25 @@ public final class SignIn {
                         .setAttribute(SessionAttributes.AUTH_INSTANT, clock.instant()),
                 new IdleIntervalReset(idleWindow),
                 csrf));
+    }
+
+    /**
+     * The uniform 401 for every password-axis failure (ADR-033), 400 for a malformed body, and the deliberate 429 for
+     * a spent username budget (ADR-010; T-RL-002). Row 6 is transition-keyed: written on the first refusal after the
+     * username was last admitted, not on every refusal.
+     */
+    private void loginFailed(HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
+            throws IOException {
+        if (failure instanceof JsonCredentialsConverter.LoginThrottledException throttled) {
+            if (throttled.refusal().breach()) {
+                audit.emit(AuditEvent.IDENTIFIER_THROTTLED, AccountContext.identifierThrottled());
+            }
+            TooManyRequests.write(writer, request, response, throttled.refusal());
+        } else {
+            writer.write(request, response, failure instanceof JsonCredentialsConverter.MalformedLoginException
+                    ? ErrorCode.VALIDATION_FAILED
+                    : ErrorCode.AUTHENTICATION_FAILED);
+        }
     }
 
     private void loginSucceeded(HttpServletRequest request, HttpServletResponse response,

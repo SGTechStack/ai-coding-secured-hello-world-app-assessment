@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 11-rate-limiter-core</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/1/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">react SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">springboot PASS 0/0/0/1</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t11-rate-limiter</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 11: rate limiter core. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify -Ddependency-check.skip=true</code> green: 559 unit and context tests and 6 ITs, including <code>TraceabilityGateIT</code> (21 rows off the ledger) and <code>AuditInventoryDriftIT</code> with the regenerated inventory. <code>-Pmutation</code>: 49 of 49 mutants killed across the existing scope (<code>SourceKeyResolver</code>, <code>EmitterKeyValidator</code>). The PIT minions now get their own <code>app.audit.directory</code> (<code>target/pit-audit-logs</code>). Without it, a ticket-10 test failed before any mutation ran. Frontend (untouched): <code>typecheck</code>, <code>oxlint</code>, <code>prettier --check</code>, Vitest 71 passed, production build. Playwright: 8 passed on Chromium and Firefox, signing in through the limiter.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">One limiter (<code>AuthRateLimiter</code>) holds every bucket family, and one enum (<code>RateLimit</code>) registers the rows. Adding a row takes a <code>Route</code> component, its YAML values and one constant, and the class Javadoc documents it. The early filter, the body cap and the keying structure (<code>AuditKeying</code>) are small and single-purpose. Low: <code>SecurityConfig.securityFilterChain</code> now takes 15 injected parameters. That is still readable, but the next filter could go into a small holder.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/1/2</td><td class="p-2">All six acceptance criteria have tests. Medium: the tier-2 (per-user) cap is proven only at unit level (<code>AuditKeyingTest</code>). Its rows (12, 14, 35) do not exist yet, so T-AUD-035 stays on the ledger. Low: T-RL-010 is parameterised over the rows built so far; later route tickets add theirs, so it stays on the ledger. Low: T-AUTH-003 (locked and capped states) and T-AUTH-006 (reset and registration endpoints) still wait on tickets 12 to 15. Their limiter cases are now tested.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">The semgrep CLI is not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">as-4 is met by per-source and per-username budgets. Refusals are 429 with an integer <code>Retry-After</code> and no server-side wait, and they never touch an account counter. The miss budget is checked before any session lookup, and the refusal's own audit row does not look the session up either. The 16384-byte body cap is counted as the body is read. Clustering properties are refused at startup (single instance, REJ-018). Throttle and CSRF rows are keyed, with count and first-seen fields, and a truncation row with exact counts caps audit volume. Low: the early 429 is written before <code>HeaderWriterFilter</code> runs, so it lacks the framework's security headers. It does carry the envelope and the SPA's CORS headers.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">No frontend source changed in this ticket.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">The budgets bind through validated <code>@ConfigurationProperties</code> with no code defaults, and a missing row stops startup with its property name. The filters are not beans, so the container never registers them outside the chain. The Bucket4j <code>TimeMeter</code> and Caffeine <code>Ticker</code> are built from the <code>Clock</code> bean. Tests isolate limiter state by source key in a dedicated <code>ctx-budget</code> context. The shared contexts raise budgets through a documented properties file, with no code bypass. Low: <code>@EnableScheduling</code> is now explicit for the one-minute keying tick. The tick fires in real time, but it measures the window on the <code>Clock</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

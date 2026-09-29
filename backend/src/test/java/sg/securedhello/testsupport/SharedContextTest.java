@@ -18,8 +18,8 @@ import org.springframework.test.context.bean.override.convention.TestBean;
  *   <li>the {@code clock} bean replaced by the one suite-wide {@link MutableClock}, exposed as {@link #clock}.</li>
  * </ul>
  *
- * <p>Extend one of the named contexts ({@link CtxDefaultTest}, {@link CtxPortTest}, {@link CtxLockTimeoutTest}),
- * never this class directly. Adding a property, {@code @MockitoBean} or {@code @TestBean} to a subclass creates a
+ * <p>Extend one of the named contexts ({@link CtxDefaultTest}, {@link CtxPortTest}, {@link CtxLockTimeoutTest},
+ * {@link CtxBudgetTest}), never this class directly. Adding a property, {@code @MockitoBean} or {@code @TestBean} to a subclass creates a
  * new cached context and needs a stated reason.
  */
 @ActiveProfiles("dev")
@@ -28,6 +28,12 @@ import org.springframework.test.context.bean.override.convention.TestBean;
         // No background session cleanup: it runs on Spring Session's own clock and would race row-counting tests.
         "spring.session.jdbc.cleanup-cron=-"})
 public abstract class SharedContextTest {
+
+    /**
+     * The raised rate-limit budgets every shared context except {@link CtxBudgetTest} loads, so the suite's fixture
+     * traffic from the one loopback source never spends a budget. The file says why.
+     */
+    public static final String HARNESS_BUDGETS = "classpath:harness-budgets.properties";
 
     /** The suite-wide forward-only clock, which is also the context's {@code clock} bean. Advance it; never sleep. */
     protected final MutableClock clock = TestClock.shared();

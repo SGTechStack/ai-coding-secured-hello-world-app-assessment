@@ -23,17 +23,31 @@ Every audit row goes to both destinations (ADR-056; R-AUD-037).
 
 ## Events
 
-Every row is written once per event; no row is keyed or truncated yet (ADR-019).
+The Keying column says how often a row is written (ADR-019): per event, or as a keyed row.
 
-| Event | `event.action` | `event.type` | `event.outcome` | Level | Severity | Request fields | Reason codes | Required keys | Optional keys | `message` |
-|---|---|---|---|---|---|---|---|---|---|---|
-| LOGIN_SUCCESS | `user-authentication` | `user` | success | INFO | low | yes | — | `user.id` | — | Login succeeded. |
-| LOGIN_FAILURE | `user-authentication` | `user` | failure | WARN | medium | yes | `BAD_CREDENTIALS`, `UNKNOWN_USER`, `ACCOUNT_LOCKED`, `ACCOUNT_DISABLED`, `CREDENTIAL_EXPIRED` | — | `user.id` | Login failed. |
-| LOGOUT | `user-logout` | `end` | success | INFO | low | yes | — | `user.id` | — | Logout succeeded. |
-| SESSION_START | `session-start` | `start` | success | INFO | low | yes | `LOGIN` | `user.id` | — | Session started. |
-| CSRF_REJECTED | `access-control` | `denied` | failure | WARN | medium | yes | `CSRF_MISSING`, `CSRF_INVALID` | — | `user.id` | CSRF validation failed. |
-| APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
-| APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | — | — | — | Application stopping. |
+| Event | `event.action` | `event.type` | `event.outcome` | Level | Severity | Request fields | Keying | Reason codes | Required keys | Optional keys | `message` |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| LOGIN_SUCCESS | `user-authentication` | `user` | success | INFO | low | yes | per event | — | `user.id` | — | Login succeeded. |
+| LOGIN_FAILURE | `user-authentication` | `user` | failure | WARN | medium | yes | per event | `BAD_CREDENTIALS`, `UNKNOWN_USER`, `ACCOUNT_LOCKED`, `ACCOUNT_DISABLED`, `CREDENTIAL_EXPIRED` | — | `user.id` | Login failed. |
+| SOURCE_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `RATE_LIMITED_SOURCE`, `RATE_LIMITED_SOURCE_MISSES` | — | — | Request throttled for its source. |
+| IDENTIFIER_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | per event | `RATE_LIMITED_IDENTIFIER` | — | — | Request throttled for its submitted identifier. |
+| LOGOUT | `user-logout` | `end` | success | INFO | low | yes | per event | — | `user.id` | — | Logout succeeded. |
+| SESSION_START | `session-start` | `start` | success | INFO | low | yes | per event | `LOGIN` | `user.id` | — | Session started. |
+| CSRF_REJECTED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `CSRF_MISSING`, `CSRF_INVALID` | — | `user.id` | CSRF validation failed. |
+| APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
+| KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
+| APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | per event | — | — | — | Application stopping. |
+
+## Keyed rows and truncation
+
+Rows anyone can trigger without an account are keyed, so their volume does not grow with the attacker's request rate or number of sources (ADR-019; REJ-078 to REJ-080; R-AUD-027 to R-AUD-029).
+
+- **Key tuple:** (key, event, `event.reason`, keying window). Tier 1 keys on `source.ip_hash`, tier 2 on `user.id`.
+- **Window:** `app.audit.keying.window`, default 15 minutes, one window for both tiers. It opens at the first keyed occurrence and closes when an occurrence or the one-minute tick finds it that old, and when the application stops.
+- **When written:** once per key tuple, as the window closes, with the first occurrence's fields plus `event.count` (the occurrences it stands for) and `event.start` (when the first happened). Timestamps of the other occurrences are not kept.
+- **Caps:** at most `app.audit.truncation.distinct-sources` (default 20) sources in tier 1 and `app.audit.truncation.distinct-users` (default 500) users in tier 2 per window. A key beyond the cap is never admitted, and its occurrences are only counted.
+- **Truncation row:** `KEYED_ROWS_TRUNCATED`, once per capped tier per window, after the keyed rows: `source.distinct_count` or `user.distinct_count` (keys tracked, exact), `events.untracked_count` (occurrences beyond the cap, exact) and `labels.truncated_rows` (the events those occurrences belonged to). The true number of distinct keys lies between the tracked count and the sum of both.
+- **Transition-keyed:** `IDENTIFIER_THROTTLED` is written per event, but only on the first refusal after the submitted value's bucket last admitted a request.
 
 ## Degraded row
 

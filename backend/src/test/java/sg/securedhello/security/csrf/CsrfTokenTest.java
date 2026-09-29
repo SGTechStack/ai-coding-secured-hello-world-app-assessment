@@ -18,7 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 
 import sg.securedhello.error.ErrorCode;
-import sg.securedhello.testsupport.AuditCapture;
+import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxDefaultTest;
@@ -41,6 +41,9 @@ class CsrfTokenTest extends CtxDefaultTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private AuditEmitter auditEmitter;
 
     private SessionRows sessions;
 
@@ -111,6 +114,7 @@ class CsrfTokenTest extends CtxDefaultTest {
     @Proves("T-CSRF-008")
     void anUnsafeRequestWithNoSessionIsRefusedAsCsrfMissingAndCreatesNoSession() throws Exception {
         Set<String> before = sessions.ids();
+        auditEmitter.closeKeyingWindow();
 
         MvcResult result;
         try (AuditCapture audit = AuditCapture.start()) {
@@ -118,9 +122,12 @@ class CsrfTokenTest extends CtxDefaultTest {
                     .andExpect(problem(ErrorCode.CSRF_TOKEN_INVALID))
                     .andReturn();
             mockMvc.perform(post(UNSAFE_PATH)).andExpect(problem(ErrorCode.CSRF_TOKEN_INVALID));
+            auditEmitter.closeKeyingWindow();
 
-            assertThat(audit.withMessage("CSRF validation failed.")).hasSize(2).allSatisfy(row -> assertThat(row)
+            // Row 13 is a tier-1 keyed row: one per source, reason and window, standing for both refusals (ADR-019).
+            assertThat(audit.withMessage("CSRF validation failed.")).singleElement().satisfies(row -> assertThat(row)
                     .containsEntry("event.action", "access-control").containsEntry("event.reason", "CSRF_MISSING")
+                    .containsEntry("event.count", 2)
                     .containsEntry("log.level", "WARN").doesNotContainKeys("user.id", "session.hash"));
         }
 

@@ -28,7 +28,18 @@ public record CsrfSession(Cookie cookie, String token) {
 
     /** Fetches a token, which creates the anonymous session it is bound to. */
     public static CsrfSession bootstrap(MockMvc mockMvc) throws Exception {
-        MvcResult result = mockMvc.perform(get("/api/csrf")).andReturn();
+        return bootstrap(mockMvc, "127.0.0.1");
+    }
+
+    /**
+     * Fetches a token from {@code remoteAddr}, for tests that isolate their rate-limit state by source address
+     * ({@link CtxBudgetTest}).
+     */
+    public static CsrfSession bootstrap(MockMvc mockMvc, String remoteAddr) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/csrf").with(request -> {
+            request.setRemoteAddr(remoteAddr);
+            return request;
+        })).andReturn();
         assertThat(result.getResponse().getStatus()).as("GET /api/csrf").isEqualTo(200);
         Cookie cookie = result.getResponse().getCookie("SESSION");
         assertThat(cookie).as("session cookie").isNotNull();

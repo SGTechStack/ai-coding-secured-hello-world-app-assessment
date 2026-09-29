@@ -4,9 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.context.properties.source.ConfigurationPropertyName;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySource;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
+import org.springframework.boot.context.properties.source.IterableConfigurationPropertySource;
 import org.springframework.boot.env.OriginTrackedMapPropertySource;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -23,7 +29,9 @@ import org.springframework.stereotype.Component;
  *   <li>a session cookie {@code max-age}, which makes the cookie persistent (REJ-008);</li>
  *   <li>the dev-only reset-link logger's level set in a configuration file outside {@code dev} (ADR-057, control
  *       1; {@link ResetLinkLoggerGuard} is control 2);</li>
- *   <li>an unset or in-memory datasource URL, and under {@code dev} any URL that is not an H2 file (ADR-051).</li>
+ *   <li>an unset or in-memory datasource URL, and under {@code dev} any URL that is not an H2 file (ADR-051);</li>
+ *   <li>any clustering property: a shared session or limiter store, which the in-memory, single-instance rate
+ *       limiter cannot follow (REJ-018; R-RL-006; T-CFG-029).</li>
  * </ul>
  * Every refusal is collected and reported together. Messages name properties, never their values.
  */
@@ -31,6 +39,13 @@ import org.springframework.stereotype.Component;
 public class ProhibitedConfigurationValidator implements BeanFactoryPostProcessor, EnvironmentAware {
 
     static final String DEV = "dev";
+
+    /**
+     * Property prefixes that configure state shared between instances. The limiters are in memory and the build
+     * supports exactly one instance, so any of them would split every budget silently (REJ-018; R-RL-006).
+     */
+    static final List<String> CLUSTERING_PREFIXES = List.of("spring.data.redis", "spring.session.redis",
+            "spring.session.hazelcast", "spring.session.mongodb", "spring.hazelcast", "bucket4j");
 
     private ConfigurableEnvironment environment;
 
@@ -68,7 +83,25 @@ public class ProhibitedConfigurationValidator implements BeanFactoryPostProcesso
         }
         datasourceViolation(trimmed(environment.getProperty("spring.datasource.url")), dev)
                 .ifPresent(violations::add);
+        clusteringPrefixesSet(environment).forEach(prefix -> violations.add(prefix + ".* is set; the rate limiters "
+                + "are in memory and only one instance is supported (REJ-018; R-RL-006)"));
         return violations;
+    }
+
+    /** The clustering prefixes under which any property is set, in any spelling Boot would bind. */
+    private static Set<String> clusteringPrefixesSet(ConfigurableEnvironment environment) {
+        Set<String> found = new TreeSet<>();
+        for (ConfigurationPropertySource source : ConfigurationPropertySources.get(environment)) {
+            if (source instanceof IterableConfigurationPropertySource names) {
+                names.stream().forEach(name -> CLUSTERING_PREFIXES.stream()
+                        .filter(prefix -> {
+                            ConfigurationPropertyName root = ConfigurationPropertyName.of(prefix);
+                            return root.equals(name) || root.isAncestorOf(name);
+                        })
+                        .forEach(found::add));
+            }
+        }
+        return found;
     }
 
     private static Optional<String> datasourceViolation(String url, boolean dev) {

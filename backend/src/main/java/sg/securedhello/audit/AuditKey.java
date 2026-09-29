@@ -26,7 +26,15 @@ public enum AuditKey {
      * The account the row is about, by its UUID; never a username or email (ADR-054). On a failed login it is written
      * only when the account resolves, and set explicitly by the caller, never from MDC (REJ-042; R-AUD-007).
      */
-    USER_ID("user.id");
+    USER_ID("user.id"),
+    /** On a truncation row: the source keys the window tracked, exactly; at most the cap (ADR-019; REJ-079). */
+    SOURCE_DISTINCT_COUNT("source.distinct_count"),
+    /** On a truncation row: the users the window tracked, exactly; at most the cap (ADR-019; REJ-079). */
+    USER_DISTINCT_COUNT("user.distinct_count"),
+    /** On a truncation row: the occurrences from keys beyond the cap, exactly (ADR-019; REJ-079). */
+    EVENTS_UNTRACKED_COUNT("events.untracked_count"),
+    /** On a truncation row: which rows had occurrences beyond the cap, by event name. */
+    TRUNCATED_ROWS("labels.truncated_rows");
 
     private final String field;
 

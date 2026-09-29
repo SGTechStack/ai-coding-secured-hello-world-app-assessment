@@ -7,6 +7,7 @@ import static sg.securedhello.audit.AuditRowDefinition.row;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import sg.securedhello.audit.AuditRowDefinition.Severity;
 import sg.securedhello.security.source.SourceKey;
 import sg.securedhello.testsupport.EcsJson;
 import sg.securedhello.testsupport.ExpectsDegradedAuditRow;
+import sg.securedhello.testsupport.MutableClock;
 import sg.securedhello.testsupport.Proves;
 
 /** The single emitter (ADR-055): validated rows, request fields (ADR-054; REJ-081) and the degraded path. */
@@ -56,7 +58,7 @@ class AuditEmitterTest {
     private final LogFieldHasher hasher = new LogFieldHasher(LOG_KEY);
     private final AuditEmitter emitter = new AuditEmitter(new AuditRequestFields(
             request -> CLIENT_ADDRESS.equals(request.getRemoteAddr()) ? CLIENT_SOURCE_KEY : SourceKey.UNPARSEABLE,
-            hasher, 256));
+            hasher, 256), MutableClock.startingNow(), Duration.ofMinutes(15), 20, 500);
     private final MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/admin/users/42");
 
     @BeforeEach

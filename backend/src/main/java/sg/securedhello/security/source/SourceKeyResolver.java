@@ -2,6 +2,9 @@ package sg.securedhello.security.source;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.regex.Pattern;
 
@@ -26,6 +29,12 @@ public class SourceKeyResolver {
     /** Counts client addresses keyed as {@link SourceKey#UNPARSEABLE} (R-RL-020). */
     public static final String UNPARSEABLE_COUNTER = "app.client_ip.unparseable";
 
+    /**
+     * The request attribute holding the request's source key once it is derived. The early rate-limit filter derives
+     * it first, and every later reader, the audit fields included, gets the same key without deriving it again.
+     */
+    public static final String REQUEST_ATTRIBUTE = SourceKeyResolver.class.getName() + ".sourceKey";
+
     /** Longest logged form of an unparseable token (R-RL-020). */
     static final int LOGGED_TOKEN_LIMIT = 64;
 
@@ -47,8 +56,17 @@ public class SourceKeyResolver {
     private final int ipv6PrefixLength;
     private final Level unparseableLevel;
     private final Counter unparseable;
+    private final Clock clock;
+    private final Duration logWindow;
+    private Instant nextUnparseableLog = Instant.MIN;
 
-    SourceKeyResolver(ClientIpProperties properties, MeterRegistry meterRegistry) {
+    /**
+     * @param logWindow how often the unparseable-address line may be written: once per window, while the counter
+     *                  counts every occurrence (R-RL-020)
+     */
+    SourceKeyResolver(ClientIpProperties properties, MeterRegistry meterRegistry, Clock clock, Duration logWindow) {
+        this.clock = clock;
+        this.logWindow = logWindow;
         this.ipv6PrefixLength = properties.ipv6PrefixLength();
         // A socket peer is always a literal, so an unparseable one is a defect, not a proxy misconfiguration.
         this.unparseableLevel = properties.source() == Source.PROXY ? Level.WARN : Level.ERROR;
@@ -57,16 +75,35 @@ public class SourceKeyResolver {
                 properties.source());
     }
 
-    /** The request's source key, from its client address: the socket peer, or the trusted proxy's client. */
+    /**
+     * The request's source key, from its client address: the socket peer, or the trusted proxy's client. Derived once
+     * per request and kept in the {@link #REQUEST_ATTRIBUTE} request attribute.
+     */
     public SourceKey resolve(HttpServletRequest request) {
+        if (request.getAttribute(REQUEST_ATTRIBUTE) instanceof SourceKey resolved) {
+            return resolved;
+        }
         String clientAddress = request.getRemoteAddr();
         SourceKey key = derive(clientAddress, ipv6PrefixLength);
         if (key == SourceKey.UNPARSEABLE) {
             unparseable.increment();
-            log.atLevel(unparseableLevel).log("Client address '{}' is not an IP literal; keyed as {}",
-                    loggable(clientAddress), SourceKey.UNPARSEABLE.value());
+            if (logDue()) {
+                log.atLevel(unparseableLevel).log("Client address '{}' is not an IP literal; keyed as {}",
+                        loggable(clientAddress), SourceKey.UNPARSEABLE.value());
+            }
         }
+        request.setAttribute(REQUEST_ATTRIBUTE, key);
         return key;
+    }
+
+    /** Whether the unparseable-address line is due: the first time, then once per log window (R-RL-020). */
+    private synchronized boolean logDue() {
+        Instant now = clock.instant();
+        if (now.isBefore(nextUnparseableLog)) {
+            return false;
+        }
+        nextUnparseableLog = now.plus(logWindow);
+        return true;
     }
 
     /** The pure derivation: {@code token}'s source key with IPv6 masked to {@code ipv6PrefixLength} bits. */

@@ -12,7 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestPropertySource(properties = TemporaryH2FileInitializer.LOCK_TIMEOUT_PROPERTY + "=50")
+@TestPropertySource(locations = SharedContextTest.HARNESS_BUDGETS,
+        properties = TemporaryH2FileInitializer.LOCK_TIMEOUT_PROPERTY + "=50")
 public abstract class CtxLockTimeoutTest extends SharedContextTest {
 
     @Autowired

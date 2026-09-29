@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
+import sg.securedhello.audit.AuditRowDefinition.Keying;
 import sg.securedhello.audit.AuditRowDefinition.Scope;
 
 /**
@@ -66,11 +67,11 @@ final class AuditInventory {
 
                 ## Events
 
-                Every row is written once per event; no row is keyed or truncated yet (ADR-019).
+                The Keying column says how often a row is written (ADR-019): per event, or as a keyed row.
 
                 | Event | `event.action` | `event.type` | `event.outcome` | Level | Severity | Request fields \
-                | Reason codes | Required keys | Optional keys | `message` |
-                |---|---|---|---|---|---|---|---|---|---|---|
+                | Keying | Reason codes | Required keys | Optional keys | `message` |
+                |---|---|---|---|---|---|---|---|---|---|---|---|
                 """);
         for (AuditEvent event : AuditEvent.values()) {
             AuditRowDefinition row = event.definition();
@@ -81,6 +82,7 @@ final class AuditInventory {
                     .append(" | ").append(row.level())
                     .append(" | ").append(row.severity().code())
                     .append(" | ").append(row.scope() == Scope.REQUEST ? "yes" : "no")
+                    .append(" | ").append(keying(row.keying()))
                     .append(" | ").append(codes(row.reasonFamily()))
                     .append(" | ").append(keys(row.required()))
                     .append(" | ").append(keys(row.allowed().stream().filter(key -> !row.required().contains(key))
@@ -89,6 +91,29 @@ final class AuditInventory {
                     .append(" |\n");
         }
         md.append("""
+
+                ## Keyed rows and truncation
+
+                Rows anyone can trigger without an account are keyed, so their volume does not grow with the attacker's \
+                request rate or number of sources (ADR-019; REJ-078 to REJ-080; R-AUD-027 to R-AUD-029).
+
+                - **Key tuple:** (key, event, `event.reason`, keying window). Tier 1 keys on `source.ip_hash`, tier 2 \
+                on `user.id`.
+                - **Window:** `app.audit.keying.window`, default 15 minutes, one window for both tiers. It opens at the \
+                first keyed occurrence and closes when an occurrence or the one-minute tick finds it that old, and when \
+                the application stops.
+                - **When written:** once per key tuple, as the window closes, with the first occurrence's fields plus \
+                `event.count` (the occurrences it stands for) and `event.start` (when the first happened). Timestamps \
+                of the other occurrences are not kept.
+                - **Caps:** at most `app.audit.truncation.distinct-sources` (default 20) sources in tier 1 and \
+                `app.audit.truncation.distinct-users` (default 500) users in tier 2 per window. A key beyond the cap \
+                is never admitted, and its occurrences are only counted.
+                - **Truncation row:** `KEYED_ROWS_TRUNCATED`, once per capped tier per window, after the keyed rows: \
+                `source.distinct_count` or `user.distinct_count` (keys tracked, exact), `events.untracked_count` \
+                (occurrences beyond the cap, exact) and `labels.truncated_rows` (the events those occurrences \
+                belonged to). The true number of distinct keys lies between the tracked count and the sum of both.
+                - **Transition-keyed:** `IDENTIFIER_THROTTLED` is written per event, but only on the first refusal \
+                after the submitted value's bucket last admitted a request.
 
                 ## Degraded row
 
@@ -105,6 +130,14 @@ final class AuditInventory {
                 | `EMIT_FAILED` | Building the row failed. |
                 """.formatted(AuditEmitter.DEGRADED_MESSAGE));
         return md.toString();
+    }
+
+    private static String keying(Keying keying) {
+        return switch (keying) {
+            case NONE -> "per event";
+            case SOURCE -> "tier 1: per source";
+            case USER -> "tier 2: per user";
+        };
     }
 
     private static String codes(Class<? extends AuditReason> family) {

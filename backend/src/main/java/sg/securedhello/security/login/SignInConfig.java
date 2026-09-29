@@ -13,6 +13,7 @@ import java.time.Clock;
 
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.error.ProblemDetailWriter;
+import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.user.UserAccountRepository;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -37,9 +38,9 @@ public class SignInConfig {
     @Bean
     SignIn signIn(DaoAuthenticationProvider provider, AuthenticationEventPublisher events,
             FindByIndexNameSessionRepository<? extends Session> sessions, AuditEmitter audit,
-            ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock) {
+            ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock, AuthRateLimiter limiter) {
         return new SignIn(provider, events, new SpringSessionBackedSessionRegistry<>(sessions), audit, writer,
-                jsonMapper, clock);
+                jsonMapper, clock, limiter);
     }
 
     @Bean

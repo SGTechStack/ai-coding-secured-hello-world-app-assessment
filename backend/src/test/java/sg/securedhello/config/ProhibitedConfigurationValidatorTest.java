@@ -10,6 +10,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.env.OriginTrackedMapPropertySource;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.mock.env.MockEnvironment;
 
 import sg.securedhello.testsupport.Proves;
@@ -99,6 +101,36 @@ class ProhibitedConfigurationValidatorTest {
     void outsideDevANonH2DatasourceIsNotRefused() {
         assertThat(ProhibitedConfigurationValidator.violations(
                 production().withProperty("spring.datasource.url", "jdbc:postgresql://db/app"))).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"spring.data.redis.host", "spring.session.redis.namespace",
+            "spring.session.hazelcast.map-name", "spring.session.mongodb.collection-name", "spring.hazelcast.config",
+            "bucket4j.enabled", "bucket4j.filters[0].url"})
+    @Proves("T-CFG-029")
+    void anyClusteringPropertyRefusesStartup(String property) {
+        String prefix = ProhibitedConfigurationValidator.CLUSTERING_PREFIXES.stream()
+                .filter(property::startsWith).findFirst().orElseThrow();
+
+        assertRefused(production().withProperty(property, "anything"), prefix + ".*");
+        assertRefused(dev().withProperty(property, "anything"), prefix + ".*");
+    }
+
+    @Test
+    @Proves("T-CFG-029")
+    void aClusteringPropertyFromTheEnvironmentIsRefusedInItsRelaxedSpelling() {
+        MockEnvironment environment = production();
+        environment.getPropertySources().addFirst(new SystemEnvironmentPropertySource(
+                StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
+                Map.of("SPRING_DATA_REDIS_HOST", "cache.internal")));
+
+        assertRefused(environment, "spring.data.redis.*");
+    }
+
+    @Test
+    void aPropertyThatOnlySharesAPrefixIsNotClustering() {
+        assertThat(ProhibitedConfigurationValidator.violations(
+                production().withProperty("spring.data.redistributed", "x"))).isEmpty();
     }
 
     @Test

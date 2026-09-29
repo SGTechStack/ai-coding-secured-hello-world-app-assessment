@@ -2,15 +2,20 @@ package sg.securedhello.audit;
 
 import static sg.securedhello.audit.AuditKey.ACTIVE_PROFILES;
 import static sg.securedhello.audit.AuditKey.AUDIT_LOGGERS;
+import static sg.securedhello.audit.AuditKey.EVENTS_UNTRACKED_COUNT;
 import static sg.securedhello.audit.AuditKey.HOST_IP;
 import static sg.securedhello.audit.AuditKey.HOST_NAME;
 import static sg.securedhello.audit.AuditKey.IPV6_PREFIX_LENGTH;
 import static sg.securedhello.audit.AuditKey.KEY_FINGERPRINTS;
+import static sg.securedhello.audit.AuditKey.SOURCE_DISTINCT_COUNT;
+import static sg.securedhello.audit.AuditKey.TRUNCATED_ROWS;
+import static sg.securedhello.audit.AuditKey.USER_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.USER_ID;
 import static sg.securedhello.audit.AuditRowDefinition.row;
 
 import org.slf4j.event.Level;
 
+import sg.securedhello.audit.AuditRowDefinition.Keying;
 import sg.securedhello.audit.AuditRowDefinition.Outcome;
 import sg.securedhello.audit.AuditRowDefinition.Scope;
 import sg.securedhello.audit.AuditRowDefinition.Severity;
@@ -37,6 +42,9 @@ import sg.securedhello.audit.AuditRowDefinition.Severity;
  * }}</pre></li>
  *   <li>Add the constant: {@code row(action, message)} with its type, outcome, level and severity, its reason family
  *       and its required and optional keys. Rows are request-scoped unless declared {@code PROCESS}.</li>
+ *   <li>If anyone can trigger the row without an account, key it (ADR-019): {@code .keyed(Keying.SOURCE)} when its
+ *       key space is the source, {@code .keyed(Keying.USER)} when it needs a resolved user. Otherwise it would reopen
+ *       the audit-volume arithmetic (R-AUD-031).</li>
  *   <li>Regenerate the inventory with {@code -Daudit-inventory.regenerate=true} and commit it.</li>
  * </ol>
  * Nothing else changes: the emitter validates the keys, derives the request fields and writes the row.
@@ -61,6 +69,30 @@ public enum AuditEvent {
             .optional(USER_ID)
             .build()),
 
+    /**
+     * Row 5: a request was throttled on its source key, by a budget-table row or by the session-miss budget. A tier-1
+     * keyed row: one per source, reason and keying window, with its count (ADR-019).
+     */
+    SOURCE_THROTTLED(row("access-control", "Request throttled for its source.")
+            .type("denied")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(SourceThrottleReason.class)
+            .keyed(Keying.SOURCE)
+            .build()),
+
+    /**
+     * Row 6: a request was throttled on the value it submitted, such as a login username. Transition-keyed: written
+     * once when the value's bucket runs out, not for each refusal until it is admitted again. It carries no identity
+     * by construction, since the value may name no account and its bucket must not become an existence oracle.
+     */
+    IDENTIFIER_THROTTLED(row("access-control", "Request throttled for its submitted identifier.")
+            .type("denied")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(IdentifierThrottleReason.class)
+            .build()),
+
     /** Row 7: a signed-in user signed out. */
     LOGOUT(row("user-logout", "Logout succeeded.")
             .type("end")
@@ -77,13 +109,17 @@ public enum AuditEvent {
             .required(USER_ID)
             .build()),
 
-    /** Row 13: a CSRF check refused an unsafe request. {@code user.id} only when the caller is signed in. */
+    /**
+     * Row 13: a CSRF check refused an unsafe request. {@code user.id} only when the caller is signed in. A tier-1 keyed
+     * row, because any unsafe request from anywhere can produce it (ADR-019).
+     */
     CSRF_REJECTED(row("access-control", "CSRF validation failed.")
             .type("denied")
             .outcome(Outcome.FAILURE)
             .level(Level.WARN, Severity.MEDIUM)
             .reasons(CsrfReason.class)
             .optional(USER_ID)
+            .keyed(Keying.SOURCE)
             .build()),
 
     /** Row 43: the application is ready. Records what later correlation depends on (LOG §3.1; ADR-054; ADR-057). */
@@ -91,6 +127,21 @@ public enum AuditEvent {
             .type("start")
             .scope(Scope.PROCESS)
             .required(HOST_NAME, HOST_IP, ACTIVE_PROFILES, IPV6_PREFIX_LENGTH, KEY_FINGERPRINTS, AUDIT_LOGGERS)
+            .build()),
+
+    /**
+     * Row 46: a keying tier reached its distinct-key cap in a keying window. One per tier and window, written as the
+     * window closes, with the exact tracked-key and untracked-occurrence counts and the rows truncated (ADR-019;
+     * REJ-079). A per-event alert: reaching it means a campaign large enough to threaten the audit file (R-OBS-013).
+     */
+    KEYED_ROWS_TRUNCATED(row("access-control", "Keyed audit rows truncated.")
+            .type("denied")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.HIGH)
+            .scope(Scope.PROCESS)
+            .reasons(TruncationReason.class)
+            .required(EVENTS_UNTRACKED_COUNT, TRUNCATED_ROWS)
+            .optional(SOURCE_DISTINCT_COUNT, USER_DISTINCT_COUNT)
             .build()),
 
     /** Row 44: the application context is closing. */

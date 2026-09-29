@@ -114,6 +114,40 @@ class LockoutCardinalityTest extends CtxBudgetTest {
                 assertThat(result.getResponse().getStatus()).isEqualTo(200));
     }
 
+    /**
+     * Review 11-13 H1: pacing under the windowed rule used to lock nothing, so it never entered the axis. The
+     * consecutive rule locks it, and every lock counts, whichever rule fired it.
+     */
+    @Test
+    @Proves("T-LCK-021")
+    void pacedFailuresThatNeverFillAWindowStillLockAndFillTheSourcesSet() throws Exception {
+        List<Account> paced = new ArrayList<>();
+        for (int i = 0; i < cardinality.k(); i++) {
+            paced.add(accounts.user());
+        }
+        int made = 0;
+        while (made < lockout.consecutiveThreshold()) {
+            int burst = Math.min(lockout.threshold() - 1, lockout.consecutiveThreshold() - made);
+            for (Account account : paced) {
+                fail(account, burst);
+            }
+            made += burst;
+            if (made < lockout.consecutiveThreshold()) {
+                for (Account account : paced) {
+                    assertThat(accounts.lockoutState(account).lockedUntil()).as("under the windowed rule").isNull();
+                }
+                clock.advance(lockout.observationWindow());
+            }
+        }
+        for (Account account : paced) {
+            assertThat(accounts.lockoutState(account).lockedAt(clock.instant())).as("locked by the consecutive rule")
+                    .isTrue();
+        }
+
+        Account bystander = accounts.user();
+        login(bystander.username(), bystander.password()).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
+    }
+
     @Test
     @Proves("T-RL-007")
     void attemptingManyAccountsWithoutLockingAnyIsNeverRefused() throws Exception {

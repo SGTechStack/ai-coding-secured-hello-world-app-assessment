@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
@@ -19,6 +20,7 @@ import sg.securedhello.audit.LockoutClearReason;
 import sg.securedhello.audit.PasswordDisableReason;
 import sg.securedhello.security.lockout.LockoutCounter.Outcome;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
+import sg.securedhello.security.source.SourceKey;
 import sg.securedhello.security.source.SourceKeyAuthenticationDetails;
 import sg.securedhello.session.SessionTerminationService;
 import sg.securedhello.user.PasswordLockoutState;
@@ -40,7 +42,9 @@ import sg.securedhello.user.UserAccountRepository;
  *
  * <p>Each outcome is counted under the account's row lock, so concurrent failures are counted one after another and
  * none is lost (R-DATA-014). The rows are written after commit. A lockout also records the account in its source's
- * lockout-cardinality set, the source read from the token's {@link SourceKeyAuthenticationDetails} (ADR-015).
+ * lockout-cardinality set, the source read from the token's {@link SourceKeyAuthenticationDetails}, failing closed to
+ * {@link SourceKey#UNPARSEABLE} when they are missing (ADR-015). Every lock counts, whichever rule fired it, so paced
+ * failures that lock under the consecutive rule enter the axis too.
  *
  * <p>A failed login below the threshold never touches the account's sessions (ADR-034). The failure that locks the
  * account or disables its password ends all of them (ADR-037): once, on the transition, registered inside the row-lock
@@ -78,9 +82,8 @@ final class LockoutRecorder {
                 .map(result -> endSessionsIfRestricted(username, result)));
         counted.ifPresent(result -> {
             report(result);
-            if (result.outcome().locked()
-                    && event.getAuthentication().getDetails() instanceof SourceKeyAuthenticationDetails details) {
-                cardinality.recordLockout(details.sourceKey(), username);
+            if (result.outcome().locked()) {
+                cardinality.recordLockout(sourceOf(event.getAuthentication().getDetails()), username);
             }
         });
     }
@@ -93,6 +96,15 @@ final class LockoutRecorder {
                     .map(account -> count(account, counter.success(account.getLockoutState()))))
                     .ifPresent(this::report);
         }
+    }
+
+    /**
+     * The source the login converter put on the token. Missing or foreign details fail closed (ADR-015): the lockout is
+     * attributed to the one {@link SourceKey#UNPARSEABLE} key, whose set then fills and refuses, rather than the axis
+     * switching off unseen.
+     */
+    static SourceKey sourceOf(@Nullable Object details) {
+        return details instanceof SourceKeyAuthenticationDetails source ? source.sourceKey() : SourceKey.UNPARSEABLE;
     }
 
     private Counted endSessionsIfRestricted(String username, Counted counted) {

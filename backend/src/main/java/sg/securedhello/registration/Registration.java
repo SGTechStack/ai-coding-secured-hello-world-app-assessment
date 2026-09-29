@@ -2,10 +2,15 @@ package sg.securedhello.registration;
 
 import java.io.Serial;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
+import org.springframework.core.NestedExceptionUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -27,20 +32,35 @@ import sg.securedhello.user.UserAccountRepository;
  * <p>The username axis answers specifically, the email axis never does:
  * <ol>
  *   <li>A username that is not canonical, is malformed or is reserved is refused (ADR-045; REJ-021; REJ-027).</li>
- *   <li>A username held by an account or a tombstone is refused as unavailable, unless it is the username of the very
- *       pending registration being repeated. It is checked first, so a request that collides on email never reserves
- *       a username.</li>
- *   <li>The email address is then canonicalised, and its state decides silently: a new address becomes a pending
- *       registration; a self-registered pending address is replaced, taking the new username (R-CRED-010); an
- *       activated account's address, an administrator's pending invite or a tombstoned address creates nothing.</li>
+ *   <li>A username is unavailable if an account, a tombstone or another address's live {@link UsernameHold} has it.
+ *       The one exception is a self-registered pending registration that has outlived the {@link #PENDING_PERIOD}:
+ *       it is deleted, and its username is free again.</li>
+ *   <li>Every registration that passes takes or renews the hold on its username for the pending period, <em>whatever
+ *       state the email address is in</em>. A second registration of that username from another address is therefore
+ *       refused alike whether the first address was new, pending, activated, invited or tombstoned, so the username
+ *       axis never reveals the email axis (ADR-032 amendment of 2026-09-29; T-AUTH-018).</li>
+ *   <li>The email address's state then decides silently: a new address becomes a pending registration; a
+ *       self-registered pending address is replaced, taking the new username (R-CRED-010); an activated account's
+ *       address, an administrator's pending invite or a tombstoned address creates nothing.</li>
  * </ol>
  * The caller answers the same 202 in every email state (R-CRED-018). Nothing here hashes a password, so no state costs
  * a BCrypt call the others do not (T-AUTH-014). The link is sent after the transaction commits.
+ *
+ * <p>The address's account row is locked first, the lock {@link Activation} takes too, so a re-registration and an
+ * activation of one pending registration run one after the other (T-CRED-027).
  */
 @Service
 public class Registration {
 
+    /** How long a registration holds its username, and a pending registration lives: its activation token's life. */
+    static final Duration PENDING_PERIOD = CredentialTokenType.ACTIVATION.lifetime();
+
+    /** The unique indexes a registration inserts a username into (V2; V8). */
+    private static final List<String> UNIQUE_USERNAME_INDEXES = List.of("UX_USERNAME_HOLDS_USERNAME",
+            "UX_USERS_USERNAME");
+
     private final UserAccountRepository accounts;
+    private final UsernameHoldRepository holds;
     private final Tombstones tombstones;
     private final CredentialTokens tokens;
     private final CredentialLinks links;
@@ -48,9 +68,11 @@ public class Registration {
     private final TransactionTemplate transactions;
     private final Clock clock;
 
-    Registration(UserAccountRepository accounts, Tombstones tombstones, CredentialTokens tokens,
-            CredentialLinks links, EmailService email, PlatformTransactionManager transactionManager, Clock clock) {
+    Registration(UserAccountRepository accounts, UsernameHoldRepository holds, Tombstones tombstones,
+            CredentialTokens tokens, CredentialLinks links, EmailService email,
+            PlatformTransactionManager transactionManager, Clock clock) {
         this.accounts = accounts;
+        this.holds = holds;
         this.tombstones = tombstones;
         this.tokens = tokens;
         this.links = links;
@@ -63,30 +85,42 @@ public class Registration {
      * Registers {@code username} for {@code submittedEmail}.
      *
      * @throws InvalidIdentifierException   if the username or the email address is not acceptable as submitted
-     * @throws UsernameUnavailableException if another account or a tombstone holds the username
+     * @throws UsernameUnavailableException if another account, a tombstone or another address's hold has the username
      */
     public void register(String username, String submittedEmail) {
         if (!Identifiers.validUsername(username)) {
             throw new InvalidIdentifierException();
         }
         String canonicalEmail = Identifiers.canonicalEmail(submittedEmail).orElseThrow(InvalidIdentifierException::new);
-        Optional<LinkEmail> link = transactions.execute(status -> reserve(username, canonicalEmail));
+        Optional<LinkEmail> link;
+        try {
+            link = transactions.execute(status -> reserve(username, canonicalEmail));
+        } catch (DataIntegrityViolationException e) {
+            throw usernameRace(e);
+        }
         link.ifPresent(email::send);
     }
 
+    /**
+     * A concurrent registration of the same username committed first, so this one's insert hit a unique username
+     * index: it is the same 400 as a username found taken. Any other integrity failure stays a failure.
+     */
+    private static RuntimeException usernameRace(DataIntegrityViolationException e) {
+        String cause = String.valueOf(NestedExceptionUtils.getMostSpecificCause(e).getMessage())
+                .toUpperCase(Locale.ROOT);
+        return UNIQUE_USERNAME_INDEXES.stream().anyMatch(cause::contains) ? new UsernameUnavailableException() : e;
+    }
+
     private Optional<LinkEmail> reserve(String username, String canonicalEmail) {
-        boolean available = accounts.findByUsername(username)
-                .map(holder -> isSelfRegisteredPending(holder) && holder.getEmail().equals(canonicalEmail))
-                .orElse(true);
-        if (!available || tombstones.holdsUsername(username)) {
-            throw new UsernameUnavailableException();
-        }
-        if (tombstones.holdsEmail(canonicalEmail)) {
-            return Optional.empty();
-        }
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
-        Optional<UserAccount> holder = accounts.findByEmail(canonicalEmail);
-        if (holder.isPresent() && !isSelfRegisteredPending(holder.get())) {
+        holds.deleteExpired(now);
+        // Locked before anything is read, so an activation of this address's registration runs wholly before or after.
+        Optional<UserAccount> holder = accounts.findForUpdateByEmail(canonicalEmail);
+        UsernameHold hold = holdUsername(username, canonicalEmail, now);
+        hold.renew(canonicalEmail, now.plus(PENDING_PERIOD));
+        holds.save(hold);
+        if (tombstones.holdsEmail(canonicalEmail)
+                || holder.isPresent() && !isSelfRegisteredPending(holder.get())) {
             return Optional.empty();
         }
         UserAccount account = holder.orElseGet(() -> UserAccount.pendingRegistration(username, canonicalEmail, now));
@@ -97,6 +131,39 @@ public class Registration {
         }
         String token = tokens.mint(account.getId(), CredentialTokenType.ACTIVATION);
         return Optional.of(links.email(CredentialTokenType.ACTIVATION, canonicalEmail, token));
+    }
+
+    /**
+     * The hold {@code canonicalEmail} may take on {@code username}: the existing one if it is this address's, or a new
+     * one. A pending registration of another address that has outlived the pending period is deleted, which frees its
+     * username.
+     *
+     * @throws UsernameUnavailableException if an account, a tombstone or another address's live hold has the username
+     */
+    private UsernameHold holdUsername(String username, String canonicalEmail, Instant now) {
+        // Under the row lock, so an activation of a pending registration about to lapse runs wholly before this.
+        Optional<UserAccount> named = accounts.findForUpdateByUsername(username);
+        if (named.isPresent()) {
+            UserAccount account = named.get();
+            boolean pending = isSelfRegisteredPending(account);
+            boolean ours = pending && account.getEmail().equals(canonicalEmail);
+            boolean lapsed = pending && !now.isBefore(account.getCreatedAt().plus(PENDING_PERIOD));
+            if (!ours && !lapsed) {
+                throw new UsernameUnavailableException();
+            }
+            if (!ours) {
+                accounts.delete(account);
+                accounts.flush();
+            }
+        }
+        if (tombstones.holdsUsername(username)) {
+            throw new UsernameUnavailableException();
+        }
+        Optional<UsernameHold> held = holds.findByUsername(username);
+        if (held.isPresent() && !held.get().getEmail().equals(canonicalEmail)) {
+            throw new UsernameUnavailableException();
+        }
+        return held.orElseGet(() -> new UsernameHold(username, canonicalEmail, now.plus(PENDING_PERIOD)));
     }
 
     /**

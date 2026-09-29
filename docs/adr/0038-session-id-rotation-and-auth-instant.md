@@ -44,7 +44,9 @@ these looks arbitrary in code, and each one breaks silently when "tidied".
 - **Filter order:** the source rate limiter first in the chain, then `SecurityContextHolderFilter`, then the
   absolute-lifetime filter, then `CsrfFilter`. An absolutely expired session posting a mutation gets
   `401 AUTHENTICATION_FAILED`. If the filter ran after `CsrfFilter`, it would get a misleading 403, a pointless token
-  re-fetch and retry, and only then the 401.
+  re-fetch and retry, and only then the 401. (Amended 2026-09-29.) It also runs after `HeaderWriterFilter` and
+  `CorsFilter`: before them, its 401 carried no CORS headers, so the SPA on its own origin saw a network error instead
+  of `AUTHENTICATION_FAILED`, and no security headers (T-SES-037).
 - The same filter's second branch handles anonymous sessions, which have no `AUTH_INSTANT`, by pinning their expiry
   (REJ-091).
 

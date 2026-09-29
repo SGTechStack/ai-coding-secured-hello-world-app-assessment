@@ -56,8 +56,9 @@ scripted loops can reach a budget: wait out the `Retry-After`, or raise the budg
 property such as `--app.security.rate-limit.login.username.burst=1000`. The shared test contexts raise them the same
 way, from `src/test/resources/harness-budgets.properties`; `CtxBudgetTest` runs on the real values.
 
-Five wrong passwords within 20 minutes lock an account for 20 minutes (then 40, then 60 as locks repeat), and 100 in
-a row disable its password until it is reset (`app.security.lockout.*`). A source that has locked five accounts in an
+Five wrong passwords within 20 minutes lock an account for 20 minutes (then 40, then 60 as locks repeat); so does
+the tenth wrong password since the last sign-in however spread out, and every fifth after it. 100 in a row disable its
+password until it is reset (`app.security.lockout.*`). A source that has locked five accounts in an
 hour gets 429 for any other username (`app.security.rate-limit.lockout-cardinality.*`). Restarting clears the 429,
 not the lock, which is stored on the account. Startup refuses a lockout ladder faster than the one committed.
 

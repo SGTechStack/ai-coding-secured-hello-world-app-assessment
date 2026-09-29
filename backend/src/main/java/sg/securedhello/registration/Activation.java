@@ -11,6 +11,7 @@ import sg.securedhello.credential.CredentialTokenInvalidException;
 import sg.securedhello.credential.CredentialTokenType;
 import sg.securedhello.credential.CredentialTokens;
 import sg.securedhello.password.PasswordService;
+import sg.securedhello.user.UserAccount;
 import sg.securedhello.user.UserAccountRepository;
 
 /**
@@ -22,7 +23,11 @@ import sg.securedhello.user.UserAccountRepository;
  *       redeemable;</li>
  *   <li>stamp {@code activated_at}.</li>
  * </ol>
- * It ends no session: the account has none yet (ADR-037), and it creates none.
+ * The account's row is locked before the token is consumed, the lock a re-registration of the same address takes too,
+ * so the two run one after the other: a re-registration that commits first has cancelled the token, and one that
+ * commits second finds the account activated and leaves it alone (ADR-032; T-CRED-027).
+ *
+ * <p>It ends no session: the account has none yet (ADR-037), and it creates none.
  */
 @Service
 public class Activation {
@@ -47,8 +52,15 @@ public class Activation {
      */
     @Transactional
     public void activate(String token, String password) {
-        UUID accountId = tokens.redeem(CredentialTokenType.ACTIVATION, token)
+        // The row lock first; the consume below clears the persistence context, so the account is read again after.
+        UUID accountId = tokens.holder(CredentialTokenType.ACTIVATION, token)
+                .flatMap(accounts::findForUpdateById)
+                .filter(UserAccount::isPending)
+                .map(UserAccount::getId)
                 .orElseThrow(CredentialTokenInvalidException::new);
+        if (tokens.redeem(CredentialTokenType.ACTIVATION, token).isEmpty()) {
+            throw new CredentialTokenInvalidException();
+        }
         passwords.setPassword(accountId, password);
         accounts.findById(accountId).orElseThrow(CredentialTokenInvalidException::new)
                 .activate(clock.instant().truncatedTo(ChronoUnit.MICROS));

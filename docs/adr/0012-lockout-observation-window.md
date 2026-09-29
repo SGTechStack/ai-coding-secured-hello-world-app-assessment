@@ -42,7 +42,22 @@ and the first wrong password after a lock lifts re-locks it at once.
 - `last_failed_at` is a column the PRD's data model does not have. It is added because it is what makes a window
   implementable.
 - Tests: T-LCK-001 (failures spaced wider than the window do not accumulate, including right after an auto-lift),
-  T-LCK-013 (window binding), T-LCK-006 (success resets the counter).
+  T-LCK-013 (window binding), T-LCK-006 (success resets the counter), T-LCK-021 (the window's limit since the
+  amendment below).
+
+## Amendment (2026-09-29): the window forgives only up to the consecutive threshold
+
+The window protects legitimate users from typos spread over days, but it also let a paced attacker stay under the
+threshold forever while the cap counter climbed to the permanent disable, with no lock and no cardinality entry
+(ADR-011 amendment). The window's forgiveness is now bounded: once `app.security.lockout.consecutive-threshold` (10)
+failures have accrued since the last success, the 10th locks and every 5th after it locks, whatever their spacing.
+The staleness reset of `failed_login_attempts` is unchanged, and so is `duration ≥ window`, which the floor model
+relies on: a lock always restarts the window.
+
+The "limit stated honestly" consequence above is narrowed. The window still does not stop a paced attacker from
+locking a known username (R-LCK-002), but a paced attacker can no longer reach the cap faster than a steady one.
+Five typos over a year still lock nothing; ten with no successful sign-in between them now do.
+
 
 ## Sources
 

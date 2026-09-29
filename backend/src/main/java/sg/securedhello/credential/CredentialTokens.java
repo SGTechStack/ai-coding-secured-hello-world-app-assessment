@@ -53,6 +53,16 @@ public class CredentialTokens {
                 .flatMap(tokens::findUserIdByTokenHash);
     }
 
+    /**
+     * The account a submitted {@code type} token names, consuming nothing and checking neither use nor expiry, so a
+     * caller can lock that account before it {@linkplain #redeem redeems} the token.
+     *
+     * @return the account, or empty if no token of that type has that hash
+     */
+    public Optional<UUID> holder(CredentialTokenType type, String submitted) {
+        return CredentialTokenConsumption.lookup(type, submitted).flatMap(tokens::findUserIdByTokenHash);
+    }
+
     /** The columns are TIMESTAMP(6): work on the stored precision, so an expiry compares what was written. */
     private Instant now() {
         return clock.instant().truncatedTo(ChronoUnit.MICROS);

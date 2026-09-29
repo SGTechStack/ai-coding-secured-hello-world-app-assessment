@@ -253,9 +253,66 @@ class LockoutTest extends CtxDefaultTest {
         }
     }
 
+    /**
+     * The paced attack of review 11-13 H1: never more than threshold - 1 failures inside one window, waiting out the
+     * window between bursts and every lock. Without the consecutive rule it never locked, and disabled in about 500
+     * minutes; now it locks from the consecutive threshold on and takes longer than the floor.
+     */
+    @Test
+    @Proves("T-LCK-021")
+    void aPacedAttackUnderTheWindowStillLocksClimbsTheLadderAndDisablesNoSoonerThanTheFloor() throws Exception {
+        Account target = accounts.user();
+        Duration window = lockout.observationWindow();
+        Instant start = clock.instant();
+        Instant alertAt = null;
+        int failures = 0;
+        int inWindow = 0;
+        Integer firstLockAt = null;
+        List<Duration> locks = new ArrayList<>();
+        try (AuditCapture audit = AuditCapture.start()) {
+            while (state(target).passwordDisabledAt() == null) {
+                PasswordLockoutState now = state(target);
+                if (now.lockedAt(clock.instant())) {
+                    Duration lock = Duration.between(clock.instant(), now.lockedUntil());
+                    locks.add(lock);
+                    clock.advance(lock);
+                    inWindow = 0;
+                    continue;
+                }
+                if (inWindow == lockout.threshold() - 1) {
+                    clock.advance(window);
+                    inWindow = 0;
+                }
+                fail(target);
+                failures++;
+                inWindow++;
+                if (firstLockAt == null && state(target).lockedUntil() != null) {
+                    firstLockAt = failures;
+                }
+                if (alertAt == null && !rowsFor(audit, ALERT, target).isEmpty()) {
+                    alertAt = clock.instant();
+                }
+            }
+            Instant disabledAt = clock.instant();
+
+            assertThat(firstLockAt).as("the consecutive threshold locks").isEqualTo(lockout.consecutiveThreshold());
+            assertThat(failures).isEqualTo(lockout.nist().cap());
+            assertThat(locks).as("every threshold-th failure after it locks, on the ladder's rungs")
+                    .hasSize((lockout.nist().cap() - 1 - lockout.consecutiveThreshold()) / lockout.threshold() + 1)
+                    .startsWith(lockout.toLadder().lockDuration(
+                            lockout.toLadder().lockNumber(lockout.consecutiveThreshold())))
+                    .endsWith(lockout.ladder().rungs().getLast());
+            assertThat(rowsFor(audit, LOCKED, target)).hasSize(locks.size());
+            assertThat(Duration.between(start, disabledAt)).isGreaterThanOrEqualTo(LockoutLadder.FLOOR_TO_DISABLE);
+            assertThat(alertAt).isNotNull();
+            assertThat(Duration.between(alertAt, disabledAt)).isGreaterThanOrEqualTo(LockoutLadder.FLOOR_WARNING);
+        }
+    }
+
     private static List<Duration> expectedLocks(LockoutLadder ladder) {
         List<Duration> expected = new ArrayList<>();
-        for (int lock = 1; lock <= ladder.locksBeforeCap(); lock++) {
+        // Attempts during a lock do not count, so a steady attack takes a lock every threshold failures before the cap.
+        for (int lock = 1; lock <= (ladder.cap() - 1) / ladder.threshold(); lock++) {
             expected.add(ladder.lockDuration(lock));
         }
         return expected;

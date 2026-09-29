@@ -20,7 +20,7 @@ public class LockoutConfig {
 
     @Bean
     LockoutCounter lockoutCounter(LockoutProperties properties) {
-        return new LockoutCounter(properties.toLadder(), properties.observationWindow());
+        return new LockoutCounter(properties.toLadder());
     }
 
     @Bean

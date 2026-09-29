@@ -49,8 +49,9 @@ import sg.securedhello.session.SessionLifetimeProperties;
  * (ADR-031): an anonymous caller gets 401 {@code AUTHENTICATION_FAILED}, with no {@code WWW-Authenticate} challenge
  * (R-AUTH-005), and a signed-in one gets 403 {@code ACCESS_DENIED}.
  *
- * <p>Filter order (ADR-038): the {@link SourceRateLimitFilter}, then {@code SecurityContextHolderFilter}, then the
- * {@link AbsoluteLifetimeFilter}, then {@code CorsFilter}, the {@link RequestBodyCapFilter} and {@code CsrfFilter}, and
+ * <p>Filter order (ADR-038): the {@link SourceRateLimitFilter}, then {@code SecurityContextHolderFilter}, the
+ * header writer and {@code CorsFilter}, then the {@link AbsoluteLifetimeFilter}, whose 401 so carries the CORS and
+ * security headers, the {@link RequestBodyCapFilter} and {@code CsrfFilter}, and
  * later the login filter, whose converter reads the body (T-RL-012). The {@link ForcedChangeFilter} runs last, just
  * before authorization.
  *
@@ -83,12 +84,14 @@ public class SecurityConfig {
                         (request, response) -> CorsPolicy.allowOrigin(cors, request, response)),
                         SecurityContextHolderFilter.class)
                 .addFilter(CorsPolicy.filter(cors, writer))
+                // After CorsFilter and HeaderWriterFilter, so its 401 carries the SPA's CORS headers and the security
+                // headers; still before CsrfFilter (ADR-038). Added first, so it runs before the body cap.
+                .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow, lifetime.absolute(), clock, writer),
+                        CorsFilter.class)
                 .addFilterAfter(new RequestBodyCapFilter(requestBody.maxBodyBytes(), writer), CorsFilter.class)
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokens)
                         .csrfTokenRequestHandler(csrfHandler))
-                .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow, lifetime.absolute(), clock, writer),
-                        SecurityContextHolderFilter.class)
                 // A forced-change session reaches the five allowlisted routes only (ADR-046; REJ-055).
                 .addFilterBefore(new ForcedChangeFilter(writer), AuthorizationFilter.class)
                 .authorizeHttpRequests(requests -> {

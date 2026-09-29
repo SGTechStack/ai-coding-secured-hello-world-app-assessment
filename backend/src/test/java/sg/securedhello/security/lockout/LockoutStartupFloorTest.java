@@ -16,7 +16,7 @@ class LockoutStartupFloorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"--app.security.lockout.ladder.rungs=19m,40m,60m", "--app.security.lockout.threshold=6",
-            "--app.security.lockout.nist.alert-threshold=60"})
+            "--app.security.lockout.nist.alert-threshold=60", "--app.security.lockout.consecutive-threshold=50"})
     void aLadderUnderTheFloorStopsStartup(String misconfiguration) {
         Boot boot = RestartHarness.boot(builder -> builder.profiles("dev"), misconfiguration);
 

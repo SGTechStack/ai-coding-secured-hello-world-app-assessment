@@ -26,7 +26,7 @@ class MigrationsTest extends CtxDefaultTest {
     JdbcTemplate jdbc;
 
     @Test
-    void aFreshFileMigratesV1ToV7InSpecOrder() {
+    void aFreshFileMigratesV1ToV8InSpecOrder() {
         MigrationInfo[] applied = flyway.info().applied();
 
         assertThat(applied).extracting(MigrationInfo::getState).containsOnly(MigrationState.SUCCESS);
@@ -37,7 +37,8 @@ class MigrationsTest extends CtxDefaultTest {
                 "V4__password_history.sql",
                 "V5__totp.sql",
                 "V6__deleted_users.sql",
-                "V7__spring_session.sql");
+                "V7__spring_session.sql",
+                "V8__username_holds.sql");
         assertThat(flyway.info().pending()).isEmpty();
     }
 
@@ -58,7 +59,8 @@ class MigrationsTest extends CtxDefaultTest {
 
         assertThat(typeByIndex).containsOnlyKeys("UX_USERS_USERNAME", "UX_USERS_EMAIL",
                 "UX_CREDENTIAL_TOKENS_TOKEN_HASH", "IX_CREDENTIAL_TOKENS_USER_ID_TYPE",
-                "IX_PASSWORD_HISTORY_USER_ID_CREATED_AT", "UX_DELETED_USERS_USERNAME", "UX_DELETED_USERS_EMAIL_HMAC");
+                "IX_PASSWORD_HISTORY_USER_ID_CREATED_AT", "UX_DELETED_USERS_USERNAME", "UX_DELETED_USERS_EMAIL_HMAC",
+                "UX_USERNAME_HOLDS_USERNAME", "IX_USERNAME_HOLDS_EXPIRES_AT");
         typeByIndex.forEach((name, type) -> assertThat(name).as(type)
                 .startsWith(type.startsWith("UNIQUE") ? "UX_" : "IX_"));
     }
@@ -67,6 +69,6 @@ class MigrationsTest extends CtxDefaultTest {
     void flywayRefusesToClean() {
         assertThat(flyway.getConfiguration().isCleanDisabled()).isTrue();
         assertThatExceptionOfType(FlywayException.class).isThrownBy(flyway::clean);
-        assertThat(flyway.info().applied()).hasSize(7);
+        assertThat(flyway.info().applied()).hasSize(8);
     }
 }

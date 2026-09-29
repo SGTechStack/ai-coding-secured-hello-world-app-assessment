@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — fix-b-runtime-fixes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS · C0 H0 M0 L2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN · C0 H0 M2 L5</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN · C0 H0 M0 L11</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED · C0 H0 M0 L0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN · C0 H0 M1 L1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS · C0 H0 M0 L0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN · C0 H0 M2 L9</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">fix-b</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">fix-b-runtime-fixes: review-fix batch B (worktree <span class="font-mono">shw-wt/fix-b</span>, changes since <span class="font-mono">3c24e41</span>, including uncommitted and untracked files). The changes are backend and docs only.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance status across all seven active checks: <strong>WARN</strong>. There are no Critical or High findings, so must-fix = 0. One check (semgrep) was SKIPPED because the tool was unavailable.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Check</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Status</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">C / H / M / L</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 font-medium">build</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 2</td><td class="px-4 py-2">`mvn verify` BUILD SUCCESS: 928 unit tests and 6 ITs, 0 failures, 0 warnings. JaCoCo is absent (this predates the change), so coverage was not measured. No frontend changes.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">thermo-nuclear</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 2 / 5</td><td class="px-4 py-2">Registration keeps two models of a pending reservation. The ratio of <span class="font-mono">consecutiveThreshold</span> to <span class="font-mono">threshold</span> is unconstrained. No file-size breach.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">code-review</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 11</td><td class="px-4 py-2">Spec: 6 of 6 items implemented, each with tests. There are 6 Low spec findings (concurrency windows, retention, test strength) and 5 judgement-call standards smells.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">semgrep</td><td class="px-4 py-2 text-slate-600 font-semibold">SKIPPED</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 0</td><td class="px-4 py-2">Semgrep was not installed and Docker was down, so the tool did not run. A manual fallback pass found no P0 or P1 issues and made 3 informational notes. Re-run with semgrep when it is available.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">im8</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 1 / 1</td><td class="px-4 py-2">lm-4: an anonymous registration can delete a lapsed pending account without writing an audit row. Every other touched control passes.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">react</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 0</td><td class="px-4 py-2">No frontend changes in scope.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">springboot</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 2 / 9</td><td class="px-4 py-2">Deleting a lapsed pending registration skips the row lock (S-1). A concurrent same-username registration returns 500 (S-2). The core, web, batch, security and logging reviews pass.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">No check reported a Critical or High finding. The most significant Medium findings, several of which multiple checks raised independently, are these:</p>
+          <ul class="list-disc pl-5 text-sm space-y-2">
+            <li><span class="text-amber-600 font-semibold">Medium</span>: race between deleting a lapsed pending registration and activating it. <span class="font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</span> (<span class="font-mono text-xs">holdUsername</span>) reads the account with the non-locking <span class="font-mono text-xs">findByUsername</span> and then deletes it, so an account activated concurrently can be deleted. Raised by springboot S-1 and code-review L-S1.</li>
+            <li><span class="text-amber-600 font-semibold">Medium</span>: two concurrent registrations of one username from different addresses hit <span class="font-mono text-xs">ux_username_holds_username</span>. The resulting unmapped <span class="font-mono text-xs">DataIntegrityViolationException</span> returns 500 instead of 400 <span class="font-mono text-xs">USERNAME_UNAVAILABLE</span>. Raised by springboot S-2, code-review L-S2, im8 as-13 and semgrep (informational).</li>
+            <li><span class="text-amber-600 font-semibold">Medium</span>: lm-4 audit gap. The lapsed-pending deletion in <span class="font-mono text-xs">Registration.java</span> writes no audit row, and ADR-032:67 claims a registration audit row that does not exist. Raised by im8.</li>
+            <li><span class="text-amber-600 font-semibold">Medium</span>: two parallel expiry models for pending usernames (<span class="font-mono text-xs">user_accounts.created_at</span> and <span class="font-mono text-xs">username_holds.expires_at</span>). Raised by thermo-nuclear M1.</li>
+            <li><span class="text-amber-600 font-semibold">Medium</span>: <span class="font-mono text-xs">LockoutLadder.java</span> accepts a <span class="font-mono text-xs">consecutiveThreshold</span> that is not a multiple of <span class="font-mono text-xs">threshold</span>. The startup floor still holds. Raised by thermo-nuclear M2.</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">build</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">—</td><td class="px-4 py-2">No JaCoCo plugin, so the 80% coverage gate cannot run (this predates the change). The changed classes do have dedicated tests.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Informational: Dependency-Check was skipped on purpose for the local run. No dependency changed in the diff.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">reserve, holdUsername</td><td class="px-4 py-2">M1: two parallel models of a pending reservation (the account's <span class="font-mono text-xs">createdAt</span> and the hold's <span class="font-mono text-xs">expiresAt</span>), which can disagree. <span class="font-mono text-xs">holdUsername</span> also hides a delete. Suggested fix: make the hold the only authority, via a <span class="font-mono text-xs">UsernameAvailability</span> collaborator.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/lockout/LockoutLadder.java</td><td class="px-4 py-2">locksAt, constructor</td><td class="px-4 py-2">M2: <span class="font-mono text-xs">consecutiveThreshold</span> is unconstrained relative to <span class="font-mono text-xs">threshold</span>, so configurations such as 7/5 or 3/5 misalign the rungs. Suggested fix: require <span class="font-mono text-xs">consecutiveThreshold &gt;= threshold</span> and that it be a multiple of <span class="font-mono text-xs">threshold</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/UsernameHold.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L1: the hold is constructed with a placeholder expiry and then mutated by <span class="font-mono text-xs">renew</span>. Its email argument is redundant.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Activation.java</td><td class="px-4 py-2">activate</td><td class="px-4 py-2">L2: the account is resolved three times and the <span class="font-mono text-xs">redeem</span> result is discarded. <span class="font-mono text-xs">holder</span> nearly copies the tail of <span class="font-mono text-xs">redeem</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/login/SignIn.java</td><td class="px-4 py-2">DISPLACED</td><td class="px-4 py-2">L3: hard-codes a package-private Spring Session attribute name. The coupling is guarded by T-SES-010.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/SecurityConfig.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L4: the order of the two filters anchored after <span class="font-mono text-xs">CorsFilter</span> relies on insertion order. Anchor the body cap on <span class="font-mono text-xs">AbsoluteLifetimeFilter</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/lockout/LockoutProperties.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L5: <span class="font-mono text-xs">deleteExpired</span> housekeeping runs in the request path, and the manual guard chain keeps growing.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">code-review</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">holdUsername</td><td class="px-4 py-2">L-S1 (spec): race between deleting a lapsed pending registration and activating it, in a window of microseconds. Suggested fix: <span class="font-mono text-xs">findForUpdateByUsername</span>, then re-check.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">register</td><td class="px-4 py-2">L-S2 (spec): concurrent first registrations of one username return 500 (<span class="font-mono text-xs">ux_username_holds_username</span>).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L-S3 (spec): lapsed pending <span class="font-mono text-xs">users</span> rows (which hold PII) are never purged unless their username collides.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/.../RegistrationTest.java</td><td class="px-4 py-2">T-CRED-027</td><td class="px-4 py-2">L-S4 (spec): the <span class="font-mono text-xs">get(1 ms)</span> timeout does not prove that the call waits on the lock.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">isSelfRegisteredPending</td><td class="px-4 py-2">L-S5 (spec): "self-registered" is decided by role, so a future invite of a USER-role account could lapse (this predates the change).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0011-*.md</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L-S6 (spec): the wording "values up to 35 pass" is imprecise, because N=36 also passes.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">holdUsername</td><td class="px-4 py-2">Standards smell: the name hides a side effect (it deletes another address's account and flushes).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/lockout/LockoutLadder.java</td><td class="px-4 py-2">constructor</td><td class="px-4 py-2">Standards smell: the constructor takes seven positional parameters (data clump), and <span class="font-mono text-xs">window</span> is not null-checked.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/lockout/LockoutLadder.java</td><td class="px-4 py-2">warning, timeToDisable</td><td class="px-4 py-2">Standards smell: minor duplication (acceptable).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0011-*.md, SignIn.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Doc and format nits: an overlong line in the ADR, and a copied upstream constant.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0038-*.md, docs/spec.md</td><td class="px-4 py-2">Filter order</td><td class="px-4 py-2">Doc drift: the new "after CorsFilter/HeaderWriterFilter" constraint is not recorded there.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">SKIPPED</span>
+        </summary>
+        <p class="px-5 pb-3 text-sm text-slate-600">Semgrep could not run: it is not on PATH, the Python module is missing and the Docker daemon is down. A manual fallback pass covered injection, secrets, deserialisation and crypto, log injection, filter order, fail-closed behaviour and session handling, and all of these passed. Re-run <span class="font-mono text-xs">semgrep --config p/security-audit --config p/default backend/src</span> when the tool is available. The three informational notes are covered under im8, springboot and code-review.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th>
+          </tr></thead>
+          <tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings</td></tr></tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">im8</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">~122-135</td><td class="px-4 py-2">lm-4 audit logging: an anonymous request can delete a lapsed pending account with no audit row, and hold purges are unaudited too. ADR-032:67 claims a registration audit row that does not exist. Recommendation: emit <span class="font-mono text-xs">PENDING_REGISTRATION_LAPSED</span> without PII.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">as-13 (informational): the username-hold race returns a generic 500 instead of 400. It discloses no email state.</td></tr>
+          </tbody>
+        </table>
+        <p class="px-5 py-3 text-xs text-slate-500">Items for manual review: accept zero margin over the 840/580 lockout floor with the defaults; accept that 10 failures spread across any length of time lock a legitimate user; keep T-SES-010 on the checklist for Spring Session upgrades.</p>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">react</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th>
+          </tr></thead>
+          <tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings</td></tr></tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">springboot</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th>
+            <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">holdUsername</td><td class="px-4 py-2">S-1 (spring-data, locking): a lapsed pending registration is deleted without taking its row lock, so a concurrent activation can be silently deleted along with its cascaded password history and tokens. Suggested fix: <span class="font-mono text-xs">findForUpdateByUsername</span> or a conditional <span class="font-mono text-xs">deleteIfLapsed</span>, plus a latch test.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/Registration.java</td><td class="px-4 py-2">register</td><td class="px-4 py-2">S-2 (spring-data, error mapping): concurrent registrations of the same username hit <span class="font-mono text-xs">ux_username_holds_username</span>, which becomes a 500 plus an error log. Suggested fix: map <span class="font-mono text-xs">DataIntegrityViolationException</span> to <span class="font-mono text-xs">UsernameUnavailableException</span>, or use an upsert, and add a two-thread test.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/UsernameHold.java</td><td class="px-4 py-2">constructor</td><td class="px-4 py-2">S-3: <span class="font-mono text-xs">now</span> is passed as <span class="font-mono text-xs">expiresAt</span>, so the entity briefly holds a wrong expiry.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/registration/UsernameHoldRepository.java</td><td class="px-4 py-2">deleteExpired</td><td class="px-4 py-2">S-4: <span class="font-mono text-xs">@Modifying</span> is set without <span class="font-mono text-xs">flushAutomatically</span> or <span class="font-mono text-xs">clearAutomatically</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/resources/db/migration/V8__username_holds.sql</td><td class="px-4 py-2">email</td><td class="px-4 py-2">S-5 (data minimisation): the column stores a plaintext email, and there is no scheduled purge. Store <span class="font-mono text-xs">emailHmac</span> instead.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/lockout/LockoutLadder.java</td><td class="px-4 py-2">constructor</td><td class="px-4 py-2">S-6: <span class="font-mono text-xs">window</span> is not null- or positivity-checked.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/SecurityConfig.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S-7: the order between <span class="font-mono text-xs">AbsoluteLifetimeFilter</span> and <span class="font-mono text-xs">RequestBodyCapFilter</span> relies on insertion order.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/security/login/SignIn.java</td><td class="px-4 py-2">DISPLACED</td><td class="px-4 py-2">S-8: coupling to a package-private Spring Session constant. Keep T-SES-010 on the upgrade checklist.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/resources/application.yml</td><td class="px-4 py-2">24</td><td class="px-4 py-2">S-9: the comment still says V1-V7. It should say V1-V8.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/.../RegistrationTest.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">T-1: no tests cover S-1 or S-2.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/.../RegistrationTest.java</td><td class="px-4 py-2">aReRegistrationAndAnActivation...</td><td class="px-4 py-2">T-2: the test branches on the observed outcome and uses wall-clock waits, so it is non-deterministic.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/.../RegistrationTest.java, AnonymousSessionPinTest.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">T-3: minor style issues (spacing, an inline fully qualified name).</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

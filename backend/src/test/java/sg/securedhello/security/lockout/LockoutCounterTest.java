@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import sg.securedhello.security.lockout.LockoutCounter.Outcome;
+import sg.securedhello.testsupport.Proves;
 import sg.securedhello.user.PasswordLockoutState;
 
 /** The two counters' transitions (ADR-011; ADR-012; ADR-013), on fixed instants. */
@@ -18,10 +19,8 @@ class LockoutCounterTest {
     private static final Instant T0 = Instant.parse("2026-01-01T00:00:00Z");
     private static final PasswordLockoutState FRESH = new PasswordLockoutState(0, null, null, 0, null);
 
-    private final LockoutCounter counter = new LockoutCounter(
-            new LockoutLadder(5, List.of(Duration.ofMinutes(20), Duration.ofMinutes(40), Duration.ofMinutes(60)), 5,
-                    100, 50),
-            WINDOW);
+    private final LockoutCounter counter = new LockoutCounter(new LockoutLadder(5, WINDOW, 10,
+            List.of(Duration.ofMinutes(20), Duration.ofMinutes(40), Duration.ofMinutes(60)), 5, 100, 50));
 
     private static PasswordLockoutState state(int windowed, Instant lastFailedAt, Instant lockedUntil, int sinceSuccess,
             Instant disabledAt) {
@@ -70,6 +69,23 @@ class LockoutCounterTest {
         assertThat(sixth.lockedFor()).isEqualTo(Duration.ofMinutes(40));
         Outcome eleventh = counter.failure(state(4, T0, null, 54, null), T0.plusSeconds(1));
         assertThat(eleventh.lockedFor()).isEqualTo(Duration.ofMinutes(60));
+    }
+
+    @Test
+    @Proves("T-LCK-021")
+    void theTenthFailureSinceSuccessLocksEvenWhenItIsFirstInItsWindow() {
+        Instant now = T0.plus(WINDOW);
+        Outcome ninth = counter.failure(state(4, T0, null, 8, null), now);
+        assertThat(ninth.locked()).as("the ninth, first in its window").isFalse();
+
+        Outcome tenth = counter.failure(state(4, T0, null, 9, null), now);
+        assertThat(tenth.locked()).isTrue();
+        assertThat(tenth.lockedFor()).as("the rung of the second lock").isEqualTo(Duration.ofMinutes(20));
+        assertThat(tenth.state()).isEqualTo(state(1, now, now.plus(Duration.ofMinutes(20)), 10, null));
+
+        assertThat(counter.failure(state(1, T0, null, 10, null), now).locked()).as("the eleventh").isFalse();
+        Outcome thirtieth = counter.failure(state(1, T0, null, 29, null), now);
+        assertThat(thirtieth.lockedFor()).as("every fifth after it, on the ladder").isEqualTo(Duration.ofMinutes(40));
     }
 
     @Test

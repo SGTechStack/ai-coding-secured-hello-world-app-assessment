@@ -16,7 +16,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.header.HeaderWriterFilter;
 import org.springframework.session.SessionRepository;
+import org.springframework.web.filter.CorsFilter;
 
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxDefaultTest;
@@ -111,6 +113,20 @@ class AnonymousSessionPinTest extends CtxDefaultTest {
         assertThat(order.indexOf(SecurityContextHolderFilter.class)).isNotNegative()
                 .isLessThan(order.indexOf(AbsoluteLifetimeFilter.class));
         assertThat(order.indexOf(AbsoluteLifetimeFilter.class)).isLessThan(order.indexOf(CsrfFilter.class));
+    }
+
+    /** Its 401 is written after the CORS and security-header filters have wrapped the response (T-SES-037). */
+    @Test
+    @Proves("T-SES-037")
+    void theLifetimeFilterSitsAfterTheCorsAndHeaderWriterFilters() {
+        List<Filter> filters = filters();
+        int lifetime = filters.indexOf(filters.stream().filter(AbsoluteLifetimeFilter.class::isInstance).findFirst()
+                .orElseThrow());
+
+        for (Class<?> earlier : List.of(CorsFilter.class, HeaderWriterFilter.class)) {
+            assertThat(filters.stream().filter(earlier::isInstance).findFirst().map(filters::indexOf).orElseThrow())
+                    .as(earlier.getSimpleName()).isLessThan(lifetime);
+        }
     }
 
     private List<Filter> filters() {

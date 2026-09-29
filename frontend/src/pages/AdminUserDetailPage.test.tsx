@@ -62,7 +62,7 @@ describe('/admin/users/:id enable and disable', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Disable account' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent('Account disabled. The user has been signed out.')
+    expect(await screen.findByText('Account disabled. The user has been signed out.')).toHaveAttribute('role', 'status')
     expect(screen.getByText('Disabled')).toBeInTheDocument()
     expect(requests).toEqual([{ id: bob.id, body: { enabled: false } }])
     expect(screen.getByRole('button', { name: 'Enable account' })).toBeEnabled()
@@ -75,9 +75,9 @@ describe('/admin/users/:id enable and disable', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Enable account' }))
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Account enabled. The user must change their password when they next sign in.',
-    )
+    expect(
+      await screen.findByText('Account enabled. The user must change their password when they next sign in.'),
+    ).toHaveAttribute('role', 'status')
     expect(requests).toEqual([{ id: bob.id, body: { enabled: true } }])
   })
 
@@ -92,7 +92,8 @@ describe('/admin/users/:id enable and disable', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Disable account' }))
 
-    const alert = await screen.findByRole('alert')
+    const alert = await screen.findByText(/invite a new user/)
+    expect(alert).toHaveAttribute('role', 'alert')
     expect(alert).toHaveTextContent(/invite a new user/)
     expect(alert).toHaveTextContent(/redeem the invitation/)
     expect(alert).toHaveTextContent(/promote them to administrator/)
@@ -103,7 +104,7 @@ describe('/admin/users/:id enable and disable', () => {
   it('offers no control on the administrator’s own account', async () => {
     renderApp(`/admin/users/${alice.id}`)
 
-    expect(await screen.findByText('You cannot disable your own account.')).toBeInTheDocument()
+    expect(await screen.findByText('You cannot change your own account.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /account/ })).not.toBeInTheDocument()
   })
 
@@ -118,7 +119,7 @@ describe('/admin/users/:id enable and disable', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Disable account' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('This account cannot be changed from here.')
+    expect(await screen.findByText('This account cannot be changed from here.')).toHaveAttribute('role', 'alert')
     expect(router.state.location.pathname).toBe(`/admin/users/${bob.id}`)
   })
 

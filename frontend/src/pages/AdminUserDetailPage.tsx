@@ -71,7 +71,8 @@ export function AdminUserDetailPage() {
 
 /**
  * Enables or disables the account. Not offered on the admin's own account, which the server refuses anyway
- * (REJ-050). The server's answer replaces the cached account, and the list is refreshed.
+ * (REJ-050). The server's answer replaces the cached account, and the list is refreshed in the background. The request
+ * state is local, as on the other pages that change something.
  */
 function EnabledControl({ user }: { user: AdminUser }) {
   const queryClient = useQueryClient()
@@ -83,8 +84,12 @@ function EnabledControl({ user }: { user: AdminUser }) {
   if (redirect) {
     return <Navigate to={redirect} replace />
   }
-  if (profile.data?.id === user.id) {
-    return <p className="text-sm text-muted-foreground">You cannot disable your own account.</p>
+  // Offered only once the self-read says whose account this is; the server refuses a self-action whatever renders.
+  if (!profile.data) {
+    return null
+  }
+  if (profile.data.id === user.id) {
+    return <p className="text-sm text-muted-foreground">You cannot change your own account.</p>
   }
 
   const onToggle = async () => {
@@ -94,7 +99,7 @@ function EnabledControl({ user }: { user: AdminUser }) {
     try {
       const updated = await setAdminUserEnabled(user.id, !user.enabled)
       queryClient.setQueryData(adminUserKey(user.id), updated)
-      await queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY, exact: true })
+      void queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY, exact: true })
       setDone(
         updated.enabled
           ? 'Account enabled. The user must change their password when they next sign in.'

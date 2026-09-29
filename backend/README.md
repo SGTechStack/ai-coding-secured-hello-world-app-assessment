@@ -41,6 +41,19 @@ fingerprint. The key itself is never logged. Compare fingerprints to confirm whi
 
 The tests need none of these variables. The test harness supplies test-only canary values (`TestSecrets`).
 
+## Browser tests (Playwright)
+
+`npm run test:e2e` in `frontend/` starts both servers itself and needs none of the variables above:
+
+- the backend from its **test** sources, `sg.securedhello.e2e.E2eBackend`, via
+  `mvn -f backend/pom.xml test-compile spring-boot:test-run -Dspring-boot.run.main-class=sg.securedhello.e2e.E2eBackend`.
+  It is the real application under the `dev` profile on port 18010, with a fresh temporary H2 file, the test-only
+  `TestSecrets` and the fixture accounts the browser tests sign in as. Nothing of it reaches the production build;
+- the production SPA build under `vite preview` on port 15110, built with `VITE_API_ORIGIN=http://localhost:18010`.
+
+Set `PW_API_PORT` or `PW_PREVIEW_PORT` to move either port. Both must be free: the config never reuses a running
+server.
+
 ## Release build
 
 With no CI pipeline, a developer's green `verify` is the release gate (ADR-068; ADR-069). The release command is:

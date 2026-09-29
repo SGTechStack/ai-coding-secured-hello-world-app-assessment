@@ -1,7 +1,9 @@
 package sg.securedhello.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -19,15 +21,22 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import sg.securedhello.error.ErrorCode;
+import sg.securedhello.error.ProblemDetailWriter;
+import sg.securedhello.testsupport.MutableClock;
 import sg.securedhello.testsupport.Proves;
 
-/** The anonymous branch of the absolute-lifetime filter, against a session whose times the test controls. */
+/** Both branches of the absolute-lifetime filter, against a session whose times the test controls. */
 class AbsoluteLifetimeFilterTest {
 
     private static final Duration W = Duration.ofMinutes(15);
     private static final long CREATED = 1_700_000_000_000L;
 
-    private final AbsoluteLifetimeFilter filter = new AbsoluteLifetimeFilter(W);
+    private static final Duration ABSOLUTE = Duration.ofHours(8);
+
+    private final MutableClock clock = MutableClock.startingAt(Instant.ofEpochMilli(CREATED));
+    private final ProblemDetailWriter writer = mock(ProblemDetailWriter.class);
+    private final AbsoluteLifetimeFilter filter = new AbsoluteLifetimeFilter(W, ABSOLUTE, clock, writer);
 
     private HttpSession anonymousSession(long lastAccessed) throws Exception {
         HttpSession session = mock(HttpSession.class);
@@ -70,6 +79,39 @@ class AbsoluteLifetimeFilterTest {
 
         verify(session, never()).invalidate();
         verify(session, never()).setMaxInactiveInterval(anyInt());
+    }
+
+    @Test
+    void anAuthenticatedSessionPastItsAbsoluteLifetimeIsInvalidatedAndAnswered401() throws Exception {
+        HttpSession session = mock(HttpSession.class);
+        when(session.getAttribute(SessionAttributes.AUTH_INSTANT)).thenReturn(Instant.ofEpochMilli(CREATED));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setSession(session);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = new MockFilterChain();
+        clock.advance(ABSOLUTE);
+
+        filter.doFilter(request, response, chain);
+
+        verify(session).invalidate();
+        verify(writer).write(eq(request), eq(response), eq(ErrorCode.AUTHENTICATION_FAILED));
+        assertThat(chain.getRequest()).as("the chain did not continue").isNull();
+    }
+
+    @Test
+    void anAuthenticatedSessionJustInsideItsAbsoluteLifetimeContinues() throws Exception {
+        HttpSession session = mock(HttpSession.class);
+        when(session.getAttribute(SessionAttributes.AUTH_INSTANT))
+                .thenReturn(clock.instant().minus(ABSOLUTE).plusMillis(1));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setSession(session);
+        MockFilterChain chain = new MockFilterChain();
+
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+        verify(session, never()).invalidate();
+        verify(writer, never()).write(any(), any(), any());
+        assertThat(chain.getRequest()).isSameAs(request);
     }
 
     @Test

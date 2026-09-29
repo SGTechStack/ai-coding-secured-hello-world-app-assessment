@@ -18,6 +18,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 
 import sg.securedhello.error.ErrorCode;
+import sg.securedhello.testsupport.AuditCapture;
+import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxDefaultTest;
 import sg.securedhello.testsupport.Proves;
@@ -28,7 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * The session-bound, header-only CSRF token (ADR-036) and its bootstrap route (ADR-040).
  *
- * <p>No route that accepts an unsafe method exists yet, so "the request proceeds" means it passes {@code CsrfFilter}
+ * <p>The unsafe path used here has no route yet, so "the request proceeds" means it passes {@code CsrfFilter}
  * and reaches authorization, which answers an anonymous caller with 401 {@code AUTHENTICATION_FAILED} instead of the
  * 403 {@code CSRF_TOKEN_INVALID} a CSRF refusal gets.
  */
@@ -105,15 +107,22 @@ class CsrfTokenTest extends CtxDefaultTest {
                 .andExpect(problem(ErrorCode.CSRF_TOKEN_INVALID));
     }
 
-    /** T-CSRF-008 without its audit reason ({@code CSRF_MISSING}); ticket 10 adds that assertion and the ID. */
     @Test
-    void anUnsafeRequestWithNoSessionIsRefusedAndCreatesNoSession() throws Exception {
+    @Proves("T-CSRF-008")
+    void anUnsafeRequestWithNoSessionIsRefusedAsCsrfMissingAndCreatesNoSession() throws Exception {
         Set<String> before = sessions.ids();
 
-        MvcResult result = mockMvc.perform(post(UNSAFE_PATH).header("X-CSRF-TOKEN", "anything"))
-                .andExpect(problem(ErrorCode.CSRF_TOKEN_INVALID))
-                .andReturn();
-        mockMvc.perform(post(UNSAFE_PATH)).andExpect(problem(ErrorCode.CSRF_TOKEN_INVALID));
+        MvcResult result;
+        try (AuditCapture audit = AuditCapture.start()) {
+            result = mockMvc.perform(post(UNSAFE_PATH).header("X-CSRF-TOKEN", "anything"))
+                    .andExpect(problem(ErrorCode.CSRF_TOKEN_INVALID))
+                    .andReturn();
+            mockMvc.perform(post(UNSAFE_PATH)).andExpect(problem(ErrorCode.CSRF_TOKEN_INVALID));
+
+            assertThat(audit.withMessage("CSRF validation failed.")).hasSize(2).allSatisfy(row -> assertThat(row)
+                    .containsEntry("event.action", "access-control").containsEntry("event.reason", "CSRF_MISSING")
+                    .containsEntry("log.level", "WARN").doesNotContainKeys("user.id", "session.hash"));
+        }
 
         assertThat(sessions.ids()).isEqualTo(before);
         assertThat(result.getResponse().getHeaders("Set-Cookie")).isEmpty();

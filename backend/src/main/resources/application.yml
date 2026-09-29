@@ -59,7 +59,24 @@ app:
         # The CSRF token bootstrap, the only route that creates an anonymous session (ADR-040).
         - method: GET
           path: /api/csrf
-      roles: {}
+        # Sign-in and sign-out (SignIn). Their filters answer before authorization; the rows record them here.
+        - method: POST
+          path: /api/login
+        - method: POST
+          path: /api/logout
+      roles:
+        USER:
+          - method: GET
+            path: /api/profile
+          - method: GET
+            path: /api/hello
+        ADMIN:
+          # The self-read needs the password only, not the second factor (ADR-043). /api/hello is ROLE_USER only.
+          - method: GET
+            path: /api/profile
+    # A signed-in session ends this long after its AUTH_INSTANT, whatever its traffic (REJ-012; ADR-038).
+    session:
+      absolute: 8h
     # Source keys (ADR-020). The client address is the socket peer unless source=proxy, which needs
     # trusted-proxies to name each proxy address; trusted-proxies has no default (R-RL-007).
     client-ip:

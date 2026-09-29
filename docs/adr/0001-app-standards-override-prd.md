@@ -22,6 +22,7 @@ The PRD is the assessment's source of truth, but the organisation's App-Standard
 - Rate limits on registration, reset requests and Reset Token redemption.
 - A last-Admin rule: a role change, disable or delete that would leave no enabled Admin is rejected, checked under a row lock in the same transaction.
 - The admin user list includes a `locked` flag so the unlock action can be offered.
+- An admin role-read endpoint (the admin user list's `role` field) and a role-mutation endpoint (`PATCH /api/admin/users/{id}/role`), covering the Standard's role-management surface even though the app still has only the two fixed roles, User and Admin. `ADMIN` plays the part of the Standard's `USER_MANAGER`; unmatched routes are denied.
 - Structured ECS JSON logging with trace and correlation IDs, a dedicated audit log kept for at least 90 days, masking and log-injection protection (Structured Logging standard).
 - A required-password-change flag (IM8 as-15, ac-6). It is set on the Bootstrap Admin at creation and by an Admin action when compromise is suspected (which also ends that Account's Sessions). Until the password is changed or reset, only `/me`, Password Change, logout and `/csrf` are allowed.
 - Actuator metrics on a non-public management port (IM8 lm-16), `/.well-known/security.txt` (IM8 st-3), and a "Confidential" classification label next to every input field (IM8 dp-8).
@@ -38,7 +39,6 @@ The PRD is the assessment's source of truth, but the organisation's App-Standard
 - **Reset confirmation is rate-limited per IP, not per Account.** An invalid token identifies no Account, so a per-Account key can't apply to the guesses that matter, and a 256-bit token cannot be brute-forced. Reset requests are still limited per email address.
 - **No automatic required password change on re-enable.** Re-enabling an Account doesn't set the required-change flag, because suspension isn't always a sign of compromise. When it is, the Admin applies "require password change" explicitly. Disabling already ends every Session.
 - **Expired Sessions get 401, not a redirect.** This is a JSON API; the SPA turns the 401 into a redirect to the login page, which is what the Standard's redirect achieves.
-- **No role-read API and no role-mutation endpoints.** The two roles are fixed in code, so there is nothing to read or protect. Unmatched routes are denied. `ADMIN` plays the part of the Standard's `USER_MANAGER`.
 - **Tombstone table as soft delete.** A deleted Account's row is removed and a `deleted_users` tombstone keeps its UUID, username, email, deletion time and deleting Admin, indefinitely. That preserves the audit trail the soft-delete rule exists for, without leaving deleted Accounts in the live table.
 - **Error codes.** The ProblemDetail `code` is snake_case (`user_exist`, `token_invalid`, `too_many_requests`, `authentication_failed`); `detail` carries the Standard's exact wording where it names one ("user exist", "password reset token expired or invalid", "too many requests").
 - **TLS is a deployment requirement,** not enforced by the app, because local HTTPS is out of scope.

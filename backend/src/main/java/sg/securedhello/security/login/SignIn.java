@@ -7,6 +7,7 @@ import java.util.List;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -62,6 +63,7 @@ import tools.jackson.databind.json.JsonMapper;
  * "Route C"), because that route keeps the filter-level session strategy. The strategy is the <em>login
  * composite</em> (ADR-038), in a fixed order:
  * <ol>
+ *   <li>the displaced mark cleared, so a sign-in on a displaced session is a fresh sign-in that the new login wins;</li>
  *   <li>concurrent-session control: one session per account, and the new login wins (R-AUTH-002);</li>
  *   <li>the session-start audit row, after the displaced session is decided and before the id changes, so it
  *       carries the pre-login {@code session.hash} (T-AUD-015);</li>
@@ -87,6 +89,13 @@ public final class SignIn {
 
     /** The directives sent on sign-out. The SPA clears its own state regardless (REJ-010). */
     static final String CLEAR_SITE_DATA = "\"cache\", \"cookies\", \"storage\"";
+
+    /**
+     * The session attribute Spring Session's registry sets on a session it expires ({@code
+     * SpringSessionBackedSessionInformation.EXPIRED_ATTR}, package-private upstream). T-SES-010's re-sign-in case fails
+     * if it is renamed.
+     */
+    static final String DISPLACED = "org.springframework.session.security.SpringSessionBackedSessionInformation.EXPIRED";
 
     private final ProviderManager authenticationManager;
     private final SessionRegistry sessionRegistry;
@@ -149,6 +158,7 @@ public final class SignIn {
         CsrfAuthenticationStrategy csrf = new CsrfAuthenticationStrategy(csrfTokens);
         csrf.setRequestHandler(csrfHandler);
         return new CompositeSessionAuthenticationStrategy(List.of(
+                SignIn::clearDisplacement,
                 new ConcurrentSessionControlAuthenticationStrategy(sessionRegistry),
                 (authentication, request, response) -> audit.emit(AuditEvent.SESSION_START,
                         AccountContext.sessionStart(userOf(authentication).id(), SessionStartReason.LOGIN)),
@@ -158,6 +168,22 @@ public final class SignIn {
                         .setAttribute(SessionAttributes.AUTH_INSTANT, clock.instant()),
                 new IdleIntervalReset(idleWindow),
                 csrf));
+    }
+
+    /**
+     * A sign-in on a session a newer sign-in displaced starts it afresh. The registry marks a displaced session with
+     * {@link #DISPLACED}, which the id change would otherwise carry over, so {@code ConcurrentSessionFilter} would end the
+     * new sign-in on its next request after the newer session had already been displaced by it: the user would be left
+     * with no live session anywhere (review 08-10 M2). The removal reaches the store only when the session is saved at
+     * the end of the request (Spring Session's default {@code FlushMode.ON_SAVE}), so the concurrent-session control
+     * that follows still sees this session as the displaced one and expires only the other.
+     */
+    private static void clearDisplacement(Authentication authentication, HttpServletRequest request,
+            HttpServletResponse response) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.removeAttribute(DISPLACED);
+        }
     }
 
     /**

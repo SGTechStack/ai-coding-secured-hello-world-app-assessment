@@ -17,8 +17,9 @@ import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 
 /**
- * Bounds a session's lifetime whatever traffic it sees. It sits after {@code SecurityContextHolderFilter} and before
- * {@code CsrfFilter} (ADR-038), so an expired session posting a mutation is answered 401, not first refused for CSRF.
+ * Bounds a session's lifetime whatever traffic it sees. It sits after {@code CorsFilter} and the header writer, so its
+ * 401 carries the SPA's CORS headers and the security headers, and before {@code CsrfFilter} (ADR-038), so an expired
+ * session posting a mutation is answered 401, not first refused for CSRF.
  *
  * <p>Authenticated branch ({@link SessionAttributes#AUTH_INSTANT} present): once the {@code Clock} reaches the auth
  * instant plus the absolute lifetime, the session is invalidated and the request answered 401

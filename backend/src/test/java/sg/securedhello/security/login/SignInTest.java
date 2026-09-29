@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 import jakarta.servlet.http.Cookie;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,6 +24,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -332,6 +334,22 @@ class SignInTest extends CtxDefaultTest {
     }
 
     @Test
+    @Proves("T-SES-037")
+    void theAbsoluteLifetime401CarriesTheSpasCorsHeadersAndTheSecurityHeaders() throws Exception {
+        String spa = "http://localhost:5173";
+        CsrfSession session = SignedIn.as(mockMvc, accounts.user());
+
+        clock.advance(lifetime.absolute());
+
+        mockMvc.perform(post("/api/logout").header(HttpHeaders.ORIGIN, spa).with(session.inHeader()))
+                .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, spa))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, Matchers.containsString("no-store")))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+    }
+
+    @Test
     @Proves({"T-SES-034", "T-SES-035"})
     void loginResetsTheIntervalToWWhileAnAnonymousSessionStaysPinnedToItsCreation() throws Exception {
         long w = sessionRepository.createSession().getMaxInactiveInterval().toSeconds();
@@ -373,6 +391,22 @@ class SignInTest extends CtxDefaultTest {
         mockMvc.perform(get("/api/hello").cookie(first.cookie())).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
         mockMvc.perform(get("/api/hello").cookie(second.cookie())).andExpect(status().isOk());
         assertThat(sessions.exists(idOf(first.cookie()))).isFalse();
+    }
+
+    @Test
+    @Proves("T-SES-010")
+    void signingInAgainOnADisplacedSessionLeavesTheNewSessionLiveAndDisplacesTheOther() throws Exception {
+        Account alice = accounts.user();
+        CsrfSession displaced = SignedIn.as(mockMvc, alice);
+        CsrfSession newer = SignedIn.as(mockMvc, alice);
+
+        MvcResult again = SignedIn.login(mockMvc, displaced, alice.username(), alice.password()).andReturn();
+        assertThat(again.getResponse().getStatus()).isEqualTo(200);
+        Cookie rotated = again.getResponse().getCookie("SESSION");
+        assertThat(rotated).isNotNull();
+
+        mockMvc.perform(get("/api/hello").cookie(rotated)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/hello").cookie(newer.cookie())).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
     }
 
     @Test

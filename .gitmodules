@@ -1,0 +1,3 @@
+[submodule "App-Standards"]
+	path = App-Standards
+	url = https://github.com/SGTechStack/App-Standards

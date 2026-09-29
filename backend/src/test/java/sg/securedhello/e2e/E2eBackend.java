@@ -6,8 +6,10 @@ import java.util.Map;
 
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.Ordered;
 import org.springframework.core.env.CommandLinePropertySource;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
@@ -21,8 +23,8 @@ import sg.securedhello.testsupport.TemporaryH2FileInitializer;
 /**
  * The backend the Playwright suite signs in against (level E). It lives in the test sources, so nothing here can
  * reach a production build: the real application under the {@code dev} profile, on a fresh temporary H2 file, with the
- * test-only {@code TestSecrets}, plus the fixture accounts the browser tests use, since registration does not exist
- * yet. Started by {@code frontend/playwright.config.ts}:
+ * test-only {@code TestSecrets}, plus the fixture accounts the browser tests sign in with and the {@link E2eMailbox} they
+ * read activation links from. Started by {@code frontend/playwright.config.ts}:
  *
  * <pre>mvn -f backend/pom.xml test-compile spring-boot:test-run
  *     -Dspring-boot.run.main-class=sg.securedhello.e2e.E2eBackend</pre>
@@ -66,13 +68,32 @@ public final class E2eBackend {
                 .run(args);
     }
 
-    /** Creates the fixture accounts once the context is ready. */
-    @Configuration(proxyBeanMethods = false)
+    /**
+     * The fixture accounts and the mailbox. Deliberately not a {@code @Configuration}: it sits inside the scanned
+     * package, and the test contexts must never pick it up. {@link #main} passes it as a source instead, which Spring
+     * processes as a lite configuration class.
+     */
     static class Fixtures {
 
         @Bean
         ApplicationRunner e2eAccounts(JdbcTemplate jdbc, PasswordEncoder passwordEncoder) {
             return arguments -> USERNAMES.forEach(name -> new Accounts(jdbc, passwordEncoder).named(name, PASSWORD));
+        }
+
+        /** Takes the dev link logger's place, so the browser tests read activation links from it (ADR-067). */
+        @Bean
+        @Primary
+        E2eMailbox e2eMailbox() {
+            return new E2eMailbox();
+        }
+
+        /** Serves the mailbox ahead of every application filter; it is not an application route. */
+        @Bean
+        FilterRegistrationBean<E2eMailbox> e2eMailboxEndpoint(E2eMailbox mailbox) {
+            FilterRegistrationBean<E2eMailbox> registration = new FilterRegistrationBean<>(mailbox);
+            registration.addUrlPatterns(E2eMailbox.PATH);
+            registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+            return registration;
         }
     }
 }

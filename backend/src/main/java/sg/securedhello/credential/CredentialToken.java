@@ -55,6 +55,15 @@ public class CredentialToken {
     protected CredentialToken() {
     }
 
+    /** A pending token for {@code userId}, redeemable until {@code createdAt} plus the type's lifetime. */
+    CredentialToken(UUID userId, CredentialTokenType type, String tokenHash, Instant createdAt) {
+        this.userId = userId;
+        this.type = type;
+        this.tokenHash = tokenHash;
+        this.createdAt = createdAt;
+        this.expiresAt = createdAt.plus(type.lifetime());
+    }
+
     public UUID getId() {
         return id;
     }

@@ -35,8 +35,9 @@ class LifecycleRowsTest {
                 .containsEntry("labels.active_profiles", List.of("dev"))
                 .containsEntry("labels.ipv6_prefix_length", 56)
                 .containsKeys("service.version", "host.name", "host.ip")
+                // The dev profile enables the dev-only link logger (ADR-057), and the row records it.
                 .containsEntry("labels.audit_loggers", List.of("audit=INFO",
-                        ResetLinkLoggerGuard.LOGGER_NAME + "=INFO"));
+                        ResetLinkLoggerGuard.LOGGER_NAME + "=DEBUG"));
         assertThat((List<?>) startup.get("labels.key_fingerprints")).hasSize(3).allSatisfy(fingerprint ->
                 assertThat(fingerprint.toString()).matches("app\\.[a-z.-]+\\.key=[0-9a-f]{8}"));
         assertThat(startup.toString()).doesNotContain(TestSecrets.CANARIES);

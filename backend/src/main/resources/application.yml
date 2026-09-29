@@ -69,6 +69,11 @@ app:
           path: /api/login
         - method: POST
           path: /api/logout
+        # Two-step self-registration (ADR-032).
+        - method: POST
+          path: /api/register
+        - method: POST
+          path: /api/register/activate
       roles:
         USER:
           - method: GET
@@ -108,6 +113,14 @@ app:
           burst: 30
           refill-period: 2s
       profile-password:
+        source:
+          burst: 10
+          refill-period: 6s
+      register:
+        source:
+          burst: 5
+          refill-period: 12s
+      register-activate:
         source:
           burst: 10
           refill-period: 6s

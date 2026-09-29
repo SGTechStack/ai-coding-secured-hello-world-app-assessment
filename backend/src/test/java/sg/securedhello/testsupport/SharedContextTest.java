@@ -7,6 +7,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.convention.TestBean;
 
+import sg.securedhello.email.EmailService;
+
 /**
  * What every shared Spring context has in common (ADR-065, ADR-066, ADR-067):
  * <ul>
@@ -15,7 +17,8 @@ import org.springframework.test.context.bean.override.convention.TestBean;
  *       {@link TemporaryH2FileInitializer};</li>
  *   <li>BCrypt cost 4, a test-speed setting that does not touch the security posture;</li>
  *   <li>the session cleanup job off ({@code -}), so rows disappear only when a test acts;</li>
- *   <li>the {@code clock} bean replaced by the one suite-wide {@link MutableClock}, exposed as {@link #clock}.</li>
+ *   <li>the {@code clock} bean replaced by the one suite-wide {@link MutableClock}, exposed as {@link #clock};</li>
+ *   <li>the {@code EmailService} bean replaced by the suite-wide {@link CapturedEmails}, exposed as {@link #emails}.</li>
  * </ul>
  *
  * <p>Extend one of the named contexts ({@link CtxDefaultTest}, {@link CtxPortTest}, {@link CtxLockTimeoutTest},
@@ -41,4 +44,11 @@ public abstract class SharedContextTest {
     /** Replaces the one {@code Clock} bean; typed {@code Clock} because a bean override must match the bean's type. */
     @TestBean(methodName = "sg.securedhello.testsupport.TestClock#shared")
     private Clock clockBean;
+
+    /** The suite-wide email capture: tests read activation and reset tokens from it (ADR-067). */
+    protected final CapturedEmails emails = CapturedEmails.shared();
+
+    /** Replaces the dev link logger with {@link #emails}, the one fixed override of ADR-067. */
+    @TestBean(methodName = "sg.securedhello.testsupport.CapturedEmails#shared")
+    private EmailService emailServiceBean;
 }

@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -39,16 +40,21 @@ public final class ErrorContract {
             .build();
 
     /**
-     * The extension members each code carries, beyond the envelope: required on that code and refused on every other
-     * one. A producer adds a member here, and the renderings change with it.
+     * The extension members each code may carry, beyond the envelope: allowed on that code, with that code's values,
+     * required there unless declared optional, and refused on every other code. A producer adds a member here, and the
+     * renderings change with it.
      */
     static final Map<ErrorCode, Map<String, Extension>> EXTENSIONS = Map.of(
             ErrorCode.PASSWORD_REJECTED, Map.of("rule", new Extension(
-                    Arrays.stream(PasswordRule.values()).map(Enum::name).toList(),
-                    "The first password-policy rule the password failed, in the order the rules run (ADR-005).")));
+                    Arrays.stream(PasswordRule.values()).map(Enum::name).toList(), true,
+                    "The first password-policy rule the password failed, in the order the rules run (ADR-005).")),
+            ErrorCode.VALIDATION_FAILED, Map.of("rule", new Extension(
+                    Arrays.stream(ValidationRule.values()).map(Enum::name).toList(), false,
+                    "Present only when the failure is a property of the submitted value the caller can act on: a "
+                            + "taken username at registration (ADR-032). A format or length rejection carries none.")));
 
-    /** An extension member: its closed set of string values and what it means. */
-    record Extension(List<String> values, String meaning) {
+    /** An extension member on one code: its closed set of string values, whether it is required, what it means. */
+    record Extension(List<String> values, boolean required, String meaning) {
     }
 
     private static final Schema COMPILED = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12)
@@ -73,9 +79,11 @@ public final class ErrorContract {
         properties.put("traceId", Map.of("type", "string", "pattern", "^[0-9a-f]{32}$"));
         properties.put("code", Map.of("enum", Arrays.stream(ErrorCode.values()).map(Enum::name).toList()));
         List<String> envelope = List.copyOf(properties.keySet());
-        Map<String, Extension> allExtensions = new TreeMap<>();
-        EXTENSIONS.values().forEach(allExtensions::putAll);
-        allExtensions.forEach((name, extension) -> properties.put(name, Map.of("enum", extension.values())));
+        // Each member's values across every code that carries it; each code narrows them to its own below.
+        Map<String, Set<String>> allExtensions = new TreeMap<>();
+        EXTENSIONS.values().forEach(members -> members.forEach((name, extension) ->
+                allExtensions.computeIfAbsent(name, key -> new TreeSet<>()).addAll(extension.values())));
+        allExtensions.forEach((name, values) -> properties.put(name, Map.of("enum", List.copyOf(values))));
 
         List<Object> pairings = new ArrayList<>();
         for (ErrorCode code : ErrorCode.values()) {
@@ -86,12 +94,14 @@ public final class ErrorContract {
             then.put("detail", Map.of("const", code.detail()));
             // Each extension member: its values on its own code, where it is required, and false (absent) elsewhere.
             Map<String, Extension> own = EXTENSIONS.getOrDefault(code, Map.of());
-            allExtensions.forEach((name, extension) -> then.put(name,
-                    own.containsKey(name) ? Map.of("enum", extension.values()) : false));
+            allExtensions.keySet().forEach(name -> then.put(name,
+                    own.containsKey(name) ? Map.of("enum", own.get(name).values()) : false));
             Map<String, Object> constraints = new LinkedHashMap<>();
             constraints.put("properties", then);
-            if (!own.isEmpty()) {
-                constraints.put("required", List.copyOf(new TreeSet<>(own.keySet())));
+            List<String> required = own.entrySet().stream().filter(entry -> entry.getValue().required())
+                    .map(Map.Entry::getKey).sorted().toList();
+            if (!required.isEmpty()) {
+                constraints.put("required", required);
             }
             pairings.add(Map.of(
                     "if", Map.of("properties", Map.of("code", Map.of("const", code.name()))),
@@ -151,10 +161,10 @@ public final class ErrorContract {
 
                 ## Extension members
 
-                Each is required on its code and absent from every other.
+                Each is allowed only on the codes listed for it, with that code's values, and absent from every other.
 
-                | Member | Code | Values | Meaning |
-                |---|---|---|---|
+                | Member | Code | Required | Values | Meaning |
+                |---|---|---|---|---|
                 """);
         EXTENSIONS.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry ->
                 new TreeMap<>(entry.getValue()).forEach((name, extension) ->
@@ -176,8 +186,8 @@ public final class ErrorContract {
 
     private static String extensionRow(String name, ErrorCode code, Extension extension) {
         List<String> values = extension.values().stream().map(value -> "`" + value + "`").toList();
-        return "| `%s` | `%s` | %s | %s |%n".formatted(name, code.name(), String.join(", ", values),
-                extension.meaning());
+        return "| `%s` | `%s` | %s | %s | %s |%n".formatted(name, code.name(), extension.required() ? "yes" : "no",
+                String.join(", ", values), extension.meaning());
     }
 
     private static String lf(String text) {

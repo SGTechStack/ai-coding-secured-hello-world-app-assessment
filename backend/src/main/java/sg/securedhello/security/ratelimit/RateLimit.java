@@ -27,7 +27,14 @@ public enum RateLimit {
 
     /** {@code PATCH /api/profile/password}, per source key: burst 10, then 1 per 6 s (ADR-008; R-RL-001). */
     PROFILE_PASSWORD_SOURCE("profile-password", HttpMethod.PATCH, "/api/profile/password", Axis.SOURCE,
-            RateLimitProperties::profilePassword);
+            RateLimitProperties::profilePassword),
+
+    /** {@code POST /api/register}, per source key: burst 5, then 1 per 12 s (ADR-032). */
+    REGISTER_SOURCE("register", HttpMethod.POST, "/api/register", Axis.SOURCE, RateLimitProperties::register),
+
+    /** {@code POST /api/register/activate}, per source key: burst 10, then 1 per 6 s (ADR-007; ADR-032). */
+    REGISTER_ACTIVATE_SOURCE("register-activate", HttpMethod.POST, "/api/register/activate", Axis.SOURCE,
+            RateLimitProperties::registerActivate);
 
     private final String route;
     private final HttpMethod method;

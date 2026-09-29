@@ -73,6 +73,20 @@ public class UserAccount {
     protected UserAccount() {
     }
 
+    /**
+     * A pending registration (CONTEXT.md): a {@code USER} account holding a canonical username and email but no
+     * password, enabled but not activated, so it cannot sign in until its activation token is redeemed (ADR-032).
+     */
+    public static UserAccount pendingRegistration(String username, String email, Instant now) {
+        UserAccount account = new UserAccount();
+        account.username = username;
+        account.email = email;
+        account.role = "USER";
+        account.enabled = true;
+        account.createdAt = now;
+        return account;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -101,6 +115,31 @@ public class UserAccount {
     /** When the account was activated, or {@code null} if it never was. */
     public Instant getActivatedAt() {
         return activatedAt;
+    }
+
+    /** Whether this is a pending registration: never activated, so it has no password yet. */
+    public boolean isPending() {
+        return activatedAt == null;
+    }
+
+    /**
+     * A repeated self-registration against this pending record replaces it (ADR-032; R-CRED-010): it takes the newly
+     * submitted username. The caller has checked that the username is free.
+     */
+    public void replacePendingRegistration(String newUsername, Instant now) {
+        if (!isPending()) {
+            throw new IllegalStateException("Only a pending registration is replaced");
+        }
+        this.username = newUsername;
+        this.createdAt = now;
+    }
+
+    /** Marks the account activated, once its activation token has been redeemed and its first password set. */
+    public void activate(Instant now) {
+        if (!isPending()) {
+            throw new IllegalStateException("The account is already activated");
+        }
+        this.activatedAt = now;
     }
 
     /** The password-lockout columns (ADR-011; ADR-012; ADR-013). */

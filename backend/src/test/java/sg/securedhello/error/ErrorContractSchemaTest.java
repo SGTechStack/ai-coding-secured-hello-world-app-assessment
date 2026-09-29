@@ -56,6 +56,25 @@ class ErrorContractSchemaTest {
         Map<String, Object> foreign = envelope(ErrorCode.VALIDATION_FAILED);
         foreign.put("rule", "TOO_WEAK");
         assertThat(violations(foreign)).isNotEmpty();
+
+        Map<String, Object> elsewhere = envelope(ErrorCode.ACCESS_DENIED);
+        elsewhere.put("rule", "USERNAME_UNAVAILABLE");
+        assertThat(violations(elsewhere)).isNotEmpty();
+    }
+
+    @Test
+    void validationFailedMayCarryItsOwnRuleButNeedsNone() {
+        Map<String, Object> withRule = envelope(ErrorCode.VALIDATION_FAILED);
+        withRule.put("rule", ValidationRule.USERNAME_UNAVAILABLE.name());
+        assertThat(violations(withRule)).isEmpty();
+
+        Map<String, Object> withoutRule = envelope(ErrorCode.VALIDATION_FAILED);
+        withoutRule.remove("rule");
+        assertThat(violations(withoutRule)).isEmpty();
+
+        Map<String, Object> passwordRuleOnValidation = envelope(ErrorCode.PASSWORD_REJECTED);
+        passwordRuleOnValidation.put("rule", ValidationRule.USERNAME_UNAVAILABLE.name());
+        assertThat(violations(passwordRuleOnValidation)).isNotEmpty();
     }
 
     @Test

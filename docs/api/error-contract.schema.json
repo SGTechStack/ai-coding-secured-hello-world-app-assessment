@@ -115,7 +115,9 @@
         "detail" : {
           "const" : "The request was not valid."
         },
-        "rule" : false,
+        "rule" : {
+          "enum" : [ "USERNAME_UNAVAILABLE" ]
+        },
         "status" : {
           "const" : 400
         },
@@ -393,7 +395,7 @@
       "type" : "string"
     },
     "rule" : {
-      "enum" : [ "MIN_LENGTH", "MAX_BYTES", "BLOCKLISTED", "CONTEXT_TERM", "TOO_WEAK", "HISTORY_REUSE" ]
+      "enum" : [ "BLOCKLISTED", "CONTEXT_TERM", "HISTORY_REUSE", "MAX_BYTES", "MIN_LENGTH", "TOO_WEAK", "USERNAME_UNAVAILABLE" ]
     },
     "status" : {
       "type" : "integer"

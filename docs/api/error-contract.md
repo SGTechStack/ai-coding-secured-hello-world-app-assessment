@@ -40,11 +40,12 @@ No other member is allowed until the contract declares it, as an extension membe
 
 ## Extension members
 
-Each is required on its code and absent from every other.
+Each is allowed only on the codes listed for it, with that code's values, and absent from every other.
 
-| Member | Code | Values | Meaning |
-|---|---|---|---|
-| `rule` | `PASSWORD_REJECTED` | `MIN_LENGTH`, `MAX_BYTES`, `BLOCKLISTED`, `CONTEXT_TERM`, `TOO_WEAK`, `HISTORY_REUSE` | The first password-policy rule the password failed, in the order the rules run (ADR-005). |
+| Member | Code | Required | Values | Meaning |
+|---|---|---|---|---|
+| `rule` | `VALIDATION_FAILED` | no | `USERNAME_UNAVAILABLE` | Present only when the failure is a property of the submitted value the caller can act on: a taken username at registration (ADR-032). A format or length rejection carries none. |
+| `rule` | `PASSWORD_REJECTED` | yes | `MIN_LENGTH`, `MAX_BYTES`, `BLOCKLISTED`, `CONTEXT_TERM`, `TOO_WEAK`, `HISTORY_REUSE` | The first password-policy rule the password failed, in the order the rules run (ADR-005). |
 
 ## Rules
 

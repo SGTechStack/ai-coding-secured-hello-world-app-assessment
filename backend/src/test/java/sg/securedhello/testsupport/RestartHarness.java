@@ -8,6 +8,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.web.server.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ApplicationListener;
@@ -15,6 +16,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
 import sg.securedhello.SecuredHelloApplication;
+import sg.securedhello.config.ResetLinkLoggerGuard;
 
 /**
  * {@code restart}: boots the whole application through {@code SpringApplication}, on its own temporary H2 file and a
@@ -48,6 +50,9 @@ public final class RestartHarness {
      */
     public static Boot boot(Consumer<SpringApplicationBuilder> customiser, String... args) {
         AtomicBoolean portOpened = new AtomicBoolean();
+        // Logback is one per JVM, and a dev context booted earlier in the suite enabled the dev-only link logger
+        // (ADR-057). A restart is a fresh process, so it starts from the logger's default level, as production would.
+        LoggingSystem.get(RestartHarness.class.getClassLoader()).setLogLevel(ResetLinkLoggerGuard.LOGGER_NAME, null);
         SpringApplicationBuilder builder = new SpringApplicationBuilder(SecuredHelloApplication.class)
                 .initializers(new TemporaryH2FileInitializer())
                 .listeners((ApplicationListener<WebServerInitializedEvent>) event -> portOpened.set(true));

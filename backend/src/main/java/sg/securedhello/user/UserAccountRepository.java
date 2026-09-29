@@ -15,6 +15,9 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
 
     Optional<UserAccount> findByUsername(String username);
 
+    /** The account holding {@code email}, which must be canonical (ADR-045). */
+    Optional<UserAccount> findByEmail(String email);
+
     /**
      * The account, with its row locked for the rest of the transaction ({@code SELECT ... FOR UPDATE}), so concurrent
      * sign-in outcomes on one account are counted one after another (R-DATA-014).

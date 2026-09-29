@@ -6,3 +6,9 @@ server:
         # The __Host- prefix requires Secure, which plain HTTP cannot carry (ADR-058; REJ-061).
         name: SESSION
         secure: false
+# The dev-only credential-link logger (ADR-057): the stubbed EmailService writes activation and reset links here, for a
+# developer to follow. Three controls refuse it outside dev (ProhibitedConfigurationValidator, ResetLinkLoggerGuard and
+# the read-only loggers endpoint).
+logging:
+  level:
+    sg.securedhello.email.ResetLinkLogger: DEBUG

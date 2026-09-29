@@ -2,7 +2,8 @@ package com.example.auth.web;
 
 import java.util.Map;
 
-import com.example.auth.audit.AuditService;
+import com.example.auth.login.IpThrottledException;
+import com.example.auth.login.LoginService;
 import com.example.auth.user.RegistrationRequest;
 import com.example.auth.user.RegistrationService;
 import com.example.auth.user.UserPrincipal;
@@ -18,8 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -39,21 +38,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final RegistrationService registrationService;
-    private final AuthenticationManager authenticationManager;
+    private final LoginService loginService;
     private final HttpSessionSecurityContextRepository securityContextRepository;
     private final UserRepository users;
-    private final AuditService audit;
 
     public AuthController(RegistrationService registrationService,
-                          AuthenticationManager authenticationManager,
+                          LoginService loginService,
                           HttpSessionSecurityContextRepository securityContextRepository,
-                          UserRepository users,
-                          AuditService audit) {
+                          UserRepository users) {
         this.registrationService = registrationService;
-        this.authenticationManager = authenticationManager;
+        this.loginService = loginService;
         this.securityContextRepository = securityContextRepository;
         this.users = users;
-        this.audit = audit;
     }
 
     @GetMapping("/csrf")
@@ -72,18 +68,10 @@ public class AuthController {
                              HttpServletRequest request,
                              HttpServletResponse response) {
         try {
-            Authentication auth = authenticationManager.authenticate(
-                    UsernamePasswordAuthenticationToken.unauthenticated(req.username(), req.password()));
+            Authentication auth = loginService.authenticate(
+                    req.username(), req.password(), request.getRemoteAddr());
 
-            /*
-             * Session fixation protection: change the session ID of any pre-existing
-             * session (e.g. the anonymous session that held the CSRF cookie) before
-             * binding the authenticated SecurityContext. If no session exists yet,
-             * saveContext() below will create one with a fresh random ID.
-             * DaoAuthenticationProvider.hideUserNotFoundExceptions=true (the default)
-             * ensures a dummy BCrypt comparison runs even for unknown usernames,
-             * preventing enumeration via response timing (Story 50).
-             */
+            // Session fixation protection (see Slice 3 comment).
             HttpSession existingSession = request.getSession(false);
             if (existingSession != null) {
                 request.changeSessionId();
@@ -95,14 +83,21 @@ public class AuthController {
             securityContextRepository.saveContext(context, request, response);
 
             UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
-            audit.loginSuccess(principal.getUsername(), request.getRemoteAddr());
             return ResponseEntity.ok(new AuthResponse(principal.getUsername(), principal.getRole().name()));
 
+        } catch (IpThrottledException ex) {
+            ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                    HttpStatus.TOO_MANY_REQUESTS, "Too many requests");
+            return ResponseEntity
+                    .status(HttpStatus.TOO_MANY_REQUESTS)
+                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                    .body(problem);
+
         } catch (AuthenticationException ex) {
-            // Generic message regardless of cause: unknown user, wrong password, locked,
-            // or disabled — enumeration resistance requires identical responses (Stories 9, 18).
-            audit.loginFailure(req.username(), request.getRemoteAddr());
-            ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+            // Generic 401 regardless of cause (wrong password, unknown user, locked,
+            // disabled) — enumeration resistance requires identical responses.
+            ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                    HttpStatus.UNAUTHORIZED, "Invalid credentials");
             return ResponseEntity
                     .status(HttpStatus.UNAUTHORIZED)
                     .contentType(MediaType.APPLICATION_PROBLEM_JSON)
@@ -113,9 +108,6 @@ public class AuthController {
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void logout(HttpServletRequest request) {
-        // Invalidating the Spring Session JDBC session deletes it from the DB.
-        // Spring Session's SessionRepositoryFilter then expires the session cookie
-        // in the response, so the browser cookie is cleared automatically.
         HttpSession session = request.getSession(false);
         if (session != null) {
             session.invalidate();
@@ -125,7 +117,6 @@ public class AuthController {
 
     @GetMapping("/me")
     UserResponse me(@AuthenticationPrincipal UserPrincipal principal) {
-        // Re-fetch from DB to return live data (enabled/role may have changed since login).
         return users.findByUsername(principal.getUsername())
                 .map(UserResponse::from)
                 .orElseThrow();

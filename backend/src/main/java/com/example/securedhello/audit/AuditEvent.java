@@ -58,6 +58,15 @@ public final class AuditEvent {
 		return new AuditEvent(Level.ERROR, action, "failure", reason);
 	}
 
+	/**
+	 * {@code event.reason} on a successful event that needs one, such as why a Session ended
+	 * ({@code idle_timeout}, {@code new_login}).
+	 */
+	public AuditEvent reason(String reason) {
+		fields.put("event.reason", reason);
+		return this;
+	}
+
 	/** The acting Account's UUID. */
 	public AuditEvent userId(UUID userId) {
 		fields.put("user.id", userId.toString());

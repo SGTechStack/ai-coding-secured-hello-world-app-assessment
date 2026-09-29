@@ -16,6 +16,7 @@ import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.config.ApiProperties;
+import com.example.securedhello.config.SessionProperties;
 
 /**
  * Startup and shutdown events. Once the app is ready it logs the host, active profiles and key
@@ -32,11 +33,15 @@ class ApplicationLifecycleLogger {
 
 	private final ApiProperties api;
 
+	private final SessionProperties session;
+
 	private final AuditLog auditLog;
 
-	ApplicationLifecycleLogger(Environment environment, ApiProperties api, AuditLog auditLog) {
+	ApplicationLifecycleLogger(Environment environment, ApiProperties api, SessionProperties session,
+			AuditLog auditLog) {
 		this.environment = environment;
 		this.api = api;
+		this.session = session;
 		this.auditLog = auditLog;
 	}
 
@@ -51,6 +56,9 @@ class ApplicationLifecycleLogger {
 			.addKeyValue("config.api.max_request_body_bytes", api.maxRequestBodyBytes())
 			.addKeyValue("config.session.cookie_secure",
 					environment.getProperty("app.session.cookie-secure", Boolean.class))
+			.addKeyValue("config.session.timeout.idle", session.idleTimeout().toString())
+			.addKeyValue("config.session.timeout.absolute", session.absoluteTimeout().toString())
+			.addKeyValue("config.session.max_concurrent_per_account", session.maxConcurrentPerAccount())
 			.log("Application started");
 		auditLog.record(AuditEvent.success(AuditAction.APPLICATION_STARTUP));
 	}

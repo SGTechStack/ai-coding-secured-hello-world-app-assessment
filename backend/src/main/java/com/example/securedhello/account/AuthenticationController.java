@@ -83,14 +83,18 @@ class AuthenticationController {
 		return ResponseEntity.ok().header(CLEAR_SITE_DATA, "\"cache\",\"cookies\",\"storage\"").build();
 	}
 
-	/** One body for unknown username, wrong password and Disabled Account; no identity is logged. */
+	/**
+	 * One body for unknown username, wrong password and Disabled Account; no identity is logged. An
+	 * authenticated Session the request carried is ended.
+	 */
 	@ExceptionHandler(AuthenticationFailedException.class)
 	@ResponseStatus(HttpStatus.UNAUTHORIZED)
-	ProblemDetail authenticationFailed(HttpServletRequest request) {
+	ProblemDetail authenticationFailed(HttpServletRequest request, HttpServletResponse response) {
 		auditLog.record(AuditEvent.failure(AuditAction.USER_AUTHENTICATION, AUTHENTICATION_FAILED)
 			.passwordAuthentication()
 			.request(request)
 			.sessionHashOf(request));
+		sessionControl.endAfterFailedLogin(request, response);
 		return ProblemResponses.problem(HttpStatus.UNAUTHORIZED, AUTHENTICATION_FAILED,
 				"The username or password is incorrect.");
 	}

@@ -53,6 +53,8 @@ class AuditLogTest {
 			assertThat(field(started, "service.name")).isEqualTo("secured-hello-world");
 			assertThat(field(started, "config.api.base_path")).isEqualTo("/api");
 			assertThat(field(started, "config.api.max_request_body_bytes")).isEqualTo("16384");
+			assertThat(field(started, "config.session.timeout.idle")).isEqualTo("PT15M");
+			assertThat(field(started, "config.session.timeout.absolute")).isEqualTo("PT8H");
 			assertThat(capture.applicationText()).noneMatch((line) -> line.contains("jdbc:h2"))
 				.noneMatch((line) -> line.contains("secured-hello-test"));
 

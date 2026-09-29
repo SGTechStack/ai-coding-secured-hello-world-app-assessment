@@ -49,11 +49,14 @@ class SecurityConfig {
 	@Bean
 	@Order(10)
 	SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, ApiProperties api, CorsProperties cors,
-			AuditLog auditLog, CsrfTokenRepository csrfTokenRepository) throws Exception {
+			AuditLog auditLog, CsrfTokenRepository csrfTokenRepository, SessionControl sessionControl)
+			throws Exception {
 		http.cors((c) -> c.configurationSource(corsConfigurationSource(api, cors)))
 			.csrf((csrf) -> csrf.csrfTokenRepository(csrfTokenRepository))
 			// Size check runs before CSRF, authorization and every controller.
 			.addFilterBefore(new RequestBodyLimitFilter(api.maxRequestBodyBytes()), CsrfFilter.class)
+			// Idle and absolute Session timeouts, once the Session's authentication is loaded.
+			.addFilterBefore(new SessionLifetimeFilter(sessionControl), CsrfFilter.class)
 			// user.id in MDC once the Session's authentication is loaded, before any rejection.
 			.addFilterBefore(new AccountIdMdcFilter(), CsrfFilter.class)
 			.authorizeHttpRequests((auth) -> auth

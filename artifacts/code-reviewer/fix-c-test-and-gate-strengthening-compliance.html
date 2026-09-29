@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — fix-c-test-and-gate-strengthening</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">Overall FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">build FAIL · 0/1/1/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN · 0/0/1/5</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN · 0/0/0/10</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED · 0/0/0/3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN · 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">react WARN · 0/0/0/4</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN · 0/0/0/4</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">fix-c</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report (round 2)</h1>
+        <p class="text-sm text-slate-500 mt-1">fix-c-test-and-gate-strengthening: the uncommitted test and gate changes in the <span class="font-mono">shw-wt/fix-c</span> worktree (base <span class="font-mono">3c24e41</span>). No production source changed. Badge counts are Critical/High/Medium/Low.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">The overall status is FAIL because the build check reported FAIL. <span class="font-mono">mvn clean verify</span> is red with one error: <span class="font-mono">LockoutTest</span> throws a ConcurrentModificationException in <span class="font-mono">AuditCapture.rows()</span>. Because of this, Failsafe and the JaCoCo gate never ran. The failing code is not part of this changeset and looks like a race that already existed, but the gate is still red. Every other check has zero Critical or High findings, and all round-1 must-fix items are resolved. Semgrep could not run, so it is shown as SKIPPED and does not affect the overall status.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Check</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Status</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">C / H / M / L</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Must-fix</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 font-medium">build</td><td class="px-4 py-2 text-red-700 font-semibold">FAIL</td><td class="px-4 py-2">0 / 1 / 1 / 2</td><td class="px-4 py-2 font-semibold">1</td><td class="px-4 py-2">The frontend is green: 141 tests, 97.6% statement coverage. Backend verify failed: 933 tests ran, with 1 error (a ConcurrentModificationException in AuditCapture.rows, hit by LockoutTest). Integration tests and JaCoCo were not reached. Every new or changed test class passed.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">thermo-nuclear</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2">0 / 0 / 1 / 5</td><td class="px-4 py-2">0</td><td class="px-4 py-2">The check reported PASS. All four round-1 must-fix items are resolved, and so is the lexer split. One should-fix follow-up remains: replace the 10 local copies of the wrong password after batch B merges.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">code-review</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 10</td><td class="px-4 py-2">0</td><td class="px-4 py-2">All 9 acceptance criteria and the round-2 changes are present. The remaining Low items are rarer skip forms that still fail open, a misleading "Known limits" Javadoc, and gaps in the docs (the T-AUTH-001 row and ADR-068).</td></tr>
+            <tr><td class="px-4 py-2 font-medium">semgrep</td><td class="px-4 py-2 text-slate-600 font-semibold">SKIPPED</td><td class="px-4 py-2">0 / 0 / 0 / 3</td><td class="px-4 py-2">0</td><td class="px-4 py-2">Semgrep is not installed. A manual pattern review found only informational false positives: test fixture passwords and localhost URIs.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">im8</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 1</td><td class="px-4 py-2">0</td><td class="px-4 py-2">The check reported PASS. No control is weakened, and security settings that tests relax stay inside the test contexts. There is one advisory lm-19 coverage note.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">react</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 4</td><td class="px-4 py-2">0</td><td class="px-4 py-2">The check reported PASS. App.csp.test.tsx still depends on test order, but it now fails loudly when the order changes, so the finding was downgraded to Low.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">springboot</td><td class="px-4 py-2 text-amber-700 font-semibold">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 4</td><td class="px-4 py-2">0</td><td class="px-4 py-2">The check reported PASS. Round-1 M1 (the gate cited commented-out tests) is fixed. Four optional Low items remain.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <ul class="list-disc pl-6 space-y-2 text-sm">
+            <li><span class="font-semibold text-red-700">The backend build is red (build F1, must-fix).</span> <span class="font-mono text-xs">LockoutTest.aSteadyAttackDisablesNoSoonerThanTheFloorAndTheAlertComesFirst</span> throws a ConcurrentModificationException. <span class="font-mono text-xs">AuditCapture.rows()</span> streams logback's unsynchronized <span class="font-mono text-xs">ListAppender.list</span> while pool threads append to it. Fix: take the snapshot under <span class="font-mono text-xs">synchronized (appender.list)</span> or use a thread-safe appender. Then re-run <span class="font-mono text-xs">mvn verify</span> until it is green. <span class="font-mono text-xs">backend/src/test/java/sg/securedhello/testsupport/AuditCapture.java:34</span></li>
+            <li><span class="font-semibold">LogOutputGuard adds a false "secret leak" failure whenever a sign-in MockMvc test fails (build F2, Medium).</span> MockMvc prints the request on failure, and the request body contains <span class="font-mono text-xs">WRONG_PASSWORD</span>. The extra failure hides the real one. <span class="font-mono text-xs">backend/src/test/java/sg/securedhello/testsupport/LogOutputGuard.java</span></li>
+            <li><span class="font-semibold">10 test classes still keep local copies of the wrong password.</span> Thermo-nuclear (should-fix), code-review, springboot and im8 all flagged this. It was deferred on purpose until batch B merges; track it as a follow-up.</li>
+            <li><span class="font-semibold">The frontend test-name scanner can fail open.</span> Its "Known limits" Javadoc misdescribes conditional skips, some skip forms are still cited, and a stray quote can throw off its string tracking. Thermo-nuclear, code-review and springboot flagged this. None of these forms exists in the repo today. <span class="font-mono text-xs">backend/src/test/java/sg/securedhello/build/FrontendTestNames.java:21-24</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">build</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/testsupport/AuditCapture.java</td><td class="px-4 py-2">34</td><td class="px-4 py-2">Must-fix. <span class="font-mono text-xs">mvn clean verify</span> ends in BUILD FAILURE: 933 tests ran, with 0 failures and 1 error. LockoutTest hits a ConcurrentModificationException in AuditCapture.rows(), a race with pool threads on logback's ListAppender list. This code is not in the changeset and the failure is probably an existing flake. Still, integration tests and the JaCoCo gate never ran. Make the snapshot thread-safe and re-run until green.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/testsupport/LogOutputGuard.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">The guard now scans for Accounts.WRONG_PASSWORD across the whole suite. When a sign-in test fails, MockMvc prints the request, and that dump triggers a second assertion ("secret #8 reached the output"). This happens on every failing sign-in test and hides the real failure. Exclude MockMvc's print output from the scan, or turn off print-on-failure.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/web/ActuatorExplicitDenyTest.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Info: this test failed in the previous run (401 instead of 403). After the 22:31 edit it passes 3/3. Confirm on the next green run.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend (vite build)</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Info: Vite warns about a 1.2 MB chunk. This predates the change. The fallow audit was not run.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">10 sign-in / lockout / ratelimit test classes</td><td class="px-4 py-2">—</td><td class="px-4 py-2">F1 (should-fix follow-up, not must-fix): local copies of "not-the-password-at-all" remain. Replace them with Accounts.WRONG_PASSWORD once batch B merges.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/build/FrontendTestNames.java</td><td class="px-4 py-2">21-24</td><td class="px-4 py-2">N1: the "Known limits" Javadoc misdescribes conditional skips. describe.skipIf/runIf and an in-body test.skip(cond) fail open, while it.skipIf/runIf cite nothing.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/build/FrontendTestNames.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">N2: a single quote in a regex literal or in JSX text starts a string that is not really there. The scanner can then fail open. This is not listed as a known limit.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">ArchitectureRules.java, StartupRefusalTest.java, LogOutputGuard.java</td><td class="px-4 py-2">69</td><td class="px-4 py-2">N3: a Javadoc line of 134 characters, imports out of order, and constants declared apart from the other constants.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L3 (partly resolved): pom.xml has no comment pointing back to RUNNER_CLASS_NAME in Citations. Optional.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">.gitignore</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L6 (open): adding artifacts/review/ is outside this batch's scope. Commit it separately.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">code-review</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/build/FrontendTestNames.java</td><td class="px-4 py-2">21-24</td><td class="px-4 py-2">Spec S1: the "Known limits" Javadoc is wrong about it.skipIf/runIf, and it contradicts itself.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">FrontendTestNames.java, Citations.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Spec S2: some rarer skip forms still fail open: { fails: true }, test.skip(true), ctx.skip(), and an inherited @Test that a subclass overrides with @Disabled. None is used today.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/error/ErrorDispatchPortTest.java</td><td class="px-4 py-2">114</td><td class="px-4 py-2">Spec S3: the throwing filter runs at HIGHEST_PRECEDENCE, so no exception is thrown inside the security chain. Add a second filter, or narrow the Javadoc.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/test-plan/test-plan.md</td><td class="px-4 py-2">58</td><td class="px-4 py-2">Spec S4: the T-AUTH-001 row does not describe the new test on a real port (ctx-port).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">.gitignore</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Spec S5: the artifacts/review/ change is outside this batch's scope.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/adr (ADR-068)</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Spec S6: ADR-068 does not record that the gate now counts only tests that actually run.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">ArchitectureRules.java, StartupRefusalTest.java</td><td class="px-4 py-2">698</td><td class="px-4 py-2">Standards T1: import order and where declarations are placed.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">10 sign-in / lockout test classes</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Standards T2: the wrong-password literal is duplicated. This is deferred until batch B merges.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/config/StartupRefusalTest.java</td><td class="px-4 py-2">698-699</td><td class="px-4 py-2">Standards T3: NAMED_IN_FAILURE_AS matches Spring's binder message word for word. A Spring Boot upgrade that rewords the message would turn the test red.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/build/FrontendTestNames.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Standards T4: the scanner's tracking of quote pairs drifts on apostrophes in JSX text and on quotes in regex literals. It can then fail open.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">SKIPPED</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">testsupport/Accounts.java, audit/CanarySecretScanTest.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Info (false positive): hardcoded test fixture and canary passwords. LogOutputGuard scans for them on purpose.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">web/ActuatorExplicitDenyTest.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Info (false positive): a plain-HTTP localhost URI that points at the local test server.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">HelloPage.test.tsx, App.csp.test.tsx</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Info: the 'http://x' literal is test input. The Semgrep CLI is not installed. Run p/security-audit and p/default once it is.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">im8</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/testsupport/LogOutputGuard.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">lm-19 advisory: the guard does not scan the wrong-password literals that other test classes define locally. This is deferred until batch B merges and has no runtime effect. Every other control touched by this change passes: as-7, as-8, as-9, as-13, lm-19 and pm-6.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">react</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/App.csp.test.tsx</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Test 1 must still run before test 2, because a hoisted &lt;style&gt; element persists between tests. A precondition assertion means a wrong order now fails loudly. Cleaning up in afterEach is optional.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/App.csp.test.tsx</td><td class="px-4 py-2">36</td><td class="px-4 py-2">The inline &lt;script&gt; assertion has nothing to do with the probe and duplicates App.test.tsx. It is harmless.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">HelloPage.test.tsx, useObjectUrlImage.test.tsx</td><td class="px-4 py-2">—</td><td class="px-4 py-2">The test ID appears twice in the reported names, and the separator is inconsistent. Cosmetic.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/App.csp.test.tsx</td><td class="px-4 py-2">23-25</td><td class="px-4 py-2">styleElements() queries the whole document. Note only.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">springboot</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/build/FrontendTestNames.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L1: a test that Vitest skips at runtime with ctx.skip() is still cited, and this is not in the documented limits.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/build/Citations.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L2: a composed @Disabled annotation is missed, and @DisabledIf*/@EnabledIf* tests count as running. Neither is documented. Consider isMetaAnnotatedWith.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">10 sign-in / lockout test classes</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L3: local copies of the wrong password remain. This is deferred until batch B merges.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/architecture/ArchitectureRules.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L4: import order. Cosmetic.</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

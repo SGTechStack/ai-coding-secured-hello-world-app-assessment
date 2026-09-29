@@ -1,0 +1,105 @@
+groups:
+  - id: registration
+    name: Registration
+  - id: login
+    name: Login
+  - id: logout
+    name: Logout
+  - id: protected_content
+    name: Protected Content
+  - id: password_reset
+    name: Password Reset
+  - id: admin_user_management
+    name: Admin User Management
+  - id: admin_bootstrap
+    name: Admin Bootstrap
+
+stories:
+  - id: "1"
+    title: "As a visitor, I want to register an account with a username, email, and password, so that I can log in and access the protected app."
+    group: registration
+    acceptance_criteria:
+      - "Given a visitor submits a unique username, unique email, and a password meeting the minimum strength policy (length >= 12), when they submit registration, then an account is created with role USER, enabled = true, and the password stored as a BCrypt hash."
+      - "Given a visitor submits a username or email that's already registered, when they submit registration, then the request is rejected with a clear validation error (username/email conflict), and no account is created."
+      - "Given a visitor submits a password that fails the strength policy, when they submit registration, then the request is rejected with a validation error and no account is created."
+      - "Given any registration attempt, when handled, then the plaintext password is never logged or stored."
+
+  - id: "2"
+    title: "As a registered user, I want to log in with my username and password, so that I can access my session and the protected app content."
+    group: login
+    acceptance_criteria:
+      - "Given a registered, enabled, non-locked account with correct credentials, when the user submits login, then a server-side session is created, a secure session cookie is set, and failed_login_attempts resets to 0."
+      - "Given incorrect credentials, when the user submits login, then the request is rejected with a generic error message that does not reveal whether the username exists, and failed_login_attempts increments."
+      - "Given an account that is currently locked (locked_until in the future), when the user submits login with correct credentials, then the request is still rejected until the lockout expires."
+
+  - id: "3"
+    title: "As a security-conscious operator, I want repeated failed logins to trigger account lockout and IP-level throttling, so that brute-force credential guessing is blunted."
+    group: login
+    acceptance_criteria:
+      - "Given N consecutive failed login attempts against one account within a window (e.g. 5 attempts), when the Nth failure occurs, then the account is locked for a cooldown period (e.g. 15 minutes) by setting locked_until."
+      - "Given a locked account, when the cooldown period elapses and the correct password is submitted, then login succeeds and failed_login_attempts resets."
+      - "Given repeated failed login attempts from one IP address across multiple usernames, when a threshold is exceeded, then further attempts from that IP are throttled independently of any single account's lockout state — so an attacker cannot lock out a legitimate user merely by failing that user's password from one source."
+
+  - id: "4"
+    title: "As a logged-in user, I want to log out, so that my session is fully ended and cannot be reused."
+    group: logout
+    acceptance_criteria:
+      - "Given an active session, when the user calls logout, then the server-side session is invalidated and the session cookie is cleared."
+      - "Given a session cookie captured before logout, when it is replayed after logout, then the server rejects it as unauthenticated."
+
+  - id: "5"
+    title: "As a logged-in user, I want to see a personalized greeting, so that I can confirm my authentication actually worked."
+    group: protected_content
+    acceptance_criteria:
+      - "Given an authenticated session, when the user requests GET /api/hello, then the response is \"Hello, <username>\"."
+      - "Given no session (or an invalid/expired one), when a request is made to GET /api/hello, then the response is unauthorized (401)."
+
+  - id: "6"
+    title: "As a user who forgot their password, I want to request a password reset via my registered email, so that I can regain access without contacting an admin."
+    group: password_reset
+    acceptance_criteria:
+      - "Given a request with an email address, when submitted to the password-reset-request endpoint, then the response is a generic success message regardless of whether the email is registered — so account existence cannot be inferred."
+      - "Given the email matches a registered user, when the request is processed, then a single-use reset token is generated, its hash (not the plaintext token) is stored with a short expiry (15–30 min), and EmailService.sendPasswordResetEmail(...) is called (stub implementation logs the link instead of sending mail)."
+
+  - id: "7"
+    title: "As a user with a valid reset token, I want to set a new password, so that I can regain access to my account."
+    group: password_reset
+    acceptance_criteria:
+      - "Given a valid, unexpired, unused reset token and a new password meeting the strength policy, when submitted to the password-reset-confirm endpoint, then the password is updated, the token is marked used, and all existing sessions for that user are invalidated."
+      - "Given an expired token, when submitted, then the request is rejected and the password is not changed."
+      - "Given a token that has already been used once, when submitted again, then the request is rejected (single-use enforcement)."
+
+  - id: "8"
+    title: "As an admin, I want to see a list of all registered users, so that I can review who has access to the system."
+    group: admin_user_management
+    acceptance_criteria:
+      - "Given an authenticated admin, when they call GET /api/admin/users, then the response lists each user's username, email, role, enabled status, and created-at date — never password hashes."
+      - "Given an authenticated non-admin user, when they call GET /api/admin/users, then the response is forbidden (403)."
+
+  - id: "9"
+    title: "As an admin, I want to enable or disable another user's account, so that I can suspend access without deleting their data."
+    group: admin_user_management
+    acceptance_criteria:
+      - "Given an admin targets another user's account, when they call the status-toggle endpoint, then the account's enabled flag is updated accordingly, and a disabled user can no longer log in."
+      - "Given an admin targets their own account via the status-toggle endpoint, when the request is made, then it is rejected — an admin cannot disable themselves."
+
+  - id: "10"
+    title: "As an admin, I want to change another user's role between USER and ADMIN, so that I can grant or revoke admin privileges."
+    group: admin_user_management
+    acceptance_criteria:
+      - "Given an admin targets another user's account, when they call the role-change endpoint with a valid role, then the account's role is updated."
+      - "Given an admin targets their own account via the role-change endpoint, when the request is made, then it is rejected — an admin cannot demote themselves."
+
+  - id: "11"
+    title: "As an admin, I want to delete another user's account, so that I can remove accounts that should no longer exist."
+    group: admin_user_management
+    acceptance_criteria:
+      - "Given an admin targets another user's account, when they call the delete endpoint, then the account is removed."
+      - "Given an admin targets their own account via the delete endpoint, when the request is made, then it is rejected — an admin cannot delete themselves."
+
+  - id: "12"
+    title: "As an operator deploying the app for the first time, I want an initial admin account to be created automatically, so that there's a way into the admin module without manual database edits."
+    group: admin_bootstrap
+    acceptance_criteria:
+      - "Given no ADMIN user exists in the database, when the application starts, then one is seeded using credentials supplied via configuration (e.g. app.admin.username, app.admin.password), with the password hashed identically to any other account."
+      - "Given an ADMIN user already exists, when the application restarts, then no duplicate seed account is created."

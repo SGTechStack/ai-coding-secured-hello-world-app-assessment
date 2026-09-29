@@ -41,6 +41,58 @@ fingerprint. The key itself is never logged. Compare fingerprints to confirm whi
 
 The tests need none of these variables. The test harness supplies test-only canary values (`TestSecrets`).
 
+### Shared dev demo values
+
+For local development and demos only, anyone who checks out this branch can paste one of these blocks into a
+terminal and then run the `spring-boot:run` command above, from the repository root.
+
+> **These values are public.** They are committed to git, so treat them as compromised. Never use them outside a
+> local `dev` run: generate fresh keys for any shared, staging or production environment.
+
+PowerShell (current window only):
+
+```powershell
+$env:APP_MFA_TOTP_ENCRYPTION_KEY         = "mOGKko7uLAPLYyxIHIZuSZGoPezdG3RxHbQwve0/GUM="
+$env:APP_MFA_TOTP_ENCRYPTION_KEYVERSION  = "1"
+$env:APP_SECURITY_HMAC_TOMBSTONE_KEY     = "BHTFVzkUqlCU8Z1m+CEmMPGnv+oZWNKtp00vvZX4Yg8="
+$env:APP_SECURITY_HMAC_TOMBSTONE_VERSION = "1"
+$env:APP_SECURITY_HMAC_LOG_KEY           = "Y1l63mWeV+COTPcyKMi1tQf3dBUFFNbpONXPDeR6u58="
+$env:APP_ADMIN_USERNAME                  = "admin"
+$env:APP_ADMIN_PASSWORD                  = "dev-demo-admin-passphrase"
+$env:APP_ORIGINS_SPA                     = "http://localhost:5173"
+$env:APP_ORIGINS_API                     = "http://localhost:8080"
+mvn -f backend/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
+bash / Git Bash:
+
+```sh
+export APP_MFA_TOTP_ENCRYPTION_KEY="mOGKko7uLAPLYyxIHIZuSZGoPezdG3RxHbQwve0/GUM="
+export APP_MFA_TOTP_ENCRYPTION_KEYVERSION="1"
+export APP_SECURITY_HMAC_TOMBSTONE_KEY="BHTFVzkUqlCU8Z1m+CEmMPGnv+oZWNKtp00vvZX4Yg8="
+export APP_SECURITY_HMAC_TOMBSTONE_VERSION="1"
+export APP_SECURITY_HMAC_LOG_KEY="Y1l63mWeV+COTPcyKMi1tQf3dBUFFNbpONXPDeR6u58="
+export APP_ADMIN_USERNAME="admin"
+export APP_ADMIN_PASSWORD="dev-demo-admin-passphrase"
+export APP_ORIGINS_SPA="http://localhost:5173"
+export APP_ORIGINS_API="http://localhost:8080"
+mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Then start the SPA in a second terminal (`cd frontend; npm run dev`) and open http://localhost:5173. Check the
+backend with `curl http://localhost:8080/actuator/health`, which returns `{"status":"UP"}`.
+
+Until the admin seed (ticket 16) and registration (ticket 14) land, this database has no accounts, so sign-in always
+fails. To demo sign-in before then, use the fixture backend: it creates the accounts and needs none of the variables
+above.
+
+```powershell
+mvn -f backend/pom.xml test-compile spring-boot:test-run "-Dspring-boot.run.main-class=sg.securedhello.e2e.E2eBackend" "-Dspring-boot.run.arguments=--server.port=8080 --app.origins.spa=http://localhost:5173 --app.origins.api=http://localhost:8080"
+```
+
+Sign in as `e2e-chromium-hello` with password `e2e-password-correct-horse`. The fixture backend uses a fresh
+temporary H2 file on every start.
+
 ## Browser tests (Playwright)
 
 `npm run test:e2e` in `frontend/` starts both servers itself and needs none of the variables above:

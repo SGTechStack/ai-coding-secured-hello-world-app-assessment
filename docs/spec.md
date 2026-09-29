@@ -97,7 +97,7 @@ Every deviation, residual and deployer obligation must therefore be recorded and
 1. As a visitor, I want to register with a username and an email address, so that I can create an account without
    choosing a password on an unauthenticated form. (PRD Story 1; R-CRED-009; ADR-032)
 2. As a visitor, I want registration to answer the same way whether or not my email address is already in use, so
-   that nobody can learn which addresses hold accounts. (R-CRED-018; T-AUTH-014)
+   that nobody can learn which addresses hold accounts. (R-CRED-018; T-AUTH-014; T-AUTH-018)
 3. As a visitor, I want to be told at once when my chosen username is taken, so that I can pick another.
    (`USERNAME_UNAVAILABLE`; R-AUTH-001)
 4. As a visitor, I want a username that differs only in case, spacing or Unicode form to be rejected rather than
@@ -427,8 +427,8 @@ Further rules for the API surface:
   the new login wins (REJ-012). Idle expiry is observed lazily, with no reaper (REJ-046).
 - **Session-id rotation.** The id rotates at login, logout, factor grant and credential change. `AUTH_INSTANT` is
   stamped at exactly one place, the login composite (ADR-038).
-- **Filter order.** The source rate limiter, then `SecurityContextHolderFilter`, then the absolute-lifetime filter,
-  then `CsrfFilter` (ADR-038).
+- **Filter order.** The source rate limiter, then `SecurityContextHolderFilter`, the header writer and `CorsFilter`,
+  then the absolute-lifetime filter, then `CsrfFilter` (ADR-038; T-SES-037).
 - **CSRF.** A session-bound synchronizer token, resolved from the `X-CSRF-TOKEN` header only, and never from a
   parameter. No CSRF cookie exists (ADR-036; R-SES-004). Every unsafe method is covered, logout included.
 - **Anonymous sessions.** Only `GET /api/csrf` creates them. Their expiry is pinned at creation plus the idle interval
@@ -443,10 +443,12 @@ Further rules for the API surface:
 ### Lockout, throttling and rate limits
 
 - **Password lockout.**
-  - It triggers at 5 consecutive failures inside a 20-minute observation window (ADR-012).
+  - It triggers at 5 consecutive failures inside a 20-minute observation window (ADR-012), and at the 10th failure
+    since the last success whatever the window, then every 5th after it (ADR-011 amendment of 2026-09-29).
   - The duration escalates 20 → 40 → 60 minutes, 5 cycles per rung, read from the cap counter (ADR-011;
     R-LCK-007).
-  - A startup floor refuses a ladder that reaches the cap in under 840 minutes or leaves under 580 minutes of warning.
+  - A startup floor refuses a ladder that lets an attack of any pacing reach the cap in under 840 minutes or leaves
+    under 580 minutes of warning.
 - **NIST cap.** 100 consecutive failures disables the password authenticator, with an alert at 50. Only rebinding
   clears it (ADR-013; R-LCK-004).
 - **Budgets.** Per-source and per-submitted-value limits live in one component. Each row binds
@@ -540,7 +542,7 @@ Further rules for the API surface:
 
 ### Data model
 
-Flyway owns seven versioned migrations, in this order:
+Flyway owns eight versioned migrations, in this order:
 
 1. `roles`
 2. `users`
@@ -549,6 +551,7 @@ Flyway owns seven versioned migrations, in this order:
 5. the two TOTP tables, `totp_user_details` and `pending_totp`
 6. `deleted_users`
 7. the Spring Session tables
+8. `username_holds` (ADR-032 amendment of 2026-09-29)
 
 Migrations are split by concern and are append-only. Flyway `clean` is disabled (REJ-041).
 
@@ -565,6 +568,9 @@ Migrations are split by concern and are append-only. Flyway `clean` is disabled 
 - **`credential_tokens`** replaces the PRD's `password_reset_tokens` (R-DATA-002).
 - **`deleted_users`** holds `user_id`, `username`, `email_hmac`, `deleted_at` and `deleted_by_id`, with no foreign
   keys (ADR-044; REJ-034). The HMAC key is versioned forward only (ADR-052).
+- **`username_holds`** holds `id`, `username` (unique), the canonical `email` it was taken for and `expires_at`, with no
+  foreign key. Every registration that passes the username check takes or renews one for 24 hours, whatever
+  the email's state; expired holds are purged by the next registration (ADR-032).
 - **Deletion.** `ON DELETE CASCADE` is the single deletion mechanism. Password history purges with the account
   (REJ-035).
 - **Column types:**

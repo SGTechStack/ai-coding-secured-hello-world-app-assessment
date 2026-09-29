@@ -235,6 +235,15 @@ public enum AuditEvent {
             .optional(SOURCE_DISTINCT_COUNT, USER_DISTINCT_COUNT)
             .build()),
 
+    /**
+     * Row 47: a shed episode ended, so new anonymous sessions are created again (ADR-041). Paired with the row 5
+     * {@code DISK_RESERVE_SHED} that started it; a restart during an episode leaves it without this row (R-RL-010).
+     */
+    SHED_EPISODE_CLEARED(row("access-control", "Anonymous-session shedding cleared.")
+            .type("change")
+            .scope(Scope.PROCESS)
+            .build()),
+
     /** Row 44: the application context is closing. */
     APPLICATION_SHUTDOWN(row("application-shutdown", "Application stopping.")
             .type("end")

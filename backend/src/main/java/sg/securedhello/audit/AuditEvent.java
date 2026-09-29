@@ -6,9 +6,14 @@ import static sg.securedhello.audit.AuditKey.HOST_IP;
 import static sg.securedhello.audit.AuditKey.HOST_NAME;
 import static sg.securedhello.audit.AuditKey.IPV6_PREFIX_LENGTH;
 import static sg.securedhello.audit.AuditKey.KEY_FINGERPRINTS;
+import static sg.securedhello.audit.AuditKey.USER_ID;
 import static sg.securedhello.audit.AuditRowDefinition.row;
 
+import org.slf4j.event.Level;
+
+import sg.securedhello.audit.AuditRowDefinition.Outcome;
 import sg.securedhello.audit.AuditRowDefinition.Scope;
+import sg.securedhello.audit.AuditRowDefinition.Severity;
 
 /**
  * The audit catalogue: one member per audit row, and the only list of what the audit stream can contain (ADR-055).
@@ -37,6 +42,49 @@ import sg.securedhello.audit.AuditRowDefinition.Scope;
  * Nothing else changes: the emitter validates the keys, derives the request fields and writes the row.
  */
 public enum AuditEvent {
+
+    /** Row 1: a password sign-in succeeded. Written after the session id rotated, so it carries the new hash. */
+    LOGIN_SUCCESS(row("user-authentication", "Login succeeded.")
+            .type("user")
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 2: a password sign-in failed. The wire answer is the uniform 401 (ADR-033); the reason is here only.
+     * {@code user.id} is written when the account resolves and omitted when it does not (REJ-042; R-AUD-007).
+     */
+    LOGIN_FAILURE(row("user-authentication", "Login failed.")
+            .type("user")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(LoginFailureReason.class)
+            .optional(USER_ID)
+            .build()),
+
+    /** Row 7: a signed-in user signed out. */
+    LOGOUT(row("user-logout", "Logout succeeded.")
+            .type("end")
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 8: the session id is about to rotate at authentication. Written before the rotation, so its
+     * {@code session.hash} is the pre-login one that joins the attempts before it to the sign-in (ADR-038).
+     */
+    SESSION_START(row("session-start", "Session started.")
+            .type("start")
+            .reasons(SessionStartReason.class)
+            .required(USER_ID)
+            .build()),
+
+    /** Row 13: a CSRF check refused an unsafe request. {@code user.id} only when the caller is signed in. */
+    CSRF_REJECTED(row("access-control", "CSRF validation failed.")
+            .type("denied")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(CsrfReason.class)
+            .optional(USER_ID)
+            .build()),
 
     /** Row 43: the application is ready. Records what later correlation depends on (LOG §3.1; ADR-054; ADR-057). */
     APPLICATION_STARTUP(row("application-startup", "Application started.")

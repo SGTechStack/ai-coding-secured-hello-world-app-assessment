@@ -20,7 +20,13 @@ class AuditReasonCodesTest {
     /** The committed list, family by family. */
     private static final List<String> PINNED_CODES = List.of(
             // Degradation: the degraded row's reasons
-            "UNKNOWN_KEY", "MISSING_KEY", "REASON_OUTSIDE_FAMILY", "EMIT_FAILED");
+            "UNKNOWN_KEY", "MISSING_KEY", "REASON_OUTSIDE_FAMILY", "EMIT_FAILED",
+            // LoginFailureReason: row 2
+            "BAD_CREDENTIALS", "UNKNOWN_USER", "ACCOUNT_LOCKED", "ACCOUNT_DISABLED", "CREDENTIAL_EXPIRED",
+            // SessionStartReason: row 8
+            "LOGIN",
+            // CsrfReason: row 13
+            "CSRF_MISSING", "CSRF_INVALID");
 
     @Test
     @Proves("T-AUD-045")

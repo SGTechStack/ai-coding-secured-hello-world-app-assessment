@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    actor U as You
+    participant W as Web app
+    participant A as API
+    participant D as Database
+
+    U->>W: Enter username and password
+    W->>A: GET /api/v1/csrf
+    A-->>W: CSRF token, kept in your session
+    W->>A: POST /api/v1/auth/login + X-CSRF-TOKEN
+    Note over A: Validate the request,<br/>then check the IP throttle
+    alt IP throttled
+        A-->>W: 429 + Retry-After
+        W-->>U: "Unable to connect to the server"
+    else IP allowed
+        A->>D: Load account, verify BCrypt hash
+        alt Correct, account enabled and unlocked
+            A->>D: Reset the failure count
+            A-->>W: 200 + rotated SESSION cookie
+            W-->>U: Redirect to /, "Hello, johndoe"
+        else Wrong, unknown, locked or disabled
+            A->>D: Count the failure (enabled, unlocked only)
+            A-->>W: 401 "Invalid username or password"
+            W-->>U: Same generic banner
+        end
+    end

@@ -1,0 +1,5 @@
+flowchart LR
+    stories["stories/**/*.feature<br/>@storyN-acM tags"] --> check{{"traceability check"}}
+    fe["Frontend tests<br/>frontend/src/**/*.test.ts(x)"] --> check
+    be["Backend tests<br/>backend/src/test/java"] --> check
+    check --> report["Coverage matrix<br/>fails on untested or unknown IDs"]

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Boot's conversion rules and CONSOLE_LOG_PATTERN for the dev profile's plain-text console. -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty scope="context" name="AUDIT_FILE" source="app.observability.audit.path" defaultValue="logs/audit.ndjson"/>
+    <springProperty scope="context" name="AUDIT_MAX_FILE_SIZE" source="app.observability.audit.max-file-size" defaultValue="10MB"/>
+    <springProperty scope="context" name="AUDIT_MAX_HISTORY" source="app.observability.audit.max-history" defaultValue="7"/>
+
+    <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${AUDIT_FILE}</file>
+        <encoder class="com.eitri.logging.CustomStructuredLogEncoder">
+            <format>ecs</format>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${AUDIT_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+            <maxFileSize>${AUDIT_MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${AUDIT_MAX_HISTORY}</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <logger name="AUDIT" level="INFO" additivity="false">
+        <appender-ref ref="AUDIT_FILE"/>
+    </logger>
+
+    <!-- Local development: human-readable console lines (the AUDIT file stays ECS). Tests that also
+         activate `dev` keep structured lines, so JVM-wide logging stays the same for every test context. -->
+    <springProfile name="dev &amp; !test">
+        <appender name="PLAIN_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                <charset>${CONSOLE_LOG_CHARSET}</charset>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="PLAIN_CONSOLE"/>
+        </root>
+
+        <!-- The stub email service carries the reset link as a key-value pair, which the plain pattern
+             above (%m only) would drop. Print its key-value pairs so a local reset can be followed. -->
+        <appender name="RESET_LINK_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%clr(%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd'T'HH:mm:ss.SSSXXX}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:-}){magenta} %clr(--- %esb(){APPLICATION_NAME}%esb{APPLICATION_GROUP}[%15.15t] ${LOG_CORRELATION_PATTERN:-}){faint}%clr(%-40.40logger{39}){cyan} %clr(:){faint} %m %kvp%n</pattern>
+                <charset>${CONSOLE_LOG_CHARSET}</charset>
+            </encoder>
+        </appender>
+        <logger name="com.eitri.passwordreset.LoggingEmailService" level="INFO" additivity="false">
+            <appender-ref ref="RESET_LINK_CONSOLE"/>
+        </logger>
+    </springProfile>
+
+    <springProfile name="!dev | test">
+        <appender name="STRUCTURED_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="com.eitri.logging.CustomStructuredLogEncoder">
+                <format>${CONSOLE_LOG_STRUCTURED_FORMAT:-ecs}</format>
+                <charset>${CONSOLE_LOG_CHARSET:-UTF-8}</charset>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="STRUCTURED_CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>

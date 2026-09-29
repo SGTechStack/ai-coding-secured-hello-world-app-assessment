@@ -1,0 +1,25 @@
+flowchart TB
+    user(["Browser"])
+
+    subgraph spa ["Web app · localhost:5173"]
+        direction LR
+        routes["Routes and guards<br/>React 19 + React Router"]
+        http["apiFetch()<br/>credentials + CSRF token"]
+        routes --> http
+    end
+
+    subgraph api ["API · localhost:8080"]
+        direction LR
+        security["Spring Security<br/>CORS · CSRF · sessions · roles"]
+        features["Feature packages<br/>auth · registration · password reset<br/>greeting · admin"]
+        audit["Audit logger"]
+        security --> features --> audit
+    end
+
+    db[("H2 in-memory database<br/>users · reset tokens · sessions<br/>schema managed by Flyway")]
+    logs[/"logs/audit.ndjson"/]
+
+    user --> spa
+    spa -- "JSON over /api/v1<br/>SESSION cookie" --> api
+    api --> db
+    api --> logs

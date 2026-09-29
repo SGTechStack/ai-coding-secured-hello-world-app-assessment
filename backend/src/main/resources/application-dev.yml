@@ -1,0 +1,29 @@
+# Local development profile, activated by `./mvnw spring-boot:run`.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev-migration
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+app:
+  admin: # non-production placeholder credentials
+    username: admin
+    email: admin@example.com
+    password: dev-only-admin-password
+  password-reset:
+    link-base-url: http://localhost:5173
+  security:
+    session-hash-key: dev-only-session-hash-placeholder-not-for-production
+    cors:
+      allowed-origins:
+        - http://localhost:5173 # the Vite dev server (`npm run dev`)
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false # served over plain http://localhost
+
+# Human-readable console lines come from logback-spring.xml's `dev` branch.

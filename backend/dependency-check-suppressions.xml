@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd https://dependency-check.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+  <!--
+    Intentionally empty. A future rule must:
+    - match one exact vulnerability and one exact dependency (SHA-1 or exact GAV; no regex/wildcards),
+    - include owner, ticket, and rationale in <notes>,
+    - include a future UTC `until` timestamp,
+    - be security-reviewed and removed as soon as the dependency is fixed.
+
+    Example shape only (do not copy as an approval):
+    <suppress until="2099-01-01T00:00:00Z">
+      <notes>owner=team; ticket=SEC-000; rationale=false positive evidence</notes>
+      <sha1>EXACT_ARTIFACT_SHA1</sha1>
+      <cve>CVE-2099-0000</cve>
+    </suppress>
+  -->
+</suppressions>

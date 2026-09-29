@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Eitri Login</title>
+  <desc id="desc">Eitri Login banner: the faceted-gem logo and wordmark, the eyebrow "Accounts, forged properly", the headline "Secure access, hammered into shape." and a large glowing gem circled by an orbit ring on a dark nebula background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b0918"/>
+      <stop offset="1" stop-color="#120d26"/>
+    </linearGradient>
+    <radialGradient id="nebula-ember" cx="0.77" cy="0.5" r="0.42">
+      <stop offset="0" stop-color="#ff6a2b" stop-opacity="0.34"/>
+      <stop offset="0.55" stop-color="#b8456a" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#b8456a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="nebula-violet" cx="0.18" cy="0.95" r="0.6">
+      <stop offset="0" stop-color="#8f7bff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#8f7bff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="molten" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffcf8a"/>
+      <stop offset="0.5" stop-color="#ff8a3d"/>
+      <stop offset="1" stop-color="#ff5d73"/>
+    </linearGradient>
+    <linearGradient id="molten-text" gradientUnits="userSpaceOnUse" x1="64" y1="0" x2="600" y2="0">
+      <stop offset="0" stop-color="#ffcf8a"/>
+      <stop offset="0.5" stop-color="#ff8a3d"/>
+      <stop offset="1" stop-color="#ff5d73"/>
+    </linearGradient>
+    <radialGradient id="gem-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff8a3d" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#ff8a3d" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="mark-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+    <clipPath id="card">
+      <rect width="1200" height="360" rx="20"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#card)">
+    <rect width="1200" height="360" fill="url(#bg)"/>
+    <rect width="1200" height="360" fill="url(#nebula-violet)"/>
+    <rect width="1200" height="360" fill="url(#nebula-ember)"/>
+
+    <!-- Star field -->
+    <g fill="#f3f1fa">
+      <circle cx="422" cy="44" r="1.2" opacity="0.7"/>
+      <circle cx="560" cy="96" r="0.9" opacity="0.5"/>
+      <circle cx="668" cy="30" r="1.4" opacity="0.8"/>
+      <circle cx="712" cy="318" r="1" opacity="0.5"/>
+      <circle cx="760" cy="72" r="1" opacity="0.6"/>
+      <circle cx="1090" cy="52" r="1.3" opacity="0.7"/>
+      <circle cx="1150" cy="140" r="0.9" opacity="0.5"/>
+      <circle cx="1128" cy="300" r="1.2" opacity="0.6"/>
+      <circle cx="1010" cy="336" r="0.9" opacity="0.4"/>
+      <circle cx="640" cy="200" r="0.8" opacity="0.4"/>
+      <circle cx="300" cy="120" r="0.8" opacity="0.4"/>
+      <circle cx="36" cy="330" r="1" opacity="0.4"/>
+      <circle cx="820" cy="300" r="0.8" opacity="0.5"/>
+    </g>
+
+    <!-- Wordmark, as in the app header -->
+    <g transform="translate(64 44)">
+      <path d="M16 2 28 9v14l-12 7L4 23V9Z" fill="#ff6a2b" opacity="0.6" filter="url(#mark-glow)"/>
+      <path d="M16 2 28 9v14l-12 7L4 23V9Z" fill="url(#molten)"/>
+      <path d="M16 2v28M4 9l12 7 12-7M4 23l12-7 12 7" fill="none" stroke="#1b0d05" stroke-opacity="0.35"/>
+    </g>
+    <text x="106" y="67" fill="#f3f1fa" font-family="Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" letter-spacing="-0.2">Eitri Login</text>
+
+    <!-- Hero copy, as on the login page -->
+    <text x="66" y="152" fill="#ffb35c" font-family="Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="2.6">ACCOUNTS, FORGED PROPERLY</text>
+    <text font-family="Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="54" font-weight="700" letter-spacing="-1.4">
+      <tspan x="62" y="212" fill="#f3f1fa">Secure access,</tspan>
+      <tspan x="62" y="274" fill="url(#molten-text)">hammered into shape.</tspan>
+    </text>
+    <text x="64" y="318" fill="#a7a2c0" font-family="Inter, 'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif" font-size="18">Sign in, recover your password and manage your team from one place.</text>
+
+    <!-- Forged gem with orbit ring -->
+    <circle cx="930" cy="180" r="170" fill="url(#gem-glow)"/>
+    <g transform="rotate(-14 930 180)" fill="none" stroke-linecap="round">
+      <ellipse cx="930" cy="180" rx="222" ry="52" stroke="#8f7bff" stroke-opacity="0.45" stroke-width="1.5"/>
+    </g>
+    <g transform="translate(930 180) scale(8.5) translate(-16 -16)">
+      <path d="M16 2 28 9v14l-12 7L4 23V9Z" fill="none" stroke="#ffb35c" stroke-opacity="0.28" stroke-width="0.12" transform="translate(16 16) scale(1.32) translate(-16 -16)"/>
+      <path d="M16 2 28 9v14l-12 7L4 23V9Z" fill="url(#molten)"/>
+      <!-- Facet shading: light from the top left -->
+      <path d="M16 16 16 2 4 9Z" fill="#ffffff" opacity="0.28"/>
+      <path d="M16 16 16 2 28 9Z" fill="#ffffff" opacity="0.12"/>
+      <path d="M16 16 4 9v14Z" fill="#ffffff" opacity="0.05"/>
+      <path d="M16 16 28 9v14Z" fill="#2a0f22" opacity="0.18"/>
+      <path d="M16 16 4 23l12 7Z" fill="#2a0f22" opacity="0.26"/>
+      <path d="M16 16 28 23l-12 7Z" fill="#2a0f22" opacity="0.4"/>
+      <path d="M16 2v28M4 9l12 7 12-7M4 23l12-7 12 7" fill="none" stroke="#1b0d05" stroke-opacity="0.35" stroke-width="0.14"/>
+      <path d="M16 2 28 9v14l-12 7L4 23V9Z" fill="none" stroke="#ffe2b8" stroke-opacity="0.55" stroke-width="0.12"/>
+    </g>
+    <!-- Front half of the orbit ring passes over the gem -->
+    <g transform="rotate(-14 930 180)" fill="none" stroke-linecap="round">
+      <path d="M708 180 A222 52 0 0 0 1152 180" stroke="#ffb35c" stroke-opacity="0.8" stroke-width="2.2"/>
+    </g>
+    <circle cx="1040" cy="198" r="4" fill="#ffe2b8"/>
+    <circle cx="1040" cy="198" r="9" fill="#ffb35c" opacity="0.25"/>
+  </g>
+  <rect x="0.5" y="0.5" width="1199" height="359" rx="19.5" fill="none" stroke="#ffffff" stroke-opacity="0.08"/>
+</svg>

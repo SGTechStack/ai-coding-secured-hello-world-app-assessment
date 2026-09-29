@@ -1,0 +1,22 @@
+erDiagram
+    direction LR
+    users ||--o{ password_reset_tokens : "requests"
+    users {
+        uuid id PK
+        string username UK "lower case"
+        string email UK "lower case"
+        string password_hash "BCrypt only"
+        string role "USER or ADMIN"
+        boolean enabled
+        int failed_login_attempts
+        timestamp failed_login_window_started_at
+        timestamp locked_until
+        timestamp created_at
+    }
+    password_reset_tokens {
+        uuid id PK
+        uuid user_id FK "deleted with the user"
+        string token_hash UK "SHA-256, never the token"
+        timestamp expires_at
+        timestamp used_at
+    }

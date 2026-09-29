@@ -1,0 +1,15 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.brand__mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  filter: drop-shadow(0 0 10px rgb(255 106 43 / 55%));
+}

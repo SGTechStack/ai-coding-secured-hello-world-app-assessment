@@ -1,0 +1,21 @@
+flowchart TB
+    %% Mermaid lays out subgraphs in reverse order of declaration, so the logged-in pages come first
+    %% here to put the logged-out pages at the top of the rendered diagram.
+    subgraph private ["Logged-in pages"]
+        home["/<br/>Hello, username"]
+        admin["/admin/users<br/>ADMIN only"]
+    end
+
+    subgraph public ["Logged-out pages"]
+        forgot["/forgot-password"]
+        register["/register"]
+        reset["/reset-password?token=…"]
+        login["/login"]
+    end
+
+    forgot -- "link from the log" --> reset
+    reset -- "password changed" --> login
+    register -- "account created" --> login
+    login -- "success" --> home
+    home -- "Manage users (admins)" --> admin
+    home -. "Log out" .-> login

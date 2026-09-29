@@ -1,0 +1,12 @@
+stateDiagram-v2
+    direction TB
+    [*] --> Active
+    Active --> Counting: 1st wrong password
+    Counting --> Counting: 2nd to 4th wrong password
+    Counting --> Active: correct password, or<br/>15 min since the first failure
+    Counting --> Locked: 5th wrong password<br/>within 15 min
+    Locked --> Active: 15 min pass
+    note right of Locked
+        Every attempt gets the same generic 401.
+        Wrong passwords don't extend the lock.
+    end note

@@ -1,0 +1,169 @@
+.admin-heading {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-heading h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.table-panel {
+  overflow-x: auto;
+  /* Denser than other panels so the scene's glow never competes with table text. */
+  background: var(--color-surface-strong);
+  animation-delay: 90ms;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.875rem 1.25rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table [scope='col'] {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+  background: rgb(255 255 255 / 2%);
+}
+
+.data-row {
+  transition: background-color 160ms ease;
+}
+
+.data-row:hover {
+  background: rgb(255 255 255 / 3%);
+}
+
+.data-row:last-child > * {
+  border-bottom: 0;
+}
+
+.data-row[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.data-row > th {
+  font-weight: 600;
+}
+
+.user-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.cell-muted {
+  color: var(--color-muted);
+}
+
+.cell-date {
+  font-variant-numeric: tabular-nums;
+}
+
+.cell-role {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+}
+
+.cell-role[data-role='ADMIN'] {
+  color: var(--color-violet);
+}
+
+/* Status text keeps its own element (tests read it); the dot is decoration. */
+.cell-status::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-subtle);
+  vertical-align: 0.0625rem;
+}
+
+.cell-status.is-enabled::before {
+  background: var(--color-success);
+  box-shadow: 0 0 10px rgb(79 214 162 / 70%);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn--danger-ghost {
+  border-color: rgb(255 93 115 / 35%);
+  color: #ffb3be;
+  background: transparent;
+}
+
+.btn--danger-ghost:hover:not(:disabled) {
+  background: rgb(255 93 115 / 12%);
+}
+
+.self-note {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+/* Confirm dialog */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(3 2 10 / 60%);
+  backdrop-filter: blur(6px);
+  animation: dialog-fade 200ms ease both;
+}
+
+.dialog {
+  width: min(100%, 26rem);
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.75rem;
+  background: var(--color-surface-strong);
+  animation: dialog-pop 260ms var(--ease-out) both;
+}
+
+.dialog__message {
+  font-size: 1.0625rem;
+  font-weight: 550;
+}
+
+.dialog__actions {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}

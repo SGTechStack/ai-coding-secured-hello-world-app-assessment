@@ -1,5 +1,6 @@
 package com.example.securedhello.account;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,5 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface AccountRepository extends JpaRepository<Account, UUID> {
 
 	boolean existsByUsernameOrEmail(String username, String email);
+
+	Optional<Account> findByUsername(String username);
 
 }

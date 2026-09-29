@@ -59,30 +59,52 @@ export function ensureCsrfToken(): Promise<CsrfResponse> {
   return csrfRequest ?? refreshCsrfToken()
 }
 
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
-  const method = (init.method ?? 'GET').toUpperCase()
-  const headers = new Headers(init.headers)
-  if (!SAFE_METHODS.has(method)) {
-    const token = await ensureCsrfToken()
-    headers.set(token.headerName, token.token)
-  }
+export type RequestOptions = {
+  /**
+   * Whether a 401 counts as "Session ended" and notifies the global handler (default true). Off for
+   * the start-up `GET /me`, where a 401 just means a Visitor.
+   */
+  sessionEndedOn401?: boolean
+}
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    method,
-    headers,
-    credentials: 'include',
-  })
+export async function apiRequest<T>(
+  path: string,
+  init: RequestInit = {},
+  { sessionEndedOn401 = true }: RequestOptions = {},
+): Promise<ApiResult<T>> {
+  const method = (init.method ?? 'GET').toUpperCase()
+  let response = await send(path, init, method)
+  if (!SAFE_METHODS.has(method) && (await isCsrfRejection(response))) {
+    // The cached token belonged to a Session the server has since ended (idle timeout, or a login
+    // elsewhere). Fetch a token for the current Session and try once more.
+    await refreshCsrfToken()
+    response = await send(path, init, method)
+  }
 
   if (response.ok) {
     return { ok: true, status: response.status, data: (await readBody(response)) as T }
   }
 
   const problem = await readProblem(response)
-  if (response.status === 401) {
+  // Rejected login credentials are a 401 too, but no Session has ended.
+  if (response.status === 401 && sessionEndedOn401 && problem?.code !== 'authentication_failed') {
     sessionEndedListeners.forEach((listener) => listener())
   }
   return { ok: false, status: response.status, problem }
+}
+
+async function send(path: string, init: RequestInit, method: string): Promise<Response> {
+  const headers = new Headers(init.headers)
+  if (!SAFE_METHODS.has(method)) {
+    const token = await ensureCsrfToken()
+    headers.set(token.headerName, token.token)
+  }
+  return fetch(`${API_BASE}${path}`, { ...init, method, headers, credentials: 'include' })
+}
+
+async function isCsrfRejection(response: Response): Promise<boolean> {
+  if (response.status !== 403) return false
+  return (await readProblem(response.clone()))?.code === 'csrf_invalid'
 }
 
 async function readBody(response: Response): Promise<unknown> {

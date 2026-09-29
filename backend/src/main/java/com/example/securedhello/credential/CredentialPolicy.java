@@ -20,8 +20,8 @@ import com.example.securedhello.config.CredentialProperties;
 
 /**
  * The Credential policy: decides whether a candidate password is acceptable and hashes accepted
- * ones. Used by registration, and later by Password Change, reset confirmation and the Bootstrap
- * Admin.
+ * ones, and compares login passwords with stored hashes. Used by registration and login, and later
+ * by Password Change, reset confirmation and the Bootstrap Admin.
  * <p>
  * Rules, each reported by name when broken: {@code min_length}, {@code max_length} (characters),
  * {@code max_bytes} (72 UTF-8 bytes, all BCrypt reads), {@code uppercase}, {@code lowercase},
@@ -41,13 +41,20 @@ public class CredentialPolicy {
 
 	private final Set<String> commonPasswords;
 
+	/** Compared against when there is no stored hash to compare with, to keep timing uniform. */
+	private static final String DUMMY_INPUT = "no-account-dummy-password";
+
 	private final PasswordEncoder encoder;
+
+	/** Same cost as real hashes, so comparing against it takes as long. */
+	private final String dummyHash;
 
 	public CredentialPolicy(CredentialProperties properties) {
 		this.minLength = properties.minLength();
 		this.maxLength = properties.maxLength();
 		this.commonPasswords = load(properties.commonPasswords());
 		this.encoder = new BCryptPasswordEncoder(properties.bcryptCost());
+		this.dummyHash = encoder.encode(DUMMY_INPUT);
 	}
 
 	/** Every rule the password breaks, in a stable order; empty when it is acceptable. */
@@ -96,6 +103,27 @@ public class CredentialPolicy {
 	/** BCrypt hash of a password that has passed {@link #check}. */
 	public String hash(String password) {
 		return encoder.encode(password);
+	}
+
+	/**
+	 * Whether the password matches a stored hash. A password over {@link #MAX_BYTES} can never have
+	 * been accepted, so it never matches, but it still costs one BCrypt comparison.
+	 */
+	public boolean matches(String password, String hash) {
+		if (password.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) {
+			encoder.matches(DUMMY_INPUT, hash);
+			return false;
+		}
+		return encoder.matches(password, hash);
+	}
+
+	/**
+	 * Runs one BCrypt comparison against a fixed dummy hash and returns {@code false}, so a login
+	 * for an unknown username takes as long as one with a wrong password.
+	 */
+	public boolean matchesNoAccount(String password) {
+		matches(password, dummyHash);
+		return false;
 	}
 
 	private static Set<String> load(Resource resource) {

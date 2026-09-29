@@ -1,13 +1,67 @@
-import { Link, useLocation } from 'react-router'
+import { useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
+import { login, type LoginResult } from '../api/auth'
+import { useAuth } from '../auth/useAuth'
+import { Field } from '../components/Field'
 
-/** Placeholder until the login ticket adds the form. */
+const FAILURE_MESSAGES: Record<Extract<LoginResult, { ok: false }>['reason'], string> = {
+  rejected: 'The username or password is incorrect.',
+  rate_limited: 'Too many attempts. Please try again later.',
+  error: 'Something went wrong. Please try again later.',
+}
+
+/** Set in navigation state by the register screen. */
+type LoginNotice = { registered?: boolean }
+
 export function LoginPage() {
-  const registered = (useLocation().state as { registered?: boolean } | null)?.registered === true
+  const navigate = useNavigate()
+  const auth = useAuth()
+  const notice = (useLocation().state ?? {}) as LoginNotice
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string>()
+  const [submitting, setSubmitting] = useState(false)
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setSubmitting(true)
+    setError(undefined)
+    try {
+      const result = await login(username, password)
+      if (result.ok) {
+        auth.loggedIn(result.account)
+        // Always the hello screen: a return URL is never followed.
+        navigate('/', { replace: true })
+        return
+      }
+      setError(FAILURE_MESSAGES[result.reason])
+    } catch {
+      setError(FAILURE_MESSAGES.error)
+    }
+    setPassword('')
+    setSubmitting(false)
+  }
+
   return (
     <section>
       <h1>Log in</h1>
-      {registered && <p role="status">Your Account has been created. Please log in.</p>}
-      <p>You are not logged in. The login form is coming soon.</p>
+      {notice.registered === true && <p role="status">Your Account has been created. Please log in.</p>}
+      {auth.state.kind === 'anonymous' && 'loggedOut' in auth.state && <p role="status">You have logged out.</p>}
+      <form onSubmit={submit} noValidate>
+        <Field name="username" label="Username" autoComplete="username" value={username} onChange={setUsername} />
+        <Field
+          name="password"
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={setPassword}
+        />
+        {error && <p role="alert">{error}</p>}
+        <button type="submit" disabled={submitting}>
+          Log in
+        </button>
+      </form>
       <p>
         No Account yet? <Link to="/register">Register</Link>
       </p>

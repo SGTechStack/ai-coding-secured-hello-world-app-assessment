@@ -22,16 +22,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.securedhello.logging.AccountIdentified;
+import com.example.securedhello.account.AccountPrincipal;
+import com.example.securedhello.account.Role;
 import com.example.securedhello.support.LogCapture;
 
 import tools.jackson.databind.JsonNode;
@@ -151,8 +150,9 @@ class LoggingApiTest {
 		UUID accountId = UUID.fromString("00000000-0000-0000-0000-000000000123");
 		LogCapture capture = LogCapture.start();
 
-		mvc.perform(get("/api/hello").with(authentication(new UsernamePasswordAuthenticationToken(
-				new TestAccount(accountId), null, AuthorityUtils.createAuthorityList("ROLE_USER")))));
+		mvc.perform(get("/api/hello")
+			.with(authentication(new AccountPrincipal(accountId, "testuser123", Role.USER).toAuthentication())))
+			.andExpect(status().isOk());
 
 		List<JsonNode> lines = requestLines(capture.application(), "/api/hello");
 		assertThat(lines).last().satisfies((end) -> assertThat(field(end, "user.id")).isEqualTo(accountId.toString()));
@@ -239,15 +239,6 @@ class LoggingApiTest {
 	private static List<JsonNode> requestLines(List<JsonNode> lines, String path) {
 		Predicate<JsonNode> forPath = hasField("url.path", path);
 		return lines.stream().filter(forPath).toList();
-	}
-
-	record TestAccount(UUID accountId) implements AccountIdentified {
-
-		@Override
-		public String toString() {
-			return "testuser123";
-		}
-
 	}
 
 	/** Test-only endpoints whose failures carry data that must never reach a log line. */

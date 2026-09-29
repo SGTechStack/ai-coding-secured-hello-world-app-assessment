@@ -64,8 +64,28 @@ public class Account {
 		return id;
 	}
 
+	public String getUsername() {
+		return username;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
 	public String getPasswordHash() {
 		return passwordHash;
+	}
+
+	public Role getRole() {
+		return role;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public boolean isPasswordChangeRequired() {
+		return passwordChangeRequired;
 	}
 
 }

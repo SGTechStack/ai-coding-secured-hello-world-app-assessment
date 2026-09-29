@@ -57,6 +57,40 @@ describe('API client', () => {
     expect(headersOf(init).get('X-CSRF-TOKEN')).toBe('token-2')
   })
 
+  it('fetches a new CSRF token and retries once when the server rejects a stale one', async () => {
+    let issued = 0
+    const fetch = fakeApi({
+      'GET /csrf': () => json(200, { headerName: 'X-CSRF-TOKEN', token: `token-${++issued}` }),
+      'POST /things': (init) =>
+        new Headers(init.headers).get('X-CSRF-TOKEN') === 'token-2'
+          ? new Response(null, { status: 204 })
+          : problem(403, 'csrf_invalid'),
+    })
+
+    const result = await client.apiRequest('/things', { method: 'POST' })
+
+    expect(result).toEqual({ ok: true, status: 204, data: null })
+    const posts = fetch.mock.calls.filter(([, init]) => init?.method === 'POST')
+    expect(posts.map(([, init]) => headersOf(init).get('X-CSRF-TOKEN'))).toEqual(['token-1', 'token-2'])
+  })
+
+  it('retries a rejected CSRF token only once', async () => {
+    const fetch = fakeApi({ 'GET /csrf': csrfRoute(), 'POST /things': () => problem(403, 'csrf_invalid') })
+
+    const result = await client.apiRequest('/things', { method: 'POST' })
+
+    expect(result).toMatchObject({ ok: false, status: 403, problem: { code: 'csrf_invalid' } })
+    expect(fetch.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(2)
+  })
+
+  it('does not retry other 403s', async () => {
+    const fetch = fakeApi({ 'GET /csrf': csrfRoute(), 'POST /things': () => problem(403, 'access_denied') })
+
+    await client.apiRequest('/things', { method: 'POST' })
+
+    expect(fetch.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1)
+  })
+
   it('shares one in-flight CSRF request between concurrent callers', async () => {
     const fetch = fakeApi({ 'GET /csrf': csrfRoute() })
 

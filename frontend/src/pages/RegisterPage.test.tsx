@@ -157,7 +157,7 @@ describe('Register screen', () => {
   })
 
   it('is reachable from the login page', async () => {
-    fakeApi({ 'GET /csrf': csrfRoute() })
+    fakeApi({ 'GET /csrf': csrfRoute(), 'GET /me': () => problem(401, 'authentication_required') })
     render(
       <MemoryRouter initialEntries={['/login']}>
         <App />

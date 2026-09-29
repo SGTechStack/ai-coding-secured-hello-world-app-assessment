@@ -15,6 +15,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -38,11 +40,18 @@ class SecurityConfig {
 			+ "display-capture=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), "
 			+ "microphone=(), midi=(), payment=(), usb=()";
 
+	/** Session-stored CSRF tokens (ADR 0002); shared with {@link SessionControl}, which replaces them. */
+	@Bean
+	CsrfTokenRepository csrfTokenRepository() {
+		return new HttpSessionCsrfTokenRepository();
+	}
+
 	@Bean
 	@Order(10)
 	SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, ApiProperties api, CorsProperties cors,
-			AuditLog auditLog) throws Exception {
+			AuditLog auditLog, CsrfTokenRepository csrfTokenRepository) throws Exception {
 		http.cors((c) -> c.configurationSource(corsConfigurationSource(api, cors)))
+			.csrf((csrf) -> csrf.csrfTokenRepository(csrfTokenRepository))
 			// Size check runs before CSRF, authorization and every controller.
 			.addFilterBefore(new RequestBodyLimitFilter(api.maxRequestBodyBytes()), CsrfFilter.class)
 			// user.id in MDC once the Session's authentication is loaded, before any rejection.
@@ -50,8 +59,9 @@ class SecurityConfig {
 			.authorizeHttpRequests((auth) -> auth
 			.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/csrf")).permitAll()
-			.requestMatchers(HttpMethod.POST, api.path("/register")).permitAll()
-			.requestMatchers(HttpMethod.GET, api.path("/hello")).authenticated()
+			.requestMatchers(HttpMethod.POST, api.path("/register"), api.path("/login")).permitAll()
+			.requestMatchers(HttpMethod.GET, api.path("/hello"), api.path("/me")).authenticated()
+			.requestMatchers(HttpMethod.POST, api.path("/logout")).authenticated()
 			// Default deny: anything not matched above is refused.
 			.anyRequest().denyAll())
 			.headers((headers) -> headers

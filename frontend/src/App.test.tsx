@@ -1,13 +1,21 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { csrfRoute, fakeApi, problem, type Route } from './test/fakeApi'
+import { fakeApi, json, problem, type Route } from './test/fakeApi'
 
 let App: typeof import('./App').default
 beforeEach(async () => {
   vi.resetModules()
   App = (await import('./App')).default
 })
+
+const account = {
+  id: '00000000-0000-0000-0000-000000000123',
+  username: 'testuser123',
+  email: 'testuser123@test.example.com',
+  role: 'USER',
+  passwordChangeRequired: false,
+}
 
 function renderAt(path: string) {
   return render(
@@ -17,34 +25,63 @@ function renderAt(path: string) {
   )
 }
 
-function visit(helloRoute: Route) {
-  const fetch = fakeApi({ 'GET /csrf': csrfRoute(), 'GET /hello': helloRoute })
+function visit(meRoute: Route, helloRoute: Route = () => new Response('Hello, testuser123')) {
+  const fetch = fakeApi({ 'GET /me': meRoute, 'GET /hello': helloRoute })
   renderAt('/')
   return fetch
 }
 
-describe('SPA walking skeleton', () => {
-  it('bootstraps CSRF, calls /hello, and quietly shows the login page to a Visitor', async () => {
+describe('SPA start-up', () => {
+  it('asks /me who is logged in and quietly shows the login page to a Visitor', async () => {
     const fetch = visit(() => problem(401, 'authentication_required'))
 
     expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     const paths = fetch.mock.calls.map(([url]) => new URL(String(url)).pathname)
-    expect(paths).toEqual(['/api/csrf', '/api/hello'])
+    expect(paths).toEqual(['/api/me'])
+  })
+
+  it('shows the hello screen to a logged-in Account holder', async () => {
+    visit(() => json(200, account))
+
+    expect(await screen.findByRole('heading', { name: 'Hello, testuser123' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
   })
 
   it('renders the greeting as text, never as HTML', async () => {
-    visit(() => new Response('<img src=x onerror=alert(1)>Hello', { headers: { 'Content-Type': 'text/plain' } }))
+    visit(
+      () => json(200, account),
+      () => new Response('<img src=x onerror=alert(1)>Hello', { headers: { 'Content-Type': 'text/plain' } }),
+    )
 
-    const heading = await screen.findByRole('heading')
+    const heading = await screen.findByRole('heading', { name: /Hello/ })
     expect(heading).toHaveTextContent('<img src=x onerror=alert(1)>Hello')
     expect(heading.querySelector('img')).toBeNull()
   })
 
-  it('shows a generic error when /hello fails for another reason', async () => {
+  it('shows a generic error when /me fails for another reason', async () => {
     visit(() => problem(500, 'internal_error'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
+  })
+
+  it('shows a generic error when /hello fails for another reason', async () => {
+    visit(
+      () => json(200, account),
+      () => problem(500, 'internal_error'),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong')
+  })
+
+  it('goes to the login page when the Session ends while on the hello screen', async () => {
+    visit(
+      () => json(200, account),
+      () => problem(401, 'authentication_required'),
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('shows a generic error when the API cannot be reached', async () => {
@@ -61,10 +98,19 @@ describe('SPA walking skeleton', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
+  it('lets a Visitor open the register screen directly', async () => {
+    const fetch = fakeApi({ 'GET /me': () => problem(401, 'authentication_required') })
+    renderAt('/register')
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(screen.getByRole('heading', { name: 'Register' })).toBeInTheDocument()
+  })
+
   it('sends unknown paths to the start page', async () => {
-    visit(() => problem(401, 'authentication_required'))
+    fakeApi({ 'GET /me': () => problem(401, 'authentication_required') })
     renderAt('/no-such-page')
 
-    expect((await screen.findAllByRole('heading', { name: 'Log in' })).length).toBeGreaterThan(0)
+    expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
   })
 })

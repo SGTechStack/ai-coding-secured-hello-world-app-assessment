@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import { onSessionEnded } from './api/client'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
+import { AdminUsersPage } from './pages/AdminUsersPage'
 import { HelloPage } from './pages/HelloPage'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordChangePage } from './pages/PasswordChangePage'
@@ -27,6 +28,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<LoggedInOnly>{<HelloPage />}</LoggedInOnly>} />
         <Route path="/password-change" element={<LoggedInOnly>{<PasswordChangePage />}</LoggedInOnly>} />
+        <Route path="/admin/users" element={<AdminOnly>{<AdminUsersPage />}</AdminOnly>} />
         <Route path="/login" element={<VisitorOnly>{<LoginPage />}</VisitorOnly>} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -42,6 +44,19 @@ function LoggedInOnly({ children }: { children: ReactNode }) {
   if (state.kind === 'error') return <p role="alert">Something went wrong. Please try again later.</p>
   if (state.kind === 'anonymous') return <Navigate to="/login" replace />
   return children
+}
+
+/**
+ * Admin screens are hidden from Users, who go to the hello screen. This is interface only: the API
+ * refuses every admin request from a User on its own.
+ */
+function AdminOnly({ children }: { children: ReactNode }) {
+  const { state } = useAuth()
+  return (
+    <LoggedInOnly>
+      {state.kind === 'authenticated' && state.account.role === 'ADMIN' ? children : <Navigate to="/" replace />}
+    </LoggedInOnly>
+  )
 }
 
 /** The login screen is for Visitors; a logged-in Account holder goes to the hello screen. */

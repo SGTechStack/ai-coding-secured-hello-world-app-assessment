@@ -61,6 +61,14 @@ public class Account {
 		return account;
 	}
 
+	/** The Bootstrap Admin: an enabled Admin that must change its configured password at first login. */
+	static Account bootstrapAdmin(String username, String email, String passwordHash, Instant now) {
+		Account account = registered(username, email, passwordHash, now);
+		account.role = Role.ADMIN;
+		account.passwordChangeRequired = true;
+		return account;
+	}
+
 	public UUID getId() {
 		return id;
 	}
@@ -83,6 +91,10 @@ public class Account {
 
 	public boolean isEnabled() {
 		return enabled;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
 	}
 
 	public boolean isPasswordChangeRequired() {

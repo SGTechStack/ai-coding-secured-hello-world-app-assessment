@@ -21,7 +21,7 @@ import com.example.securedhello.config.CredentialProperties;
 /**
  * The Credential policy: decides whether a candidate password is acceptable and hashes accepted
  * ones, and compares login passwords with stored hashes. Used by registration, login and Password
- * Change, and later by reset confirmation and the Bootstrap Admin.
+ * Change and Bootstrap Admin creation, and later by reset confirmation.
  * <p>
  * Rules, each reported by name when broken: {@code min_length}, {@code max_length} (characters),
  * {@code max_bytes} (72 UTF-8 bytes, all BCrypt reads), {@code uppercase}, {@code lowercase},

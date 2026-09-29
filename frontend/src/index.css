@@ -60,3 +60,21 @@ body {
     color: #ff7b72;
   }
 }
+
+/* Wide tables scroll inside their box, never the page. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-scroll table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table-scroll th,
+.table-scroll td {
+  text-align: left;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  white-space: nowrap;
+}

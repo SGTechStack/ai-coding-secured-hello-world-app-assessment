@@ -16,12 +16,18 @@ class StartupConfigurationTest {
 
 	private static final String IP_HASH_KEY = "--app.ip-hash.key=synthetic-startup-test-key";
 
+	/** Synthetic Bootstrap Admin values, required outside dev (see BootstrapAdminTest). */
+	private static final String[] BOOTSTRAP_ADMIN = { "--app.bootstrap-admin.username=startupadmin",
+			"--app.bootstrap-admin.password=Synthetic-Startup-Pass-42",
+			"--app.bootstrap-admin.email=startupadmin@test.example.com" };
+
 	/** Runs the app with the given profile; args override every profile's properties files. */
 	private static ConfigurableApplicationContext run(String profile, String... args) {
-		String[] all = new String[args.length + 2];
+		String[] all = new String[args.length + 2 + BOOTSTRAP_ADMIN.length];
 		all[0] = "--server.port=0";
 		all[1] = "--spring.datasource.url=jdbc:h2:mem:startup-" + System.nanoTime();
-		System.arraycopy(args, 0, all, 2, args.length);
+		System.arraycopy(BOOTSTRAP_ADMIN, 0, all, 2, BOOTSTRAP_ADMIN.length);
+		System.arraycopy(args, 0, all, 2 + BOOTSTRAP_ADMIN.length, args.length);
 		return new SpringApplicationBuilder(BackendApplication.class).profiles(profile).run(all);
 	}
 

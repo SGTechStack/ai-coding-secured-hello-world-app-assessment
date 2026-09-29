@@ -13,6 +13,13 @@ interface AccountRepository extends JpaRepository<Account, UUID> {
 
 	boolean existsByUsernameOrEmail(String username, String email);
 
+	boolean existsByUsername(String username);
+
+	boolean existsByEmail(String email);
+
+	/** Whether any Account holds the role, enabled or not. */
+	boolean existsByRole(Role role);
+
 	/** The Account, with its row locked until the transaction ends (the login decision). */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	Optional<Account> findForUpdateByUsername(String username);

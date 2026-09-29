@@ -8,8 +8,11 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -28,12 +31,15 @@ import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.config.ApiProperties;
 import com.example.securedhello.config.CorsProperties;
 import com.example.securedhello.logging.AccountIdMdcFilter;
+import com.example.securedhello.logging.AccountIdentified;
 import com.example.securedhello.web.ProblemResponses;
 
 import jakarta.servlet.DispatcherType;
 
 @Configuration
 @EnableWebSecurity
+// @PreAuthorize on the Account administration service, in addition to the URL rules below.
+@EnableMethodSecurity
 class SecurityConfig {
 
 	private static final String PERMISSIONS_POLICY = "accelerometer=(), autoplay=(), camera=(), "
@@ -66,6 +72,8 @@ class SecurityConfig {
 			.requestMatchers(HttpMethod.GET, api.path("/hello"), api.path("/me")).authenticated()
 			.requestMatchers(HttpMethod.POST, api.path("/logout")).authenticated()
 			.requestMatchers(HttpMethod.PATCH, api.path("/me/password")).authenticated()
+			// Every method and path under /admin, known or not; the service checks the role again.
+			.requestMatchers(api.path("/admin/**")).hasRole("ADMIN")
 			// Default deny: anything not matched above is refused.
 			.anyRequest().denyAll())
 			.headers((headers) -> headers
@@ -104,6 +112,15 @@ class SecurityConfig {
 						"The CSRF token is missing or invalid.");
 			}
 			else {
+				AuditEvent event = AuditEvent.failure(AuditAction.ACCESS_CONTROL, "access_denied").request(request);
+				Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+				if (authentication != null && authentication.getPrincipal() instanceof AccountIdentified account) {
+					event.userId(account.accountId());
+				}
+				else {
+					event.sessionHashOf(request);
+				}
+				auditLog.record(event);
 				ProblemResponses.write(response, HttpStatus.FORBIDDEN, "access_denied", "Access is denied.");
 			}
 		};

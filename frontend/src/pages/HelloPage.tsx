@@ -12,6 +12,8 @@ export function HelloPage() {
   const auth = useAuth()
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [logoutFailed, setLogoutFailed] = useState(false)
+  // Interface only: the API refuses admin requests from a User on its own.
+  const isAdmin = auth.state.kind === 'authenticated' && auth.state.account.role === 'ADMIN'
 
   useEffect(() => {
     let active = true
@@ -52,6 +54,11 @@ export function HelloPage() {
       <p>
         <Link to="/password-change">Change password</Link>
       </p>
+      {isAdmin && (
+        <p>
+          <Link to="/admin/users">Manage Accounts</Link>
+        </p>
+      )}
       <button type="button" onClick={logOut}>
         Log out
       </button>

@@ -1,6 +1,17 @@
 # Implementation Plan — Secured Hello World Auth
 
-Vertical slices derived from [secured-hello-world-auth.md](./secured-hello-world-auth.md). Tickets are tracked here (not GitHub — see [AGENTS.md](../../AGENTS.md) note; API unreachable). Each slice ends at a **commit checkpoint**: the agent stops and hands over a suggested commit message; the developer commits/pushes manually on branch `sngeiting`.
+Vertical slices derived from [secured-hello-world-auth.md](./secured-hello-world-auth.md).
+
+Tickets are tracked in this implementation plan rather than GitHub, as specified in [AGENTS.md](../../AGENTS.md).
+
+Each slice ends at a **commit checkpoint**:
+- the slice implementation is completed;
+- the relevant tests are run and passing;
+- the resulting changes are reviewed;
+- the agent stops and provides a suggested commit message;
+- the developer reviews and commits the changes before the next slice begins.
+
+Completed slices should not be reopened or modified unless a genuinely blocking integration issue is discovered.
 
 | Slice | Scope | Stories | Checkpoint |
 |-------|-------|---------|-----------|

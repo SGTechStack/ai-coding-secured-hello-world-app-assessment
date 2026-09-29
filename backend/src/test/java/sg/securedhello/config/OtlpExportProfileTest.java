@@ -9,6 +9,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.micrometer.metrics.autoconfigure.export.otlp.OtlpMetricsConnectionDetails;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.PlaceholderResolutionException;
@@ -30,7 +32,7 @@ class OtlpExportProfileTest extends CtxNondevTest {
     private static final String URL_PROPERTY = RequiredPropertiesPostProcessor.OTLP_METRICS_URL;
 
     /** Nothing listens on the discard port, so a publish at shutdown fails fast and harmlessly. */
-    private static final String UNUSED_COLLECTOR = "http://127.0.0.1:9/v1/metrics";
+    private static final String UNUSED_COLLECTOR = "https://127.0.0.1:9/v1/metrics";
 
     @Test
     @Proves("T-OBS-012")
@@ -83,6 +85,35 @@ class OtlpExportProfileTest extends CtxNondevTest {
 
         assertThat(boot.failure()).isNull();
         assertThat(present.get()).hasSize(3);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"http://collector.example/v1/metrics", "collector.example/v1/metrics", "https://",
+            "https://collector example/v1/metrics"})
+    @Proves("T-CFG-042")
+    void aCollectorUrlThatIsNotHttpsStopsStartupWithoutEchoingIt(String url) {
+        Boot boot = RestartHarness.boot(builder -> builder.profiles("dev", "otlp"), "--OTLP_METRICS_URL=" + url);
+
+        assertThat(boot.portOpened()).isFalse();
+        assertThat(boot.failureMessages()).contains("prohibited configuration", URL_PROPERTY, "https")
+                .doesNotContain(url);
+    }
+
+    @Test
+    @Proves("T-CFG-042")
+    void anHttpsCollectorUrlStartsWhateverItsSchemeCase() {
+        Boot boot = RestartHarness.run(builder -> builder.profiles("dev", "otlp"), context -> { },
+                "--OTLP_METRICS_URL=HTTPS://127.0.0.1:9/v1/metrics");
+
+        assertThat(boot.failure()).isNull();
+    }
+
+    @Test
+    @Proves("T-CFG-042")
+    void anHttpUrlIsNotCheckedWhileExportIsDisabled() {
+        Boot boot = RestartHarness.run(builder -> { }, context -> { }, "--" + URL_PROPERTY + "=http://127.0.0.1:9");
+
+        assertThat(boot.failure()).isNull();
     }
 
     private static String[] otlpBeans(ConfigurableApplicationContext context) {

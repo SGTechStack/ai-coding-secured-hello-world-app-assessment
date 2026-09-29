@@ -1,5 +1,7 @@
 package sg.securedhello.config;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +42,8 @@ import org.springframework.util.ClassUtils;
  *   <li>any H2 server bean ({@value #H2_SERVER}), found by its declared type without creating it, which would let a
  *       second process into the database (ADR-072; R-CFG-021; T-CFG-014). A server started inside another bean, or
  *       declared as a supertype, is not visible here;</li>
+ *   <li>with OTLP metrics export enabled, a collector URL that is not https (ADR-061; T-CFG-042). There is no
+ *       {@code dev} exemption: export is opt-in through the {@code otlp} profile, and no precedent exempts dev;</li>
  *   <li>any clustering property: a shared session or limiter store, which the in-memory, single-instance rate
  *       limiter cannot follow (REJ-018; R-RL-006; T-CFG-029).</li>
  * </ul>
@@ -130,7 +134,22 @@ public class ProhibitedConfigurationValidator implements BeanFactoryPostProcesso
                 + "configure the database through " + DatasourceUrlRules.PROPERTY + " only (ADR-072)"));
         prefixesSet(environment, CLUSTERING_PREFIXES).forEach(prefix -> violations.add(prefix + ".* is set; the rate "
                 + "limiters are in memory and only one instance is supported (REJ-018; R-RL-006)"));
+        String otlpUrl = environment.getProperty(RequiredPropertiesPostProcessor.OTLP_METRICS_URL);
+        if (otlpUrl != null && RequiredPropertiesPostProcessor.otlpExportEnabled(environment) && !isHttps(otlpUrl)) {
+            violations.add(RequiredPropertiesPostProcessor.OTLP_METRICS_URL + " is not an https URL; metrics must "
+                    + "not leave in clear (ADR-061)");
+        }
         return violations;
+    }
+
+    /** Whether the set {@code url} is a well-formed URL with an https scheme, in any letter case, and a host. */
+    private static boolean isHttps(String url) {
+        try {
+            URI uri = new URI(url.trim());
+            return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null;
+        } catch (URISyntaxException e) {
+            return false;
+        }
     }
 
     /** The {@code prefixes} under which any property is set, in any spelling Boot would bind. */

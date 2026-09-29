@@ -17,9 +17,10 @@ import sg.securedhello.user.PasswordLockoutState;
  *       otherwise restarts at 1 (ADR-012). Because every rung is at least the window, the first failure after a lock
  *       lifts always restarts it, so a lifted lock gives the user a full count again;</li>
  *   <li>the cap counter increments, with no window;</li>
- *   <li>at the cap the password is disabled, which outranks a lock; at the threshold the account locks for the rung the
- *       cap counter has reached (ADR-011); at the alert threshold the alert is raised. Each fires on its transition
- *       only.</li>
+ *   <li>at the cap the password is disabled, which outranks a lock; when either lock rule fires
+ *       ({@link LockoutLadder#locksAt}: the threshold inside the window, or the consecutive threshold since success and
+ *       every threshold-th failure after it) the account locks for the rung the cap counter has reached (ADR-011); at
+ *       the alert threshold the alert is raised. Each fires on its transition only.</li>
  * </ul>
  * A failure that finds the account locked or disabled is not counted: it raced past the pre-authentication check, and
  * attempts during a lock never advance the cap (ADR-013).
@@ -32,15 +33,12 @@ import sg.securedhello.user.PasswordLockoutState;
 public final class LockoutCounter {
 
     private final LockoutLadder ladder;
-    private final Duration window;
 
     /**
-     * @param ladder the threshold, rungs, cap and alert
-     * @param window the observation window (ADR-012)
+     * @param ladder the thresholds, the observation window, the rungs, the cap and the alert
      */
-    public LockoutCounter(LockoutLadder ladder, Duration window) {
+    public LockoutCounter(LockoutLadder ladder) {
         this.ladder = ladder;
-        this.window = window;
     }
 
     /** A wrong password for the account at {@code now}. */
@@ -49,12 +47,12 @@ public final class LockoutCounter {
             return new Outcome(state, false, null, false, false);
         }
         Instant lastFailedAt = state.lastFailedAt();
-        int windowed = lastFailedAt != null && now.isBefore(lastFailedAt.plus(window))
+        int windowed = lastFailedAt != null && now.isBefore(lastFailedAt.plus(ladder.window()))
                 ? state.failedLoginAttempts() + 1
                 : 1;
         int sinceSuccess = state.consecutiveFailuresSinceSuccess() + 1;
         boolean disabled = sinceSuccess >= ladder.cap();
-        Duration lockedFor = !disabled && windowed >= ladder.threshold()
+        Duration lockedFor = !disabled && ladder.locksAt(sinceSuccess, windowed)
                 ? ladder.lockDuration(ladder.lockNumber(sinceSuccess))
                 : null;
         PasswordLockoutState next = new PasswordLockoutState(windowed, now,

@@ -29,9 +29,16 @@ public final class AuditCapture implements AutoCloseable {
         return new AuditCapture();
     }
 
-    /** Every captured row, in order. */
+    /**
+     * Every captured row, in order. The copy is taken under the appender's own lock ({@code AppenderBase.doAppend} is
+     * synchronized on it), so a row written meanwhile from another thread cannot break the read.
+     */
     public List<Map<String, Object>> rows() {
-        return appender.list.stream().map(event -> EcsJson.flatten(EcsJson.render(event).strip())).toList();
+        List<ILoggingEvent> events;
+        synchronized (appender) {
+            events = List.copyOf(appender.list);
+        }
+        return events.stream().map(event -> EcsJson.flatten(EcsJson.render(event).strip())).toList();
     }
 
     /** The captured rows with this {@code message}, the row discriminator (ADR-055). */

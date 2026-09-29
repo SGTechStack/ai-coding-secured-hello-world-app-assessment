@@ -164,11 +164,14 @@ app:
         window: 1h
     # Password lockout (ADR-011; ADR-012) and the NIST cap (ADR-013). threshold failures inside observation-window
     # lock the account for a rung, cycles-per-rung locks per rung, read from the cap counter; the lock lifts on its
-    # own. cap failures since the last success disable the password until it is rebound, with an alert at
-    # alert-threshold. Startup refuses a ladder that disables in under 840 minutes or warns for under 580.
+    # own. So does the consecutive-threshold-th failure since the last success, whatever the window, and every
+    # threshold-th failure after it, so paced failures still climb the ladder. cap failures since the last success
+    # disable the password until it is rebound, with an alert at alert-threshold. Startup refuses values that let an
+    # attack of any pacing disable in under 840 minutes or leave under 580 of warning.
     lockout:
       threshold: 5
       observation-window: 20m
+      consecutive-threshold: 10
       ladder:
         rungs: 20m, 40m, 60m
         cycles-per-rung: 5

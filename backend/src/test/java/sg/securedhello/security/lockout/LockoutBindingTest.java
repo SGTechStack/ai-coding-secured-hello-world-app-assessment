@@ -42,6 +42,14 @@ class LockoutBindingTest extends CtxNondevTest {
     }
 
     @Test
+    @Proves("T-LCK-022")
+    void theConsecutiveThresholdIs10() {
+        assertThat(LOCKOUT.consecutiveThreshold()).isEqualTo(10);
+        assertThat(LOCKOUT.toLadder().consecutiveThreshold()).as("the value the counter compares against")
+                .isEqualTo(10);
+    }
+
+    @Test
     @Proves("T-LCK-014")
     void eachRungLastsFiveCycles() {
         assertThat(LOCKOUT.ladder().cyclesPerRung()).isEqualTo(5);

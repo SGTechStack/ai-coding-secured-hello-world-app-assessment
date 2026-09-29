@@ -34,7 +34,8 @@ import org.springframework.test.context.TestPropertySource;
     "spring.datasource.url=jdbc:h2:mem:ipthrottletest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
     "app.security.ip-throttle.max-attempts=3",
     "app.security.ip-throttle.window-minutes=60",
-    "app.security.lockout.max-attempts=100"   // prevent lockout from interfering
+    "app.security.lockout.max-attempts=100",   // prevent lockout from interfering
+    "app.admin.bootstrap-enabled=false"        // Clock is mocked; skip startup seeder
 })
 class IpThrottleIntegrationTest {
 

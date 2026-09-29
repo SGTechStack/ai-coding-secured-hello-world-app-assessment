@@ -52,9 +52,13 @@ app:
     ip-throttle:
       max-attempts: 20
       window-minutes: 15
-  # Initial admin seed (wired in the admin-bootstrap slice)
+  # Initial admin seed. The shipped password is a KNOWN PLACEHOLDER: it works for
+  # local/dev startup only. Under any non-dev profile the bootstrap refuses to seed
+  # with a placeholder and fails fast — a real password must be supplied via config
+  # (e.g. APP_ADMIN_PASSWORD env var). See Story 51.
   admin:
     username: admin
+    email: admin@example.com
     password: change-me-please-12+
   # Password reset token lifetime + per-IP request rate limit
   reset:

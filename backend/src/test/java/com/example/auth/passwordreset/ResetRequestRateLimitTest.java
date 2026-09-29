@@ -38,7 +38,8 @@ import org.springframework.test.context.TestPropertySource;
 @TestPropertySource(properties = {
     "spring.datasource.url=jdbc:h2:mem:resetratetest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
     "app.reset.request-rate-limit.max-attempts=3",
-    "app.reset.request-rate-limit.window-minutes=60"
+    "app.reset.request-rate-limit.window-minutes=60",
+    "app.admin.bootstrap-enabled=false"   // Clock is mocked; skip startup seeder
 })
 class ResetRequestRateLimitTest {
 

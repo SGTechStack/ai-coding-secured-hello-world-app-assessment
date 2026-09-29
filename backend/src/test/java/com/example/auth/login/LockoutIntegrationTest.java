@@ -40,7 +40,8 @@ import java.time.ZoneOffset;
     "spring.datasource.url=jdbc:h2:mem:lockouttest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
     "app.security.lockout.max-attempts=5",
     "app.security.lockout.duration-minutes=15",
-    "app.security.ip-throttle.max-attempts=100"   // prevent IP throttle from interfering
+    "app.security.ip-throttle.max-attempts=100",   // prevent IP throttle from interfering
+    "app.admin.bootstrap-enabled=false"            // Clock is mocked; skip startup seeder
 })
 class LockoutIntegrationTest {
 

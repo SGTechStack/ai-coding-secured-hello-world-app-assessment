@@ -42,7 +42,8 @@ import org.springframework.test.context.TestPropertySource;
     "spring.datasource.url=jdbc:h2:mem:resettest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
     "app.reset.token-ttl-minutes=30",
     "app.reset.request-rate-limit.max-attempts=1000",
-    "app.frontend.base-url=http://localhost:3000"
+    "app.frontend.base-url=http://localhost:3000",
+    "app.admin.bootstrap-enabled=false"   // Clock is mocked; skip startup seeder
 })
 class PasswordResetIntegrationTest {
 

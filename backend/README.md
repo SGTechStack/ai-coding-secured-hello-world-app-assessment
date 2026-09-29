@@ -62,6 +62,17 @@ password until it is reset (`app.security.lockout.*`). A source that has locked 
 hour gets 429 for any other username (`app.security.rate-limit.lockout-cardinality.*`). Restarting clears the 429,
 not the lock, which is stored on the account. Startup refuses a lockout ladder faster than the one committed.
 
+A token fetch with no session gets 429 with `Retry-After: 60` while new anonymous sessions are shed: when
+`SPRING_SESSION` holds 100,000 rows, or the database volume's free space falls under 25.5 KB per row plus
+`app.security.session.shedding.floor` (256 MB). An episode lasts at least 60 seconds, and `/actuator/health` reports
+`DOWN` while it runs (ADR-041).
+
+### Metrics
+
+Metrics are pushed over OTLP and are off by default. To export them, add the `otlp` profile and give the collector's
+https URL in `OTLP_METRICS_URL`, for example `--spring.profiles.active=dev,otlp`. Without the URL, startup stops
+(ADR-061).
+
 ### Shared dev demo values
 
 For local development and demos only, anyone who checks out this branch can paste one of these blocks into a

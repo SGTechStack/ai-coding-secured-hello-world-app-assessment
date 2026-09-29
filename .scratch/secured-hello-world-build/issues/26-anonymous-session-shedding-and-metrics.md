@@ -8,9 +8,9 @@
 
 **Blocked by:** 09, 11
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Past the row limit, `GET /api/csrf` sheds while signed-in traffic continues.
-- [ ] A low-disk condition sheds anonymous sessions.
-- [ ] `/actuator/health` stays detail-free and reflects `h2Data`.
-- [ ] Enabling OTLP export without a URL stops startup.
+- [x] Past the row limit, `GET /api/csrf` sheds while signed-in traffic continues.
+- [x] A low-disk condition sheds anonymous sessions.
+- [x] `/actuator/health` stays detail-free and reflects `h2Data`.
+- [x] Enabling OTLP export without a URL stops startup.

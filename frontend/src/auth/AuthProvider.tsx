@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       state,
       loggedIn: (account) => setState({ kind: 'authenticated', account }),
       loggedOut: () => setState({ kind: 'anonymous', loggedOut: true }),
+      passwordChanged: () => setState({ kind: 'anonymous', passwordChanged: true }),
     }),
     [state],
   )

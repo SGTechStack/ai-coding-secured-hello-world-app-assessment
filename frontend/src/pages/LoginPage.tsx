@@ -46,6 +46,9 @@ export function LoginPage() {
     <section>
       <h1>Log in</h1>
       {notice.registered === true && <p role="status">Your Account has been created. Please log in.</p>}
+      {auth.state.kind === 'anonymous' && 'passwordChanged' in auth.state && (
+        <p role="status">Your password has been changed. Please log in again.</p>
+      )}
       {auth.state.kind === 'anonymous' && 'loggedOut' in auth.state && <p role="status">You have logged out.</p>}
       <form onSubmit={submit} noValidate>
         <Field name="username" label="Username" autoComplete="username" value={username} onChange={setUsername} />

@@ -20,14 +20,15 @@ import com.example.securedhello.config.CredentialProperties;
 
 /**
  * The Credential policy: decides whether a candidate password is acceptable and hashes accepted
- * ones, and compares login passwords with stored hashes. Used by registration and login, and later
- * by Password Change, reset confirmation and the Bootstrap Admin.
+ * ones, and compares login passwords with stored hashes. Used by registration, login and Password
+ * Change, and later by reset confirmation and the Bootstrap Admin.
  * <p>
  * Rules, each reported by name when broken: {@code min_length}, {@code max_length} (characters),
  * {@code max_bytes} (72 UTF-8 bytes, all BCrypt reads), {@code uppercase}, {@code lowercase},
  * {@code digit}, {@code special} (any printable character that is not a letter or digit, whitespace
  * included; Unicode letters and digits count as letters and digits), and {@code common_password}
- * (the bundled list, compared case-insensitively).
+ * (the bundled list, compared case-insensitively). A password must also not be one of the Account's
+ * Password History (the latest {@link #historyLength()} passwords, the current one included).
  */
 @Component
 public class CredentialPolicy {
@@ -41,6 +42,8 @@ public class CredentialPolicy {
 
 	private final Set<String> commonPasswords;
 
+	private final int historyLength;
+
 	/** Compared against when there is no stored hash to compare with, to keep timing uniform. */
 	private static final String DUMMY_INPUT = "no-account-dummy-password";
 
@@ -53,6 +56,7 @@ public class CredentialPolicy {
 		this.minLength = properties.minLength();
 		this.maxLength = properties.maxLength();
 		this.commonPasswords = load(properties.commonPasswords());
+		this.historyLength = properties.historyLength();
 		this.encoder = new BCryptPasswordEncoder(properties.bcryptCost());
 		this.dummyHash = encoder.encode(DUMMY_INPUT);
 	}
@@ -97,6 +101,22 @@ public class CredentialPolicy {
 		List<String> violations = violations(password);
 		if (!violations.isEmpty()) {
 			throw new PasswordPolicyException(violations);
+		}
+	}
+
+	/** How many of an Account's latest passwords, the current one included, may not be reused. */
+	public int historyLength() {
+		return historyLength;
+	}
+
+	/**
+	 * Refuses a password that matches any of the given Password History hashes. The caller passes the
+	 * latest {@link #historyLength()} hashes, the current password's included.
+	 * @throws PasswordHistoryException when the password was used recently
+	 */
+	public void checkHistory(String password, List<String> historyHashes) {
+		if (historyHashes.stream().anyMatch((hash) -> matches(password, hash))) {
+			throw new PasswordHistoryException();
 		}
 	}
 

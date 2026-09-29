@@ -17,4 +17,8 @@ interface AccountRepository extends JpaRepository<Account, UUID> {
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	Optional<Account> findForUpdateByUsername(String username);
 
+	/** The Account, with its row locked until the transaction ends (Password Change). */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	Optional<Account> findForUpdateById(UUID id);
+
 }

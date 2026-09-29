@@ -22,6 +22,11 @@ class LoggingEmailService implements EmailService {
 		send(to, "Account Locked");
 	}
 
+	@Override
+	public void notifyPasswordChanged(String to) {
+		send(to, "Password changed");
+	}
+
 	/** One email: the static subject is the message, the recipient a masked key. */
 	private static void send(String to, String subject) {
 		log.atInfo().addKeyValue("email.to", to).log(subject);

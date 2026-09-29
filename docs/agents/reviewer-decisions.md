@@ -71,3 +71,10 @@ Human decisions on reviewer `Human Decision Needed` findings. Apply a matching e
 - **KB finding:** None (KB unavailable). Spring Session's JDBC cleanup silently deletes an abandoned expired Session, so no `session-end` event is written. When a later login or `endAll` removes an already-expired Session, it is recorded as `new_login` (or the caller's reason).
 - **Chosen action:** When `endOldestBeyondLimit` / `endAll` remove a Session that has already passed its idle or absolute limit, record the real reason (`idle_timeout` / `absolute_timeout`). Accept that abandoned Sessions nothing touches again get no event, and note this gap in the issue. No scheduled sweep (option B rejected; could be a separate follow-up issue).
 - **When to reuse:** Any audit-completeness question about Sessions or other records that a store expires in the background: record the true reason wherever the app touches them, and document the untouched-expiry gap instead of adding a background job.
+
+## Wrong current password counts toward lockout
+
+- **Area:** Password Change (`PATCH /api/me/password`), issue 08.
+- **KB finding:** None (KB unavailable). A wrong current password was only audited, with no lockout or rate limit, so a hijacked Session could guess the password without limit.
+- **Chosen action:** Count a wrong current password as a failed login attempt: same threshold, lock, and Account-locked email as login. No dedicated endpoint rate limit (options B/D rejected). Also fixed the minor notes: redirect to login even if the CSRF refresh fails after success, correct the misleading form-clearing comment, send the "Password changed" email after commit. Left the hard-coded "last 3" SPA text.
+- **When to reuse:** Any endpoint that re-verifies a password inside an authenticated Session (password change, re-auth, step-up): a wrong password feeds the same lockout counter as login.

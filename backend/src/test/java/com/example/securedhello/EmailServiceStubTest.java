@@ -43,4 +43,18 @@ class EmailServiceStubTest {
 		assertThat(capture.auditText()).noneMatch((line) -> line.contains(RECIPIENT));
 	}
 
+	@Test
+	void thePasswordChangedEmailGoesOnlyToTheEmailFileWithTheRecipientMasked() {
+		LogCapture capture = LogCapture.start();
+
+		emailService.notifyPasswordChanged(RECIPIENT);
+
+		assertThat(capture.email()).singleElement().satisfies((line) -> {
+			assertThat(field(line, "email.to")).isEqualTo(LogSanitizer.MASK);
+			assertThat(field(line, "message")).isEqualTo("Password changed");
+		});
+		assertThat(capture.applicationText()).noneMatch((line) -> line.contains(RECIPIENT));
+		assertThat(capture.auditText()).noneMatch((line) -> line.contains(RECIPIENT));
+	}
+
 }

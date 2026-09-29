@@ -113,6 +113,11 @@ public class Account {
 		return false;
 	}
 
+	/** Replaces the password with one that has passed the Credential policy and Password History. */
+	void changePassword(String newPasswordHash) {
+		passwordHash = newPasswordHash;
+	}
+
 	/** A successful login clears the failure count and any expired lock. */
 	void recordSuccessfulLogin() {
 		failedLoginAttempts = 0;

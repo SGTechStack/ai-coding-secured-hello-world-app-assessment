@@ -65,6 +65,7 @@ class SecurityConfig {
 			.requestMatchers(HttpMethod.POST, api.path("/register"), api.path("/login")).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/hello"), api.path("/me")).authenticated()
 			.requestMatchers(HttpMethod.POST, api.path("/logout")).authenticated()
+			.requestMatchers(HttpMethod.PATCH, api.path("/me/password")).authenticated()
 			// Default deny: anything not matched above is refused.
 			.anyRequest().denyAll())
 			.headers((headers) -> headers

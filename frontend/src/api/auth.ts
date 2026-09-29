@@ -54,3 +54,36 @@ export async function fetchOwnAccount(): Promise<OwnAccountState> {
   if (result.ok) return { kind: 'authenticated', account: result.data }
   return result.status === 401 ? { kind: 'anonymous' } : { kind: 'error' }
 }
+
+export type PasswordChangeResult =
+  | { ok: true }
+  | { ok: false; reason: 'current_password_invalid' | 'password_history' | 'validation' | 'error' }
+  | { ok: false; reason: 'password_policy'; violations: string[] }
+
+const PASSWORD_CHANGE_REFUSALS = new Set(['current_password_invalid', 'password_history', 'validation'])
+
+/**
+ * Password Change. On success the server has ended every Session of the Account, this one and its
+ * CSRF token included, so a new token is fetched for the Visitor Session that follows. The change
+ * has happened either way, so a failed fetch still reports success; the next state-changing
+ * request fetches a token again.
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<PasswordChangeResult> {
+  const result = await apiRequest('/me/password', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+  if (result.ok) {
+    await refreshCsrfToken().catch(() => undefined)
+    return { ok: true }
+  }
+  const code = result.problem?.code
+  if (result.status === 400 && code === 'password_policy') {
+    return { ok: false, reason: 'password_policy', violations: result.problem?.violations ?? [] }
+  }
+  if (result.status === 400 && code !== undefined && PASSWORD_CHANGE_REFUSALS.has(code)) {
+    return { ok: false, reason: code as 'current_password_invalid' | 'password_history' | 'validation' }
+  }
+  return { ok: false, reason: 'error' }
+}

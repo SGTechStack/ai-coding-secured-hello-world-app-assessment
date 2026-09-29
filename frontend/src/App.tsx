@@ -5,6 +5,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
 import { HelloPage } from './pages/HelloPage'
 import { LoginPage } from './pages/LoginPage'
+import { PasswordChangePage } from './pages/PasswordChangePage'
 import { RegisterPage } from './pages/RegisterPage'
 
 export default function App() {
@@ -25,6 +26,7 @@ function AppRoutes() {
     <main className="app">
       <Routes>
         <Route path="/" element={<LoggedInOnly>{<HelloPage />}</LoggedInOnly>} />
+        <Route path="/password-change" element={<LoggedInOnly>{<PasswordChangePage />}</LoggedInOnly>} />
         <Route path="/login" element={<VisitorOnly>{<LoginPage />}</VisitorOnly>} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

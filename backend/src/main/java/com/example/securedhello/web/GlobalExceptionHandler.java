@@ -55,11 +55,8 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	/** 400 {@code password_policy} listing every broken Credential policy rule. */
 	@ExceptionHandler(PasswordPolicyException.class)
 	ProblemDetail handlePasswordPolicy(PasswordPolicyException exception, HttpServletRequest request) {
-		auditInputFailure(request, "password_policy", List.of("password"));
-		ProblemDetail problem = ProblemResponses.problem(HttpStatus.BAD_REQUEST, "password_policy",
-				"The password does not meet the password policy.");
-		problem.setProperty("violations", exception.violations());
-		return problem;
+		auditInputFailure(request, ProblemResponses.PASSWORD_POLICY, List.of("password"));
+		return ProblemResponses.passwordPolicy(exception.violations());
 	}
 
 	/**

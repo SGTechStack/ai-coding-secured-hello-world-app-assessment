@@ -26,6 +26,11 @@ public final class RecordingEmailService implements EmailService {
 		sent.add(new Sent("account-locked", to));
 	}
 
+	@Override
+	public void notifyPasswordChanged(String to) {
+		sent.add(new Sent("password-changed", to));
+	}
+
 	public List<Sent> sent() {
 		return List.copyOf(sent);
 	}

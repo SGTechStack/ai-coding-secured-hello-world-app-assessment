@@ -2,6 +2,7 @@ package com.example.securedhello.web;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +22,12 @@ public final class ProblemResponses {
 
 	public static final String CODE = "code";
 
+	/** A new password breaks the Credential policy; the body lists the broken rules. */
+	public static final String PASSWORD_POLICY = "password_policy";
+
+	/** A new password is in the Account's Password History. */
+	public static final String PASSWORD_HISTORY = "password_history";
+
 	private static final JsonMapper JSON = JsonMapper.builder().build();
 
 	private ProblemResponses() {
@@ -30,6 +37,19 @@ public final class ProblemResponses {
 		ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
 		problem.setProperty(CODE, code);
 		return problem;
+	}
+
+	/** 400 {@code password_policy} listing every broken Credential policy rule under {@code violations}. */
+	public static ProblemDetail passwordPolicy(List<String> violations) {
+		ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, PASSWORD_POLICY,
+				"The password does not meet the password policy.");
+		problem.setProperty("violations", violations);
+		return problem;
+	}
+
+	/** 400 {@code password_history}: the password was used recently and may not be reused yet. */
+	public static ProblemDetail passwordHistory() {
+		return problem(HttpStatus.BAD_REQUEST, PASSWORD_HISTORY, "The password was used recently.");
 	}
 
 	/** Writes a problem body directly to the servlet response, for use outside Spring MVC. */

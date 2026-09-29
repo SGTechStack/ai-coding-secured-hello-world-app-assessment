@@ -2,20 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { apiRequest, type ApiResult } from '../api/client'
 import { Field, type FieldError } from '../components/Field'
+import { passwordRuleErrors } from '../components/passwordRules'
 
 type FieldName = 'username' | 'email' | 'password'
-
-/** Messages for the Credential policy rules the API names in `violations`. */
-const PASSWORD_RULES: Record<string, string> = {
-  min_length: 'Use at least 12 characters.',
-  max_length: 'Use at most 64 characters.',
-  max_bytes: 'Use at most 72 bytes. Accented letters and symbols take more than one byte each.',
-  uppercase: 'Include an uppercase letter.',
-  lowercase: 'Include a lowercase letter.',
-  digit: 'Include a digit.',
-  special: 'Include a special character: anything that is not a letter or digit, such as a space or !.',
-  common_password: 'Choose a less common password.',
-}
 
 /** Messages for the input fields the API names in `fields` on a `validation` error. */
 const FIELD_MESSAGES: Record<FieldName, string> = {
@@ -87,10 +76,7 @@ export function RegisterPage() {
     setSubmitting(false)
   }
 
-  const passwordErrors: FieldError[] = errors.violations.map((rule) => ({
-    key: rule,
-    message: PASSWORD_RULES[rule] ?? 'The password is not allowed.',
-  }))
+  const passwordErrors: FieldError[] = passwordRuleErrors(errors.violations)
   if (errors.fields.password) passwordErrors.unshift({ key: 'field', message: errors.fields.password })
 
   return (

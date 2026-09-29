@@ -9,4 +9,7 @@ public interface EmailService {
 	/** Tells the Account holder their Account has become Locked after repeated wrong passwords. */
 	void notifyAccountLocked(String to);
 
+	/** Tells the Account holder their password has been changed, so they can react if they did not do it. */
+	void notifyPasswordChanged(String to);
+
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { logout } from '../api/auth'
 import { apiRequest } from '../api/client'
 import { useAuth } from '../auth/useAuth'
@@ -48,6 +49,9 @@ export function HelloPage() {
       {/* Server data is rendered as text only. */}
       <h1>{state.message}</h1>
       {logoutFailed && <p role="alert">{GENERIC_ERROR}</p>}
+      <p>
+        <Link to="/password-change">Change password</Link>
+      </p>
       <button type="button" onClick={logOut}>
         Log out
       </button>

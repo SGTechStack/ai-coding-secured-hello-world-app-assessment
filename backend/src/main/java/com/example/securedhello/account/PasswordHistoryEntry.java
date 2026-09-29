@@ -33,4 +33,8 @@ class PasswordHistoryEntry {
 		this.createdAt = createdAt;
 	}
 
+	String getPasswordHash() {
+		return passwordHash;
+	}
+
 }

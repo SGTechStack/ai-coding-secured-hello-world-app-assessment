@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -49,7 +50,11 @@ public final class LogOutputGuard implements AfterEachCallback, AfterAllCallback
     private static final List<String> REGISTERED = new CopyOnWriteArrayList<>();
 
     private static String carried = "";
-    private static long auditFileOffset;
+    /**
+     * Where the next scan of the audit file starts. It starts at the file's end: what is there already was written by
+     * an earlier JVM, such as a PIT run whose mutants wrote degraded rows, and is not this run's output.
+     */
+    private static long auditFileOffset = auditFile().map(file -> file.toFile().length()).orElse(0L);
 
     static {
         System.setOut(new PrintStream(new Tee(System.out, CAPTURE), true, StandardCharsets.UTF_8));
@@ -170,15 +175,19 @@ public final class LogOutputGuard implements AfterEachCallback, AfterAllCallback
         return form.chars().allMatch(c -> Character.digit(c, 16) >= 0) ? "hex" : "an encoded form";
     }
 
+    /** The audit file, if the run has an audit directory and the file exists. */
+    private static Optional<Path> auditFile() {
+        return Optional.ofNullable(System.getProperty(AUDIT_DIRECTORY_PROPERTY))
+                .map(directory -> Path.of(directory, "audit.ndjson"))
+                .filter(Files::isRegularFile);
+    }
+
     private static String auditFileGrowth() {
-        String directory = System.getProperty(AUDIT_DIRECTORY_PROPERTY);
-        if (directory == null) {
+        Optional<Path> found = auditFile();
+        if (found.isEmpty()) {
             return "";
         }
-        Path file = Path.of(directory, "audit.ndjson");
-        if (!Files.isRegularFile(file)) {
-            return "";
-        }
+        Path file = found.get();
         try (RandomAccessFile in = new RandomAccessFile(file.toFile(), "r")) {
             if (in.length() < auditFileOffset) {
                 auditFileOffset = 0;

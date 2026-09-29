@@ -19,7 +19,8 @@ public class RequiredPropertiesPostProcessor implements EnvironmentPostProcessor
             "app.origins.spa",
             "app.origins.api",
             "app.mfa.totp.encryption.key-version",
-            "app.security.hmac.tombstone.version");
+            "app.security.hmac.tombstone.version",
+            "app.mfa.totp.issuer");
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {

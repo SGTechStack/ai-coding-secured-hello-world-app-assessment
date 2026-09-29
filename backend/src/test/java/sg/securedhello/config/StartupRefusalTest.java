@@ -51,6 +51,16 @@ class StartupRefusalTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    @Proves("T-CFG-023")
+    void aBlankTotpIssuerStopsStartupBeforeThePortOpens(String blank) {
+        Boot boot = RestartHarness.boot(builder -> builder.profiles("dev"), "--app.mfa.totp.issuer=" + blank);
+
+        assertThat(boot.portOpened()).isFalse();
+        assertThat(boot.failureMessages()).contains("app.mfa.totp.issuer");
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {TestSecrets.TOTP_KEY_PROPERTY, TestSecrets.TOMBSTONE_KEY_PROPERTY,
             TestSecrets.LOG_KEY_PROPERTY})
     @Proves("T-CFG-022")

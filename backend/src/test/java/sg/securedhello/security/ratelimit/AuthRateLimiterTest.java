@@ -36,7 +36,9 @@ class AuthRateLimiterTest {
                 new Route(new Budget(5, Duration.ofSeconds(12)), null, null),
                 new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
                 new Route(new Budget(5, Duration.ofSeconds(12)), null, new Budget(3, Duration.ofMinutes(20))),
-                new Route(new Budget(10, Duration.ofSeconds(6)), null, null));
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
+                new Route(new Budget(20, Duration.ofSeconds(3)), null, null));
         return new AuthRateLimiter(properties, ClockTimes.timeMeter(clock), ClockTimes.ticker(clock));
     }
 
@@ -145,7 +147,9 @@ class AuthRateLimiterTest {
                 new Route(new Budget(5, Duration.ofSeconds(12)), null, null),
                 new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
                 new Route(new Budget(5, Duration.ofSeconds(12)), null, new Budget(3, Duration.ofMinutes(20))),
-                new Route(new Budget(10, Duration.ofSeconds(6)), null, null));
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
+                new Route(new Budget(20, Duration.ofSeconds(3)), null, null));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> new AuthRateLimiter(missingCsrf, ClockTimes.timeMeter(clock),

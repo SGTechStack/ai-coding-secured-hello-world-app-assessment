@@ -43,6 +43,8 @@
         <bucket4j.version>8.20.0</bucket4j.version>
         <!-- The password strength gate (ADR-005): pinned; T-CRED-004 must pass again before it moves. -->
         <zxcvbn.version>1.9.0</zxcvbn.version>
+        <!-- The server-rendered TOTP provisioning QR code (ADR-025): the core encoder only; PNG is written by ImageIO. -->
+        <zxing.version>3.5.3</zxing.version>
     </properties>
 
     <dependencies>
@@ -101,6 +103,16 @@
             <groupId>com.nulab-inc</groupId>
             <artifactId>zxcvbn</artifactId>
             <version>${zxcvbn.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+        <!-- Base32 for the TOTP manual-entry secret and otpauth URI (RFC 4648); version managed by Spring Boot. -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -239,6 +251,8 @@
                             <!-- the TOTP window and replay check -->
                             <param>sg.securedhello.*TotpWindow*</param>
                             <param>sg.securedhello.*TotpReplay*</param>
+                            <!-- the TOTP envelope: context prefix and version-keyed key ring -->
+                            <param>sg.securedhello.*TotpSecretCipher*</param>
                             <!-- emitter key validation -->
                             <param>sg.securedhello.*EmitterKeyValidat*</param>
                         </targetClasses>

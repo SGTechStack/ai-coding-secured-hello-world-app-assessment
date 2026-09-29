@@ -41,7 +41,8 @@ public final class E2eBackend {
      * account, the new login wins). Mirrored in {@code frontend/e2e/fixtures.ts}.
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
-            .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change").stream().map(test -> "e2e-" + browser + "-" + test))
+            .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
+                    "mfa-enrolment").stream().map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
 
@@ -88,6 +89,8 @@ public final class E2eBackend {
                 // The forced-change accounts hold an issued credential, as the bootstrap seed does (ADR-046).
                 jdbc.update("UPDATE users SET force_password_change = TRUE, credential_issued_at = CURRENT_TIMESTAMP"
                         + " WHERE username LIKE 'e2e-%-forced-change'");
+                // The enrolment accounts are administrators who have already changed the seeded password.
+                jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-mfa-enrolment'");
             };
         }
 

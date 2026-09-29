@@ -7,11 +7,15 @@ import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HelloPage } from '@/pages/HelloPage'
 import { HomePage } from '@/pages/HomePage'
+import { MfaSettingsPage } from '@/pages/MfaSettingsPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SignInPage } from '@/pages/SignInPage'
 
-/** Public: sign-in, register, activate, forgot and reset. Signed in: hello and change password. The entry route decides between them from the self-read. */
+/**
+ * Public: sign-in, register, activate, forgot and reset. Signed in: hello and change password. Administrators only:
+ * `/settings/mfa`. The entry route decides between them from the self-read.
+ */
 export const routes: RouteObject[] = [
   {
     element: <Layout />,
@@ -24,6 +28,7 @@ export const routes: RouteObject[] = [
       { path: '/reset', element: <ResetPasswordPage /> },
       { path: '/hello', element: <HelloPage /> },
       { path: '/change-password', element: <ChangePasswordPage /> },
+      { path: '/settings/mfa', element: <MfaSettingsPage /> },
     ],
   },
 ]

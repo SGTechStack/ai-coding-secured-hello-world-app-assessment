@@ -10,10 +10,10 @@
 
 **Blocked by:** 16
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Provisioning twice replaces the pending row, and neither call resets any counter.
-- [ ] The stored `totp_key` is exactly 69 bytes. A row copied under another user's context fails to decrypt and emits the mismatch event.
-- [ ] A correct code confirms enrolment and rotates the session id. A wrong one does not.
-- [ ] The secret response has `no-store`, and the canary scan finds no secret in the logs.
-- [ ] The `blob:` URL is revoked on unmount (Vitest).
+- [x] Provisioning twice replaces the pending row, and neither call resets any counter.
+- [x] The stored `totp_key` is exactly 69 bytes. A row copied under another user's context fails to decrypt and emits the mismatch event.
+- [x] A correct code confirms enrolment and rotates the session id. A wrong one does not.
+- [x] The secret response has `no-store`, and the canary scan finds no secret in the logs.
+- [x] The `blob:` URL is revoked on unmount (Vitest).

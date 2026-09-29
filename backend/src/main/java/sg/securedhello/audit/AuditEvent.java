@@ -187,6 +187,32 @@ public enum AuditEvent {
             .keyed(Keying.SOURCE)
             .build()),
 
+    /**
+     * Row 36: an administrator provisioned a TOTP secret, writing a pending enrolment (ADR-025). The row carries no
+     * secret, URI or ciphertext (T-AUD-021).
+     */
+    TOTP_ENROLMENT_PROVISIONED(row("totp-enrol", "TOTP enrolment provisioned.")
+            .type("creation")
+            .required(USER_ID)
+            .build()),
+
+    /** Row 37: a code confirmed the pending secret, which is now the account's factor (enrolment binding; REJ-071). */
+    TOTP_ENROLMENT_CONFIRMED(row("totp-enrol", "TOTP enrolment confirmed.")
+            .type("change")
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 42: a TOTP envelope's context prefix did not match the row it was read from, so ciphertext was moved between
+     * users or replayed across key versions. A data-integrity alarm, not a decrypt error (ADR-028; R-MFA-020).
+     */
+    TOTP_CONTEXT_MISMATCH(row("totp-decrypt", "TOTP secret context mismatch.")
+            .type("error")
+            .outcome(Outcome.FAILURE)
+            .level(Level.ERROR, Severity.CRITICAL)
+            .required(USER_ID)
+            .build()),
+
     /** Row 43: the application is ready. Records what later correlation depends on (LOG §3.1; ADR-054; ADR-057). */
     APPLICATION_STARTUP(row("application-startup", "Application started.")
             .type("start")

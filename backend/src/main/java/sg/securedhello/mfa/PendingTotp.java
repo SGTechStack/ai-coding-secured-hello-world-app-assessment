@@ -32,7 +32,28 @@ public class PendingTotp {
     protected PendingTotp() {
     }
 
+    /** A pending enrolment of {@code userId}: its sealed secret and the key version it was sealed under. */
+    PendingTotp(UUID userId, byte[] totpKey, int keyVersion, Instant createdAt) {
+        this.userId = userId;
+        replace(totpKey, keyVersion, createdAt);
+    }
+
+    /** Provisioning again replaces the secret; the row stays one per user (ADR-053). */
+    void replace(byte[] totpKey, int keyVersion, Instant createdAt) {
+        this.totpKey = totpKey.clone();
+        this.keyVersion = (short) keyVersion;
+        this.createdAt = createdAt;
+    }
+
     public UUID getUserId() {
         return userId;
+    }
+
+    byte[] getTotpKey() {
+        return totpKey.clone();
+    }
+
+    int getKeyVersion() {
+        return keyVersion;
     }
 }

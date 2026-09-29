@@ -208,6 +208,22 @@ export async function fetchGreeting() {
 }
 
 /**
+ * Fetches the current authenticated user ({ username, role }). Returns null when
+ * unauthenticated (401). Used to restore the session — including the role, which
+ * drives admin navigation — after a page reload.
+ */
+export async function fetchMe() {
+  const response = await apiFetch("/api/me");
+  if (response.status === 401) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(`me failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
  * Ends the server-side session. Sends the CSRF token header like the other
  * state-changing calls; the backend invalidates the session and clears the
  * session cookie, so subsequent requests are unauthenticated.

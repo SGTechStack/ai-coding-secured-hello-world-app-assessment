@@ -232,6 +232,29 @@ public enum AuditEvent {
             .required(USER_ID)
             .build()),
 
+    /**
+     * Row 40: consecutive wrong codes locked an administrator's factor for 20 minutes (tier 1; ADR-027). WARN, once
+     * per transition; the lock lifts by itself.
+     */
+    TOTP_FACTOR_LOCKED(row("totp-verify", "TOTP factor locked.")
+            .type("error")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.HIGH)
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 41: cumulative wrong codes disabled an administrator's factor (tier 2; ADR-027), which also forced a
+     * password change and ended the account's sessions. ERROR and critical, like the password's disable: an automatic
+     * trip, which only rebinding clears, and one trigger of the break-glass runner.
+     */
+    TOTP_FACTOR_DISABLED(row("totp-verify", "TOTP factor disabled.")
+            .type("error")
+            .outcome(Outcome.FAILURE)
+            .level(Level.ERROR, Severity.CRITICAL)
+            .required(USER_ID)
+            .build()),
+
     /** An administrator read the user list; the row carries how many accounts it returned (PRD Story 8). */
     ADMIN_USERS_LISTED(row("admin-user-list", "Administrator listed users.")
             .type("access")

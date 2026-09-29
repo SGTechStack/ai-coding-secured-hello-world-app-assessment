@@ -27,12 +27,11 @@ export const problemFixtures: Readonly<Record<ErrorCode, Problem>> = {
   ),
   ACCESS_DENIED: fixture('ACCESS_DENIED', 403, 'Access denied', 'The request is not permitted.'),
   VALIDATION_FAILED: fixture('VALIDATION_FAILED', 400, 'Validation failed', 'The request was not valid.'),
-  PASSWORD_REJECTED: fixture(
-    'PASSWORD_REJECTED',
-    400,
-    'Password rejected',
-    'The password does not meet the password policy.',
-  ),
+  // The one code with an extension member: the rule the password failed (ADR-005).
+  PASSWORD_REJECTED: {
+    ...fixture('PASSWORD_REJECTED', 400, 'Password rejected', 'The password does not meet the password policy.'),
+    rule: 'TOO_WEAK',
+  },
   RESET_TOKEN_INVALID: fixture('RESET_TOKEN_INVALID', 400, 'Token invalid', 'The token is invalid or has expired.'),
   USER_EXISTS: fixture('USER_EXISTS', 400, 'User exists', 'A user with that username or email address already exists.'),
   TOO_MANY_REQUESTS: fixture('TOO_MANY_REQUESTS', 429, 'Too many requests', 'Too many requests. Try again later.'),
@@ -64,9 +63,16 @@ export const problemFixtures: Readonly<Record<ErrorCode, Problem>> = {
   INTERNAL_ERROR: fixture('INTERNAL_ERROR', 500, 'Internal error', 'An unexpected error occurred.'),
 }
 
-/** An MSW response carrying the fixture for `code`, as the backend sends it. */
-export function problemResponse(code: ErrorCode, instance = '/api'): HttpResponse<Problem> {
-  const body = { ...problemFixtures[code], instance }
+/**
+ * An MSW response carrying the fixture for `code`, as the backend sends it. `extensions` replaces the fixture's
+ * extension members, such as a `PASSWORD_REJECTED` rule.
+ */
+export function problemResponse(
+  code: ErrorCode,
+  instance = '/api',
+  extensions: Readonly<Record<string, unknown>> = {},
+): HttpResponse<Problem> {
+  const body = { ...problemFixtures[code], ...extensions, instance }
   return HttpResponse.json(body, { status: body.status, headers: { 'Content-Type': 'application/problem+json' } })
 }
 

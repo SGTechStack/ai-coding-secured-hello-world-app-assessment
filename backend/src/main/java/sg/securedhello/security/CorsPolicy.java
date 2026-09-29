@@ -20,6 +20,7 @@ import sg.securedhello.error.ProblemDetailWriter;
 /**
  * CORS for the SPA (ADR-036; ADR-059): its one origin, with credentials, so the session cookie travels, and the
  * {@code X-CSRF-TOKEN} header, which makes every mutation a preflight. Nothing else is allowed, and no wildcard.
+ * {@code Retry-After} is the one response header exposed to it.
  */
 final class CorsPolicy {
 
@@ -33,6 +34,8 @@ final class CorsPolicy {
         configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"));
         configuration.setAllowedHeaders(List.of(HttpHeaders.ACCEPT, HttpHeaders.CONTENT_TYPE, "X-CSRF-TOKEN"));
+        // Not CORS-safelisted, so exposed: the SPA reads it to tell how long a factor lock lasts (ADR-033).
+        configuration.setExposedHeaders(List.of(HttpHeaders.RETRY_AFTER));
         return configuration;
     }
 

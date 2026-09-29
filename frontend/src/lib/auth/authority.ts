@@ -1,15 +1,18 @@
 import { useState } from 'react'
 import { ApiError, type ErrorCode } from '@/lib/api/errors'
+import { FACTOR_DISABLED_ROUTE } from '@/lib/auth/session'
 
 /**
  * Where an envelope `code` says the session must go, whatever the client believed (authority over belief): signed
- * out, a forced change, no enrolment, no current factor, or not an administrator. Undefined for anything else.
+ * out, a forced change, no enrolment, no current factor, a disabled factor, or not an administrator. Undefined for
+ * anything else.
  */
 const AUTHORITY_ROUTES: Partial<Record<ErrorCode, string>> = {
   AUTHENTICATION_FAILED: '/sign-in',
   PASSWORD_CHANGE_REQUIRED: '/change-password',
   FACTOR_ENROLMENT_REQUIRED: '/settings/mfa',
   MISSING_FACTOR: '/verify',
+  FACTOR_DISABLED: FACTOR_DISABLED_ROUTE,
   ACCESS_DENIED: '/hello',
 }
 

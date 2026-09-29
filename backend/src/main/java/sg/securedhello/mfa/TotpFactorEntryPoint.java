@@ -3,6 +3,7 @@ package sg.securedhello.mfa;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +28,8 @@ import sg.securedhello.user.SignedInUser;
  *
  * <ul>
  *   <li>No enrolled factor: 422 {@code FACTOR_ENROLMENT_REQUIRED} (R-MFA-002).</li>
+ *   <li>A factor tier 2 disabled: 423 {@code FACTOR_DISABLED}, the terminal state, rather than a challenge no code can
+ *       pass (R-MFA-006; REJ-049).</li>
  *   <li>Otherwise 412 {@code MISSING_FACTOR}, with {@code factor: TOTP} and {@code reason} {@code MISSING} or
  *       {@code EXPIRED}, the latter when the session holds the factor but the rule's duration has passed
  *       (R-MFA-001).</li>
@@ -58,10 +61,16 @@ public class TotpFactorEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException exception) throws IOException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user
-                && !factors.existsById(user.id())) {
-            writer.write(request, response, ErrorCode.FACTOR_ENROLMENT_REQUIRED);
-            return;
+        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
+            Optional<TotpUserDetails> factor = factors.findById(user.id());
+            if (factor.isEmpty()) {
+                writer.write(request, response, ErrorCode.FACTOR_ENROLMENT_REQUIRED);
+                return;
+            }
+            if (factor.get().isDisabled()) {
+                writer.write(request, response, ErrorCode.FACTOR_DISABLED);
+                return;
+            }
         }
         writer.write(request, response, ErrorCode.MISSING_FACTOR,
                 Map.of("factor", FACTOR, "reason", reason(request).name()));

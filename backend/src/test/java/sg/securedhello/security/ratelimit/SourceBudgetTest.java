@@ -240,6 +240,7 @@ class SourceBudgetTest extends CtxBudgetTest {
     }
 
     @Test
+    @Proves("T-MFA-006")
     void pastTheVerificationBurstACodeIs429WithNoFactorMemberAndIsNeverChecked() throws Exception {
         long burst = budgets.mfaTotpVerification().source().burst();
         String source = nextSource();
@@ -250,9 +251,9 @@ class SourceBudgetTest extends CtxBudgetTest {
                 admin.password()).andExpect(status().isOk()).andReturn();
         CsrfSession session = SignedIn.refreshed(mockMvc, login.getResponse().getCookie("SESSION"));
         String right = factors.code(secret);
-        String wrong = right.equals("000000") ? "000001" : "000000";
         for (long i = 0; i < burst; i++) {
-            mockMvc.perform(verification(source, session, wrong)).andExpect(problem(ErrorCode.INVALID_FACTOR));
+            // Empty codes spend the source budget without counting on the factor's own lock (T-MFA-015).
+            mockMvc.perform(verification(source, session, "")).andExpect(problem(ErrorCode.INVALID_FACTOR));
         }
 
         mockMvc.perform(verification(source, session, right))

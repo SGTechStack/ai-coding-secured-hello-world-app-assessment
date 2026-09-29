@@ -176,6 +176,14 @@ public class UserAccount {
                 && now.isAfter(credentialIssuedAt.plus(FORCED_CHANGE_GRACE));
     }
 
+    /**
+     * Forces a password change at the next sign-in without stamping the issue time, so the 30-day expiry never applies
+     * to it: what a tier-2 factor disable leaves (ADR-027; ADR-016; T-ADM-031). The caller holds the row lock.
+     */
+    public void requirePasswordChange() {
+        this.forcePasswordChange = true;
+    }
+
     /** The password-lockout columns (ADR-011; ADR-012; ADR-013). */
     public PasswordLockoutState getLockoutState() {
         return new PasswordLockoutState(failedLoginAttempts, lastFailedAt, lockedUntil,

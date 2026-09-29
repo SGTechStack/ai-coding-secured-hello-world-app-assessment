@@ -154,6 +154,7 @@ class TotpEnrolmentTest extends CtxDefaultTest {
     }
 
     @Test
+    @Proves("T-AUD-021")
     void theSecretIsSentOnceWithNoStoreAndNeverReachesTheLogsOrTheAuditRows() throws Exception {
         CsrfSession session = SignedIn.as(mockMvc, accounts.withRole("ADMIN"));
         try (AuditCapture audit = AuditCapture.start()) {
@@ -286,6 +287,7 @@ class TotpEnrolmentTest extends CtxDefaultTest {
     }
 
     @Test
+    @Proves("T-AUD-021")
     void anEnvelopeCopiedUnderAnotherUsersRowFailsToOpenAndEmitsTheMismatchRow() throws Exception {
         Account owner = accounts.withRole("ADMIN");
         Account other = accounts.withRole("ADMIN");

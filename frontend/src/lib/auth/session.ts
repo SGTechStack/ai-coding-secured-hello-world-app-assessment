@@ -16,6 +16,9 @@ export interface Greeting {
   message: string
 }
 
+/** The terminal factor state's route: an administrator whose factor tier 2 disabled (R-MFA-006). */
+export const FACTOR_DISABLED_ROUTE = '/factor-disabled'
+
 /** The query key of the self-read. */
 export const PROFILE_KEY = ['profile'] as const
 
@@ -69,7 +72,8 @@ export async function changePassword(currentPassword: string, newPassword: strin
 /**
  * Where a signed-in session belongs, from the self-read, in gate order (spec, Frontend): the forced change first; then,
  * for an administrator, enrolment, then the challenge, then the admin surface (ADR-023); a user goes to the greeting.
- * The terminal factor state slots in before enrolment. Belief only: an envelope `code` overrides it.
+ * The terminal factor state slots in before enrolment, so a factor tier 2 disabled is never offered a challenge
+ * (REJ-049). Belief only: an envelope `code` overrides it.
  */
 export function landingFor(profile: Profile): string {
   if (profile.passwordChangeRequired) {
@@ -77,6 +81,9 @@ export function landingFor(profile: Profile): string {
   }
   if (profile.role !== 'ADMIN') {
     return '/hello'
+  }
+  if (profile.factors.rebindRequired) {
+    return FACTOR_DISABLED_ROUTE
   }
   if (!profile.factors.enrolled) {
     return '/settings/mfa'

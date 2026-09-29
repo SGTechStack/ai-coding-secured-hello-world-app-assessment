@@ -45,6 +45,7 @@ Errors are always `application/problem+json` (RFC 9457) with a machine-readable 
 | PATCH | `/api/admin/users/{id}/role` | ADMIN | 200 user, body `{"role": "ADMIN"}` | 403, 404, 409 |
 | DELETE | `/api/admin/users/{id}` | ADMIN | 204 | 403, 404, 409 |
 | GET | `/actuator/health` | anyone | 200 `{"status":"UP"}` | |
+| GET | `/.well-known/security.txt` | anyone | 200 `text/plain` (RFC 9116 disclosure contact) | |
 
 Any other path is denied.
 
@@ -55,17 +56,23 @@ Any other path is denied.
 | BCrypt, no custom hashing | `BCryptPasswordEncoder`, cost 12 (4 in tests). |
 | HttpOnly, Secure, SameSite cookie | Cookie defined in `SessionCookieConfig`: always HttpOnly and `SameSite=Strict`; Secure everywhere except the dev profile; named `__Host-SESSION` in prod. |
 | Session fixation protection | Session ID changes at login (`SessionLogin`). |
+| Session timeout | Server sessions expire after 15 minutes idle. The SPA signs out after 15 minutes without input in any tab (`useIdleTimeout`). |
 | Sessions invalidated on logout and password reset | Logout invalidates the session. A password reset deletes every session of the user from the session store. |
 | CSRF on all state-changing endpoints | Spring Security synchronizer token held in the session. The SPA fetches it from `/api/auth/csrf`, and it is rotated at login. |
 | CORS allow-list with credentials | Exact origins from `app.cors.allowed-origins` (wildcards rejected at startup), `Allow-Credentials: true`. |
 | Enumeration resistance | Login: one 401 body for unknown user, wrong password, locked and disabled accounts, with one BCrypt comparison on every path. Reset request: the same 202 for any email, and the lookup runs asynchronously so response time does not reveal it either. |
-| Audit logging | `AUDIT` logger (`AuditLog`). Events: registration, login success/failure (with reason), lockout, throttling, logout, reset requested/completed/rejected, enable/disable/role change/delete (actor and target), rejected self-actions, admin bootstrap. |
+| Audit logging | `AUDIT` logger (`AuditLog`). Events: registration, login success/failure (with reason), lockout, throttling, logout, reset requested/completed/rejected, enable/disable/role change/delete (actor and target), rejected self-actions, admin views of the user list, every 403 (role or CSRF failure), admin bootstrap. |
 | Never log passwords | No audit field can hold a password. Request DTOs redact `toString()`. Validation errors never echo rejected values. A test captures all output of real flows and asserts no password appears. |
 | Least privilege, server-side | URL rules in `SecurityConfig` plus `@PreAuthorize` on the admin controller. Roles come from the server-side session only. |
 
 Other hardening: `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` on API
 responses, `X-Frame-Options: DENY`, `nosniff`, `Cache-Control: no-store`, `Referrer-Policy:
 no-referrer`, and HSTS on HTTPS. The frontend build ships a strict CSP.
+
+The frontend handles every "not authenticated" response in one place (`onUnauthenticated`),
+shows an access-denied page for pages that need a role the user lacks, and wraps the app in an
+error boundary that never renders error details. Every page links to the vulnerability
+disclosure channel, which `/.well-known/security.txt` also publishes.
 
 ## Decisions where the PRD was open
 
@@ -91,7 +98,7 @@ no-referrer`, and HSTS on HTTPS. The frontend build ships a strict CSP.
    also rejects longer input. Without that, `<72-byte password>` + anything would log in.
 5. **Sessions are also revoked** when an admin disables a user, changes a role, or deletes a
    user. Otherwise a demoted admin would keep admin rights until the session timed out. Idle
-   timeout is 30 minutes.
+   timeout is 15 minutes, the IM8 threshold. The PRD does not specify one.
 6. **Password reset tokens** are 256 random bits, and only their SHA-256 hash is stored. They
    expire after 30 minutes and are single-use (enforced with a row lock). Requesting a new link
    invalidates the old one. The token travels in the URL fragment (`#token=...`), so it is never
@@ -136,11 +143,17 @@ Also covered: registration (`RegistrationIntegrationTests`), admin bootstrap
 (`AdminBootstrapIntegrationTests`), audit events and the absence of passwords in logs
 (`AuditLoggingIntegrationTests`), CORS, headers and default-deny (`WebSecurityIntegrationTests`),
 and session fixation (`LoginIntegrationTests.loginChangesTheSessionIdToPreventFixation`).
-Frontend tests (`cd frontend && npm test`) cover the API client's CSRF handling, sign-in, the
-reset-link flow and the admin page.
+Frontend tests (`cd frontend && npm test`) cover:
+- the API client's CSRF handling and ended-session detection
+- sign-in and the reset-link flow
+- the admin page and the access-denied page
+- the inactivity sign-out and the error boundary
 
 The full backend suite was also run once against PostgreSQL 18.6 (embedded, via
-`io.zonky.test:embedded-postgres`), and all tests passed. That harness is not committed.
+`io.zonky.test:embedded-postgres`), and all 71 tests passed. That harness is not committed.
+
+Compliance and threat analysis: the IM8 review is in `artifacts/`, and the threat model is in
+[`docs/threat-model/`](threat-model/threat-model.md).
 
 ## Before a real deployment
 

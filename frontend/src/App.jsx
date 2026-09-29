@@ -57,7 +57,7 @@ export default function App() {
   // A password-reset link (?token=...) takes over the whole view.
   if (resetToken) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <main className="flex min-h-screen items-center justify-center px-4 py-10">
         <Card className="w-full max-w-sm" size="sm">
           <CardHeader>
             <CardTitle>Reset your password</CardTitle>
@@ -73,7 +73,7 @@ export default function App() {
 
   if (!checked) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <main className="flex min-h-screen items-center justify-center px-4">
         <p data-testid="app-loading" className="text-sm text-muted-foreground">
           Loading…
         </p>
@@ -89,7 +89,7 @@ export default function App() {
     // 48rem (max-w-3xl) baseline to keep the row action buttons from clipping.
     const columnWidth = activeView === "admin" ? "max-w-[62rem]" : "max-w-md";
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <div className="flex min-h-screen items-center justify-center px-4 py-10">
         <div className={`flex w-full ${columnWidth} flex-col gap-4`}>
           <NavBar
             username={session.username}
@@ -122,7 +122,7 @@ export default function App() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="flex w-full max-w-sm flex-col gap-4">
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-xl font-semibold tracking-tight">Hello World Auth</h1>

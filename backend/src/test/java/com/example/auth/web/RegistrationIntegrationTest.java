@@ -27,6 +27,8 @@ import org.springframework.test.annotation.DirtiesContext;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@org.springframework.test.context.TestPropertySource(properties =
+    "spring.datasource.url=jdbc:h2:mem:regtest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE")
 class RegistrationIntegrationTest {
 
     @Autowired

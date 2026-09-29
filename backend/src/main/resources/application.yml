@@ -25,10 +25,17 @@ server:
   port: 8080
   servlet:
     session:
+      timeout: 30m          # explicit idle timeout; default is 30m but pinned here (Story 53)
       cookie:
+        name: SESSION
         http-only: true
         same-site: lax
-        secure: false   # local dev over HTTP; prod must set true (behind HTTPS)
+        secure: false        # local dev over HTTP; prod must set true (behind HTTPS)
+  error:
+    include-stacktrace: never   # never leak internal stacktraces (Story 53)
+    include-message: never      # never echo exception messages that may contain sensitive data
+    include-binding-errors: never
+    include-exception: false
 
 app:
   cors:

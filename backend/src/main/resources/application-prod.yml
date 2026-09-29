@@ -1,0 +1,9 @@
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+
+app:
+  security:
+    secure-cookies: true

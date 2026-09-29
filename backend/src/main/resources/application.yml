@@ -12,6 +12,9 @@ spring:
 app:
   cors:
     frontend-origin: ${APP_CORS_FRONTEND_ORIGIN:http://localhost:5173}
+  admin:
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:change-me-admin-pw}
   security:
     lockout:
       max-attempts: 5

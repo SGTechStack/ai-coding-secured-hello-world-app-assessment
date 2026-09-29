@@ -13,3 +13,6 @@ spring:
 app:
   cors:
     frontend-origin: http://localhost:5173
+  admin:
+    username: admin
+    password: change-me-admin-pw

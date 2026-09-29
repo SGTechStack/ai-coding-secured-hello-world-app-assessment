@@ -74,6 +74,13 @@ final class SchemaFixture {
         return id;
     }
 
+    UUID usernameHold() {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO username_holds (id, username, email, expires_at) VALUES (?, ?, ?, ?)",
+                id, "h" + id.toString().substring(0, 8), "h" + id.toString().substring(0, 8) + "@example.test", now());
+        return id;
+    }
+
     /** A Spring Session row owned by {@code principal}; returns its primary id. */
     String session(String principal) {
         String primaryId = UUID.randomUUID().toString();

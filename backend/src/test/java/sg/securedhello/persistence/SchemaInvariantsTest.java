@@ -36,12 +36,14 @@ class SchemaInvariantsTest extends CtxDefaultTest {
             "TOTP_USER_DETAILS", Set.of("USER_ID", "TOTP_KEY", "KEY_VERSION", "FAILED_ATTEMPTS",
                     "CUMULATIVE_FAILURES", "CREATED_AT"),
             "PENDING_TOTP", Set.of("USER_ID", "TOTP_KEY", "KEY_VERSION", "CREATED_AT"),
-            "DELETED_USERS", Set.of("USER_ID", "USERNAME", "EMAIL_HMAC", "DELETED_AT", "DELETED_BY_ID"));
+            "DELETED_USERS", Set.of("USER_ID", "USERNAME", "EMAIL_HMAC", "DELETED_AT", "DELETED_BY_ID"),
+            "USERNAME_HOLDS", Set.of("ID", "USERNAME", "EMAIL", "EXPIRES_AT"));
 
     /** The primary-key column each table's fixture row is addressed by. */
     private static final Map<String, String> KEY = Map.of(
             "ROLES", "NAME", "USERS", "ID", "CREDENTIAL_TOKENS", "ID", "PASSWORD_HISTORY", "ID",
-            "TOTP_USER_DETAILS", "USER_ID", "PENDING_TOTP", "USER_ID", "DELETED_USERS", "USER_ID");
+            "TOTP_USER_DETAILS", "USER_ID", "PENDING_TOTP", "USER_ID", "DELETED_USERS", "USER_ID",
+            "USERNAME_HOLDS", "ID");
 
     /** The foreign keys of V1-V6 as "child.column -> parent.column delete-rule". */
     private static final Set<String> FOREIGN_KEYS = Set.of(
@@ -63,7 +65,7 @@ class SchemaInvariantsTest extends CtxDefaultTest {
     void everyNotNullColumnRejectsNull() {
         Map<String, Set<String>> declared = jdbc.query(
                 "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS"
-                        + " WHERE TABLE_SCHEMA = 'PUBLIC' AND IS_NULLABLE = 'NO' AND TABLE_NAME IN (?, ?, ?, ?, ?, ?, ?)",
+                        + " WHERE TABLE_SCHEMA = 'PUBLIC' AND IS_NULLABLE = 'NO' AND TABLE_NAME IN (?, ?, ?, ?, ?, ?, ?, ?)",
                 (row, i) -> List.of(row.getString(1), row.getString(2)), NOT_NULL.keySet().toArray())
                 .stream().collect(Collectors.groupingBy(List::getFirst,
                         Collectors.mapping(List::getLast, Collectors.toSet())));
@@ -76,7 +78,7 @@ class SchemaInvariantsTest extends CtxDefaultTest {
         Map<String, Object> rows = Map.of(
                 "ROLES", "USER", "USERS", userId, "CREDENTIAL_TOKENS", fixture.token(userId),
                 "PASSWORD_HISTORY", fixture.history(userId), "TOTP_USER_DETAILS", userId, "PENDING_TOTP", userId,
-                "DELETED_USERS", fixture.tombstone());
+                "DELETED_USERS", fixture.tombstone(), "USERNAME_HOLDS", fixture.usernameHold());
 
         NOT_NULL.forEach((table, columns) -> columns.forEach(column -> assertThatThrownBy(() -> jdbc.update(
                 "UPDATE " + table + " SET " + column + " = NULL WHERE " + KEY.get(table) + " = ?", rows.get(table)))

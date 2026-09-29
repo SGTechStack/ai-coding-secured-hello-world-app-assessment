@@ -8,8 +8,14 @@ admin user management. This file is the project's glossary. It defines words, no
 
 **Pending registration**:
 An account record holding a reserved username and an email address but no password, created by self-registration
-or by an admin invite. It becomes usable only when its activation token is redeemed.
+or by an admin invite. It becomes usable only when its activation token is redeemed. A self-registered one lapses
+24 hours after its last registration.
 _Avoid_: unverified account, unconfirmed user
+
+**Username hold**:
+A registration's claim on its username for 24 hours, taken whatever state the email address is in, so that no other
+address can register that username meanwhile.
+_Avoid_: reservation (unqualified), username lock
 
 **Account disable**:
 An administrator's reversible decision that an account may not sign in. It is independent of activation: an account

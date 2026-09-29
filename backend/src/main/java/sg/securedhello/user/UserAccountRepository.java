@@ -29,6 +29,14 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
     @Query("select account from UserAccount account where account.username = :username")
     Optional<UserAccount> findForUpdateByUsername(@Param("username") String username);
 
+    /**
+     * As {@link #findForUpdateByUsername}, by canonical email, so a re-registration and an activation of one pending
+     * registration run one after the other (ADR-032).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select account from UserAccount account where account.email = :email")
+    Optional<UserAccount> findForUpdateByEmail(@Param("email") String email);
+
     /** As {@link #findForUpdateByUsername}, by id. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select account from UserAccount account where account.id = :id")

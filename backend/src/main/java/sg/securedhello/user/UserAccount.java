@@ -132,6 +132,11 @@ public class UserAccount {
         return activatedAt;
     }
 
+    /** When the account was created, or when its pending registration was last replaced. */
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
     /** Whether this is a pending registration: never activated, so it has no password yet. */
     public boolean isPending() {
         return activatedAt == null;

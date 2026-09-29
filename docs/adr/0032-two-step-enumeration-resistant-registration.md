@@ -47,8 +47,9 @@ holding the PRD would restore both.
 - **The username axis stays specific.** A taken username returns `VALIDATION_FAILED` with rule
   `USERNAME_UNAVAILABLE`. This applies the error contract's split rather than making an exception to it. Username
   availability is a property of the submitted value, like password strength. Email existence is account state and is
-  never observable. The username is checked **before** the email axis, so a request that would collide on email
-  never reserves a username.
+  never observable. The username is checked **before** the email axis. Every registration that passes it holds the
+  username whatever the email's state (amended 2026-09-29; before, a request that would collide on email reserved
+  nothing, which made the username axis an email oracle).
 - `USER_EXISTS` is used only on admin-initiated creation, where the caller is already privileged. It covers tombstone
   hits there too. Admin creation issues an invite token (ADR-006).
 
@@ -67,8 +68,40 @@ holding the PRD would restore both.
 - **Reopening trigger:** any self-service second-factor enrolment. CVE-2026-56081 (Cap-go) is this class with a
   different payload: the attacker enables 2FA on the pre-registered account and locks the owner out. That is closed
   here only because enrolment is admin-only and happens after activation (ADR-023).
-- Tests: T-AUTH-014 (identical 202 and zero password-encoder calls across new, pending and activated addresses) and
-  T-AUTH-006.
+- Tests: T-AUTH-014 (identical 202 and zero password-encoder calls across new, pending and activated addresses),
+  T-AUTH-006, T-AUTH-018 (the two-request username probe), T-CRED-026 (the 24-hour lapse) and T-CRED-027
+  (re-registration and activation serialised).
+
+## Amendment (2026-09-29): every registration holds its username, and pending registrations lapse
+
+**The defect (review of tickets 14 to 16, H1).** "A request that would collide on email never reserves a username"
+made the username axis an oracle for the email axis. Registering a fresh username with the victim's address, then
+the same username with the attacker's address, answered 400 `USERNAME_UNAVAILABLE` if the first request had created a
+pending registration (the address was new or pending) and 202 if it had created nothing (the address belonged to an
+activated account, an invite or a tombstone). Two requests told an anonymous caller whether an address had an
+account, which this ADR says is never observable.
+
+**Decision (the user's).**
+- **Every well-formed registration holds its username for the pending period, whatever state the email is in.** A
+  `username_holds` row (username, canonical email, expiry) is taken or renewed by each registration that passes the
+  username check. While it lasts, the username is unavailable to any other address, and the same address may repeat.
+  Both steps of the probe now answer alike for a new, pending, activated, invited or tombstoned address: 202, then
+  400 `USERNAME_UNAVAILABLE`. The hold is state the email axis never reads, so it reveals nothing.
+- **Pending registrations lapse after 24 hours**, the activation token's lifetime (ADR-007), counted from the last
+  registration. A lapsed self-registered pending registration no longer blocks its username: the next registration of
+  that username from another address deletes it and takes the name. Expired holds are purged by each registration,
+  so a squatted username frees up within a day instead of never. A lapsed pending registration is deleted without a
+  tombstone: it never held a credential, and a tombstone would squat the name for good (ADR-044 covers deleted
+  accounts). An administrator's pending invite never lapses this way.
+- **A re-registration and an activation of one pending registration are serialised** on the account's row lock
+  (`SELECT ... FOR UPDATE`, R-DATA-014), which both take before touching its tokens, in the same order. Before, a
+  replace could rename an account whose activation had just committed, and mint an activation token for an activated
+  account (review of tickets 14 to 16, M2).
+
+**Consequences.** Any registration, of any address, squats its username for up to 24 hours: the cost a pending
+registration already carried, now bounded. The username axis still discloses whether a username is taken or held
+(R-AUTH-001); it no longer discloses anything about the email.
+
 
 ## Sources
 

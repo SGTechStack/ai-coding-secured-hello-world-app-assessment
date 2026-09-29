@@ -1,6 +1,7 @@
 package sg.securedhello.registration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
@@ -10,6 +11,12 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +25,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -309,5 +317,173 @@ class RegistrationTest extends CtxDefaultTest {
     void aBodyWithoutAnEmailIsAValidationFailure() throws Exception {
         registrations.send("/api/register", "{\"username\":\"%s\"}".formatted(Registrations.freshUsername()))
                 .andExpect(problem(ErrorCode.VALIDATION_FAILED));
+    }
+    private int holdsOn(String username) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM username_holds WHERE username = ?", Integer.class, username);
+    }
+
+    @Test
+    @Proves("T-CRED-026")
+    void aPendingRegistrationHoldsItsUsernameForTwentyFourHoursThenFreesIt() throws Exception {
+        String username = Registrations.freshUsername();
+        String squatter = Registrations.emailFor(username);
+        registrations.register(username, squatter).andExpect(status().isAccepted());
+        String owner = Registrations.emailFor(Registrations.freshUsername());
+
+        clock.advance(Registration.PENDING_PERIOD.minusSeconds(1));
+        registrations.register(username, owner).andExpect(problem(ErrorCode.VALIDATION_FAILED))
+                .andExpect(jsonPath("$.rule").value("USERNAME_UNAVAILABLE"));
+
+        clock.advance(java.time.Duration.ofSeconds(1));
+        registrations.register(username, owner).andExpect(status().isAccepted());
+        assertThat(usersWithEmail(squatter)).as("the lapsed pending registration is gone").isZero();
+        assertThat(jdbc.queryForObject("SELECT email FROM users WHERE username = ?", String.class, username))
+                .isEqualTo(owner);
+        assertThat(emails.latestToken(owner, CredentialTokenType.ACTIVATION)).isPresent();
+    }
+
+    @Test
+    @Proves("T-CRED-026")
+    void aHoldTakenOnAnActivatedAccountsAddressAlsoLapsesAfterTwentyFourHours() throws Exception {
+        Accounts.Account activated = new Accounts(jdbc, passwordEncoder).user();
+        String username = Registrations.freshUsername();
+        registrations.register(username, activated.username() + "@example.test").andExpect(status().isAccepted());
+        assertThat(holdsOn(username)).isOne();
+        String other = Registrations.emailFor(Registrations.freshUsername());
+
+        registrations.register(username, other).andExpect(problem(ErrorCode.VALIDATION_FAILED));
+
+        clock.advance(Registration.PENDING_PERIOD);
+        registrations.register(username, other).andExpect(status().isAccepted());
+        assertThat(usersWithEmail(other)).isOne();
+        assertThat(jdbc.queryForObject("SELECT email FROM username_holds WHERE username = ?", String.class, username))
+                .isEqualTo(other);
+    }
+
+    @Test
+    @Proves("T-CRED-026")
+    void theSameAddressMayRepeatItsRegistrationWhileItHoldsTheUsername() throws Exception {
+        String username = Registrations.freshUsername();
+        String email = Registrations.emailFor(username);
+        registrations.register(username, email).andExpect(status().isAccepted());
+        clock.advance(Registration.PENDING_PERIOD);
+
+        registrations.register(username, email).andExpect(status().isAccepted());
+        assertThat(usersWithEmail(email)).isOne();
+        registrations.activate(emails.latestToken(email, CredentialTokenType.ACTIVATION).orElseThrow(),
+                Registrations.PASSWORD).andExpect(status().isNoContent());
+    }
+
+    @Test
+    @Proves("T-CRED-026")
+    void anAdministratorsInviteNeverLapses() throws Exception {
+        String invited = Registrations.freshUsername();
+        jdbc.update("INSERT INTO users (id, username, email, role, enabled, created_at) VALUES (?, ?, ?, 'ADMIN', TRUE, ?)",
+                UUID.randomUUID(), invited, Registrations.emailFor(invited), Timestamp.from(clock.instant()));
+        clock.advance(Registration.PENDING_PERIOD.multipliedBy(2));
+
+        registrations.register(invited, Registrations.emailFor(Registrations.freshUsername()))
+                .andExpect(problem(ErrorCode.VALIDATION_FAILED));
+        assertThat(usersNamed(invited)).isOne();
+    }
+
+    @Test
+    @Proves("T-CRED-027")
+    void aReRegistrationAndAnActivationOfOnePendingRegistrationRunOneAfterTheOther() throws Exception {
+        String first = Registrations.freshUsername();
+        String email = Registrations.emailFor(first);
+        registrations.register(first, email).andExpect(status().isAccepted());
+        String token = emails.latestToken(email, CredentialTokenType.ACTIVATION).orElseThrow();
+        String second = Registrations.freshUsername();
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            // The test holds the account's row lock, as either path would, while both paths start.
+            Future<?> holder = pool.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(
+                    status -> {
+                        assertThat(accounts.findForUpdateByEmail(email)).isPresent();
+                        locked.countDown();
+                        await(release);
+                    }));
+            locked.await();
+            ExecutorService racers = Executors.newFixedThreadPool(2);
+            try {
+                Future<MvcResult> activation = racers.submit(() ->
+                        registrations.activate(token, Registrations.PASSWORD).andReturn());
+                Future<MvcResult> reRegistration = racers.submit(() ->
+                        registrations.register(second, email).andReturn());
+                assertThatThrownBy(() -> activation.get(200, TimeUnit.MILLISECONDS)).as("the activation waits")
+                        .isInstanceOf(TimeoutException.class);
+                assertThatThrownBy(() -> reRegistration.get(200, TimeUnit.MILLISECONDS)).as("the re-registration waits")
+                        .isInstanceOf(TimeoutException.class);
+                release.countDown();
+                holder.get();
+
+                int activated = activation.get().getResponse().getStatus();
+                assertThat(reRegistration.get().getResponse().getStatus()).isEqualTo(202);
+                String username = jdbc.queryForObject("SELECT username FROM users WHERE email = ?", String.class, email);
+                if (activated == 204) {
+                    assertThat(username).as("an activated account is never renamed").isEqualTo(first);
+                    assertThat(jdbc.queryForObject("SELECT activated_at FROM users WHERE email = ?", Instant.class,
+                            email)).isNotNull();
+                } else {
+                    assertThat(activated).isEqualTo(400);
+                    assertThat(activation.get().getResponse().getContentAsString())
+                            .contains(ErrorCode.RESET_TOKEN_INVALID.name());
+                    assertThat(username).isEqualTo(second);
+                }
+            } finally {
+                racers.shutdownNow();
+            }
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    @Proves("T-CRED-027")
+    void aRegistrationThatLosesTheRaceForAUsernameGetsUsernameUnavailableNotA500() throws Exception {
+        String username = Registrations.freshUsername();
+        String winner = Registrations.emailFor(username);
+        String loser = Registrations.emailFor(Registrations.freshUsername());
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CountDownLatch inserted = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            // A concurrent registration has inserted its hold and not yet committed, so the loser's lookup misses it.
+            Future<?> first = pool.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(
+                    status -> {
+                        jdbc.update("INSERT INTO username_holds (id, username, email, expires_at) VALUES (?, ?, ?, ?)",
+                                UUID.randomUUID(), username, winner,
+                                Timestamp.from(clock.instant().plus(Registration.PENDING_PERIOD)));
+                        inserted.countDown();
+                        await(release);
+                    }));
+            inserted.await();
+            Future<MvcResult> second = pool.submit(() -> registrations.register(username, loser).andReturn());
+            assertThatThrownBy(() -> second.get(200, TimeUnit.MILLISECONDS)).as("it waits on the unique index")
+                    .isInstanceOf(TimeoutException.class);
+            release.countDown();
+            first.get();
+
+            MvcResult result = second.get();
+            assertThat(result.getResponse().getStatus()).isEqualTo(400);
+            assertThat(result.getResponse().getContentAsString()).contains("USERNAME_UNAVAILABLE");
+            assertThat(usersWithEmail(loser)).isZero();
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
     }
 }

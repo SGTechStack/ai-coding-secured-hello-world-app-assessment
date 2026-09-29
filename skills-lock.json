@@ -175,6 +175,12 @@
       "skillPath": "skills/im8-review/SKILL.md",
       "computedHash": "9d29da978ff90dd73e3b1e37847e2377c3894425152996ddf3b9d9b4a816220b"
     },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "f7c4e03bef91154273d2dc3b62aff829cf4ab1b1f16e6b98c8c6a31be4405318"
+    },
     "implement": {
       "source": "mattpocock/skills",
       "sourceType": "github",

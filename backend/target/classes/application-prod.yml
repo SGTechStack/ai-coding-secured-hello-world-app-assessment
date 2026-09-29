@@ -1,7 +1,0 @@
-server:
-  servlet:
-    session:
-      cookie:
-        # Prod sits behind HTTPS (documented deployment assumption), so the
-        # session cookie is marked Secure.
-        secure: true

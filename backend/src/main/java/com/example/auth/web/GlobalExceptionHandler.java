@@ -1,6 +1,8 @@
 package com.example.auth.web;
 
 import com.example.auth.exception.ConflictException;
+import com.example.auth.exception.SelfActionException;
+import com.example.auth.exception.UserNotFoundException;
 import com.example.auth.passwordreset.InvalidResetTokenException;
 import com.example.auth.passwordreset.ResetRequestThrottledException;
 
@@ -22,6 +24,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail handleConflict(ConflictException ex) {
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.CONFLICT);
         problem.setDetail(ex.getMessage());
+        return problem;
+    }
+
+    /** Admin self-action guard (disable/role-change/delete own account) → 409. */
+    @ExceptionHandler(SelfActionException.class)
+    ProblemDetail handleSelfAction(SelfActionException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problem.setDetail(ex.getMessage());
+        return problem;
+    }
+
+    /** Admin targets an unknown user id → 404. */
+    @ExceptionHandler(UserNotFoundException.class)
+    ProblemDetail handleUserNotFound(UserNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.NOT_FOUND);
+        problem.setDetail("User not found");
         return problem;
     }
 

@@ -1,18 +1,31 @@
 package com.example.securedhello.web;
 
+import java.util.List;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import com.example.securedhello.audit.AuditAction;
+import com.example.securedhello.audit.AuditEvent;
+import com.example.securedhello.audit.AuditLog;
+import com.example.securedhello.credential.PasswordPolicyException;
 
 /**
  * Turns every exception reaching Spring MVC into an RFC 9457 ProblemDetail with a {@code code}.
@@ -27,6 +40,22 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	static final String INTERNAL_ERROR_CODE = "internal_error";
 
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+	private final AuditLog auditLog;
+
+	GlobalExceptionHandler(AuditLog auditLog) {
+		this.auditLog = auditLog;
+	}
+
+	/** 400 {@code password_policy} listing every broken Credential policy rule. */
+	@ExceptionHandler(PasswordPolicyException.class)
+	ProblemDetail handlePasswordPolicy(PasswordPolicyException exception, HttpServletRequest request) {
+		auditInputFailure(request, "password_policy", List.of("password"));
+		ProblemDetail problem = ProblemResponses.problem(HttpStatus.BAD_REQUEST, "password_policy",
+				"The password does not meet the password policy.");
+		problem.setProperty("violations", exception.violations());
+		return problem;
+	}
 
 	@ExceptionHandler(Exception.class)
 	ProblemDetail handleUnexpected(Exception exception) throws Exception {
@@ -43,6 +72,43 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			.addKeyValue("error_follow_up_action", category.followUpAction())
 			.log("Unexpected exception while handling request");
 		return ProblemResponses.problem(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR_CODE, INTERNAL_ERROR_DETAIL);
+	}
+
+	/** 400 {@code validation} naming the failing fields (never their values), audited once. */
+	@Override
+	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		List<String> fields = ex.getBindingResult()
+			.getFieldErrors()
+			.stream()
+			.map(FieldError::getField)
+			.distinct()
+			.sorted()
+			.toList();
+		auditInputFailure(servletRequest(request), "validation", fields);
+		ProblemDetail problem = ProblemResponses.problem(HttpStatus.BAD_REQUEST, "validation",
+				"The request is invalid.");
+		problem.setProperty("fields", fields);
+		return handleExceptionInternal(ex, problem, headers, status, request);
+	}
+
+	/** A body that is not the expected JSON is an input-validation failure too. */
+	@Override
+	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		auditInputFailure(servletRequest(request), "validation", List.of());
+		return super.handleHttpMessageNotReadable(ex, headers, status, request);
+	}
+
+	private void auditInputFailure(HttpServletRequest request, String reason, List<String> fields) {
+		auditLog.record(AuditEvent.failure(AuditAction.ACCESS_CONTROL, reason)
+			.invalidFields(fields)
+			.request(request)
+			.sessionHashOf(request));
+	}
+
+	private static HttpServletRequest servletRequest(WebRequest request) {
+		return ((ServletWebRequest) request).getRequest();
 	}
 
 	/**

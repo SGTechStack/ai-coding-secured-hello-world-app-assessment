@@ -3,6 +3,7 @@ package com.example.securedhello.audit;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import org.slf4j.event.Level;
 
@@ -87,6 +89,26 @@ public final class AuditEvent {
 	 */
 	public AuditEvent sessionHash(String sessionId) {
 		fields.put("session.hash", sha256(sessionId));
+		return this;
+	}
+
+	/**
+	 * {@code session.hash} of the Session the request carries, if any. For events before
+	 * authentication, where no Account UUID is known.
+	 */
+	public AuditEvent sessionHashOf(HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+		return (session != null) ? sessionHash(session.getId()) : this;
+	}
+
+	/**
+	 * {@code validation.fields}: the names of the input fields that failed validation, never their
+	 * values. Omitted when no field is named.
+	 */
+	public AuditEvent invalidFields(Collection<String> fieldNames) {
+		if (!fieldNames.isEmpty()) {
+			fields.put("validation.fields", List.copyOf(fieldNames));
+		}
 		return this;
 	}
 

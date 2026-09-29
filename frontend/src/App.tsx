@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router'
 import { onSessionEnded } from './api/client'
 import { HelloPage } from './pages/HelloPage'
 import { LoginPage } from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
 
 export default function App() {
   const navigate = useNavigate()
@@ -15,6 +16,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HelloPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </main>

@@ -12,7 +12,10 @@ export type Problem = {
   code: string
   detail?: string
   title?: string
+  /** Credential policy rules broken (`password_policy`). */
   violations?: string[]
+  /** Names of the input fields that failed (`validation`). */
+  fields?: string[]
 }
 
 export type ApiResult<T> =

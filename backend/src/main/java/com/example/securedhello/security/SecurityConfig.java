@@ -29,7 +29,6 @@ import com.example.securedhello.logging.AccountIdMdcFilter;
 import com.example.securedhello.web.ProblemResponses;
 
 import jakarta.servlet.DispatcherType;
-import jakarta.servlet.http.HttpSession;
 
 @Configuration
 @EnableWebSecurity
@@ -51,6 +50,7 @@ class SecurityConfig {
 			.authorizeHttpRequests((auth) -> auth
 			.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/csrf")).permitAll()
+			.requestMatchers(HttpMethod.POST, api.path("/register")).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/hello")).authenticated()
 			// Default deny: anything not matched above is refused.
 			.anyRequest().denyAll())
@@ -83,12 +83,9 @@ class SecurityConfig {
 	private static AccessDeniedHandler accessDeniedHandler(AuditLog auditLog) {
 		return (request, response, exception) -> {
 			if (exception instanceof CsrfException) {
-				AuditEvent event = AuditEvent.failure(AuditAction.ACCESS_CONTROL, "csrf_invalid").request(request);
-				HttpSession session = request.getSession(false);
-				if (session != null) {
-					event.sessionHash(session.getId());
-				}
-				auditLog.record(event);
+				auditLog.record(AuditEvent.failure(AuditAction.ACCESS_CONTROL, "csrf_invalid")
+					.request(request)
+					.sessionHashOf(request));
 				ProblemResponses.write(response, HttpStatus.FORBIDDEN, "csrf_invalid",
 						"The CSRF token is missing or invalid.");
 			}

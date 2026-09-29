@@ -394,6 +394,33 @@
     "if" : {
       "properties" : {
         "code" : {
+          "const" : "TWO_ADMIN_INVARIANT"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The change would leave fewer than two enrolled administrators."
+        },
+        "factor" : false,
+        "reason" : false,
+        "rule" : false,
+        "status" : {
+          "const" : 409
+        },
+        "title" : {
+          "const" : "Two-admin minimum"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:two-admin-invariant"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
           "const" : "INTERNAL_ERROR"
         }
       }
@@ -421,7 +448,7 @@
   "description" : "Generated from sg.securedhello.error.ErrorCode. Do not edit; see error-contract.md.",
   "properties" : {
     "code" : {
-      "enum" : [ "AUTHENTICATION_FAILED", "PASSWORD_CHANGE_REQUIRED", "CSRF_TOKEN_INVALID", "ACCESS_DENIED", "VALIDATION_FAILED", "PASSWORD_REJECTED", "RESET_TOKEN_INVALID", "USER_EXISTS", "TOO_MANY_REQUESTS", "MISSING_FACTOR", "INVALID_FACTOR", "FACTOR_ENROLMENT_REQUIRED", "FACTOR_ALREADY_ENROLLED", "FACTOR_DISABLED", "INTERNAL_ERROR" ]
+      "enum" : [ "AUTHENTICATION_FAILED", "PASSWORD_CHANGE_REQUIRED", "CSRF_TOKEN_INVALID", "ACCESS_DENIED", "VALIDATION_FAILED", "PASSWORD_REJECTED", "RESET_TOKEN_INVALID", "USER_EXISTS", "TOO_MANY_REQUESTS", "MISSING_FACTOR", "INVALID_FACTOR", "FACTOR_ENROLMENT_REQUIRED", "FACTOR_ALREADY_ENROLLED", "FACTOR_DISABLED", "TWO_ADMIN_INVARIANT", "INTERNAL_ERROR" ]
     },
     "detail" : {
       "type" : "string"

@@ -40,7 +40,9 @@ class AuditReasonCodesTest {
             // LockoutClearReason: row 4
             "AUTO_LIFT", "PASSWORD_RESET_COMPLETED",
             // PasswordDisableReason: the NIST cap's disable
-            "FAILURE_CAP");
+            "FAILURE_CAP",
+            // AdminRefusalReason: row 34
+            "SELF_ACTION", "TWO_ADMIN_INVARIANT");
 
     @Test
     @Proves("T-AUD-045")

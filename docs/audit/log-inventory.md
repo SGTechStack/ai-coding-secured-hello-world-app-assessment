@@ -47,6 +47,9 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | TOTP_VERIFICATION_FAILED | `totp-verify` | `user` | failure | WARN | medium | yes | per event | — | `user.id` | — | TOTP verification failed. |
 | ADMIN_USERS_LISTED | `admin-user-list` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.count` | — | Administrator listed users. |
 | ADMIN_USER_VIEWED | `admin-user-read` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Administrator read a user. |
+| ADMIN_USER_ENABLED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account enabled. |
+| ADMIN_USER_DISABLED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account disabled. |
+| ADMIN_ACTION_REFUSED | `user-administration` | `error` | failure | WARN | medium | yes | per event | `SELF_ACTION`, `TWO_ADMIN_INVARIANT` | `user.id`, `user.target.id` | — | Administrative action refused. |
 | TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |

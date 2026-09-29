@@ -107,6 +107,9 @@ app:
             path: /api/admin/users
           - method: GET
             path: /api/admin/users/{id}
+          # Enable or disable, through AdminActionGuard (ADR-048). A mutation: the factor must be under 10 minutes old.
+          - method: PUT
+            path: /api/admin/users/{id}/enabled
     # A signed-in session ends this long after its AUTH_INSTANT, whatever its traffic (REJ-012; ADR-038).
     session:
       absolute: 8h

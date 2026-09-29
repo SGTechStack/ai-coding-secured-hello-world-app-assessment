@@ -76,7 +76,8 @@ public class PasswordService {
      * Sets the account's password as a <em>forced-change credential</em> (ADR-046): exactly as {@link #setPassword},
      * then the account's {@code force_password_change} flag is set and {@code credential_issued_at} stamped with the
      * current time, so the holder must change it before anything else and it expires 30 days after issue. The
-     * issuances that call this are the bootstrap seed (ADR-047) and, later, an admin re-enable and the recovery runner.
+     * issuances that call this are the bootstrap seed (ADR-047) and, later, the recovery runner; an admin re-enable
+     * re-issues the current password through {@link #issueForcedChangeCredential(UUID)}.
      *
      * @throws PasswordRejectedException if a rule refuses it; the transaction rolls back and nothing changes
      * @throws IllegalArgumentException  if no account has {@code accountId}
@@ -84,6 +85,24 @@ public class PasswordService {
     @Transactional
     public void issueForcedChangeCredential(UUID accountId, String rawPassword) {
         set(accountId, rawPassword, clock.instant());
+    }
+
+    /**
+     * Re-issues the account's current password as a forced-change credential (ADR-046), for an admin re-enable: the
+     * user's own prior password, so it runs no policy and writes no history (ADR-008), but the flag is set and the
+     * 30-day clock starts now. An account that has no password yet (never activated) is left as it is: its activation
+     * sets one.
+     *
+     * @throws IllegalArgumentException if no account has {@code accountId}
+     */
+    @Transactional
+    public void issueForcedChangeCredential(UUID accountId) {
+        UserAccount account = accounts.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("No account " + accountId));
+        String current = account.getPasswordHash();
+        if (current != null) {
+            account.issueCredential(current, clock.instant());
+        }
     }
 
     /**

@@ -36,6 +36,7 @@ No other member is allowed until the contract declares it, as an extension membe
 | `FACTOR_ENROLMENT_REQUIRED` | 422 | Second factor enrolment required | A second factor must be enrolled before this request can be made. | an unenrolled admin on the admin surface |
 | `FACTOR_ALREADY_ENROLLED` | 409 | Second factor already enrolled | A second factor is already enrolled. | provisioning when a confirmed factor exists |
 | `FACTOR_DISABLED` | 423 | Second factor disabled | The second factor is disabled. Contact an administrator. | tier-2 disable, on the self-read, the admin entry point and verification |
+| `TWO_ADMIN_INVARIANT` | 409 | Two-admin minimum | The change would leave fewer than two enrolled administrators. | the two-admin invariant's refusal of a disable, demote or delete |
 | `INTERNAL_ERROR` | 500 | Internal error | An unexpected error occurred. | anything unhandled |
 
 ## Extension members

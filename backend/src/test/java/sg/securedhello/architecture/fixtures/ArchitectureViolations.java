@@ -378,4 +378,35 @@ public final class ArchitectureViolations {
             return manager.authenticate(null);
         }
     }
+
+    /** A controller that reaches a repository itself, around the guarded service method. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ControllerReachesARepository {
+        Object read(sg.securedhello.user.UserAccountRepository accounts) {
+            return accounts.findAll();
+        }
+    }
+
+    /** A controller that runs SQL itself. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ControllerRunsSql {
+        Object read(org.springframework.jdbc.core.JdbcTemplate jdbc) {
+            return jdbc.queryForList("SELECT 1");
+        }
+    }
+
+    /** A controller that goes through a service, as the admin controller does. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ControllerUsesAService {
+        Object read(sg.securedhello.admin.AdminActions actions) {
+            return actions.toString();
+        }
+    }
+
+    /** Disables an account without AdminActionGuard. */
+    public static final class DisablesAroundTheGuard {
+        void disable(UserAccount account) {
+            account.setEnabled(false);
+        }
+    }
 }

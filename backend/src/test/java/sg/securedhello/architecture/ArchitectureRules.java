@@ -44,8 +44,12 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.data.repository.Repository;
+import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.web.bind.annotation.RestController;
 
+import sg.securedhello.admin.AdminActions;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
@@ -144,6 +148,28 @@ final class ArchitectureRules {
                 .should().dependOnClassesThat().areAssignableTo(AuthenticationManager.class)
                 .because("a reset must work while the password authenticator is disabled (ADR-009; ADR-013)");
     }
+
+    /** T-ADM-014: no admin controller reaches persistence directly; admin mutations go through the guard (ADR-048). */
+    static final ArchRule ADMIN_CONTROLLERS_REACH_NO_PERSISTENCE =
+            controllersReachNoPersistenceIn("sg.securedhello.admin..");
+
+    /** No {@code @RestController} in {@code packageIdentifier} depends on a repository or on JDBC. */
+    static ArchRule controllersReachNoPersistenceIn(String packageIdentifier) {
+        return noClasses()
+                .that().resideInAPackage(packageIdentifier).and().areAnnotatedWith(RestController.class)
+                .should().dependOnClassesThat().areAssignableTo(Repository.class)
+                .orShould().dependOnClassesThat().areAssignableTo(JdbcOperations.class)
+                .because("every admin mutation reaches persistence through the one guarded service method (ADR-048)");
+    }
+
+    /**
+     * T-ADM-014: only the guarded service method changes an account's enabled state, so no path can disable an admin
+     * without {@code AdminActionGuard} (ADR-048).
+     */
+    static final ArchRule ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES = noClasses()
+            .that().doNotBelongToAnyOf(AdminActions.class)
+            .should().callMethod(UserAccount.class, "setEnabled", boolean.class)
+            .because("an enable or disable runs under AdminActionGuard's lock set and checks (ADR-048)");
 
     /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
     static final ArchRule NO_REMEMBER_ME = noClasses()

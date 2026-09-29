@@ -339,9 +339,10 @@ Further rules for the API surface:
 | `FACTOR_ENROLMENT_REQUIRED` | 422 | an unenrolled admin on the admin surface (R-MFA-002) |
 | `FACTOR_ALREADY_ENROLLED` | 409 | provisioning when a confirmed factor exists |
 | `FACTOR_DISABLED` | 423 | tier-2 disable, on the self-read, the admin entry point and verification (R-MFA-006) |
+| `TWO_ADMIN_INVARIANT` | 409 | the two-admin invariant's refusal of a disable, demote or delete (REJ-050; R-ADM-008) |
 | `INTERNAL_ERROR` | 500 | anything unhandled |
 
-- **The two-admin invariant's refusal is a 409** (REJ-050). Its code member is an open item: see Further Notes.
+- **The two-admin invariant's refusal is a 409** (REJ-050), `TWO_ADMIN_INVARIANT`: see Further Notes.
 - **Off-label statuses.** 412, 422 and 423 are recorded deviations, kept for envelope consistency (REJ-073).
 - **Build deliverable.** The error contract's prose form, `docs/api/error-contract.md`, is generated from the closed
   enum by the build and committed with it. The spec does not write it (R-AUTH-003). A JSON Schema generated from the
@@ -881,8 +882,8 @@ These gates are mandatory. A gate that fails blocks the phase it belongs to.
   R-ADM-008, R-AUTH-002, R-CFG-005, R-CRED-020, R-CRED-021, R-CRED-024, R-CRED-025, R-MFA-016, R-SES-007 and
   R-STD-049. Each carries one shared modality, so nothing is misgraded. The first build work item that touches the
   register expands their `level` columns, one entry per requirement.
-- **Open item: the code for the two-admin invariant's 409.** REJ-050 fixes the status and R-ADM-008 the behaviour,
-  but no code name for it exists in the closed enum. The first admin-module work item names it. It must be a new enum
+- **Closed item: the code for the two-admin invariant's 409 is `TWO_ADMIN_INVARIANT`.** REJ-050 fixes the status and
+  R-ADM-008 the behaviour; the first admin-module work item (enable and disable) named the code. It is a new enum
   member, because each code pairs with exactly one status and `FACTOR_ALREADY_ENROLLED` means something else. The
   generated JSON Schema (T-AUTH-011; T-AUTH-012) and `docs/api/error-contract.md` pick it up from the enum.
 - **Handover items the build must honour before go-live:**

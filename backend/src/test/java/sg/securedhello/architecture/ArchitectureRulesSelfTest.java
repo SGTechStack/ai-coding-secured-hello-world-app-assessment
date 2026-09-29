@@ -10,6 +10,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.Test;
 
+import sg.securedhello.admin.AdminActions;
 import sg.securedhello.architecture.fixtures.ArchitectureViolations;
 import sg.securedhello.architecture.fixtures.PlaceholderProves;
 import sg.securedhello.password.PasswordService;
@@ -175,6 +176,28 @@ class ArchitectureRulesSelfTest {
         assertPasses(ArchitectureRules.ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL,
                 ArchitectureViolations.ReadsTheCredentialColumn.class, PasswordService.class, UserAccount.class,
                 PasswordHistoryEntry.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.ControllerReachesARepository.class,
+            ArchitectureViolations.ControllerRunsSql.class})
+    void aControllerReachingPersistenceIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.controllersReachNoPersistenceIn("sg.securedhello.architecture.fixtures.."),
+                violator);
+    }
+
+    @Test
+    void aControllerGoingThroughAServiceIsAllowed() {
+        assertPasses(ArchitectureRules.controllersReachNoPersistenceIn("sg.securedhello.architecture.fixtures.."),
+                ArchitectureViolations.ControllerUsesAService.class);
+    }
+
+    @Test
+    void anEnableOrDisableOutsideTheGuardedServiceIsCaught() {
+        assertViolates(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES,
+                ArchitectureViolations.DisablesAroundTheGuard.class, UserAccount.class);
+        assertPasses(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES, AdminActions.class,
+                UserAccount.class);
     }
 
     @Test

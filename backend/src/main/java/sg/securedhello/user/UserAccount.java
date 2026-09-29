@@ -127,6 +127,14 @@ public class UserAccount {
         return enabled;
     }
 
+    /**
+     * An administrator's enable or disable (PRD Story 9). Only {@code AdminActions} calls it, after
+     * {@code AdminActionGuard} and under its lock set (ADR-048; ArchUnit).
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     /** When the account was activated, or {@code null} if it never was. */
     public Instant getActivatedAt() {
         return activatedAt;

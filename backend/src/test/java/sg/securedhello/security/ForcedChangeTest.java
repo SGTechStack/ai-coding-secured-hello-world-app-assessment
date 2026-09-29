@@ -32,6 +32,7 @@ import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.Accounts.Account;
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxDefaultTest;
+import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SignedIn;
 import sg.securedhello.testsupport.TestSecrets;
 import sg.securedhello.user.UserAccount;
@@ -83,7 +84,9 @@ class ForcedChangeTest extends CtxDefaultTest {
     @CsvSource({"USER, GET, /api/hello", "ADMIN, GET, /api/hello", "ADMIN, GET, /api/mfa/totp",
             "ADMIN, POST, /api/mfa/totp/confirm", "ADMIN, GET, /api/admin/users", "USER, GET, /api/admin/users",
             "ADMIN, GET, /api/admin/roles/USER", "USER, POST, /api/register", "USER, POST, /api/password-reset/request",
-            "USER, GET, /api/no-such-route", "USER, DELETE, /api/profile"})
+            "USER, GET, /api/no-such-route", "USER, DELETE, /api/profile",
+            "ADMIN, PUT, /api/admin/users/00000000-0000-4000-8000-000000000000/enabled"})
+    @Proves("T-ADM-005")
     void everyRouteOffTheAllowlistIsRefusedWithPasswordChangeRequired(String role, String method, String path)
             throws Exception {
         CsrfSession session = SignedIn.as(mockMvc, forcedChange(role));
@@ -94,6 +97,7 @@ class ForcedChangeTest extends CtxDefaultTest {
     }
 
     @Test
+    @Proves("T-ADM-005")
     void theFiveAllowlistedRoutesStayReachable() throws Exception {
         Account account = forcedChange("USER");
 

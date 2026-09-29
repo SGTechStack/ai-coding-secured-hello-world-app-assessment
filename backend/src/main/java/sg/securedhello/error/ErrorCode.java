@@ -54,6 +54,9 @@ public enum ErrorCode {
     FACTOR_DISABLED(423, "Second factor disabled",
             "The second factor is disabled. Contact an administrator.",
             "tier-2 disable, on the self-read, the admin entry point and verification"),
+    TWO_ADMIN_INVARIANT(409, "Two-admin minimum",
+            "The change would leave fewer than two enrolled administrators.",
+            "the two-admin invariant's refusal of a disable, demote or delete"),
     INTERNAL_ERROR(500, "Internal error",
             "An unexpected error occurred.",
             "anything unhandled");

@@ -245,6 +245,33 @@ public enum AuditEvent {
             .build()),
 
     /**
+     * Row 28: an administrator enabled an account; a re-enable also issued its forced-change credential (ADR-046).
+     * Log_Schema's closed {@code event.action} has no value of its own for it, so the message tells it apart (R-STD-004).
+     */
+    ADMIN_USER_ENABLED(row("user-administration", "Account enabled.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /** Row 29: an administrator disabled an account, whose sessions end after commit (ADR-037). */
+    ADMIN_USER_DISABLED(row("user-administration", "Account disabled.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 34: {@code AdminActionGuard} refused an admin mutation, as a self-action or under the two-admin invariant
+     * (ADR-048). One row per refused attempt; nothing changed.
+     */
+    ADMIN_ACTION_REFUSED(row("user-administration", "Administrative action refused.")
+            .type("error")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(AdminRefusalReason.class)
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
      * Row 42: a TOTP envelope's context prefix did not match the row it was read from, so ciphertext was moved between
      * users or replayed across key versions. A data-integrity alarm, not a decrypt error (ADR-028; R-MFA-020).
      */

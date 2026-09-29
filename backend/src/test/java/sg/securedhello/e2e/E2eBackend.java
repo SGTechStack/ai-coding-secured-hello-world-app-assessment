@@ -1,9 +1,11 @@
 package sg.securedhello.e2e;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -19,6 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import sg.securedhello.SecuredHelloApplication;
+import sg.securedhello.mfa.TotpSecretCipher;
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.TemporaryH2FileInitializer;
 
@@ -42,9 +45,13 @@ public final class E2eBackend {
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
             .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
-                    "golden-path").stream().map(test -> "e2e-" + browser + "-" + test))
+                    "golden-path", "disable-admin", "disable-user").stream()
+                    .map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
+
+    /** The disable-admin administrators' TOTP secret, 20 bytes, mirrored in {@code e2e/admin-disable.spec.ts}. */
+    static final byte[] ADMIN_TOTP_SECRET = "e2e-admin-disable-01".getBytes(StandardCharsets.US_ASCII);
 
     private static final String COMMAND_LINE = CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME;
 
@@ -83,7 +90,7 @@ public final class E2eBackend {
     static class Fixtures {
 
         @Bean
-        ApplicationRunner e2eAccounts(JdbcTemplate jdbc, PasswordEncoder passwordEncoder) {
+        ApplicationRunner e2eAccounts(JdbcTemplate jdbc, PasswordEncoder passwordEncoder, TotpSecretCipher cipher) {
             return arguments -> {
                 USERNAMES.forEach(name -> new Accounts(jdbc, passwordEncoder).named(name, PASSWORD));
                 // The forced-change accounts hold an issued credential, as the bootstrap seed does (ADR-046).
@@ -91,6 +98,12 @@ public final class E2eBackend {
                         + " WHERE username LIKE 'e2e-%-forced-change'");
                 // The golden-path accounts: administrators past the forced change, not yet enrolled.
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-golden-path'");
+                // The disable-admin administrators: enrolled with a known secret, so the spec can answer the challenge.
+                jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-disable-admin'");
+                jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-disable-admin'", UUID.class)
+                        .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
+                                + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
+                                cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));
             };
         }
 

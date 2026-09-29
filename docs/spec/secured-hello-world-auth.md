@@ -55,6 +55,20 @@ A React single-page app (its own origin) talks to a Spring Boot REST API (its ow
 41. As a User, I want a functional UI for register, login, hello, forgot-password, reset-password, so that the whole flow is demoable end-to-end.
 42. As an Admin, I want a functional UI listing Accounts with controls to enable/disable, change role, and delete, so that I can manage access without calling the API by hand.
 
+### Security hardening (approved additions, beyond the PRD baseline)
+
+43. As a security-conscious operator, I want disabling an Account to immediately terminate that user's existing Sessions, so that a Disabled Account cannot keep using a live Session — not just be blocked at next login.
+44. As a security-conscious operator, I want changing an Account's role to immediately terminate that user's existing Sessions, so that a downgraded Admin cannot retain `ADMIN` authority through a stale Session.
+45. As a security-conscious operator, I want failed-login counting and Account Lockout to be race-safe under concurrent attempts, so that parallel guesses against one Account cannot bypass the lockout threshold via lost updates.
+46. As a security-conscious operator, I want Reset Tokens generated from a cryptographically secure random source with at least 256 bits of entropy, so that a token cannot be guessed or brute-forced.
+47. As a security-conscious operator, I want password-reset requests rate-limited per source IP, so that reset-request flooding is prevented — without revealing whether any email is registered (Enumeration Resistance preserved).
+48. As a security-conscious operator, I want no authentication secret (password, password hash, Reset Token, token hash, session identifier) to ever appear in any API response, `ProblemDetail` body, application log, or Audit Event, so that secrets cannot leak through any output channel.
+49. As a security-conscious operator, I want admin endpoints to authorize strictly from the authenticated principal — never trusting a client-supplied id or frontend state for privilege or self-identity — so that IDOR/BOLA and authorization-bypass attacks fail.
+50. As a security-conscious operator, I want login to take constant work whether or not the username exists, so that response timing cannot be used to enumerate accounts even though the 401 bodies are already identical.
+51. As a security-conscious operator, I want the app to ship with no usable default admin password and to fail startup in a non-dev profile when the admin password is missing or a known placeholder, so that a deployment cannot be taken over via source-visible default credentials.
+52. As a security-conscious operator, I want password-reset links built from a configured frontend base URL rather than the request `Host` header, so that Host-header injection cannot poison the reset link and exfiltrate a token.
+53. As a security-conscious operator, I want baseline security response headers, an explicit session idle timeout, and error responses that never leak stack traces, so that clickjacking, cache leakage of sensitive responses, and internal-detail disclosure are prevented.
+
 ## Implementation Decisions
 
 ### Repository & stack
@@ -84,7 +98,7 @@ Shared DTOs:
 
 | # | Method | Path | Auth | Request | Success | Failure |
 |---|--------|------|------|---------|---------|---------|
-| — | GET | `/api/csrf` | Public | — | `200` `{token}` + `XSRF-TOKEN` cookie | — |
+| — | GET | `/api/auth/csrf` | Public | — | `200` `{token}` + `XSRF-TOKEN` cookie | — |
 | 1 | POST | `/api/auth/register` | Public + CSRF | `{username, email, password}` | `201` `UserResponse` | `400` policy; `409` username/email taken |
 | 2 | POST | `/api/auth/login` | Public + CSRF | `{username, password}` | `200` `AuthResponse` + session cookie | `401` generic (unknown / wrong / locked identical) |
 | 4 | POST | `/api/auth/logout` | Authenticated + CSRF | — | `204` (session invalidated, cookie cleared) | `401` |
@@ -116,7 +130,21 @@ Shared DTOs:
 - A `java.time.Clock` bean is the single source of "now" for Account Lockout cooldown and Reset Token expiry, so time is controllable in tests.
 
 ### Frontend
-- Full functional UI, minimally styled (semantic HTML + light CSS): register, login, hello, forgot-password, reset-password, and an admin Account table with enable/disable, role-change, and delete controls. Uses `/api/auth/me` to rehydrate and `/api/csrf` to bootstrap the token.
+- Full functional UI, minimally styled (semantic HTML + light CSS): register, login, hello, forgot-password, reset-password, and an admin Account table with enable/disable, role-change, and delete controls. Uses `/api/auth/me` to rehydrate and `/api/auth/csrf` to bootstrap the token.
+
+### Security hardening mechanisms (approved additions)
+
+- **Session termination on admin change (stories 43–44):** the same Spring Session JDBC mechanism used for password reset — a small `SessionInvalidator` wrapping `FindByIndexNameSessionRepository.findByPrincipalName(username)` → delete each — is reused by admin disable and role-change. Introduced in Slice 5 (password reset) and reused in Slice 6. After a disable or role-change commits, every Session for the target user is deleted, so the next request on a stale cookie is unauthenticated. Consequence: a role change or disable logs the target out of all devices (accepted, more secure than live-mutating authorities). Consistent with [ADR 0001](../adr/0001-spring-session-jdbc.md).
+- **Race-safe Account Lockout (story 45):** failed-login handling runs in one `@Transactional` method that loads the `User` under a pessimistic write lock (`@Lock(PESSIMISTIC_WRITE)` finder, `SELECT … FOR UPDATE`), increments `failed_login_attempts`, and sets `locked_until` when the threshold is reached. Concurrent failures for one Account serialize on the row, so no lost update lets attempts exceed the threshold without locking. H2 and Postgres both support `FOR UPDATE`.
+- **Reset Token entropy (story 46):** 32 bytes (256 bits) from `SecureRandom`, Base64URL-encoded without padding, emitted once via the `EmailService`. Stored as a **SHA-256 hex digest** (deterministic, so the confirm endpoint can look up by hash), not BCrypt — deterministic lookup requires a non-salted hash, and the token's high entropy makes a fast hash safe (unlike a low-entropy password). This is why Reset Tokens hash differently from passwords. Warrants a short ADR (0002) when Slice 5 lands.
+- **Reset-request rate limit (story 47):** reuses the per-IP Caffeine limiter from Slice 4 (`app.security.reset-request.*`). Over the limit → `429 ProblemDetail`; within the limit → always the generic `200` regardless of email existence. The limit is keyed on source IP, not email, so it leaks no account-existence signal. Shares the single-instance limitation already documented for IP Throttling.
+- **Sensitive-data protection (story 48):** `ProblemDetail` bodies carry only generic messages and never echo submitted credential values; validation messages are static strings. `AuditService` remains the sole logging path for security events and accepts no secret arguments (no password/hash/token/session-id parameters exist on it).
+- **Admin authorization / IDOR-BOLA (story 49):** `/api/admin/**` requires `ROLE_ADMIN` via Spring Security; the acting Admin's identity for the self-action guard is read from the `SecurityContext` principal, never from a request body or param. The `{id}` path variable selects only the *target*; it can never grant privilege or designate "self". Inbound admin mutations use narrow DTOs (`{enabled}`, `{role}`) so no request field binds to the `User` entity (mass-assignment safe).
+- **Login timing resistance (story 50):** when the username does not exist, the authentication path still performs a BCrypt comparison against a fixed dummy hash before returning the generic 401, so an existing vs non-existing account cannot be distinguished by response latency.
+- **No usable default admin credentials (story 51):** `app.admin.password` has no working default. On startup the seeder validates the configured password against the policy and a placeholder blocklist; in any non-`dev` profile a missing/placeholder value fails startup (fail-fast) rather than seeding a guessable admin.
+- **Reset-link Host safety (story 52):** the reset URL is composed from a configured `app.frontend.base-url`; the request `Host`/`X-Forwarded-*` headers are never used to build it.
+- **Baseline hardening (story 53):** Spring Security's default headers are kept (X-Content-Type-Options nosniff, X-Frame-Options DENY, HSTS over HTTPS) and extended with `Referrer-Policy: no-referrer` and `Cache-Control: no-store` on auth responses; `server.servlet.session.timeout` is set explicitly; `server.error.include-stacktrace=never` and `include-message=never` are pinned. Actuator remains off the classpath and the H2 console stays disabled.
+- **Case-sensitive identifiers (accepted limitation):** usernames and emails are stored and matched verbatim (case-sensitive) as implemented in registration. Not normalized to lowercase; documented as an accepted limitation for this assessment rather than reopening the committed registration slice.
 
 ## Testing Decisions
 
@@ -127,6 +155,16 @@ Good tests here assert **external behavior at the HTTP boundary** — status cod
 - **EmailService seam:** the PRD-defined stub is replaced by a test double that records the last Reset Token, so reset-confirm tests obtain the plaintext while production stores only the hash.
 
 Required coverage (mapped to stories):
+- **Session termination on admin change (43–44, Slice 6):** an authenticated user whose Account is disabled can no longer reach `GET /api/hello` or any protected endpoint with the pre-existing Session (401); an authenticated Admin downgraded to `USER` loses `ADMIN` access on `/api/admin/**` with the pre-existing Session.
+- **Race-safe lockout (45, Slice 4):** many concurrent wrong-password attempts against one Account end with the Account locked and a consistent counter — no lost-update path lets attempts exceed the threshold without locking.
+- **Reset-token hardening (46, Slice 5):** tokens captured via the `EmailService` double are unique across requests and of the expected high-entropy length/charset; the persisted `token_hash` never equals the plaintext token.
+- **Reset-request rate limit (47, Slice 5):** repeated requests from one IP eventually return `429`; within the limit the response is always the generic `200` regardless of whether the email is registered.
+- **Sensitive-data protection (48, Slices 3/5/6 + final review 9):** `ProblemDetail` bodies for validation failures do not echo the submitted password/token; a log/audit capture asserts no secret appears in emitted log lines.
+- **Admin authorization / IDOR-BOLA (49, Slice 6):** a `USER` calling any admin endpoint gets 403; an anonymous caller gets 401; the self-action guard resolves "self" from the authenticated principal (not a request field), so an Admin cannot evade or trigger it by supplying another id.
+- **Login timing resistance (50, Slice 3):** unknown-username and wrong-password logins return identical generic 401s; a behavioral test confirms the encoder is invoked even for a non-existent user (constant-work path), rather than asserting wall-clock timing.
+- **Default admin fail-fast (51, Slice 7):** under a non-`dev` profile with a missing or placeholder admin password, application startup fails; under `dev` with a policy-compliant configured password, exactly one Admin is seeded (idempotent).
+- **Reset-link Host safety (52, Slice 5):** the reset link captured via the `EmailService` double uses the configured base URL even when the request `Host` header is attacker-controlled.
+- **Baseline hardening (53, Slice 3 / verify 9):** auth responses carry the expected security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Cache-Control: no-store`); the session-timeout property is set; an error response body contains no stack trace.
 - Login (7–10): success; wrong password; unknown username (byte-identical generic 401 to wrong password); locked Account rejected with correct password.
 - Lockout & throttle (11–13): 5 failures locks the Account; login after cooldown succeeds and resets the counter; failures from one IP across many usernames trigger IP Throttling independent of any single Account's lockout.
 - Logout (14–15): a Session cookie captured pre-logout is rejected after logout.
@@ -144,8 +182,11 @@ No prior art exists in this greenfield repo; these integration tests establish t
 - Containerization, CI/CD, hosting infra.
 - Local HTTPS setup (documented deployment assumption; local dev over HTTP).
 - Granular per-resource authorization beyond the `USER`/`ADMIN` check on admin endpoints.
-- Multi-instance IP Throttling (in-memory, single-instance; documented limitation).
+- Multi-instance IP Throttling and reset-request rate limiting (both in-memory Caffeine, single-instance; documented limitation — a horizontally scaled deployment would need a shared store).
 - Required frontend E2E tests.
+- Case-insensitive username/email (identifiers are case-sensitive as implemented; accepted limitation — see hardening mechanisms).
+- Request-body-size / JSON-bomb DoS protection (a reverse-proxy concern, out of scope with hosting infra).
+- Dependency vulnerability scanning in CI (CI/CD excluded).
 
 ## Further Notes
 

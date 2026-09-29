@@ -7,6 +7,8 @@ import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import sg.securedhello.user.PasswordLockoutState;
+
 /**
  * Creates accounts directly in the {@code users} table, for tests that need someone to sign in before registration
  * exists. Each call makes a fresh username (keyed isolation), so tests in a shared context never collide.
@@ -51,6 +53,18 @@ public final class Accounts {
     /** An active {@code USER} account with a chosen username and password, for fixtures outside the test suite. */
     public Account named(String username, String password) {
         return create(UUID.randomUUID(), username, "USER", true, true, password);
+    }
+
+    /** The account's password-lockout columns, read straight from {@code users}. */
+    public PasswordLockoutState lockoutState(Account account) {
+        return jdbc.queryForObject("SELECT failed_login_attempts, last_failed_at, locked_until,"
+                + " consecutive_failures_since_success, password_disabled_at FROM users WHERE id = ?",
+                (rs, row) -> new PasswordLockoutState(rs.getInt(1), instant(rs.getTimestamp(2)),
+                        instant(rs.getTimestamp(3)), rs.getInt(4), instant(rs.getTimestamp(5))), account.id());
+    }
+
+    private static Instant instant(Timestamp timestamp) {
+        return timestamp == null ? null : timestamp.toInstant();
     }
 
     /** A username no account has. */

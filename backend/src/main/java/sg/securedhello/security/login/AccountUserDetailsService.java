@@ -1,5 +1,7 @@
 package sg.securedhello.security.login;
 
+import java.time.Clock;
+
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -15,16 +17,18 @@ import sg.securedhello.user.UserAccountRepository;
 final class AccountUserDetailsService implements UserDetailsService {
 
     private final UserAccountRepository accounts;
+    private final Clock clock;
 
-    AccountUserDetailsService(UserAccountRepository accounts) {
+    AccountUserDetailsService(UserAccountRepository accounts, Clock clock) {
         this.accounts = accounts;
+        this.clock = clock;
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) {
         return accounts.findByUsername(username)
                 .filter(account -> account.getPasswordHash() != null)
-                .map(SignedInUser::of)
+                .map(account -> SignedInUser.of(account, clock.instant()))
                 .orElseThrow(() -> new UsernameNotFoundException("No account can sign in with that username"));
     }
 }

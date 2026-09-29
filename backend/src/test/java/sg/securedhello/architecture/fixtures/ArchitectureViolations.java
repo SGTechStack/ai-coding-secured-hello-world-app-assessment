@@ -233,4 +233,11 @@ public final class ArchitectureViolations {
             audit.error("failed {}", "x");
         }
     }
+
+    /** Named like the login converter, and looks the account up before the provider has run. */
+    public static final class JsonCredentialsConverter {
+        boolean exists(sg.securedhello.user.UserAccountRepository accounts, String username) {
+            return accounts.findByUsername(username).isPresent();
+        }
+    }
 }

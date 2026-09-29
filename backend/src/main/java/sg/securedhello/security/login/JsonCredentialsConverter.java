@@ -11,8 +11,11 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
+import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.AuthRateLimiter.Refusal;
 import sg.securedhello.security.ratelimit.RateLimit;
+import sg.securedhello.security.source.SourceKeyAuthenticationDetails;
+import sg.securedhello.security.source.SourceKeyAuthenticationDetailsSource;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
@@ -26,6 +29,11 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>Straight after the username is read, and before anything looks it up, the per-username budget is charged
  * (ADR-010). A refusal throws {@link LoginThrottledException} here, ahead of {@code ProviderManager}: no failure event
  * is published, no account counter moves, and a real and an unknown username are refused alike (T-RL-003; T-RL-017).
+ * Beside it, the lockout-cardinality axis refuses a username that is not in its source's full set (ADR-015), the same
+ * way and before BCrypt.
+ *
+ * <p>The token carries {@link SourceKeyAuthenticationDetails}, the source key the early filter already derived, so the
+ * lockout listener can tell which source drove an account into lockout (ADR-015; T-RL-005).
  */
 final class JsonCredentialsConverter implements AuthenticationConverter {
 
@@ -35,10 +43,15 @@ final class JsonCredentialsConverter implements AuthenticationConverter {
 
     private final JsonMapper jsonMapper;
     private final AuthRateLimiter limiter;
+    private final SourceKeyAuthenticationDetailsSource detailsSource;
+    private final LockoutCardinality cardinality;
 
-    JsonCredentialsConverter(JsonMapper jsonMapper, AuthRateLimiter limiter) {
+    JsonCredentialsConverter(JsonMapper jsonMapper, AuthRateLimiter limiter,
+            SourceKeyAuthenticationDetailsSource detailsSource, LockoutCardinality cardinality) {
         this.jsonMapper = jsonMapper;
         this.limiter = limiter;
+        this.detailsSource = detailsSource;
+        this.cardinality = cardinality;
     }
 
     @Override
@@ -58,7 +71,14 @@ final class JsonCredentialsConverter implements AuthenticationConverter {
         limiter.tryConsume(RateLimit.LOGIN_USERNAME, credentials.username()).ifPresent(refusal -> {
             throw new LoginThrottledException(refusal);
         });
-        return UsernamePasswordAuthenticationToken.unauthenticated(credentials.username(), credentials.password());
+        SourceKeyAuthenticationDetails details = detailsSource.buildDetails(request);
+        cardinality.refusal(details.sourceKey(), credentials.username()).ifPresent(refusal -> {
+            throw new LockoutCardinalityException(refusal);
+        });
+        UsernamePasswordAuthenticationToken token = UsernamePasswordAuthenticationToken.unauthenticated(
+                credentials.username(), credentials.password());
+        token.setDetails(details);
+        return token;
     }
 
     private static boolean isJson(String contentType) {
@@ -81,6 +101,24 @@ final class JsonCredentialsConverter implements AuthenticationConverter {
 
         LoginThrottledException(Refusal refusal) {
             super("The submitted username's login budget is spent");
+            this.refusal = refusal;
+        }
+
+        Refusal refusal() {
+            return refusal;
+        }
+    }
+
+    /**
+     * The source has driven its limit of distinct accounts into lockout, and this username is not one of them: 429
+     * {@code TOO_MANY_REQUESTS}, like the username budget, before BCrypt (ADR-015; T-RL-006).
+     */
+    static final class LockoutCardinalityException extends AuthenticationException {
+
+        private final transient Refusal refusal;
+
+        LockoutCardinalityException(Refusal refusal) {
+            super("The source has driven its limit of accounts into lockout");
             this.refusal = refusal;
         }
 

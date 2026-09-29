@@ -128,6 +128,12 @@ class ArchitectureRulesSelfTest {
                 ArchitectureViolations.UsesCsrfPostProcessor.class);
     }
 
+    @Test
+    void anAccountLookupAheadOfTheProviderIsCaught() {
+        assertViolates(ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION,
+                ArchitectureViolations.JsonCredentialsConverter.class);
+    }
+
     private static void assertViolates(ArchRule rule, Class<?>... classes) {
         assertThat(rule.evaluate(importClasses(classes)).hasViolation()).as("%s violates the rule", classes[0]).isTrue();
     }

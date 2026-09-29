@@ -14,6 +14,9 @@ import java.time.Clock;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
+import sg.securedhello.security.ratelimit.LockoutCardinality;
+import sg.securedhello.security.source.SourceKeyAuthenticationDetailsSource;
+import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.user.UserAccountRepository;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -25,22 +28,26 @@ public class SignInConfig {
     /**
      * The one password provider. {@code alwaysPerformAdditionalChecksOnUser} keeps its default, {@code true}, so a
      * disabled account still costs one {@code matches()} (REJ-005; T-AUTH-005). No {@code CompromisedPasswordChecker}
-     * is set, and none is a bean (T-AUTH-013).
+     * is set, and none is a bean (T-AUTH-013). The pre-authentication checks run locked and disabled, then the NIST
+     * cap, then the forced-change expiry (ADR-013; ADR-046).
      */
     @Bean
     DaoAuthenticationProvider passwordAuthenticationProvider(UserAccountRepository accounts,
-            PasswordEncoder passwordEncoder) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(new AccountUserDetailsService(accounts));
+            PasswordEncoder passwordEncoder, Clock clock) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(
+                new AccountUserDetailsService(accounts, clock));
         provider.setPasswordEncoder(passwordEncoder);
+        provider.setPreAuthenticationChecks(new PreAuthenticationChecks());
         return provider;
     }
 
     @Bean
     SignIn signIn(DaoAuthenticationProvider provider, AuthenticationEventPublisher events,
             FindByIndexNameSessionRepository<? extends Session> sessions, AuditEmitter audit,
-            ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock, AuthRateLimiter limiter) {
+            ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock, AuthRateLimiter limiter,
+            SourceKeyResolver sourceKeys, LockoutCardinality cardinality) {
         return new SignIn(provider, events, new SpringSessionBackedSessionRegistry<>(sessions), audit, writer,
-                jsonMapper, clock, limiter);
+                jsonMapper, clock, limiter, new SourceKeyAuthenticationDetailsSource(sourceKeys), cardinality);
     }
 
     @Bean

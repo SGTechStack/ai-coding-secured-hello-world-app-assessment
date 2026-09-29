@@ -28,8 +28,12 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | Event | `event.action` | `event.type` | `event.outcome` | Level | Severity | Request fields | Keying | Reason codes | Required keys | Optional keys | `message` |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | LOGIN_SUCCESS | `user-authentication` | `user` | success | INFO | low | yes | per event | — | `user.id` | — | Login succeeded. |
-| LOGIN_FAILURE | `user-authentication` | `user` | failure | WARN | medium | yes | per event | `BAD_CREDENTIALS`, `UNKNOWN_USER`, `ACCOUNT_LOCKED`, `ACCOUNT_DISABLED`, `CREDENTIAL_EXPIRED` | — | `user.id` | Login failed. |
-| SOURCE_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `RATE_LIMITED_SOURCE`, `RATE_LIMITED_SOURCE_MISSES` | — | — | Request throttled for its source. |
+| LOGIN_FAILURE | `user-authentication` | `user` | failure | WARN | medium | yes | per event | `BAD_CREDENTIALS`, `UNKNOWN_USER`, `ACCOUNT_LOCKED`, `ACCOUNT_DISABLED`, `CREDENTIAL_EXPIRED`, `PASSWORD_DISABLED` | — | `user.id` | Login failed. |
+| LOCKOUT_TRIGGERED | `user-authentication` | `error` | failure | WARN | high | yes | per event | `THRESHOLD_REACHED` | `user.id` | — | Account locked. |
+| LOCKOUT_CLEARED | `user-authentication` | `change` | success | INFO | low | yes | per event | `AUTO_LIFT` | `user.id` | — | Account lock cleared. |
+| PASSWORD_FAILURE_ALERT | `user-authentication` | `error` | failure | WARN | high | yes | per event | — | `user.id` | — | Password failures reached the alert threshold. |
+| PASSWORD_DISABLED | `user-authentication` | `error` | failure | ERROR | critical | yes | per event | `FAILURE_CAP` | `user.id` | — | Password disabled. |
+| SOURCE_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `RATE_LIMITED_SOURCE`, `RATE_LIMITED_SOURCE_MISSES`, `RATE_LIMITED_LOCKOUT_CARDINALITY` | — | — | Request throttled for its source. |
 | IDENTIFIER_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | per event | `RATE_LIMITED_IDENTIFIER` | — | — | Request throttled for its submitted identifier. |
 | LOGOUT | `user-logout` | `end` | success | INFO | low | yes | per event | — | `user.id` | — | Logout succeeded. |
 | SESSION_START | `session-start` | `start` | success | INFO | low | yes | per event | `LOGIN` | `user.id` | — | Session started. |

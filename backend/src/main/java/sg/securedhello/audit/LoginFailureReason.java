@@ -15,7 +15,9 @@ public enum LoginFailureReason implements AuditReason {
     /** The account is disabled, or has never been activated. */
     ACCOUNT_DISABLED("ACCOUNT_DISABLED"),
     /** The account's credential has expired (ADR-046). */
-    CREDENTIAL_EXPIRED("CREDENTIAL_EXPIRED");
+    CREDENTIAL_EXPIRED("CREDENTIAL_EXPIRED"),
+    /** The NIST cap has disabled the account's password until it is rebound (ADR-013). */
+    PASSWORD_DISABLED("PASSWORD_DISABLED");
 
     private final String code;
 

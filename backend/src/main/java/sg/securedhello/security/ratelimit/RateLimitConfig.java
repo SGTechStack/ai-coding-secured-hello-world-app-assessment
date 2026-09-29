@@ -13,11 +13,18 @@ import org.springframework.context.annotation.Configuration;
  * outside the security chain; {@code SecurityConfig} builds them in their slots.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({RateLimitProperties.class, RequestBodyProperties.class})
+@EnableConfigurationProperties({RateLimitProperties.class, RequestBodyProperties.class,
+        LockoutCardinalityProperties.class})
 public class RateLimitConfig {
 
     @Bean
     AuthRateLimiter authRateLimiter(RateLimitProperties properties, TimeMeter timeMeter, Ticker ticker) {
         return new AuthRateLimiter(properties, timeMeter, ticker);
+    }
+
+    /** The lockout-cardinality axis (ADR-015), beside the buckets: a set per source, not a budget-table row. */
+    @Bean
+    LockoutCardinality lockoutCardinality(LockoutCardinalityProperties properties, Ticker ticker) {
+        return new LockoutCardinality(properties, ticker);
     }
 }

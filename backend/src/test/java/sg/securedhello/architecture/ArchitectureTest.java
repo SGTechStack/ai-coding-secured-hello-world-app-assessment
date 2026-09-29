@@ -1,6 +1,7 @@
 package sg.securedhello.architecture;
 
 import static sg.securedhello.architecture.ArchitectureRules.AUDIT_EMIT_TAKES_NO_THROWABLE;
+import static sg.securedhello.architecture.ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION;
 import static sg.securedhello.architecture.ArchitectureRules.NO_AMBIENT_TIME;
 import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_COOKIE;
 import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_TEST_POST_PROCESSOR;
@@ -66,6 +67,12 @@ class ArchitectureTest {
     @Proves("T-RL-028")
     void onlyTheSourceKeyResolverReadsTheRawClientAddress() {
         NO_RAW_CLIENT_ADDRESS.check(MAIN);
+    }
+
+    /** ADR-001's "no lockout branch before authentication"; its behavioural rows are T-RL-017 and T-AUTH-003. */
+    @Test
+    void nothingAheadOfTheProviderLooksAnAccountUp() {
+        NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION.check(MAIN);
     }
 
     /** REJ-008 names no test-plan row for remember-me; T-CFG-032 covers the cookie Max-Age half. */

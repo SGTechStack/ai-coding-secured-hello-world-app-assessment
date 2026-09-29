@@ -147,11 +147,19 @@ class SignInTest extends CtxDefaultTest {
         Account known = accounts.user();
         Account disabled = accounts.disabled();
         Account pending = accounts.notActivated();
+        Account locked = accounts.user();
+        jdbc.update("UPDATE users SET locked_until = ? WHERE id = ?",
+                java.sql.Timestamp.from(clock.instant().plus(Duration.ofHours(1))), locked.id());
+        Account capped = accounts.user();
+        jdbc.update("UPDATE users SET password_disabled_at = ? WHERE id = ?",
+                java.sql.Timestamp.from(clock.instant()), capped.id());
         List<String[]> attempts = List.of(
                 new String[] {Accounts.unknownUsername(), Accounts.PASSWORD},
                 new String[] {known.username(), "not-the-password-at-all"},
                 new String[] {disabled.username(), Accounts.PASSWORD},
-                new String[] {pending.username(), Accounts.PASSWORD});
+                new String[] {pending.username(), Accounts.PASSWORD},
+                new String[] {locked.username(), Accounts.PASSWORD},
+                new String[] {capped.username(), Accounts.PASSWORD});
 
         List<String> bodies = new java.util.ArrayList<>();
         for (String[] attempt : attempts) {

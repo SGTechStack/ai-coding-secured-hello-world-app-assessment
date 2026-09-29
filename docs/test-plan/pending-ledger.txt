@@ -2,7 +2,6 @@
 # Each entry is a test-plan row that has no test yet. A ticket that proves a row removes its line here in the same
 # change. The gate fails when an entry is missing, already proven, or not a row, so this file only shrinks.
 # Ticket 28 deletes it. Reconcile after a merge with the command in backend/README.md.
-T-AUTH-003
 T-AUTH-006
 T-AUTH-008
 T-AUTH-014
@@ -28,36 +27,13 @@ T-SES-028
 T-SES-029
 T-SES-036
 T-CSRF-004
-T-LCK-001
-T-LCK-002
-T-LCK-003
-T-LCK-004
 T-LCK-005
-T-LCK-006
 T-LCK-007
 T-LCK-008
-T-LCK-009
-T-LCK-010
-T-LCK-011
-T-LCK-012
-T-LCK-013
-T-LCK-014
-T-LCK-015
-T-LCK-016
 T-LCK-017
-T-LCK-019
-T-LCK-020
 T-RL-004
-T-RL-005
-T-RL-006
-T-RL-007
-T-RL-008
-T-RL-009
 T-RL-010
 T-RL-024
-T-RL-029
-T-RL-030
-T-RL-031
 T-CRED-001
 T-CRED-002
 T-CRED-003
@@ -156,7 +132,6 @@ T-AUD-032
 T-AUD-035
 T-AUD-038
 T-AUD-039
-T-AUD-040
 T-HDR-001
 T-HDR-002
 T-HDR-003

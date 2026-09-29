@@ -40,6 +40,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
+import sg.securedhello.user.UserAccountRepository;
 
 /**
  * Every architecture rule, in one place. {@link ArchitectureTest} applies them to the code base; add a rule here and
@@ -83,6 +84,19 @@ final class ArchitectureRules {
             .that().doNotBelongToAnyOf(SourceKeyResolver.class)
             .should().accessTargetWhere(rawClientAddressRead())
             .because("the client address becomes a source key in SourceKeyResolver only (ADR-020)");
+
+    /**
+     * ADR-001: no lockout or limiter branch runs before authentication on whether the account exists. What runs ahead
+     * of the provider (the limiter, the login converter) and the pre-authentication checks, which get the account
+     * the provider loaded, never look an account up themselves (T-RL-017).
+     */
+    static final ArchRule NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION = noClasses()
+            .that().resideInAPackage("sg.securedhello.security.ratelimit..")
+            .or().haveSimpleName("JsonCredentialsConverter")
+            .or().haveSimpleName("PreAuthenticationChecks")
+            .should().dependOnClassesThat().areAssignableTo(UserAccountRepository.class)
+            .because("an account lookup ahead of the provider would put an existence branch before its timing "
+                    + "mitigation (ADR-001; R-AUTH-004)");
 
     /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
     static final ArchRule NO_REMEMBER_ME = noClasses()

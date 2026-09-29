@@ -12,11 +12,11 @@ The counter and ladder are pure logic, in PIT scope.
 
 **Blocked by:** 11
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 5 failures lock the account. The correct password then gets the same 401, and after 20 minutes on the `Clock` it succeeds.
-- [ ] The ladder escalates on schedule, and a misconfigured ladder stops startup.
-- [ ] 100 failures disable the password authenticator. The 50th emits the alert row.
-- [ ] A failed login leaves the owner's live session intact.
-- [ ] A 6th distinct account from one source within the hour is refused for new usernames.
-- [ ] The counter and ladder meet 85% mutation score.
+- [x] 5 failures lock the account. The correct password then gets the same 401, and after 20 minutes on the `Clock` it succeeds.
+- [x] The ladder escalates on schedule, and a misconfigured ladder stops startup.
+- [x] 100 failures disable the password authenticator. The 50th emits the alert row.
+- [x] A failed login leaves the owner's live session intact.
+- [x] A 6th distinct account from one source within the hour is refused for new usernames.
+- [x] The counter and ladder meet 85% mutation score.

@@ -40,6 +40,9 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | LOGOUT | `user-logout` | `end` | success | INFO | low | yes | per event | — | `user.id` | — | Logout succeeded. |
 | SESSION_START | `session-start` | `start` | success | INFO | low | yes | per event | `LOGIN` | `user.id` | — | Session started. |
 | CSRF_REJECTED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `CSRF_MISSING`, `CSRF_INVALID` | — | `user.id` | CSRF validation failed. |
+| TOTP_ENROLMENT_PROVISIONED | `totp-enrol` | `creation` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP enrolment provisioned. |
+| TOTP_ENROLMENT_CONFIRMED | `totp-enrol` | `change` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP enrolment confirmed. |
+| TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
 | APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | per event | — | — | — | Application stopping. |

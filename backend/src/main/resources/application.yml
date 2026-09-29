@@ -94,6 +94,11 @@ app:
             path: /api/profile
           - method: PATCH
             path: /api/profile/password
+          # TOTP enrolment, reachable with no factor: outside /api/admin/**, off the forced-change allowlist (ADR-023).
+          - method: POST
+            path: /api/mfa/totp/enrolment
+          - method: POST
+            path: /api/mfa/totp/enrolment/confirmation
     # A signed-in session ends this long after its AUTH_INSTANT, whatever its traffic (REJ-012; ADR-038).
     session:
       absolute: 8h
@@ -140,6 +145,14 @@ app:
         source:
           burst: 10
           refill-period: 6s
+      mfa-totp-enrolment:
+        source:
+          burst: 10
+          refill-period: 6s
+      mfa-totp-enrolment-confirmation:
+        source:
+          burst: 20
+          refill-period: 3s
       # Session-store lookups that did not resolve, per source, on every route (ADR-017).
       session-miss:
         capacity: 300
@@ -165,6 +178,10 @@ app:
     request:
       # Counted in bytes as the body is read, before the login converter parses it (Std §5:494).
       max-body-bytes: 16384
+  mfa:
+    totp:
+      # The service name an authenticator app shows beside the account. Not a secret; required and never blank.
+      issuer: Secured Hello World
   # The audit stream (ADR-055; ADR-056). The directory holds the dedicated audit file, read by logback-spring.xml.
   audit:
     directory: logs

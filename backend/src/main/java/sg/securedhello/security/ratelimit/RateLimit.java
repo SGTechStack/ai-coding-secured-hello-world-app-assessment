@@ -49,7 +49,15 @@ public enum RateLimit {
 
     /** {@code POST /api/password-reset/confirm}, per source key: burst 10, then 1 per 6 s (ADR-007; R-STD-019). */
     PASSWORD_RESET_CONFIRM_SOURCE("password-reset-confirm", HttpMethod.POST, "/api/password-reset/confirm",
-            Axis.SOURCE, RateLimitProperties::passwordResetConfirm);
+            Axis.SOURCE, RateLimitProperties::passwordResetConfirm),
+
+    /** {@code POST /api/mfa/totp/enrolment}, per source key: burst 10, then 1 per 6 s (ADR-025). */
+    MFA_TOTP_ENROLMENT_SOURCE("mfa-totp-enrolment", HttpMethod.POST, "/api/mfa/totp/enrolment", Axis.SOURCE,
+            RateLimitProperties::mfaTotpEnrolment),
+
+    /** {@code POST /api/mfa/totp/enrolment/confirmation}, per source key: burst 20, then 1 per 3 s (REJ-071). */
+    MFA_TOTP_ENROLMENT_CONFIRMATION_SOURCE("mfa-totp-enrolment-confirmation", HttpMethod.POST,
+            "/api/mfa/totp/enrolment/confirmation", Axis.SOURCE, RateLimitProperties::mfaTotpEnrolmentConfirmation);
 
     private final String route;
     private final HttpMethod method;

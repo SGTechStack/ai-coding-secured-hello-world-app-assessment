@@ -53,6 +53,20 @@ public class TotpUserDetails {
     protected TotpUserDetails() {
     }
 
+    /**
+     * The factor that <em>enrolment binding</em> creates from {@code pending}: its envelope and key version copied
+     * verbatim, with no re-encryption (ADR-028), and the confirming code's counter as the replay floor.
+     */
+    static TotpUserDetails boundFrom(PendingTotp pending, long confirmedCounter, Instant createdAt) {
+        TotpUserDetails factor = new TotpUserDetails();
+        factor.userId = pending.getUserId();
+        factor.totpKey = pending.getTotpKey();
+        factor.keyVersion = (short) pending.getKeyVersion();
+        factor.lastUsedCounter = confirmedCounter;
+        factor.createdAt = createdAt;
+        return factor;
+    }
+
     public UUID getUserId() {
         return userId;
     }

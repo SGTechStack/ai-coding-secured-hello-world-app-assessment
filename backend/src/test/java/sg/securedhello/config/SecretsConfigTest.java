@@ -120,6 +120,94 @@ class SecretsConfigTest {
                 });
     }
 
+    private static final String RETIRED_V0 = SecretsConfig.RETIRED_TOTP_KEYS + ".0";
+
+    @Test
+    void aRetiredTotpKeyIsLoadedWithItsVersionAndFingerprint(CapturedOutput output) {
+        String retired = Base64.getEncoder().encodeToString(randomLooking(32));
+        runner(Map.of(RETIRED_V0, retired)).run(context -> {
+            assertThat(context).hasNotFailed();
+            ApplicationKeys keys = context.getBean(ApplicationKeys.class);
+            assertThat(keys.retiredTotpEncryption()).singleElement().satisfies(key -> {
+                assertThat(key.version()).isZero();
+                assertThat(key.property()).isEqualTo(RETIRED_V0);
+            });
+            assertThat(keys.all()).hasSize(4);
+        });
+        assertThat(output.getOut()).contains("property=" + RETIRED_V0 + " version=0").doesNotContain(retired);
+    }
+
+    @Test
+    void aRetiredTotpKeyUnderTheCurrentVersionRefusesStartup() {
+        String retired = Base64.getEncoder().encodeToString(randomLooking(32));
+        runner(Map.of(SecretsConfig.RETIRED_TOTP_KEYS + ".1", retired)).run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(context.getStartupFailure()).rootCause()
+                    .hasMessageContaining(SecretsConfig.RETIRED_TOTP_KEYS + ".1").hasMessageNotContaining(retired);
+        });
+    }
+
+    static Stream<String> reusedKeys() {
+        return Stream.of(TestSecrets.TOTP_KEY, TestSecrets.LOG_KEY);
+    }
+
+    @ParameterizedTest
+    @MethodSource("reusedKeys")
+    void aRetiredTotpKeyReusingAnotherKeyRefusesStartup(String reused) {
+        runner(Map.of(RETIRED_V0, reused)).run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(context.getStartupFailure()).rootCause().hasMessageContaining(RETIRED_V0)
+                    .hasMessageContaining("same key").hasMessageNotContaining(reused);
+        });
+    }
+
+    @Test
+    void aMalformedRetiredTotpKeyRefusesStartupNamingItButNotTheValue() {
+        String malformed = "TEST-ONLY-CANARY-retired";
+        runner(Map.of(RETIRED_V0, malformed)).run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(context.getStartupFailure()).rootCause().isInstanceOf(InvalidKeyMaterialException.class)
+                    .hasMessageContaining(RETIRED_V0).hasMessageNotContaining(malformed);
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"256", "1000", "v1"})
+    void aRetiredTotpKeyVersionOutsideOneByteRefusesStartupNamingItButNotTheKey(String version,
+            CapturedOutput output) {
+        String retired = Base64.getEncoder().encodeToString(randomLooking(32));
+        String property = SecretsConfig.RETIRED_TOTP_KEYS + "." + version;
+        runner(Map.of(property, retired)).run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(context.getStartupFailure()).rootCause().isInstanceOf(InvalidKeyMaterialException.class)
+                    .hasMessageContaining(property);
+            assertThat(causeMessages(context.getStartupFailure())).doesNotContain(retired);
+        });
+        assertThat(output.getAll()).doesNotContain(retired);
+    }
+
+    @Test
+    void twoRetiredTotpKeysUnderOneVersionRefuseStartup() {
+        byte[] other = randomLooking(32);
+        other[0] ^= 1;
+        runner(Map.of(RETIRED_V0, Base64.getEncoder().encodeToString(randomLooking(32)),
+                SecretsConfig.RETIRED_TOTP_KEYS + ".00", Base64.getEncoder().encodeToString(other)))
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).rootCause().hasMessageContaining("repeats a retired key version");
+                });
+    }
+
+    @Test
+    void retiredTotpKeysAreOrderedByNumericVersion() {
+        byte[] other = randomLooking(32);
+        other[0] ^= 1;
+        runner(Map.of(SecretsConfig.RETIRED_TOTP_KEYS + ".10", Base64.getEncoder().encodeToString(randomLooking(32)),
+                SecretsConfig.RETIRED_TOTP_KEYS + ".9", Base64.getEncoder().encodeToString(other)))
+                .run(context -> assertThat(context.getBean(ApplicationKeys.class).retiredTotpEncryption())
+                        .extracting(KeyMaterial::version).containsExactly(9, 10));
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {-1, 256})
     void aTotpKeyVersionOutsideOneByteRefusesStartup(int version) {
@@ -129,8 +217,8 @@ class SecretsConfigTest {
 
     @Test
     void propertyObjectsNeverPrintTheirSecrets() {
-        assertThat(new TotpEncryptionProperties(TestSecrets.TOTP_KEY, 1).toString())
-                .doesNotContain(TestSecrets.TOTP_KEY);
+        assertThat(new TotpEncryptionProperties(TestSecrets.TOTP_KEY, 1, Map.of("0", TestSecrets.LOG_KEY)).toString())
+                .doesNotContain(TestSecrets.TOTP_KEY, TestSecrets.LOG_KEY);
         assertThat(new HmacProperties(new HmacProperties.Tombstone(TestSecrets.TOMBSTONE_KEY, 1),
                 new HmacProperties.Log(TestSecrets.LOG_KEY)).toString())
                 .doesNotContain(TestSecrets.TOMBSTONE_KEY, TestSecrets.LOG_KEY);

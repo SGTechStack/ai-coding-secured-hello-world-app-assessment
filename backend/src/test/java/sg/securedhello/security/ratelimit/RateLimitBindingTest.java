@@ -34,16 +34,18 @@ import tools.jackson.databind.json.JsonMapper;
 class RateLimitBindingTest extends CtxNondevTest {
 
     /** The spec's budget table, for the routes built so far. */
-    private static final Map<RateLimit, Budget> TABLE = Map.of(
-            RateLimit.LOGIN_SOURCE, new Budget(60, Duration.ofSeconds(1)),
-            RateLimit.LOGIN_USERNAME, new Budget(10, Duration.ofSeconds(6)),
-            RateLimit.CSRF_SOURCE, new Budget(30, Duration.ofSeconds(2)),
-            RateLimit.PROFILE_PASSWORD_SOURCE, new Budget(10, Duration.ofSeconds(6)),
-            RateLimit.REGISTER_SOURCE, new Budget(5, Duration.ofSeconds(12)),
-            RateLimit.REGISTER_ACTIVATE_SOURCE, new Budget(10, Duration.ofSeconds(6)),
-            RateLimit.PASSWORD_RESET_REQUEST_SOURCE, new Budget(5, Duration.ofSeconds(12)),
-            RateLimit.PASSWORD_RESET_REQUEST_IDENTIFIER, new Budget(3, Duration.ofMinutes(20)),
-            RateLimit.PASSWORD_RESET_CONFIRM_SOURCE, new Budget(10, Duration.ofSeconds(6)));
+    private static final Map<RateLimit, Budget> TABLE = Map.ofEntries(
+            Map.entry(RateLimit.LOGIN_SOURCE, new Budget(60, Duration.ofSeconds(1))),
+            Map.entry(RateLimit.LOGIN_USERNAME, new Budget(10, Duration.ofSeconds(6))),
+            Map.entry(RateLimit.CSRF_SOURCE, new Budget(30, Duration.ofSeconds(2))),
+            Map.entry(RateLimit.PROFILE_PASSWORD_SOURCE, new Budget(10, Duration.ofSeconds(6))),
+            Map.entry(RateLimit.REGISTER_SOURCE, new Budget(5, Duration.ofSeconds(12))),
+            Map.entry(RateLimit.REGISTER_ACTIVATE_SOURCE, new Budget(10, Duration.ofSeconds(6))),
+            Map.entry(RateLimit.PASSWORD_RESET_REQUEST_SOURCE, new Budget(5, Duration.ofSeconds(12))),
+            Map.entry(RateLimit.PASSWORD_RESET_REQUEST_IDENTIFIER, new Budget(3, Duration.ofMinutes(20))),
+            Map.entry(RateLimit.PASSWORD_RESET_CONFIRM_SOURCE, new Budget(10, Duration.ofSeconds(6))),
+            Map.entry(RateLimit.MFA_TOTP_ENROLMENT_SOURCE, new Budget(10, Duration.ofSeconds(6))),
+            Map.entry(RateLimit.MFA_TOTP_ENROLMENT_CONFIRMATION_SOURCE, new Budget(20, Duration.ofSeconds(3))));
 
     static Stream<Arguments> rows() {
         return Stream.of(RateLimit.values()).map(row -> Arguments.of(row, TABLE.get(row)));

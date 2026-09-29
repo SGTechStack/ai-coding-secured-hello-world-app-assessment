@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: secured-hello-backend
+  profiles:
+    default: dev
+
+app:
+  cors:
+    frontend-origin: ${APP_CORS_FRONTEND_ORIGIN:http://localhost:5173}

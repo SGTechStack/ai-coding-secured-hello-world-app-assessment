@@ -17,12 +17,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.authority.FactorGrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import sg.securedhello.mfa.TotpFactorGrant;
 import sg.securedhello.testsupport.CtxDefaultTest;
 import sg.securedhello.testsupport.Proves;
 
@@ -77,10 +81,18 @@ class MatrixAndAdviceTest extends CtxDefaultTest {
         }
     }
 
+    /** An administrator holding both factors, issued now, so the admin guard's factor rule passes (ADR-026). */
+    private RequestPostProcessor verifiedAdmin() {
+        return user("admin-guard").authorities(new SimpleGrantedAuthority("ROLE_ADMIN"),
+                FactorGrantedAuthority.withAuthority(FactorGrantedAuthority.PASSWORD_AUTHORITY)
+                        .issuedAt(clock.instant()).build(),
+                FactorGrantedAuthority.withAuthority(TotpFactorGrant.AUTHORITY).issuedAt(clock.instant()).build());
+    }
+
     @Test
     @Proves("T-ADM-020")
     void theAdminGuardAdmitsAnAdminButTheRoleDefinitionDenyWinsOverIt() throws Exception {
-        mockMvc.perform(get("/api/admin/probe").with(user("admin-guard").roles("ADMIN")))
+        mockMvc.perform(get("/api/admin/probe").with(verifiedAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(content().string("reached"));
 

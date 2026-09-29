@@ -57,7 +57,11 @@ public enum RateLimit {
 
     /** {@code POST /api/mfa/totp/enrolment/confirmation}, per source key: burst 20, then 1 per 3 s (REJ-071). */
     MFA_TOTP_ENROLMENT_CONFIRMATION_SOURCE("mfa-totp-enrolment-confirmation", HttpMethod.POST,
-            "/api/mfa/totp/enrolment/confirmation", Axis.SOURCE, RateLimitProperties::mfaTotpEnrolmentConfirmation);
+            "/api/mfa/totp/enrolment/confirmation", Axis.SOURCE, RateLimitProperties::mfaTotpEnrolmentConfirmation),
+
+    /** {@code POST /api/mfa/totp/verification}, per source key: burst 20, then 1 per 3 s (ADR-021; ADR-027). */
+    MFA_TOTP_VERIFICATION_SOURCE("mfa-totp-verification", HttpMethod.POST, "/api/mfa/totp/verification",
+            Axis.SOURCE, RateLimitProperties::mfaTotpVerification);
 
     private final String route;
     private final HttpMethod method;

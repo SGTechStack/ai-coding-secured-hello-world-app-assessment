@@ -10,6 +10,7 @@ import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
@@ -20,6 +21,7 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
+import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 import org.springframework.session.SessionRepository;
 import org.springframework.session.web.http.HttpSessionIdResolver;
 import org.springframework.web.cors.CorsConfiguration;
@@ -29,6 +31,8 @@ import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.config.OriginsProperties;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
+import sg.securedhello.mfa.TotpFactorEntryPoint;
+import sg.securedhello.mfa.TotpFactorGrant;
 import sg.securedhello.security.csrf.HeaderOnlyCsrfTokenRequestHandler;
 import sg.securedhello.security.csrf.SessionOnlyCsrfTokenRepository;
 import sg.securedhello.security.login.SignIn;
@@ -45,9 +49,10 @@ import sg.securedhello.session.SessionLifetimeProperties;
  * off, so the actuator rules are ours (ADR-061).
  *
  * <p>Authorization follows the matrix (ADR-043): whitelist first, the role-definition {@code denyAll()} before the
- * role guards, then {@code anyRequest().denyAll()}. Every refusal is written by {@link ProblemDetailWriter}
- * (ADR-031): an anonymous caller gets 401 {@code AUTHENTICATION_FAILED}, with no {@code WWW-Authenticate} challenge
- * (R-AUTH-005), and a signed-in one gets 403 {@code ACCESS_DENIED}.
+ * role guards, then {@code anyRequest().denyAll()}. A guard on {@code /api/admin/**} also requires the second factor,
+ * after the role ({@link AdminFactorRules}). Method security repeats the role check only. Every refusal is written by
+ * {@link ProblemDetailWriter} (ADR-031): an anonymous caller gets 401 {@code AUTHENTICATION_FAILED}, with no
+ * {@code WWW-Authenticate} challenge (R-AUTH-005), and a signed-in one gets 403 {@code ACCESS_DENIED}.
  *
  * <p>Filter order (ADR-038): the {@link SourceRateLimitFilter}, then {@code SecurityContextHolderFilter}, the
  * header writer and {@code CorsFilter}, then the {@link AbsoluteLifetimeFilter}, whose 401 so carries the CORS and
@@ -59,6 +64,7 @@ import sg.securedhello.session.SessionLifetimeProperties;
  * every unsafe method, stored without ever creating a session, and never set as a cookie.
  */
 @Configuration(proxyBeanMethods = false)
+@EnableMethodSecurity
 @EnableConfigurationProperties({AuthorizationMatrix.class, SessionLifetimeProperties.class})
 public class SecurityConfig {
 
@@ -71,7 +77,7 @@ public class SecurityConfig {
             SessionRepository<?> sessionRepository, OriginsProperties origins, ProblemDetailWriter writer,
             SignIn signIn, SessionLifetimeProperties lifetime, Clock clock, AuthRateLimiter limiter,
             SourceKeyResolver sourceKeys, HttpSessionIdResolver sessionIds, AuditEmitter audit,
-            RequestBodyProperties requestBody) {
+            RequestBodyProperties requestBody, TotpFactorEntryPoint totpFactorEntryPoint) {
         // W is what the repository really applies, not the raw timeout property (T-SES-033). Nothing is saved.
         Duration idleWindow = sessionRepository.createSession().getMaxInactiveInterval();
         CsrfTokenRepository csrfTokens = new SessionOnlyCsrfTokenRepository();
@@ -79,6 +85,7 @@ public class SecurityConfig {
         // Sign-in, the concurrent-session filter and sign-out (ADR-038); the login composite rotates the CSRF token.
         signIn.configure(http, csrfTokens, csrfHandler, idleWindow);
         CorsConfiguration cors = CorsPolicy.configuration(origins);
+        AdminFactorRules adminFactorRules = new AdminFactorRules(lifetime.absolute(), clock);
         return http
                 .addFilterBefore(new SourceRateLimitFilter(limiter, sourceKeys, sessionIds, audit, writer,
                         (request, response) -> CorsPolicy.allowOrigin(cors, request, response)),
@@ -103,15 +110,18 @@ public class SecurityConfig {
                     matrix.whitelist().forEach(route ->
                             requests.requestMatchers(route.method(), route.path()).permitAll());
                     requests.requestMatchers(ROLE_DEFINITION_PATHS).denyAll();
-                    matrix.rolesByRoute().forEach((route, roles) ->
-                            requests.requestMatchers(route.method(), route.path())
-                                    .hasAnyRole(roles.toArray(String[]::new)));
+                    // The role guards; on the admin surface, the role then both factors (ADR-021; ADR-026).
+                    matrix.rolesByRoute().forEach((route, roles) -> requests
+                            .requestMatchers(route.method(), route.path()).access(adminFactorRules.rule(route, roles)));
                     requests.anyRequest().denyAll();
                 })
                 // Set explicitly, so no request shape falls through to a redirect or a default 403 (T-AUTH-015).
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(problemAuthenticationEntryPoint)
-                        .accessDeniedHandler(problemAccessDeniedHandler))
+                        // A missing or expired FACTOR_TOTP gets its own entry point (412/422); every other refusal,
+                        // CSRF included, the problem handler (ADR-026).
+                        .defaultAccessDeniedHandlerFor(problemAccessDeniedHandler, AnyRequestMatcher.INSTANCE)
+                        .defaultDeniedHandlerForMissingAuthority(totpFactorEntryPoint, TotpFactorGrant.AUTHORITY))
                 // The API never redirects: no saved request to return to, and sign-out answers 204 (SignIn). The cache
                 // is an explicit NullRequestCache (ADR-040), so no filter can fall back to the session-backed default.
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))

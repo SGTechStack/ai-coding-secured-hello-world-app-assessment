@@ -70,4 +70,28 @@ public class TotpUserDetails {
     public UUID getUserId() {
         return userId;
     }
+
+    /** The 69-byte envelope (ADR-028). */
+    byte[] getTotpKey() {
+        return totpKey;
+    }
+
+    int getKeyVersion() {
+        return keyVersion;
+    }
+
+    /** The last accepted time-step counter, or {@link TotpWindow#NEVER_USED} before the first. */
+    long lastUsedCounter() {
+        return lastUsedCounter == null ? TotpWindow.NEVER_USED : lastUsedCounter;
+    }
+
+    /** Records {@code counter} as accepted, so it and every earlier counter are replays from now on (R-MFA-017). */
+    void accept(long counter) {
+        lastUsedCounter = counter;
+    }
+
+    /** Whether tier 2 has disabled the factor, so only rebinding restores it (ADR-027). */
+    boolean isDisabled() {
+        return factorDisabledAt != null;
+    }
 }

@@ -13,6 +13,7 @@ import java.time.Clock;
 
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.error.ProblemDetailWriter;
+import sg.securedhello.profile.ProfileReader;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.source.SourceKeyAuthenticationDetailsSource;
@@ -34,8 +35,8 @@ public class SignInConfig {
     @Bean
     DaoAuthenticationProvider passwordAuthenticationProvider(UserAccountRepository accounts,
             PasswordEncoder passwordEncoder, Clock clock) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(
-                new AccountUserDetailsService(accounts, clock));
+        DaoAuthenticationProvider provider = new ClockedPasswordFactorProvider(
+                new AccountUserDetailsService(accounts, clock), clock);
         provider.setPasswordEncoder(passwordEncoder);
         provider.setPreAuthenticationChecks(new PreAuthenticationChecks());
         return provider;
@@ -45,9 +46,10 @@ public class SignInConfig {
     SignIn signIn(DaoAuthenticationProvider provider, AuthenticationEventPublisher events,
             FindByIndexNameSessionRepository<? extends Session> sessions, AuditEmitter audit,
             ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock, AuthRateLimiter limiter,
-            SourceKeyResolver sourceKeys, LockoutCardinality cardinality) {
+            SourceKeyResolver sourceKeys, LockoutCardinality cardinality, ProfileReader profiles) {
         return new SignIn(provider, events, new SpringSessionBackedSessionRegistry<>(sessions), audit, writer,
-                jsonMapper, clock, limiter, new SourceKeyAuthenticationDetailsSource(sourceKeys), cardinality);
+                jsonMapper, clock, limiter, new SourceKeyAuthenticationDetailsSource(sourceKeys), cardinality,
+                profiles);
     }
 
     @Bean

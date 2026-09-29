@@ -28,12 +28,12 @@ import tools.jackson.databind.json.JsonMapper;
  * The budget table and the body cap as production binds them (ctx-nondev): each row's burst and refill period equal
  * the spec's table, and the limiter's buckets are built from those properties, so changing one changes the behaviour.
  *
- * <p>T-RL-010 is parameterised over every route in the spec's table; the rows here are the ones built so far, and each
- * route ticket adds its own. The row stays on the pending ledger until the table is complete.
+ * <p>T-RL-010 is parameterised over every row of the spec's table, which is now complete: each binds its tabled values,
+ * and each row's bucket is built from its bound properties.
  */
 class RateLimitBindingTest extends CtxNondevTest {
 
-    /** The spec's budget table, for the routes built so far. */
+    /** The spec's budget table (spec, Lockout, throttling and rate limits), every row. */
     private static final Map<RateLimit, Budget> TABLE = Map.ofEntries(
             Map.entry(RateLimit.LOGIN_SOURCE, new Budget(60, Duration.ofSeconds(1))),
             Map.entry(RateLimit.LOGIN_USERNAME, new Budget(10, Duration.ofSeconds(6))),
@@ -45,7 +45,8 @@ class RateLimitBindingTest extends CtxNondevTest {
             Map.entry(RateLimit.PASSWORD_RESET_REQUEST_IDENTIFIER, new Budget(3, Duration.ofMinutes(20))),
             Map.entry(RateLimit.PASSWORD_RESET_CONFIRM_SOURCE, new Budget(10, Duration.ofSeconds(6))),
             Map.entry(RateLimit.MFA_TOTP_ENROLMENT_SOURCE, new Budget(10, Duration.ofSeconds(6))),
-            Map.entry(RateLimit.MFA_TOTP_ENROLMENT_CONFIRMATION_SOURCE, new Budget(20, Duration.ofSeconds(3))));
+            Map.entry(RateLimit.MFA_TOTP_ENROLMENT_CONFIRMATION_SOURCE, new Budget(20, Duration.ofSeconds(3))),
+            Map.entry(RateLimit.MFA_TOTP_VERIFICATION_SOURCE, new Budget(20, Duration.ofSeconds(3))));
 
     static Stream<Arguments> rows() {
         return Stream.of(RateLimit.values()).map(row -> Arguments.of(row, TABLE.get(row)));
@@ -53,9 +54,16 @@ class RateLimitBindingTest extends CtxNondevTest {
 
     @ParameterizedTest
     @MethodSource("rows")
+    @Proves("T-RL-010")
     void everyBudgetRowBindsTheSpecsValues(RateLimit row, Budget tabled) {
         assertThat(tabled).as("%s is in the spec's table", row).isNotNull();
         assertThat(productionProperty(row.property(), Budget.class)).isEqualTo(tabled);
+    }
+
+    @Test
+    @Proves("T-RL-010")
+    void theTableHasTheSpecsTwelveRowsAndEveryOneIsARateLimit() {
+        assertThat(TABLE).hasSize(12).containsOnlyKeys(RateLimit.values());
     }
 
     @Test
@@ -65,14 +73,16 @@ class RateLimitBindingTest extends CtxNondevTest {
                 .isEqualTo(Duration.ofMinutes(15));
     }
 
-    @Test
-    void theBucketsAreBuiltFromTheBoundPropertiesSoChangingOneChangesTheBehaviour() {
+    @ParameterizedTest
+    @MethodSource("rows")
+    @Proves("T-RL-010")
+    void eachBucketIsBuiltFromItsBoundPropertiesSoChangingOneChangesTheBehaviour(RateLimit row, Budget tabled) {
         productionContextRunner().withUserConfiguration(RateLimitConfig.class, ClockConfig.class).run(context -> {
-            assertThat(admitted(context.getBean(AuthRateLimiter.class))).isEqualTo(60);
+            assertThat(admitted(context.getBean(AuthRateLimiter.class), row)).isEqualTo(tabled.burst());
         });
         productionContextRunner().withUserConfiguration(RateLimitConfig.class, ClockConfig.class)
-                .withPropertyValues("app.security.rate-limit.login.source.burst=7").run(context -> {
-                    assertThat(admitted(context.getBean(AuthRateLimiter.class))).isEqualTo(7);
+                .withPropertyValues(row.property() + ".burst=7").run(context -> {
+                    assertThat(admitted(context.getBean(AuthRateLimiter.class), row)).isEqualTo(7);
                 });
     }
 
@@ -88,9 +98,9 @@ class RateLimitBindingTest extends CtxNondevTest {
         assertThat(status(filter, (int) cap + 1)).isEqualTo(HttpStatus.BAD_REQUEST.value());
     }
 
-    private static int admitted(AuthRateLimiter limiter) {
-        int admitted = 0;
-        while (limiter.tryConsume(RateLimit.LOGIN_SOURCE, "4:c0000201").isEmpty()) {
+    private static long admitted(AuthRateLimiter limiter, RateLimit row) {
+        long admitted = 0;
+        while (limiter.tryConsume(row, "4:c0000201").isEmpty()) {
             admitted++;
         }
         return admitted;

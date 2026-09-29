@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
 
@@ -31,6 +32,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import sg.securedhello.error.ErrorCode;
+import sg.securedhello.mfa.TotpSecretCipher;
 import sg.securedhello.security.login.SignIn;
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.CsrfSession;
@@ -38,6 +40,7 @@ import sg.securedhello.testsupport.CtxBudgetTest;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SessionRows;
 import sg.securedhello.testsupport.SignedIn;
+import sg.securedhello.testsupport.TotpFactors;
 
 /**
  * The per-source rows of the budget table on {@code application.yml}'s values (ADR-010), and the body cap that sits
@@ -58,6 +61,9 @@ class SourceBudgetTest extends CtxBudgetTest {
 
     @Autowired
     private FilterChainProxy filterChainProxy;
+
+    @Autowired
+    private TotpSecretCipher cipher;
 
     private Accounts accounts;
     private SessionRows sessions;
@@ -231,6 +237,37 @@ class SourceBudgetTest extends CtxBudgetTest {
         mockMvc.perform(wrongCurrent).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS))
                 .andExpect(header().string(HttpHeaders.RETRY_AFTER, "6"));
         verify(passwordEncoder, never()).matches(any(), any());
+    }
+
+    @Test
+    void pastTheVerificationBurstACodeIs429WithNoFactorMemberAndIsNeverChecked() throws Exception {
+        long burst = budgets.mfaTotpVerification().source().burst();
+        String source = nextSource();
+        Accounts.Account admin = accounts.withRole("ADMIN");
+        TotpFactors factors = new TotpFactors(jdbc, cipher, clock);
+        byte[] secret = factors.enrol(admin);
+        MvcResult login = SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc, source), admin.username(),
+                admin.password()).andExpect(status().isOk()).andReturn();
+        CsrfSession session = SignedIn.refreshed(mockMvc, login.getResponse().getCookie("SESSION"));
+        String right = factors.code(secret);
+        String wrong = right.equals("000000") ? "000001" : "000000";
+        for (long i = 0; i < burst; i++) {
+            mockMvc.perform(verification(source, session, wrong)).andExpect(problem(ErrorCode.INVALID_FACTOR));
+        }
+
+        mockMvc.perform(verification(source, session, right))
+                .andExpect(problem(ErrorCode.TOO_MANY_REQUESTS))
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "3"))
+                .andExpect(jsonPath("$.factor").doesNotExist());
+        assertThat(jdbc.queryForObject("SELECT last_used_counter FROM totp_user_details WHERE user_id = ?",
+                Long.class, admin.id())).as("the refused code was never checked").isNull();
+    }
+
+    private static MockHttpServletRequestBuilder verification(String source, CsrfSession session, String code) {
+        return post(TotpFactors.VERIFICATION).with(session.inHeader()).with(request -> {
+            request.setRemoteAddr(source);
+            return request;
+        }).contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"" + code + "\"}");
     }
 
     /** A JSON login body of exactly {@code bytes} bytes, for an unknown username. */

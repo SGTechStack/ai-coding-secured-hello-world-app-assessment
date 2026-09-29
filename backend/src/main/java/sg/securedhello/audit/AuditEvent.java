@@ -11,6 +11,8 @@ import static sg.securedhello.audit.AuditKey.SOURCE_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.TRUNCATED_ROWS;
 import static sg.securedhello.audit.AuditKey.USER_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.USER_ID;
+import static sg.securedhello.audit.AuditKey.USER_TARGET_COUNT;
+import static sg.securedhello.audit.AuditKey.USER_TARGET_ID;
 import static sg.securedhello.audit.AuditRowDefinition.row;
 
 import org.slf4j.event.Level;
@@ -200,6 +202,46 @@ public enum AuditEvent {
     TOTP_ENROLMENT_CONFIRMED(row("totp-enrol", "TOTP enrolment confirmed.")
             .type("change")
             .required(USER_ID)
+            .build()),
+
+    /**
+     * A code did not confirm the pending secret, or there was no pending enrolment to confirm. Nothing changed and the
+     * pending row stays for a retry (T-MFA-016).
+     */
+    TOTP_ENROLMENT_FAILED(row("totp-enrol", "TOTP enrolment confirmation failed.")
+            .type("change")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .required(USER_ID)
+            .build()),
+
+    /** Row 38: a code verified against the enrolled factor, which was granted or renewed to the session (ADR-021). */
+    TOTP_VERIFIED(row("totp-verify", "TOTP verification succeeded.")
+            .type("user")
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 39: a code did not verify against the enrolled factor: wrong, outside the window, or a replay (R-MFA-017).
+     * Every guess costs the password, so the row always names the account (ADR-027).
+     */
+    TOTP_VERIFICATION_FAILED(row("totp-verify", "TOTP verification failed.")
+            .type("user")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .required(USER_ID)
+            .build()),
+
+    /** An administrator read the user list; the row carries how many accounts it returned (PRD Story 8). */
+    ADMIN_USERS_LISTED(row("admin-user-list", "Administrator listed users.")
+            .type("access")
+            .required(USER_ID, USER_TARGET_COUNT)
+            .build()),
+
+    /** An administrator read one account; the row names it by UUID only (R-STD-008). */
+    ADMIN_USER_VIEWED(row("admin-user-read", "Administrator read a user.")
+            .type("access")
+            .required(USER_ID, USER_TARGET_ID)
             .build()),
 
     /**

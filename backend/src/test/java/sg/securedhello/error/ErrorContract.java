@@ -15,6 +15,7 @@ import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
 
+import sg.securedhello.mfa.TotpFactorEntryPoint;
 import sg.securedhello.password.PasswordRule;
 
 import tools.jackson.databind.SerializationFeature;
@@ -51,7 +52,14 @@ public final class ErrorContract {
             ErrorCode.VALIDATION_FAILED, Map.of("rule", new Extension(
                     Arrays.stream(ValidationRule.values()).map(Enum::name).toList(), false,
                     "Present only when the failure is a property of the submitted value the caller can act on: a "
-                            + "taken username at registration (ADR-032). A format or length rejection carries none.")));
+                            + "taken username at registration (ADR-032). A format or length rejection carries none.")),
+            ErrorCode.MISSING_FACTOR, Map.of(
+                    "factor", new Extension(List.of(TotpFactorEntryPoint.FACTOR), true,
+                            "The factor the admin surface requires (R-MFA-001)."),
+                    "reason", new Extension(
+                            Arrays.stream(TotpFactorEntryPoint.Reason.values()).map(Enum::name).toList(), true,
+                            "`MISSING` when the session does not hold the factor; `EXPIRED` when it holds one older "
+                                    + "than the rule accepts (ADR-021).")));
 
     /** An extension member on one code: its closed set of string values, whether it is required, what it means. */
     record Extension(List<String> values, boolean required, String meaning) {

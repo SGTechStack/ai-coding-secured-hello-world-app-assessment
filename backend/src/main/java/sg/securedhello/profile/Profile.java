@@ -2,6 +2,7 @@ package sg.securedhello.profile;
 
 import java.util.UUID;
 
+import sg.securedhello.mfa.TotpFactorStatus.Factors;
 import sg.securedhello.user.SignedInUser;
 
 /**
@@ -12,19 +13,12 @@ import sg.securedhello.user.SignedInUser;
  * @param username               the username
  * @param role                   {@code USER} or {@code ADMIN}
  * @param passwordChangeRequired the session holds a forced-change credential: the SPA's first gate (ADR-046)
- * @param factors                the second-factor state
+ * @param factors                the second-factor state: {@code held}, {@code required}, {@code enrolled} and
+ *                               {@code rebindRequired}
  */
 public record Profile(UUID id, String username, String role, boolean passwordChangeRequired, Factors factors) {
 
-    /**
-     * The four factor members. Only administrators use a second factor (ADR-023), so a user's are all {@code false};
-     * an administrator's are stubbed here too until TOTP enrolment and verification land.
-     */
-    public record Factors(boolean held, boolean required, boolean enrolled, boolean rebindRequired) {
-    }
-
-    public static Profile of(SignedInUser user) {
-        return new Profile(user.id(), user.getUsername(), user.role(), user.passwordChangeRequired(),
-                new Factors(false, "ADMIN".equals(user.role()), false, false));
+    public static Profile of(SignedInUser user, Factors factors) {
+        return new Profile(user.id(), user.getUsername(), user.role(), user.passwordChangeRequired(), factors);
     }
 }

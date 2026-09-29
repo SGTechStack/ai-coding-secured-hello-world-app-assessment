@@ -29,13 +29,14 @@ import org.springframework.validation.annotation.Validated;
  * @param passwordResetConfirm {@code POST /api/password-reset/confirm}: source axis
  * @param mfaTotpEnrolment {@code POST /api/mfa/totp/enrolment}: source axis
  * @param mfaTotpEnrolmentConfirmation {@code POST /api/mfa/totp/enrolment/confirmation}: source axis
+ * @param mfaTotpVerification {@code POST /api/mfa/totp/verification}: source axis
  */
 @Validated
 @ConfigurationProperties("app.security.rate-limit")
 public record RateLimitProperties(@Valid Route login, @Valid Route csrf, @NotNull @Valid SessionMiss sessionMiss,
         @Valid Route profilePassword, @Valid Route register, @Valid Route registerActivate,
         @Valid Route passwordResetRequest, @Valid Route passwordResetConfirm, @Valid Route mfaTotpEnrolment,
-        @Valid Route mfaTotpEnrolmentConfirmation) {
+        @Valid Route mfaTotpEnrolmentConfirmation, @Valid Route mfaTotpVerification) {
 
     /**
      * One route's budgets, one per axis it is throttled on; the axes it is not throttled on stay unset.

@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason) implements AuditContext {
 
-    /** Login success (row 1), logout (row 7), a completed password reset, and the TOTP enrolment rows (36, 37, 42). */
+    /** Login success (row 1), logout (row 7), a completed password reset, and the TOTP rows (36 to 39, 42). */
     public static AccountContext of(UUID userId) {
         return new AccountContext(userId, null);
     }

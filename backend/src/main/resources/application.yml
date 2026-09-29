@@ -99,6 +99,14 @@ app:
             path: /api/mfa/totp/enrolment
           - method: POST
             path: /api/mfa/totp/enrolment/confirmation
+          # Factor verification: grants or renews FACTOR_TOTP; the password factor is enough to reach it (ADR-021).
+          - method: POST
+            path: /api/mfa/totp/verification
+          # The admin surface. Every /api/admin/** row also requires the second factor, after the role (ADR-026).
+          - method: GET
+            path: /api/admin/users
+          - method: GET
+            path: /api/admin/users/{id}
     # A signed-in session ends this long after its AUTH_INSTANT, whatever its traffic (REJ-012; ADR-038).
     session:
       absolute: 8h
@@ -150,6 +158,10 @@ app:
           burst: 10
           refill-period: 6s
       mfa-totp-enrolment-confirmation:
+        source:
+          burst: 20
+          refill-period: 3s
+      mfa-totp-verification:
         source:
           burst: 20
           refill-period: 3s

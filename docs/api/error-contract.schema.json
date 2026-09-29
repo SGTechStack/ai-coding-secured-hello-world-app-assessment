@@ -15,6 +15,8 @@
         "detail" : {
           "const" : "Authentication is required, or the credentials were not accepted."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 401
@@ -40,6 +42,8 @@
         "detail" : {
           "const" : "The password must be changed before this request can be made."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 403
@@ -65,6 +69,8 @@
         "detail" : {
           "const" : "The CSRF token is missing, invalid or no longer current."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 403
@@ -90,6 +96,8 @@
         "detail" : {
           "const" : "The request is not permitted."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 403
@@ -115,6 +123,8 @@
         "detail" : {
           "const" : "The request was not valid."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : {
           "enum" : [ "USERNAME_UNAVAILABLE" ]
         },
@@ -142,6 +152,8 @@
         "detail" : {
           "const" : "The password does not meet the password policy."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : {
           "enum" : [ "MIN_LENGTH", "MAX_BYTES", "BLOCKLISTED", "CONTEXT_TERM", "TOO_WEAK", "HISTORY_REUSE" ]
         },
@@ -170,6 +182,8 @@
         "detail" : {
           "const" : "The token is invalid or has expired."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 400
@@ -195,6 +209,8 @@
         "detail" : {
           "const" : "A user with that username or email address already exists."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 400
@@ -220,6 +236,8 @@
         "detail" : {
           "const" : "Too many requests. Try again later."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 429
@@ -245,6 +263,12 @@
         "detail" : {
           "const" : "A current second-factor verification is required."
         },
+        "factor" : {
+          "enum" : [ "TOTP" ]
+        },
+        "reason" : {
+          "enum" : [ "MISSING", "EXPIRED" ]
+        },
         "rule" : false,
         "status" : {
           "const" : 412
@@ -255,7 +279,8 @@
         "type" : {
           "const" : "tag:securedhello.sg,2026:problem:missing-factor"
         }
-      }
+      },
+      "required" : [ "factor", "reason" ]
     }
   }, {
     "if" : {
@@ -270,6 +295,8 @@
         "detail" : {
           "const" : "The second-factor code was not accepted."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 412
@@ -295,6 +322,8 @@
         "detail" : {
           "const" : "A second factor must be enrolled before this request can be made."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 422
@@ -320,6 +349,8 @@
         "detail" : {
           "const" : "A second factor is already enrolled."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 409
@@ -345,6 +376,8 @@
         "detail" : {
           "const" : "The second factor is disabled. Contact an administrator."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 423
@@ -370,6 +403,8 @@
         "detail" : {
           "const" : "An unexpected error occurred."
         },
+        "factor" : false,
+        "reason" : false,
         "rule" : false,
         "status" : {
           "const" : 500
@@ -391,8 +426,14 @@
     "detail" : {
       "type" : "string"
     },
+    "factor" : {
+      "enum" : [ "TOTP" ]
+    },
     "instance" : {
       "type" : "string"
+    },
+    "reason" : {
+      "enum" : [ "EXPIRED", "MISSING" ]
     },
     "rule" : {
       "enum" : [ "BLOCKLISTED", "CONTEXT_TERM", "HISTORY_REUSE", "MAX_BYTES", "MIN_LENGTH", "TOO_WEAK", "USERNAME_UNAVAILABLE" ]

@@ -27,6 +27,10 @@ public enum AuditKey {
      * only when the account resolves, and set explicitly by the caller, never from MDC (REJ-042; R-AUD-007).
      */
     USER_ID("user.id"),
+    /** The account an administrator acted on or read, by its UUID; the acting admin stays in {@code user.id}. */
+    USER_TARGET_ID("user.target.id"),
+    /** The number of accounts an admin read returned (a custom field, REJ-044; R-AUD-002). */
+    USER_TARGET_COUNT("user.target.count"),
     /** On a truncation row: the source keys the window tracked, exactly; at most the cap (ADR-019; REJ-079). */
     SOURCE_DISTINCT_COUNT("source.distinct_count"),
     /** On a truncation row: the users the window tracked, exactly; at most the cap (ADR-019; REJ-079). */

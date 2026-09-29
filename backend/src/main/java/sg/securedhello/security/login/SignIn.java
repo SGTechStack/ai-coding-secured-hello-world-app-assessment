@@ -45,7 +45,7 @@ import sg.securedhello.audit.SessionStartReason;
 import sg.securedhello.audit.SourceThrottleReason;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
-import sg.securedhello.profile.Profile;
+import sg.securedhello.profile.ProfileReader;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.TooManyRequests;
@@ -106,11 +106,12 @@ public final class SignIn {
     private final AuthRateLimiter limiter;
     private final SourceKeyAuthenticationDetailsSource detailsSource;
     private final LockoutCardinality cardinality;
+    private final ProfileReader profiles;
 
     SignIn(AuthenticationProvider provider, AuthenticationEventPublisher events, SessionRegistry sessionRegistry,
             AuditEmitter audit, ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock,
             AuthRateLimiter limiter, SourceKeyAuthenticationDetailsSource detailsSource,
-            LockoutCardinality cardinality) {
+            LockoutCardinality cardinality, ProfileReader profiles) {
         this.authenticationManager = new ProviderManager(provider);
         this.authenticationManager.setAuthenticationEventPublisher(events);
         this.sessionRegistry = sessionRegistry;
@@ -121,6 +122,7 @@ public final class SignIn {
         this.limiter = limiter;
         this.detailsSource = detailsSource;
         this.cardinality = cardinality;
+        this.profiles = profiles;
     }
 
     /**
@@ -221,7 +223,7 @@ public final class SignIn {
         audit.emit(AuditEvent.LOGIN_SUCCESS, AccountContext.of(user.id()));
         response.setStatus(HttpStatus.OK.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        jsonMapper.writeValue(response.getOutputStream(), Profile.of(user));
+        jsonMapper.writeValue(response.getOutputStream(), profiles.read(authentication));
     }
 
     private LogoutHandler auditLogout() {

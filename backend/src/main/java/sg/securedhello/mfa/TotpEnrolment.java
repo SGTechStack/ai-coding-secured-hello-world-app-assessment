@@ -104,18 +104,23 @@ public class TotpEnrolment {
      * @throws InvalidFactorException         when there is no pending enrolment or the code does not verify
      */
     public void confirm(UUID userId, String code) {
-        transactions.executeWithoutResult(status -> {
-            lockAccount(userId);
-            if (factors.existsById(userId)) {
-                throw new FactorAlreadyEnrolledException();
-            }
-            PendingTotp row = pending.findById(userId).orElseThrow(InvalidFactorException::new);
-            byte[] secret = cipher.open(userId, row.getKeyVersion(), row.getTotpKey());
-            long counter = TotpWindow.match(secret, code, clock.instant(), TotpWindow.NEVER_USED)
-                    .orElseThrow(InvalidFactorException::new);
-            factors.save(TotpUserDetails.boundFrom(row, counter, clock.instant()));
-            pending.delete(row);
-        });
+        try {
+            transactions.executeWithoutResult(status -> {
+                lockAccount(userId);
+                if (factors.existsById(userId)) {
+                    throw new FactorAlreadyEnrolledException();
+                }
+                PendingTotp row = pending.findById(userId).orElseThrow(InvalidFactorException::new);
+                byte[] secret = cipher.open(userId, row.getKeyVersion(), row.getTotpKey());
+                long counter = TotpWindow.match(secret, code, clock.instant(), TotpWindow.NEVER_USED)
+                        .orElseThrow(InvalidFactorException::new);
+                factors.save(TotpUserDetails.boundFrom(row, counter, clock.instant()));
+                pending.delete(row);
+            });
+        } catch (InvalidFactorException ex) {
+            audit.emit(AuditEvent.TOTP_ENROLMENT_FAILED, AccountContext.of(userId));
+            throw ex;
+        }
         audit.emit(AuditEvent.TOTP_ENROLMENT_CONFIRMED, AccountContext.of(userId));
     }
 

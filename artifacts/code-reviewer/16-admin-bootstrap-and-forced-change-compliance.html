@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 16-admin-bootstrap-and-forced-change</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/1/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN 0/0/1/0</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">zacharylim</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 16: admin bootstrap, forced-change credential, allowlist, lazy 30-day expiry, SPA first gate. Run inline (no subagents available) on <code>zacharylim</code>. Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify -Ddependency-check.skip=true</code> passes: 849 tests and 6 ITs, including <code>TraceabilityGateIT</code> with nine rows removed from the ledger. <code>-Pmutation</code>: 150 of 150 mutants killed (100%); that run also re-ran the whole suite green after the fix for a flaky test (the column keeps microseconds, the shared clock finer, so the DB-backed tests use "just under 30 days" and the unit test proves the exact boundary). Frontend: <code>tsc -b</code>, <code>oxlint</code>, <code>prettier --check</code>, Vitest (128 tests) and the production build all pass. Playwright: 16 passed on Chromium and Firefox, including the new forced-change journey. The dev demo was also run by hand: <code>demo-admin</code> was seeded, got 403 <code>PASSWORD_CHANGE_REQUIRED</code> on <code>/api/hello</code>, changed the password and was freed.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Each part is one small unit. <code>AdminBootstrap</code> validates in its constructor and seeds in its runner. <code>ForcedChangeFilter</code> checks the principal against the allowlist. <code>PasswordService.issueForcedChangeCredential</code> shares one private path with <code>setPassword</code>. The 30-day rule lives only in <code>UserAccount.forcedChangeExpiredAt</code>. Low: <code>SignedInUser</code> now has nine fields; the two new flags follow the existing lockout-flag pattern.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/1/1</td><td class="p-2">Every acceptance criterion has a test. Medium, a deviation that follows the ADR: a disabled sole admin blocks the seed but not startup, as ADR-047 and T-ADM-025 say, because the recovery runner is the same jar (ADR-072). The ticket's wording said "stops startup". Low: the README demo username changed from <code>admin</code>, which is reserved, to <code>demo-admin</code>. T-ADM-005 and T-ADM-031 stay on the ledger (they need re-enable and the tier-2 disable).</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">The semgrep CLI is not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">WARN</td><td class="p-2">0/0/0/1</td><td class="p-2">The seed credentials come from the environment only, with no default. Validation runs at refresh, before the port opens, through the same password policy and the reserved-name set that registration uses. Refusal messages name the property and the rule, never the value, and the canary scan stays clean. The expiry is refused in the pre-authentication checks: a correct and a wrong password get the same 401, the same <code>CREDENTIAL_EXPIRED</code> row with <code>user.id</code>, unchanged counters and one <code>matches()</code> each. The allowlist is exactly five routes. Low: the seeded admin's placeholder address <code>&lt;username&gt;@admin.invalid</code> cannot receive a self-service reset. Admin recovery is by another admin or the runner (ADR-047/072).</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>landingFor(profile)</code> is the first gate. Sign-in and the entry route both use it, and a <code>PASSWORD_CHANGE_REQUIRED</code> code overrides the client's belief, as a code should. The change page explains the obligation, offers sign-out instead of Back, and moves on once the change succeeds.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">WARN</td><td class="p-2">0/0/1/0</td><td class="p-2">Medium, fixed in this change: the matrix registered one <code>hasRole</code> rule per role, so the first matching rule (<code>GET /api/profile</code> for USER) refused every ADMIN. The seeded admin exposed it. Routes are now grouped into one <code>hasAnyRole</code> rule each (<code>AuthorizationMatrix.rolesByRoute</code>). The seed runner is transactional, the credential column is still written only by <code>PasswordService</code> (ArchUnit is green), and after a change the session principal is replaced and saved by the minimal session strategy.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

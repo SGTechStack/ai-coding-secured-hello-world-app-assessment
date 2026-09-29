@@ -70,7 +70,7 @@ $env:APP_MFA_TOTP_ENCRYPTION_KEYVERSION  = "1"
 $env:APP_SECURITY_HMAC_TOMBSTONE_KEY     = "BHTFVzkUqlCU8Z1m+CEmMPGnv+oZWNKtp00vvZX4Yg8="
 $env:APP_SECURITY_HMAC_TOMBSTONE_VERSION = "1"
 $env:APP_SECURITY_HMAC_LOG_KEY           = "Y1l63mWeV+COTPcyKMi1tQf3dBUFFNbpONXPDeR6u58="
-$env:APP_ADMIN_USERNAME                  = "admin"
+$env:APP_ADMIN_USERNAME                  = "demo-admin"
 $env:APP_ADMIN_PASSWORD                  = "lantern-orchard-copper-tide"
 $env:APP_ORIGINS_SPA                     = "http://localhost:5173"
 $env:APP_ORIGINS_API                     = "http://localhost:8080"
@@ -85,7 +85,7 @@ export APP_MFA_TOTP_ENCRYPTION_KEYVERSION="1"
 export APP_SECURITY_HMAC_TOMBSTONE_KEY="BHTFVzkUqlCU8Z1m+CEmMPGnv+oZWNKtp00vvZX4Yg8="
 export APP_SECURITY_HMAC_TOMBSTONE_VERSION="1"
 export APP_SECURITY_HMAC_LOG_KEY="Y1l63mWeV+COTPcyKMi1tQf3dBUFFNbpONXPDeR6u58="
-export APP_ADMIN_USERNAME="admin"
+export APP_ADMIN_USERNAME="demo-admin"
 export APP_ADMIN_PASSWORD="lantern-orchard-copper-tide"
 export APP_ORIGINS_SPA="http://localhost:5173"
 export APP_ORIGINS_API="http://localhost:8080"
@@ -94,7 +94,9 @@ mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
 
 Any replacement for `APP_ADMIN_PASSWORD` must pass the password policy that `PasswordService` runs on every password
 set: at least 15 characters, at most 72 UTF-8 bytes, not a breached or banned password, not containing the username,
-the email local part or the service name, and a zxcvbn score of 3 or more (ADR-005).
+the email local part or the service name, and a zxcvbn score of 3 or more (ADR-005). `APP_ADMIN_USERNAME` must be a valid
+username (lower case, `[a-z0-9._-]{3,32}`) and not a reserved name such as `admin`, `administrator` or `root`
+(`Identifiers.RESERVED_USERNAMES`). A bad value in either stops startup before the port opens.
 
 Then start the SPA in a second terminal (`cd frontend; npm run dev`) and open http://localhost:5173. Check the
 backend with `curl http://localhost:8080/actuator/health`, which returns `{"status":"UP"}`.
@@ -105,8 +107,30 @@ Open it, set a password, then sign in. A forgotten password works the same way: 
 http://localhost:5173/forgot-password and the reset link, valid for 30 minutes, appears on the same logger. Outside
 `dev` that logger is refused at startup, so a link is delivered nowhere.
 
-Until the admin seed (ticket 16) lands there is no administrator. To demo sign-in without registering, use the fixture
-backend: it creates the accounts and needs none of the variables above.
+### Signing in as the seeded administrator
+
+On its first start against an empty database the app seeds one administrator from `APP_ADMIN_USERNAME` and
+`APP_ADMIN_PASSWORD` (ADR-047); with the demo values above that is `demo-admin` / `lantern-orchard-copper-tide`. It
+seeds only while no `ADMIN` account exists, so later starts seed nothing and changing the variables afterwards has no
+effect. The database is the H2 file under `backend/data/`: stop the app and delete that folder to start over.
+
+The seeded password is a forced-change credential (ADR-046):
+
+1. Sign in at http://localhost:5173 as `demo-admin`. The app goes straight to the Change password page, and until the
+   change is made every API route except sign-in, sign-out, the CSRF token, the self-read and the change itself
+   answers 403 `PASSWORD_CHANGE_REQUIRED`.
+2. Enter `lantern-orchard-copper-tide` as the current password and a new one that passes the policy. The session
+   stays signed in and is no longer confined.
+3. An unchanged seed password expires 30 days after the first start: sign-in then fails with the uniform 401. Delete
+   `backend/data/` to get a fresh seed.
+
+The administrator surface itself (TOTP enrolment, user administration) is not built yet, so after the change an
+administrator sees the greeting page without a greeting: `/api/hello` is for the `USER` role only.
+
+### The fixture backend
+
+To demo sign-in without registering, use the fixture backend: it creates the accounts and needs none of the variables
+above.
 
 ```powershell
 mvn -f backend/pom.xml test-compile spring-boot:test-run "-Dspring-boot.run.main-class=sg.securedhello.e2e.E2eBackend" "-Dspring-boot.run.arguments=--server.port=8080 --app.origins.spa=http://localhost:5173 --app.origins.api=http://localhost:8080"

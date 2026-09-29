@@ -85,7 +85,9 @@ export default function App() {
     // Guard against a stale "admin" view if role somehow isn't ADMIN.
     const activeView = view === "admin" && session.role === "ADMIN" ? "admin" : "home";
     // Navbar and content share one centered column, sized to the active card.
-    const columnWidth = activeView === "admin" ? "max-w-3xl" : "max-w-md";
+    // Admin holds a wide six-column table, so its column is ~30% wider than the
+    // 48rem (max-w-3xl) baseline to keep the row action buttons from clipping.
+    const columnWidth = activeView === "admin" ? "max-w-[62rem]" : "max-w-md";
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
         <div className={`flex w-full ${columnWidth} flex-col gap-4`}>

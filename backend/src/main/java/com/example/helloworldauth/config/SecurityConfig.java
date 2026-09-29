@@ -60,6 +60,28 @@ public class SecurityConfig {
                 // slices (12/13/14) reuse this same /api/admin/** matcher.
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
+            // Eagerly materialize the CSRF token so CookieCsrfTokenRepository
+            // writes the XSRF-TOKEN cookie on a plain GET (e.g. /api/ping). With
+            // deferred tokens (Spring Security 6 default) the cookie is only set
+            // once something reads the token, so a SPA that GETs to "prime" the
+            // cookie before its first POST would otherwise get nothing and have
+            // its POST rejected. This filter forces the render on every request.
+            .addFilterAfter(new org.springframework.web.filter.OncePerRequestFilter() {
+                @Override
+                protected void doFilterInternal(jakarta.servlet.http.HttpServletRequest request,
+                        jakarta.servlet.http.HttpServletResponse response,
+                        jakarta.servlet.FilterChain chain)
+                        throws jakarta.servlet.ServletException, java.io.IOException {
+                    org.springframework.security.web.csrf.CsrfToken token =
+                        (org.springframework.security.web.csrf.CsrfToken)
+                            request.getAttribute(
+                                org.springframework.security.web.csrf.CsrfToken.class.getName());
+                    if (token != null) {
+                        token.getToken(); // triggers CookieCsrfTokenRepository to set the cookie
+                    }
+                    chain.doFilter(request, response);
+                }
+            }, org.springframework.security.web.csrf.CsrfFilter.class)
             .exceptionHandling(ex -> ex
                 // Unauthenticated -> 401 (no session/credentials).
                 .authenticationEntryPoint(

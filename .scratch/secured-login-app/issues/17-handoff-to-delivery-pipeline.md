@@ -17,3 +17,5 @@ This is the map's destination. Nothing here is a decision — every decision was
 4. **Record the definition of done** that [14](14-test-and-validation-plan.md) settled: which gates must run clean before the build is finished.
 
 Wayfinder ends here. This map plans; it does not build. Closing this ticket closes the map.
+
+**Amended by [15 — Tech baseline and module structure](15-tech-baseline-and-module-structure.md).** The baseline the pipeline needs is fixed: **Java 21, Spring Boot 4.0.x, Spring Security 7.0.x, Maven with a committed wrapper**; one repo with sibling `backend/` and `frontend/`; feature-first packages under `com.assessment.auth`; **Vite + React 19 + TypeScript + react-router v7 + axios**; the closed dependency set (one slot open for 07's rate-limit cache); the four-file configuration layout plus `db/changelog/`; environment-variable secrets with a committed `.env.example`; and the HTTPS/`TZ`/no-forwarding-agent deployment note in `backend/README.md`. 15 also graduated the map's **architecture-test** and **configuration/secrets** fog patches, so `arch-tests-plan` has real package names to write rows against.

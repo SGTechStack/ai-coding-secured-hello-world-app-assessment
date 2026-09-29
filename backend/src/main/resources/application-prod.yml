@@ -1,0 +1,30 @@
+# Production baseline. Deploy behind a TLS-terminating reverse proxy.
+# Required environment: DATABASE_URL, DATABASE_USERNAME, DATABASE_PASSWORD,
+# APP_CORS_ALLOWED_ORIGINS, APP_PASSWORD_RESET_URL, and APP_ADMIN_PASSWORD on first start.
+# A real EmailService bean must also be provided: the logging stub is disabled in this profile.
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+
+server:
+  # Trust X-Forwarded-* only from the proxy (Tomcat RemoteIpValve; internal proxy ranges by default),
+  # so request.getRemoteAddr() is the real client IP and HTTPS is detected for HSTS.
+  forward-headers-strategy: native
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+app:
+  session:
+    cookie:
+      # __Host- prefix: the browser enforces Secure, Path=/ and no Domain attribute.
+      name: __Host-SESSION
+      secure: true
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
+  password-reset:
+    reset-url: ${APP_PASSWORD_RESET_URL}

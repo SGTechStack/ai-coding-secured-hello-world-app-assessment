@@ -1,0 +1,13 @@
+# Local development: file-based H2 (survives restarts) and plain HTTP.
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/hello-auth
+    username: sa
+    password: ""
+
+app:
+  session:
+    cookie:
+      # Local dev runs over HTTP, so the cookie cannot be Secure. This is the documented gap;
+      # every real deployment must use the prod profile behind HTTPS.
+      secure: false

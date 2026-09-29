@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: hello-auth
+  profiles:
+    default: dev
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration/common,classpath:db/migration/{vendor}
+  session:
+    timeout: 30m
+    jdbc:
+      # Session tables are created by Flyway (db/migration/{vendor}), not by Spring Session.
+      initialize-schema: never
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  session:
+    cookie:
+      name: SESSION
+      secure: true
+  cors:
+    allowed-origins: http://localhost:3000
+  security:
+    bcrypt-strength: 12
+  login:
+    lockout:
+      max-attempts: 5
+      window: 15m
+      duration: 15m
+    ip-throttle:
+      max-failures: 20
+      window: 15m
+  password-reset:
+    token-ttl: 30m
+    reset-url: http://localhost:3000/reset-password
+    ip-throttle:
+      max-requests: 5
+      window: 15m
+  admin:
+    # The password has no default on purpose: supply APP_ADMIN_PASSWORD when no ADMIN exists yet.
+    username: admin
+    email: admin@example.com

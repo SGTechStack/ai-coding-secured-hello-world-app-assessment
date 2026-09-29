@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:hello-auth-test;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+
+app:
+  security:
+    # Minimum cost keeps the suite fast; production uses the default of 12.
+    bcrypt-strength: 4
+  admin:
+    username: rootadmin
+    email: rootadmin@example.com
+    password: Bootstrap-Admin-Pass-1

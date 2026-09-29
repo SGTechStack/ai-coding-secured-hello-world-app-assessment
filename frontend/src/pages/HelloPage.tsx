@@ -14,6 +14,10 @@ export function HelloPage() {
   if (greeting.error instanceof ApiError && greeting.error.code === 'AUTHENTICATION_FAILED') {
     return <Navigate to="/sign-in" replace />
   }
+  // The first gate, by authority: a forced-change session is refused everything but the allowlist (ADR-046).
+  if (greeting.error instanceof ApiError && greeting.error.code === 'PASSWORD_CHANGE_REQUIRED') {
+    return <Navigate to="/change-password" replace />
+  }
 
   const onSignOut = async () => {
     await signOut(queryClient)

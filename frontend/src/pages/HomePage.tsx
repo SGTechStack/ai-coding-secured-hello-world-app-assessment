@@ -1,17 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import { Navigate } from 'react-router'
 import { ApiError } from '@/lib/api/errors'
-import { fetchProfile, PROFILE_KEY } from '@/lib/auth/session'
+import { fetchProfile, landingFor, PROFILE_KEY } from '@/lib/auth/session'
 
 /**
  * The entry route. Where to go is decided by the self-read (belief): a profile means signed in, and
- * `AUTHENTICATION_FAILED` means not.
+ * `AUTHENTICATION_FAILED` means not. A signed-in session lands where its gates send it (`landingFor`).
  */
 export function HomePage() {
   const profile = useQuery({ queryKey: PROFILE_KEY, queryFn: fetchProfile })
 
   if (profile.data) {
-    return <Navigate to="/hello" replace />
+    return <Navigate to={landingFor(profile.data)} replace />
   }
   if (profile.error instanceof ApiError && profile.error.code === 'AUTHENTICATION_FAILED') {
     return <Navigate to="/sign-in" replace />

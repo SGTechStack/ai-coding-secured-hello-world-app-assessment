@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError, type ErrorCode } from '@/lib/api/errors'
-import { PROFILE_KEY, signIn } from '@/lib/auth/session'
+import { landingFor, PROFILE_KEY, signIn } from '@/lib/auth/session'
 
 const schema = z.object({
   username: z.string().trim().min(1, 'Enter your username.'),
@@ -41,7 +41,7 @@ export function SignInPage() {
     try {
       const profile = await signIn(username, password)
       queryClient.setQueryData(PROFILE_KEY, profile)
-      await navigate('/hello', { replace: true })
+      await navigate(landingFor(profile), { replace: true })
     } catch (error) {
       setFailure((error instanceof ApiError && FAILURE_COPY[error.code]) || GENERIC_FAILURE)
       resetField('password')

@@ -14,6 +14,7 @@ const PROFILE = {
   id: '00000000-0000-4000-8000-000000000001',
   username: 'alice',
   role: 'USER',
+  passwordChangeRequired: false,
   factors: { held: false, required: false, enrolled: false, rebindRequired: false },
 }
 
@@ -23,11 +24,11 @@ interface Sent {
 }
 
 /** Serves the self-read and answers the change with `respond`; returns what the page sent and how often it fetched a token. */
-function serve(respond: () => Response) {
+function serve(respond: () => Response, profile: object = PROFILE) {
   const sent: Sent[] = []
   const tokens = { fetched: 0 }
   server.use(
-    http.get(apiUrl('/api/profile'), () => HttpResponse.json(PROFILE)),
+    http.get(apiUrl('/api/profile'), () => HttpResponse.json(profile)),
     http.get(apiUrl('/api/csrf'), () => {
       tokens.fetched += 1
       return HttpResponse.json({ headerName: CSRF_HEADER, token: `token-${tokens.fetched}` })
@@ -153,5 +154,39 @@ describe('change password', () => {
     renderApp('/change-password')
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+  })
+})
+
+describe('forced change: the first gate (ADR-046)', () => {
+  const FORCED = { ...PROFILE, passwordChangeRequired: true }
+
+  it('explains the obligation and offers sign-out instead of a way back', async () => {
+    serve(() => new HttpResponse(null, { status: 204 }), FORCED)
+    renderApp('/change-password')
+
+    expect(await screen.findByText(/You must choose a new password before you can continue/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Back' })).not.toBeInTheDocument()
+  })
+
+  it('moves on to the app once the change succeeds', async () => {
+    serve(() => new HttpResponse(null, { status: 204 }), FORCED)
+    server.use(http.get(apiUrl('/api/hello'), () => HttpResponse.json({ message: 'Hello, alice' })))
+
+    await submit(CURRENT, NEXT)
+
+    expect(await screen.findByRole('heading', { name: 'Hello, alice' })).toBeInTheDocument()
+  })
+
+  it('signs out from the change page', async () => {
+    serve(() => new HttpResponse(null, { status: 204 }), FORCED)
+    server.use(http.post(apiUrl('/api/logout'), () => new HttpResponse(null, { status: 204 })))
+    const user = userEvent.setup()
+    const { router } = renderApp('/change-password')
+
+    await user.click(await screen.findByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/sign-in')
   })
 })

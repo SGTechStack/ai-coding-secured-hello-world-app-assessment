@@ -6,6 +6,8 @@ export interface Profile {
   id: string
   username: string
   role: 'USER' | 'ADMIN'
+  /** The session holds a forced-change credential: the first gate (ADR-046). */
+  passwordChangeRequired: boolean
   factors: { held: boolean; required: boolean; enrolled: boolean; rebindRequired: boolean }
 }
 
@@ -62,4 +64,12 @@ export async function changePassword(currentPassword: string, newPassword: strin
     body: JSON.stringify({ currentPassword, newPassword }),
   })
   await refreshCsrfToken()
+}
+
+/**
+ * Where a signed-in session belongs, from the self-read, in gate order (spec, Frontend): the forced change first, so a
+ * forced-change session goes straight to the change-password page; then the app. The factor gates slot in between.
+ */
+export function landingFor(profile: Profile): string {
+  return profile.passwordChangeRequired ? '/change-password' : '/hello'
 }

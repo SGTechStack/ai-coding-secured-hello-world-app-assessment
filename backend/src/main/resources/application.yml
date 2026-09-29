@@ -41,7 +41,10 @@ app:
   cors:
     allowed-origins:
       - http://localhost:3000
-  # Security thresholds (wired in later slices)
+  # Frontend base URL used to build password-reset links.
+  # Reset links are NEVER built from the request Host header (Story 52).
+  frontend:
+    base-url: http://localhost:3000
   security:
     lockout:
       max-attempts: 5
@@ -53,9 +56,12 @@ app:
   admin:
     username: admin
     password: change-me-please-12+
-  # Password reset token lifetime (wired in the reset slice)
+  # Password reset token lifetime + per-IP request rate limit
   reset:
     token-ttl-minutes: 30
+    request-rate-limit:
+      max-attempts: 5
+      window-minutes: 15
 
 logging:
   level:

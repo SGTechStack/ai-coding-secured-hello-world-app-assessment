@@ -4,6 +4,9 @@ import java.util.Map;
 
 import com.example.auth.login.IpThrottledException;
 import com.example.auth.login.LoginService;
+import com.example.auth.passwordreset.PasswordResetConfirmRequest;
+import com.example.auth.passwordreset.PasswordResetRequestRequest;
+import com.example.auth.passwordreset.PasswordResetService;
 import com.example.auth.user.RegistrationRequest;
 import com.example.auth.user.RegistrationService;
 import com.example.auth.user.UserPrincipal;
@@ -39,15 +42,18 @@ public class AuthController {
 
     private final RegistrationService registrationService;
     private final LoginService loginService;
+    private final PasswordResetService passwordResetService;
     private final HttpSessionSecurityContextRepository securityContextRepository;
     private final UserRepository users;
 
     public AuthController(RegistrationService registrationService,
                           LoginService loginService,
+                          PasswordResetService passwordResetService,
                           HttpSessionSecurityContextRepository securityContextRepository,
                           UserRepository users) {
         this.registrationService = registrationService;
         this.loginService = loginService;
+        this.passwordResetService = passwordResetService;
         this.securityContextRepository = securityContextRepository;
         this.users = users;
     }
@@ -120,5 +126,28 @@ public class AuthController {
         return users.findByUsername(principal.getUsername())
                 .map(UserResponse::from)
                 .orElseThrow();
+    }
+
+    /**
+     * Always returns the same generic 200 regardless of whether the email exists
+     * — account existence must not be inferable (enumeration resistance, Story 18).
+     * A ResetRequestThrottledException (429) is the only non-200 outcome and is
+     * IP-keyed, so it leaks no account information.
+     */
+    @PostMapping("/password-reset/request")
+    Map<String, String> requestPasswordReset(@Valid @RequestBody PasswordResetRequestRequest req,
+                                              HttpServletRequest request) {
+        passwordResetService.requestReset(req.email(), request.getRemoteAddr());
+        return Map.of("message", "If that email is registered, a reset link has been sent.");
+    }
+
+    /**
+     * Confirms a reset. Does not authenticate the user (Story 24). Invalid,
+     * expired, or used tokens all yield a generic 400 via InvalidResetTokenException.
+     */
+    @PostMapping("/password-reset/confirm")
+    Map<String, String> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest req) {
+        passwordResetService.confirmReset(req.token(), req.newPassword());
+        return Map.of("message", "Password has been reset. Please log in.");
     }
 }

@@ -34,7 +34,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * need to change as new endpoint groups are added in later slices.
  */
 @Configuration
-@EnableConfigurationProperties({CorsProperties.class, SecurityProperties.class})
+@EnableConfigurationProperties({
+    CorsProperties.class,
+    SecurityProperties.class,
+    PasswordResetProperties.class,
+    FrontendProperties.class
+})
 public class SecurityConfig {
 
     @Bean

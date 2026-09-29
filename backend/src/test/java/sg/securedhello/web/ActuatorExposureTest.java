@@ -42,6 +42,14 @@ class ActuatorExposureTest extends CtxDefaultTest {
                 .andExpect(content().json("{\"status\":\"UP\"}", JsonCompareMode.STRICT));
     }
 
+    @Test
+    @Proves("T-OBS-009")
+    void theStorageGroupIsUpWithNoDetails() throws Exception {
+        mockMvc.perform(get("/actuator/health/storage"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("{\"status\":\"UP\"}", JsonCompareMode.STRICT));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"/actuator/health/db", "/actuator/health/ping", "/actuator/health/diskSpace",
             "/actuator/health/h2Data", "/actuator/health/liveness", "/actuator/health/readiness"})

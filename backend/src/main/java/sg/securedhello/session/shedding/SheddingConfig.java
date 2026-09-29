@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.util.Locale;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.health.actuate.endpoint.HealthEndpointGroupsPostProcessor;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
@@ -43,11 +44,18 @@ public class SheddingConfig {
 
     /**
      * {@code h2Data}: DOWN while a shed episode runs. It reads the episode the last shed check decided and never runs
-     * a count of its own, because anyone can reach {@code /actuator/health} (ADR-041; T-OBS-006).
+     * a count of its own, because anyone can reach the health endpoint (ADR-041; T-OBS-006). It is reported only by
+     * the {@code storage} group, never by {@code /actuator/health} ({@link StorageHealthGroup}).
      */
     @Bean
     HealthIndicator h2DataHealthIndicator(AnonymousSessionShedding shedding) {
         return () -> shedding.shedding() ? Health.down().build() : Health.up().build();
+    }
+
+    /** Keeps {@code h2Data} out of {@code /actuator/health}; the {@code storage} group reports it. */
+    @Bean
+    static HealthEndpointGroupsPostProcessor storageHealthGroup() {
+        return new StorageHealthGroup();
     }
 
     /**

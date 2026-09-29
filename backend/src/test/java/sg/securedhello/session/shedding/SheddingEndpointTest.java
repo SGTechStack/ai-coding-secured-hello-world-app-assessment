@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
 
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.convention.TestBean;
 import org.springframework.test.json.JsonCompareMode;
 
@@ -33,12 +35,14 @@ import sg.securedhello.testsupport.SessionRows;
 import sg.securedhello.testsupport.SignedIn;
 
 /**
- * ADR-041 end to end: a session-less {@code GET /api/csrf} is shed past either line, signed-in traffic continues, and
- * {@code /actuator/health} reflects the episode without details.
+ * ADR-041 end to end: a session-less {@code GET /api/csrf} is shed past either line, signed-in traffic continues,
+ * {@code /actuator/health/storage} reports the episode without details, and {@code /actuator/health} stays up.
  *
  * <p>Its own context, because the volume is replaced by a settable one ({@link #FREE}) so a test can make the disk
- * "low" without filling it, and because episodes and the rows it inserts must not reach the shared context.
+ * "low" without filling it, and because episodes and the rows it inserts must not reach the shared context. Probes are
+ * on here, as a deployer with an orchestrator would set them, to show readiness stays up during an episode.
  */
+@TestPropertySource(properties = "management.endpoint.health.probes.enabled=true")
 class SheddingEndpointTest extends CtxDefaultTest {
 
     private static final long PLENTY = Long.MAX_VALUE / 2;
@@ -109,17 +113,29 @@ class SheddingEndpointTest extends CtxDefaultTest {
 
     @Test
     @Proves("T-OBS-009")
-    void healthStaysDetailFreeAndReflectsTheEpisode() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isOk())
-                .andExpect(content().json("{\"status\":\"UP\"}", JsonCompareMode.STRICT));
+    void theStorageGroupReportsTheEpisodeWhileTheRoutingHealthStaysUp() throws Exception {
+        assertHealth("/actuator/health/storage", 200, "UP");
         lowDisk();
         mockMvc.perform(get("/api/csrf")).andExpect(status().isTooManyRequests());
 
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(content().json("{\"status\":\"DOWN\"}", JsonCompareMode.STRICT));
+        // The routing endpoints: the root and, where a deployer enables probes, readiness (REJ-063; R-OBS-006).
+        mockMvc.perform(get("/actuator/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+        assertHealth("/actuator/health/readiness", 200, "UP");
+        assertHealth("/actuator/health/storage", 503, "DOWN");
         mockMvc.perform(get("/actuator/health/h2Data")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/actuator/health/storage/h2Data")).andExpect(status().isNotFound());
+
+        FREE.set(PLENTY);
+        clock.advance(ShedEpisode.DWELL);
+        mockMvc.perform(get("/api/csrf")).andExpect(status().isOk());
+        assertHealth("/actuator/health/storage", 200, "UP");
+    }
+
+    /** A detail-free health body: the status and nothing else. */
+    private void assertHealth(String path, int httpStatus, String healthStatus) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().is(httpStatus))
+                .andExpect(content().json("{\"status\":\"" + healthStatus + "\"}", JsonCompareMode.STRICT));
     }
 
     @Test

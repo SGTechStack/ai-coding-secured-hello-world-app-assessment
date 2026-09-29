@@ -64,8 +64,9 @@ not the lock, which is stored on the account. Startup refuses a lockout ladder f
 
 A token fetch with no session gets 429 with `Retry-After: 60` while new anonymous sessions are shed: when
 `SPRING_SESSION` holds 100,000 rows, or the database volume's free space falls under 25.5 KB per row plus
-`app.security.session.shedding.floor` (256 MB). An episode lasts at least 60 seconds, and `/actuator/health` reports
-`DOWN` while it runs (ADR-041).
+`app.security.session.shedding.floor` (256 MB). An episode lasts at least 60 seconds (ADR-041). While it runs,
+`/actuator/health/storage` reports `DOWN` (503), and `/actuator/health`, the endpoint to point load balancers at,
+stays `UP`: signed-in users are unaffected, so the node must stay in rotation.
 
 ### Metrics
 

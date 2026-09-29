@@ -2,7 +2,7 @@
 
 Type: grilling
 Status: open
-Blocked by: 03, 04
+Blocked by: 03
 Map: [Secured Login App](../map.md)
 
 ## Question
@@ -35,3 +35,10 @@ Blocked on 03 (role model) and 04 (which self-service surface exists at all).
 - **Column conventions are not this ticket's to choose:** primary keys are `UUID`, declared as `java.sql.Types.UUID` so Liquibase resolves the vendor type; every timestamp is `TIMESTAMP WITH TIME ZONE` mapped to `java.time.Instant` and stored UTC, read through an injectable `Clock`.
 - 02's table inventory already **reserves the slot** for what this ticket adds; only the columns are open.
 - Whatever DDL this ticket writes must hold on **both** H2 and PostgreSQL — 02 answered `Q6` as PostgreSQL-declared-target, and [14](14-test-and-validation-plan.md) now runs the security-critical suite against real PostgreSQL via Testcontainers, so vendor-specific DDL will fail visibly rather than silently.
+
+**Amended by [04 — Password policy and history](04-password-policy-and-history.md).** 04 is resolved, so this ticket is unblocked on that edge. Three things land here.
+
+- **The `/currentUser` path string now carries more than a self-read.** 01 deferred the literal segment to this ticket, noting the standards contradict themselves (`Standalone_Privileged_User_Administration_and_Password_Reset.md:536` says `/currentUser`, `Common_Secure_Self-Read_User_Endpoint.md:53` mounts at `/profile`). 04 hung `PATCH .../changePassword` off it, and put **two** of the `PasswordChangeFilter`'s four allowlist entries under it. Whatever this ticket rules, the filter allowlist and the change endpoint follow the segment — they are written against it, not a literal — but the decision now has a blast radius beyond one endpoint.
+- **`password_history` rows need a disposition under the tombstone rule.** 04 added the table (`user_id` FK → `users.id`, `NOT NULL`) and writes a row per password ever set, including the current one. When a user is tombstoned rather than hard-deleted, decide whether the history rows are deleted, cascaded to the tombstone, or retained — and note the tension: retaining them keeps a set of BCrypt hashes for an account that no longer exists, while deleting them means a re-registered username starts with a clean history. There is no clause on this; it is this ticket's call.
+- **Re-enabling a disabled account sets `requirePasswordChange=true`.** `Standalone_User_Access_Control_Application_Standard.md:130` makes this mandatory and 04 recorded it in the flag's lifecycle table, but the re-enable operation itself (`PATCH /users/{userId}/status`) is this ticket's. Wire the flag into it. Note the consequence 04 accepted: that user's next login lands them in the filter, so they can reach only CSRF, self-read, change-password and logout until they choose a new password.
+- **Bulk operations.** 01 assigned `PATCH /api/v1/users/batchResetPassword` to this ticket via `Q24`. 04 fixed what a single reset does to the flag, the history table and the session store; a batch version repeats all of it per user, and `Standalone_Privileged_User_Administration_and_Password_Reset.md:427` requires the generated password to avoid the account's existing history — which under 04's four-value rule is a slightly larger set than the recipe's loop assumes.

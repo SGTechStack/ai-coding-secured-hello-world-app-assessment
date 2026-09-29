@@ -12,12 +12,12 @@
 
 **Blocked by:** 08, 09
 
-**Status:** ready-for-agent
+**Status:** done. Not built here: the concurrent-eviction audit row (row 10, T-AUD-015). T-AUTH-003 and T-AUTH-006 have tests for the sign-in cases but stay on the ledger for the limiter, lockout, reset and registration cases (tickets 11 to 15).
 
-- [ ] Every failure cause returns a byte-identical 401 body, and `matches()` is called the same number of times whether or not the user exists.
-- [ ] After login the session id differs from the anonymous one, and the old CSRF token is rejected.
-- [ ] Moving the `Clock` past 15 minutes idle, or 8 hours from the auth instant, gives 401.
-- [ ] A second login ends the first session.
-- [ ] `GET /api/hello` returns the exact greeting. An unauthenticated call returns 401.
-- [ ] Logout sends `Clear-Site-Data`. Logout on a dead session without a CSRF token gets 403 `CSRF_TOKEN_INVALID`.
-- [ ] A Playwright test covers sign in → hello → sign out on both browsers.
+- [x] Every failure cause returns a byte-identical 401 body, and `matches()` is called the same number of times whether or not the user exists.
+- [x] After login the session id differs from the anonymous one, and the old CSRF token is rejected.
+- [x] Moving the `Clock` past 15 minutes idle, or 8 hours from the auth instant, gives 401.
+- [x] A second login ends the first session.
+- [x] `GET /api/hello` returns the exact greeting. An unauthenticated call returns 401.
+- [x] Logout sends `Clear-Site-Data`. Logout on a dead session without a CSRF token gets 403 `CSRF_TOKEN_INVALID`.
+- [x] A Playwright test covers sign in → hello → sign out on both browsers.

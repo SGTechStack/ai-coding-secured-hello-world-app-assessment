@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 10-sign-in-hello-sign-out</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/1/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">springboot PASS 0/0/0/1</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t10-sign-in</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 10: sign in, hello, sign out. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify -Ddependency-check.skip=true</code> green: 499 unit tests and 6 ITs, including <code>TraceabilityGateIT</code> and <code>AuditInventoryDriftIT</code> with the regenerated inventory. Frontend <code>typecheck</code>, <code>oxlint</code> (0 warnings), <code>prettier --check</code>, Vitest (71 tests, coverage above 80%) and <code>build</code> green. Playwright: 8 passed across Chromium and Firefox, against the real backend.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Sign-in is one class (<code>SignIn</code>) holding the login composite, the concurrent-session filter and sign-out, with the converter, the failure audit and the interval reset split out. The profile package depends on <code>user</code>, not on the login package, so there is no package cycle. Low: <code>SignInTest</code> is long (about 20 tests), but each test is one control.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/1/2</td><td class="p-2">All seven acceptance criteria are met, each by a test. Medium: row 10 (concurrent-eviction audit) and T-AUD-015 are not built. The session-start row is placed before the rotation, so the pre- and post-rotation hashes differ as T-AUD-015 needs. Low: T-AUTH-003 and T-AUTH-006 are not claimed. The <code>matches()</code> count and byte-identical body tests exist, but the limiter, lockout, reset and registration rows belong to tickets 11 to 15. Low: login matches the stored username exactly. Canonicalisation (ADR-045) comes with registration.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">The semgrep CLI is not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Every password-axis failure gets one 401 body (ADR-033). A never-activated account costs the same dummy <code>matches()</code> as an unknown one. The session id rotates at login, and the CSRF token rotates with it. There is one session per account, with idle (15 min) and absolute (8 h from <code>AUTH_INSTANT</code>) limits. Logout is CSRF-protected and sends <code>Clear-Site-Data</code>. The password hash is erased before the context is stored, and the principal is on the deserialisation allowlist. Audit rows carry <code>user.id</code> only, never a username; <code>LogOutputGuard</code> scans for the session id and token. Low: login-body size and rate limits wait for ticket 11.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">The form uses React Hook Form with Zod, labels, <code>aria-describedby</code> errors, focus on error and an always-present live region. Routing follows the self-read, and an <code>AUTHENTICATION_FAILED</code> code overrides it. Sign-out is terminal with no CSRF retry, and it clears the query cache and the token. Routes and the query client are in <code>routes.tsx</code>, for fast refresh. Low: a signed-in user who opens <code>/sign-in</code> directly still sees the form.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">The Route C filter carries an explicit composite in ADR-038's order, <code>CsrfAuthenticationStrategy</code> included. <code>alwaysPerformAdditionalChecksOnUser</code> stays true, and no <code>CompromisedPasswordChecker</code> is set. One <code>DaoAuthenticationProvider</code> bean makes Boot's in-memory user back off. The absolute-lifetime filter reads the injected <code>Clock</code>. The e2e backend lives in the test sources (<code>spring-boot:test-run</code>), so no fixture code ships. Low: <code>ConcurrentSessionFilter</code> adds one session-store read per request that carries a live session.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

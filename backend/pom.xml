@@ -39,6 +39,8 @@
         <pitest-maven.version>1.30.0</pitest-maven.version>
         <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
+        <!-- The limiter's buckets (R-STD-011): the core module only, with our own Caffeine cache. -->
+        <bucket4j.version>8.20.0</bucket4j.version>
     </properties>
 
     <dependencies>
@@ -82,6 +84,16 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-session-jdbc</artifactId>
+        </dependency>
+        <!-- AuthRateLimiter (ADR-010; ADR-017): in-memory buckets in bounded caches, single instance (REJ-018). -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>${bucket4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -225,6 +237,11 @@
                         </targetClasses>
                         <!-- Until those classes exist there is nothing to mutate; that alone must not fail. -->
                         <failWhenNoMutations>false</failWhenNoMutations>
+                        <!-- The minions need an audit directory, or the audit-file tests fail before any mutation. It is not
+                             Surefire's: mutants write degraded rows, which LogOutputGuard would find on the next run. -->
+                        <jvmArgs>
+                            <value>-Dapp.audit.directory=${project.build.directory}/pit-audit-logs</value>
+                        </jvmArgs>
                         <timestampedReports>false</timestampedReports>
                     </configuration>
                 </plugin>

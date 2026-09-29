@@ -5,6 +5,7 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTe
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.test.web.servlet.client.RestTestClient;
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
+@TestPropertySource(locations = SharedContextTest.HARNESS_BUDGETS)
 public abstract class CtxPortTest extends SharedContextTest {
 
     @LocalServerPort

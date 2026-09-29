@@ -2,6 +2,7 @@ package sg.securedhello.security.source;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.List;
 
 import ch.qos.logback.classic.Logger;
@@ -19,12 +20,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import sg.securedhello.security.source.ClientIpProperties.Source;
+import sg.securedhello.testsupport.MutableClock;
 import sg.securedhello.testsupport.Proves;
 
 /** The pure source-key derivation (ADR-020) and the resolver's handling of unparseable addresses (R-RL-020). */
 class SourceKeyResolverTest {
 
+    private static final Duration LOG_WINDOW = Duration.ofMinutes(15);
+
     private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    private final MutableClock clock = MutableClock.startingNow();
     private final Logger logger = (Logger) LoggerFactory.getLogger(SourceKeyResolver.class);
     private final ListAppender<ILoggingEvent> logged = new ListAppender<>();
 
@@ -155,6 +160,37 @@ class SourceKeyResolverTest {
     }
 
     @Test
+    void theUnparseableLineIsWrittenOncePerWindowWhileTheCounterCountsEveryRequest() {
+        SourceKeyResolver resolver = resolver(Source.PROXY, 64);
+        logged.list.clear();
+
+        resolver.resolve(request("first-token"));
+        clock.advance(LOG_WINDOW.minusMillis(1));
+        resolver.resolve(request("second-token"));
+        assertThat(logged.list).singleElement().extracting(ILoggingEvent::getFormattedMessage).asString()
+                .contains("first-token");
+
+        clock.advance(Duration.ofMillis(1));
+        resolver.resolve(request("third-token"));
+
+        assertThat(meterRegistry.counter(SourceKeyResolver.UNPARSEABLE_COUNTER).count()).isEqualTo(3);
+        assertThat(logged.list).extracting(ILoggingEvent::getFormattedMessage).hasSize(2).last().asString()
+                .contains("third-token");
+    }
+
+    @Test
+    void theKeyIsDerivedOncePerRequestAndKeptOnIt() {
+        SourceKeyResolver resolver = resolver(Source.SOCKET, 64);
+        MockHttpServletRequest request = request("not-an-address");
+        logged.list.clear();
+
+        SourceKey first = resolver.resolve(request);
+        assertThat(resolver.resolve(request)).isSameAs(first);
+        assertThat(request.getAttribute(SourceKeyResolver.REQUEST_ATTRIBUTE)).isSameAs(SourceKey.UNPARSEABLE);
+        assertThat(meterRegistry.counter(SourceKeyResolver.UNPARSEABLE_COUNTER).count()).isEqualTo(1);
+    }
+
+    @Test
     void theLoggedTokenIsCutToSixtyFourCharacters() {
         assertThat(SourceKeyResolver.loggable("a".repeat(63) + "bc")).isEqualTo("a".repeat(63) + "b");
         assertThat(SourceKeyResolver.loggable("a".repeat(64))).isEqualTo("a".repeat(64));
@@ -168,7 +204,8 @@ class SourceKeyResolverTest {
     }
 
     private SourceKeyResolver resolver(Source source, int prefix) {
-        return new SourceKeyResolver(new ClientIpProperties(source, List.of("192.0.2.1"), prefix), meterRegistry);
+        return new SourceKeyResolver(new ClientIpProperties(source, List.of("192.0.2.1"), prefix), meterRegistry,
+                clock, LOG_WINDOW);
     }
 
     private static MockHttpServletRequest request(String remoteAddr) {

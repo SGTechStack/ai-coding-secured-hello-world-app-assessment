@@ -82,12 +82,42 @@ app:
     client-ip:
       source: socket
       ipv6-prefix-length: 64
+    # The budget table (ADR-010; ADR-017), the one place its values live: <route>.<axis>.burst requests at once, then
+    # one more per refill-period. A route ticket adds its row here and one RateLimit constant (see AuthRateLimiter).
+    # Every refusal is 429 TOO_MANY_REQUESTS with an integer Retry-After. In memory, single instance (REJ-018).
+    rate-limit:
+      login:
+        source:
+          burst: 60
+          refill-period: 1s
+        username:
+          burst: 10
+          refill-period: 6s
+      csrf:
+        source:
+          burst: 30
+          refill-period: 2s
+      # Session-store lookups that did not resolve, per source, on every route (ADR-017).
+      session-miss:
+        capacity: 300
+        window: 15m
+    request:
+      # Counted in bytes as the body is read, before the login converter parses it (Std §5:494).
+      max-body-bytes: 16384
   # The audit stream (ADR-055; ADR-056). The directory holds the dedicated audit file, read by logback-spring.xml.
   audit:
     directory: logs
     url-path:
       # Raw URIs on pre-handler rows are capped here, marker included (REJ-081).
       max-length: 256
+    # Keyed rows (ADR-019; REJ-080): tier 1 keyed by source, tier 2 by user, each written once per key, row, reason
+    # and window with its count; past a tier's cap, one truncation row per window. Tunable; changing them moves the
+    # daily audit volume (R-AUD-030).
+    keying:
+      window: 15m
+    truncation:
+      distinct-sources: 20
+      distinct-users: 500
 
 # Actuator: health only, read-only, no details; everything else is denied (ADR-061).
 # Values equal to Boot's defaults are still written, because im8-review greps for the exposure property.

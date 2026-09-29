@@ -41,6 +41,14 @@ fingerprint. The key itself is never logged. Compare fingerprints to confirm whi
 
 The tests need none of these variables. The test harness supplies test-only canary values (`TestSecrets`).
 
+### Rate limits while developing
+
+Sign-in and token fetches are throttled per source address and per username (`app.security.rate-limit.*` in
+`application.yml`; refusals are 429 with `Retry-After`). Locally everything arrives from one loopback address, so
+scripted loops can reach a budget: wait out the `Retry-After`, or raise the budget's `burst` with a command-line
+property such as `--app.security.rate-limit.login.username.burst=1000`. The shared test contexts raise them the same
+way, from `src/test/resources/harness-budgets.properties`; `CtxBudgetTest` runs on the real values.
+
 ### Shared dev demo values
 
 For local development and demos only, anyone who checks out this branch can paste one of these blocks into a

@@ -20,6 +20,9 @@ import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.session.SessionRepository;
+import org.springframework.session.web.http.HttpSessionIdResolver;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.filter.CorsFilter;
 
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.config.OriginsProperties;
@@ -28,6 +31,11 @@ import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.security.csrf.HeaderOnlyCsrfTokenRequestHandler;
 import sg.securedhello.security.csrf.SessionOnlyCsrfTokenRepository;
 import sg.securedhello.security.login.SignIn;
+import sg.securedhello.security.ratelimit.AuthRateLimiter;
+import sg.securedhello.security.ratelimit.RequestBodyCapFilter;
+import sg.securedhello.security.ratelimit.RequestBodyProperties;
+import sg.securedhello.security.ratelimit.SourceRateLimitFilter;
+import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.session.AbsoluteLifetimeFilter;
 import sg.securedhello.session.SessionLifetimeProperties;
 
@@ -40,9 +48,9 @@ import sg.securedhello.session.SessionLifetimeProperties;
  * (ADR-031): an anonymous caller gets 401 {@code AUTHENTICATION_FAILED}, with no {@code WWW-Authenticate} challenge
  * (R-AUTH-005), and a signed-in one gets 403 {@code ACCESS_DENIED}.
  *
- * <p>Filter order (ADR-038): the source rate limiter, then {@code SecurityContextHolderFilter}, then the
- * {@link AbsoluteLifetimeFilter}, then {@code CsrfFilter}. The rate limiter's slot is reserved for ticket 11, which
- * adds it with {@code addFilterBefore(..., SecurityContextHolderFilter.class)}.
+ * <p>Filter order (ADR-038): the {@link SourceRateLimitFilter}, then {@code SecurityContextHolderFilter}, then the
+ * {@link AbsoluteLifetimeFilter}, then {@code CorsFilter}, the {@link RequestBodyCapFilter} and {@code CsrfFilter}, and
+ * later the login filter, whose converter reads the body (T-RL-012).
  *
  * <p>CSRF (ADR-036; ADR-040): a session-bound synchronizer token, read from the {@code X-CSRF-TOKEN} header only, on
  * every unsafe method, stored without ever creating a session, and never set as a cookie.
@@ -58,15 +66,22 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http, AuthorizationMatrix matrix,
             AuthenticationEntryPoint problemAuthenticationEntryPoint, AccessDeniedHandler problemAccessDeniedHandler,
             SessionRepository<?> sessionRepository, OriginsProperties origins, ProblemDetailWriter writer,
-            SignIn signIn, SessionLifetimeProperties lifetime, Clock clock) {
+            SignIn signIn, SessionLifetimeProperties lifetime, Clock clock, AuthRateLimiter limiter,
+            SourceKeyResolver sourceKeys, HttpSessionIdResolver sessionIds, AuditEmitter audit,
+            RequestBodyProperties requestBody) {
         // W is what the repository really applies, not the raw timeout property (T-SES-033). Nothing is saved.
         Duration idleWindow = sessionRepository.createSession().getMaxInactiveInterval();
         CsrfTokenRepository csrfTokens = new SessionOnlyCsrfTokenRepository();
         CsrfTokenRequestHandler csrfHandler = new HeaderOnlyCsrfTokenRequestHandler();
         // Sign-in, the concurrent-session filter and sign-out (ADR-038); the login composite rotates the CSRF token.
         signIn.configure(http, csrfTokens, csrfHandler, idleWindow);
+        CorsConfiguration cors = CorsPolicy.configuration(origins);
         return http
-                .addFilter(CorsPolicy.filter(origins, writer))
+                .addFilterBefore(new SourceRateLimitFilter(limiter, sourceKeys, sessionIds, audit, writer,
+                        (request, response) -> CorsPolicy.allowOrigin(cors, request, response)),
+                        SecurityContextHolderFilter.class)
+                .addFilter(CorsPolicy.filter(cors, writer))
+                .addFilterAfter(new RequestBodyCapFilter(requestBody.maxBodyBytes(), writer), CorsFilter.class)
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokens)
                         .csrfTokenRequestHandler(csrfHandler))

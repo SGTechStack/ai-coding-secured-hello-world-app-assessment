@@ -2,6 +2,8 @@ package sg.securedhello.security.source;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Clock;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
@@ -21,7 +23,8 @@ class ClientIpPropertiesTest extends CtxNondevTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withUserConfiguration(ClientIpConfig.class)
-            .withBean(MeterRegistry.class, SimpleMeterRegistry::new);
+            .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
+            .withBean(Clock.class, Clock::systemUTC);
 
     @Test
     @Proves({"T-RL-027", "T-CFG-001"})

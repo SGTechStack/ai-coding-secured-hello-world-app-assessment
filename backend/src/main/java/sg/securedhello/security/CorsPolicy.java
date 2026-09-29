@@ -37,16 +37,34 @@ final class CorsPolicy {
     }
 
     /** The CORS filter, whose refusal is the shared envelope rather than the framework's plain-text body (ADR-031). */
-    static CorsFilter filter(OriginsProperties origins, ProblemDetailWriter writer) {
+    static CorsFilter filter(CorsConfiguration configuration, ProblemDetailWriter writer) {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration(origins));
+        source.registerCorsConfiguration("/**", configuration);
         CorsFilter filter = new CorsFilter(source);
         filter.setCorsProcessor(new ProblemCorsProcessor(writer));
         return filter;
     }
 
+    /**
+     * Adds the CORS response headers to a response written before {@code CorsFilter} runs, such as the early
+     * limiter's 429, when the request comes from the allowed origin. Anything else is left alone: the response is a
+     * refusal already, and a disallowed origin simply cannot read it.
+     */
+    static void allowOrigin(CorsConfiguration configuration, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        new HeadersOnlyCorsProcessor().processRequest(configuration, request, response);
+    }
+
+    /** The framework's processor, minus its own refusal body. */
+    private static class HeadersOnlyCorsProcessor extends DefaultCorsProcessor {
+
+        @Override
+        protected void rejectRequest(ServerHttpResponse response) {
+        }
+    }
+
     /** Refuses a CORS request with 403 {@code ACCESS_DENIED} in the envelope. */
-    private static final class ProblemCorsProcessor extends DefaultCorsProcessor {
+    private static final class ProblemCorsProcessor extends HeadersOnlyCorsProcessor {
 
         private final ProblemDetailWriter writer;
 
@@ -62,11 +80,6 @@ final class CorsPolicy {
                 writer.write(request, response, ErrorCode.ACCESS_DENIED);
             }
             return accepted;
-        }
-
-        /** Leaves the refusal body to {@link #processRequest}. */
-        @Override
-        protected void rejectRequest(ServerHttpResponse response) {
         }
     }
 }

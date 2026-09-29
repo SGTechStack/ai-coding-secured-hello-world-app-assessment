@@ -14,6 +14,7 @@ import sg.securedhello.architecture.fixtures.ArchitectureViolations;
 import sg.securedhello.architecture.fixtures.PlaceholderProves;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
+import sg.securedhello.time.ClockConfig;
 import sg.securedhello.user.PasswordHistoryEntry;
 import sg.securedhello.user.UserAccount;
 
@@ -27,14 +28,27 @@ class ArchitectureRulesSelfTest {
     @ValueSource(classes = {ArchitectureViolations.ReadsInstantNow.class, ArchitectureViolations.ReadsLocalDateNow.class,
             ArchitectureViolations.ReadsLocalDateTimeNow.class, ArchitectureViolations.ReadsZonedDateTimeNow.class,
             ArchitectureViolations.ReadsOffsetDateTimeNow.class, ArchitectureViolations.ConstructsDate.class,
-            ArchitectureViolations.ReadsCurrentTimeMillis.class, ArchitectureViolations.ReadsNanoTime.class})
+            ArchitectureViolations.ReadsCurrentTimeMillis.class, ArchitectureViolations.ReadsNanoTime.class,
+            ArchitectureViolations.ReadsLocalTimeNow.class, ArchitectureViolations.ReadsYearNow.class,
+            ArchitectureViolations.ReadsYearMonthNow.class, ArchitectureViolations.ReadsNowInAZone.class,
+            ArchitectureViolations.BuildsSystemUtcClock.class, ArchitectureViolations.BuildsSystemDefaultZoneClock.class,
+            ArchitectureViolations.ReadsCalendarInstance.class, ArchitectureViolations.ReferencesInstantNow.class,
+            ArchitectureViolations.ReferencesDateConstructor.class, ArchitectureViolations.ConstructsGregorianCalendar.class,
+            ArchitectureViolations.ConstructsGregorianCalendarInAZone.class,
+            ArchitectureViolations.ReadsChronologyDateNow.class, ArchitectureViolations.BuildsSystemInstantSource.class})
     void ambientTimeIsCaught(Class<?> violator) {
         assertViolates(ArchitectureRules.NO_AMBIENT_TIME, violator);
     }
 
     @Test
     void timeFromAnInjectedClockIsAllowed() {
-        assertPasses(ArchitectureRules.NO_AMBIENT_TIME, ArchitectureViolations.ReadsInjectedClock.class);
+        assertPasses(ArchitectureRules.NO_AMBIENT_TIME, ArchitectureViolations.ReadsInjectedClock.class,
+                ArchitectureViolations.ReferencesNowWithAClock.class);
+    }
+
+    @Test
+    void onlyTheClockConfigurationMayBuildTheSystemClock() {
+        assertPasses(ArchitectureRules.NO_AMBIENT_TIME, ClockConfig.class);
     }
 
     @ParameterizedTest

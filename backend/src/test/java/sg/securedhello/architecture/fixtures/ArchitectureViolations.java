@@ -2,15 +2,27 @@ package sg.securedhello.architecture.fixtures;
 
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.InstantSource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.Year;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.chrono.IsoChronology;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
@@ -85,6 +97,96 @@ public final class ArchitectureViolations {
     public static final class ReadsNanoTime {
         long read() {
             return System.nanoTime();
+        }
+    }
+
+    public static final class ReadsLocalTimeNow {
+        Object read() {
+            return LocalTime.now();
+        }
+    }
+
+    public static final class ReadsYearNow {
+        Object read() {
+            return Year.now();
+        }
+    }
+
+    public static final class ReadsYearMonthNow {
+        Object read() {
+            return YearMonth.now();
+        }
+    }
+
+    /** A zone is not a clock: {@code now(ZoneId)} still reads the system clock. */
+    public static final class ReadsNowInAZone {
+        Object read() {
+            return LocalDate.now(ZoneId.of("UTC"));
+        }
+    }
+
+    public static final class BuildsSystemUtcClock {
+        Object read() {
+            return Clock.systemUTC();
+        }
+    }
+
+    public static final class BuildsSystemDefaultZoneClock {
+        Object read() {
+            return Clock.systemDefaultZone();
+        }
+    }
+
+    public static final class ReadsCalendarInstance {
+        Object read() {
+            return Calendar.getInstance();
+        }
+    }
+
+    public static final class ReferencesInstantNow {
+        Supplier<Instant> read() {
+            return Instant::now;
+        }
+    }
+
+    public static final class ReferencesDateConstructor {
+        Supplier<Date> read() {
+            return Date::new;
+        }
+    }
+
+    public static final class ConstructsGregorianCalendar {
+        Object read() {
+            return new GregorianCalendar();
+        }
+    }
+
+    public static final class ConstructsGregorianCalendarInAZone {
+        Object read() {
+            return new GregorianCalendar(TimeZone.getTimeZone("UTC"), Locale.ROOT);
+        }
+    }
+
+    public static final class ReadsChronologyDateNow {
+        Object read() {
+            return IsoChronology.INSTANCE.dateNow();
+        }
+    }
+
+    public static final class BuildsSystemInstantSource {
+        Object read() {
+            return InstantSource.system();
+        }
+    }
+
+    /** Allowed: {@code Instant::now} resolved to {@code now(Clock)}, and a clock derived from an injected one. */
+    public static final class ReferencesNowWithAClock {
+        Function<Clock, Instant> read() {
+            return Instant::now;
+        }
+
+        Clock tick(Clock clock) {
+            return Clock.tick(clock, Duration.ofSeconds(1));
         }
     }
 

@@ -12,3 +12,10 @@ spring:
 app:
   cors:
     frontend-origin: ${APP_CORS_FRONTEND_ORIGIN:http://localhost:5173}
+  security:
+    lockout:
+      max-attempts: 5
+      cooldown: 15m
+    throttle:
+      max-attempts: 20
+      window: 10m

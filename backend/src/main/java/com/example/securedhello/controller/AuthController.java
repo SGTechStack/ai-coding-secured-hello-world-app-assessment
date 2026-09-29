@@ -57,7 +57,8 @@ public class AuthController {
     public Map<String, Object> login(@Valid @RequestBody LoginRequest request,
                                      HttpServletRequest httpRequest,
                                      HttpServletResponse httpResponse) {
-        User user = authenticationService.authenticate(request.username(), request.password());
+        User user = authenticationService.authenticate(
+                request.username(), request.password(), httpRequest.getRemoteAddr());
 
         UsernamePasswordAuthenticationToken authentication =
                 UsernamePasswordAuthenticationToken.authenticated(

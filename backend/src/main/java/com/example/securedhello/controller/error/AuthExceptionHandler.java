@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.example.securedhello.controller.AuthController;
 import com.example.securedhello.service.AuthenticationFailedException;
+import com.example.securedhello.service.ThrottledException;
 
 /**
  * Translates login failures into a single generic 401 response, regardless of
@@ -27,6 +28,11 @@ public class AuthExceptionHandler {
     @ExceptionHandler(AuthenticationFailedException.class)
     public ResponseEntity<Map<String, String>> handleAuthFailure(AuthenticationFailedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(GENERIC_ERROR);
+    }
+
+    @ExceptionHandler(ThrottledException.class)
+    public ResponseEntity<Map<String, String>> handleThrottled(ThrottledException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(GENERIC_ERROR);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -13,6 +15,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
+
+import com.example.securedhello.service.IpThrottleService;
 
 /**
  * Shared integration-test harness exercising the real HTTP boundary over H2.
@@ -39,6 +43,20 @@ public abstract class HttpIntegrationTest {
 
     @LocalServerPort
     protected int port;
+
+    @Autowired
+    private IpThrottleService sharedIpThrottleService;
+
+    /**
+     * Reset shared, cross-test state before every test: the deterministic
+     * clock and the singleton in-memory IP throttle (which otherwise leaks
+     * failure counts across test classes sharing the Spring context).
+     */
+    @BeforeEach
+    void resetSharedState() {
+        resetClock();
+        sharedIpThrottleService.reset();
+    }
 
     protected String baseUrl() {
         return "http://localhost:" + port;

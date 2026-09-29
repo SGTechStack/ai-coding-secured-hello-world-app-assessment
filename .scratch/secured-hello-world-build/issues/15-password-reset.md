@@ -18,11 +18,19 @@
 
 **Blocked by:** 12, 14
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Registered and unregistered addresses get identical responses, and only a registered, activated one yields a link in `dev`.
-- [ ] A forged `Host` or `X-Forwarded-Host` doesn't change the link origin.
-- [ ] The token fails after 30 minutes and on second use.
-- [ ] After redemption, all prior sessions are gone, a locked or capped account can sign in, and TOTP rows are untouched.
-- [ ] In `ctx-nondev`, no link is logged.
-- [ ] A Playwright test covers forgot → reset → sign in.
+- [x] Registered and unregistered addresses get identical responses, and only a registered, activated one yields a link in `dev`.
+- [x] A forged `Host` or `X-Forwarded-Host` doesn't change the link origin.
+- [x] The token fails after 30 minutes and on second use.
+- [x] After redemption, all prior sessions are gone, a locked or capped account can sign in, and TOTP rows are untouched.
+- [x] In `ctx-nondev`, no link is logged.
+- [x] A Playwright test covers forgot → reset → sign in.
+
+**Verification:** `PasswordResetRequestTest` (identical 202 across activated, locked, not-activated, disabled and
+unknown addresses; a link only for activated ones; T-CRED-012, T-CRED-018), `PasswordResetPortTest` (forged `Host` and
+`X-Forwarded-Host` on the wire, T-CRED-016/017; T-SES-014), `PasswordResetConfirmTest` (30-minute expiry T-CRED-013,
+single use, cross-type T-CRED-011, admin-minted token, T-LCK-017 with TOTP rows untouched, T-CRED-024, T-AUD-019),
+`PasswordResetBudgetTest` (T-RL-004 and both source budgets), `ResetLinkConfinementTest` (no link logged outside
+`dev`; T-AUD-030), ArchUnit T-CRED-009, and `frontend/e2e/reset.spec.ts` (forgot, reset, sign in; Chromium and
+Firefox).

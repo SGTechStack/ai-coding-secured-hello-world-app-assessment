@@ -32,7 +32,7 @@ public class SecurityConfig {
                 })
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/register", "/api/password-reset/**"))
+                        .ignoringRequestMatchers("/api/register", "/api/password-reset/request"))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .sessionFixation(fixation -> fixation.changeSessionId()))

@@ -86,8 +86,17 @@ public class AuthenticationService {
             throw new AuthenticationFailedException();
         }
 
+        // A disabled account is refused outright. This is not a credential
+        // failure, so it must not increment the failed-attempt counter, lock
+        // the account, or feed the IP throttle. The generic error preserves
+        // Enumeration Resistance.
+        if (!user.isEnabled()) {
+            auditService.record("LOGIN_DISABLED", username, null, "FAILURE");
+            throw new AuthenticationFailedException();
+        }
+
         // 3. Credential Check.
-        if (!user.isEnabled() || !passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             registerFailure(user, clientIp);
             throw new AuthenticationFailedException();
         }

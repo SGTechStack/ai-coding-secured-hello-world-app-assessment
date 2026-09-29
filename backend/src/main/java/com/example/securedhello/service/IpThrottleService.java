@@ -44,7 +44,7 @@ public class IpThrottleService {
     }
 
     /**
-     * @return true if {@code clientIp} has exceeded the failure threshold
+     * @return true if {@code clientIp} has reached the failure threshold
      *         within the sliding window.
      */
     public boolean isThrottled(String clientIp) {
@@ -54,7 +54,7 @@ public class IpThrottleService {
         }
         synchronized (failures) {
             evictExpired(failures);
-            return failures.size() > properties.throttle().maxAttempts();
+            return failures.size() >= properties.throttle().maxAttempts();
         }
     }
 

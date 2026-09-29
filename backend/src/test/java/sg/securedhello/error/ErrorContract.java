@@ -6,11 +6,15 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import com.networknt.schema.InputFormat;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
+
+import sg.securedhello.password.PasswordRule;
 
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
@@ -34,6 +38,19 @@ public final class ErrorContract {
             .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
             .build();
 
+    /**
+     * The extension members each code carries, beyond the envelope: required on that code and refused on every other
+     * one. A producer adds a member here, and the renderings change with it.
+     */
+    static final Map<ErrorCode, Map<String, Extension>> EXTENSIONS = Map.of(
+            ErrorCode.PASSWORD_REJECTED, Map.of("rule", new Extension(
+                    Arrays.stream(PasswordRule.values()).map(Enum::name).toList(),
+                    "The first password-policy rule the password failed, in the order the rules run (ADR-005).")));
+
+    /** An extension member: its closed set of string values and what it means. */
+    record Extension(List<String> values, String meaning) {
+    }
+
     private static final Schema COMPILED = SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12)
             .getSchema(jsonSchema(), InputFormat.JSON);
 
@@ -55,6 +72,10 @@ public final class ErrorContract {
         properties.put("instance", Map.of("type", "string"));
         properties.put("traceId", Map.of("type", "string", "pattern", "^[0-9a-f]{32}$"));
         properties.put("code", Map.of("enum", Arrays.stream(ErrorCode.values()).map(Enum::name).toList()));
+        List<String> envelope = List.copyOf(properties.keySet());
+        Map<String, Extension> allExtensions = new TreeMap<>();
+        EXTENSIONS.values().forEach(allExtensions::putAll);
+        allExtensions.forEach((name, extension) -> properties.put(name, Map.of("enum", extension.values())));
 
         List<Object> pairings = new ArrayList<>();
         for (ErrorCode code : ErrorCode.values()) {
@@ -63,9 +84,18 @@ public final class ErrorContract {
             then.put("title", Map.of("const", code.title()));
             then.put("status", Map.of("const", code.status()));
             then.put("detail", Map.of("const", code.detail()));
+            // Each extension member: its values on its own code, where it is required, and false (absent) elsewhere.
+            Map<String, Extension> own = EXTENSIONS.getOrDefault(code, Map.of());
+            allExtensions.forEach((name, extension) -> then.put(name,
+                    own.containsKey(name) ? Map.of("enum", extension.values()) : false));
+            Map<String, Object> constraints = new LinkedHashMap<>();
+            constraints.put("properties", then);
+            if (!own.isEmpty()) {
+                constraints.put("required", List.copyOf(new TreeSet<>(own.keySet())));
+            }
             pairings.add(Map.of(
                     "if", Map.of("properties", Map.of("code", Map.of("const", code.name()))),
-                    "then", Map.of("properties", then)));
+                    "then", constraints));
         }
 
         Map<String, Object> schema = new LinkedHashMap<>();
@@ -74,7 +104,7 @@ public final class ErrorContract {
         schema.put("title", "Error envelope");
         schema.put("description", "Generated from sg.securedhello.error.ErrorCode. Do not edit; see error-contract.md.");
         schema.put("type", "object");
-        schema.put("required", List.copyOf(properties.keySet()));
+        schema.put("required", envelope);
         schema.put("properties", properties);
         schema.put("additionalProperties", false);
         schema.put("allOf", pairings);
@@ -106,7 +136,7 @@ public final class ErrorContract {
                 | `traceId` | string | 32 lowercase hex digits identifying the request. |
                 | `code` | string | One value from the closed enum below. The only member a client branches on. |
 
-                No other member is allowed until the enum declares it.
+                No other member is allowed until the contract declares it, as an extension member below.
 
                 ## Codes
 
@@ -117,6 +147,18 @@ public final class ErrorContract {
             md.append("| `%s` | %d | %s | %s | %s |%n".formatted(
                     code.name(), code.status(), code.title(), code.detail(), code.usage()));
         }
+        md.append("""
+
+                ## Extension members
+
+                Each is required on its code and absent from every other.
+
+                | Member | Code | Values | Meaning |
+                |---|---|---|---|
+                """);
+        EXTENSIONS.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry ->
+                new TreeMap<>(entry.getValue()).forEach((name, extension) ->
+                        md.append(extensionRow(name, entry.getKey(), extension))));
         md.append("""
 
                 ## Rules
@@ -130,6 +172,12 @@ public final class ErrorContract {
                 - `/actuator/**` is exempt: its health body is Actuator's own format (REJ-066).
                 """.formatted(ErrorCode.TYPE_PREFIX));
         return lf(md.toString());
+    }
+
+    private static String extensionRow(String name, ErrorCode code, Extension extension) {
+        List<String> values = extension.values().stream().map(value -> "`" + value + "`").toList();
+        return "| `%s` | `%s` | %s | %s |%n".formatted(name, code.name(), String.join(", ", values),
+                extension.meaning());
     }
 
     private static String lf(String text) {

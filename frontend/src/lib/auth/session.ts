@@ -50,3 +50,16 @@ export async function signOut(queryClient: QueryClient): Promise<void> {
     queryClient.clear()
   }
 }
+
+/**
+ * Changes the signed-in user's password, `PATCH /api/profile/password` (ADR-008). The current password is always
+ * required. The server rotated the session id and with it the CSRF token, so the token is fetched again at once.
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await apiFetch<void>('/api/profile/password', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+  await refreshCsrfToken()
+}

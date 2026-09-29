@@ -18,11 +18,11 @@
 
 **Blocked by:** 10, 11
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Each rule rejects its case with its own `rule` value, in the stated order. A 15+ code-point passphrase passes.
-- [ ] Reusing any of the last three passwords gets `HISTORY_REUSE`.
-- [ ] A wrong current password is refused and changes nothing.
-- [ ] After a change, the user's other sessions are gone, the current session survives with a new id, and outstanding reset tokens are invalid.
-- [ ] An ArchUnit rule allows only `PasswordService` to write the credential column.
-- [ ] The policy meets 85% mutation score.
+- [x] Each rule rejects its case with its own `rule` value, in the stated order. A 15+ code-point passphrase passes.
+- [x] Reusing any of the last three passwords gets `HISTORY_REUSE`.
+- [x] A wrong current password is refused and changes nothing.
+- [x] After a change, the user's other sessions are gone, the current session survives with a new id, and outstanding reset tokens are invalid.
+- [x] An ArchUnit rule allows only `PasswordService` to write the credential column.
+- [x] The policy meets 85% mutation score.

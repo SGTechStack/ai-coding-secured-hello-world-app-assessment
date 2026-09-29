@@ -52,6 +52,11 @@ app:
   security:
     password:
       bcrypt-strength: 12
+      # The policy PasswordService runs on every password set (ADR-002; ADR-003; ADR-005; REJ-007).
+      min-length: 15
+      max-bytes: 72
+      min-strength-score: 3
+      history-length: 3
     # Authorization matrix (ADR-043). Each row names an explicit method and a path under /api. Applied as: whitelist,
     # then the fixed /api/admin/roles/** denyAll, then these role guards, then anyRequest().denyAll(). No row, no access.
     authorization:
@@ -70,10 +75,15 @@ app:
             path: /api/profile
           - method: GET
             path: /api/hello
+          # Self-service change and forced-change completion (ADR-008).
+          - method: PATCH
+            path: /api/profile/password
         ADMIN:
           # The self-read needs the password only, not the second factor (ADR-043). /api/hello is ROLE_USER only.
           - method: GET
             path: /api/profile
+          - method: PATCH
+            path: /api/profile/password
     # A signed-in session ends this long after its AUTH_INSTANT, whatever its traffic (REJ-012; ADR-038).
     session:
       absolute: 8h
@@ -97,6 +107,10 @@ app:
         source:
           burst: 30
           refill-period: 2s
+      profile-password:
+        source:
+          burst: 10
+          refill-period: 6s
       # Session-store lookups that did not resolve, per source, on every route (ADR-017).
       session-miss:
         capacity: 300

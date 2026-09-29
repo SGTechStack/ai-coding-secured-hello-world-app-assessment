@@ -1,0 +1,43 @@
+# Breach-corpus slice for the BLOCKLISTED rule (REJ-004; R-CRED-006). Version: 2026-09-seed-1.
+#
+# Only entries of 15 characters or more: anything shorter already fails MIN_LENGTH. One password per line, compared
+# with the whole candidate, ignoring case; blank lines and lines starting with # are ignored.
+#
+# This version is a seed: well-known passwords of 15 characters or more that recur in public breach compilations.
+# It is not yet an extract of a full corpus. Replacing it with a pinned slice of a current corpus, bumping the version
+# above, and refreshing it after that are the operator duty in R-CRED-006.
+passwordpassword
+passwordpassword1
+password1234567
+password12345678
+password123456789
+123456789012345
+1234567890123456
+12345678901234567890
+0000000000000000
+1111111111111111
+aaaaaaaaaaaaaaaa
+abcdefghijklmnop
+abcdefghijklmnopqrstuvwxyz
+qwertyuiopasdfgh
+qwertyuiopasdfghjkl
+qwertyuiopasdfghjklzxcvbnm
+qwertyqwertyqwerty
+asdfghjklasdfghjkl
+zxcvbnmasdfghjkl
+1q2w3e4r5t6y7u8i
+1q2w3e4r5t6y7u8i9o0p
+1qaz2wsx3edc4rfv
+qazwsxedcrfvtgbyhn
+iloveyouiloveyou
+iloveyouforever
+princessprincess
+monkeymonkeymonkey
+trustno1trustno1
+football12345678
+baseball12345678
+welcome123456789
+administrator123
+thequickbrownfox
+thequickbrownfoxjumpsoverthelazydog
+correcthorsebatterystaple

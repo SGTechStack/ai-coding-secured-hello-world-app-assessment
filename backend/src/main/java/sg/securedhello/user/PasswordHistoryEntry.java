@@ -33,7 +33,18 @@ public class PasswordHistoryEntry {
     protected PasswordHistoryEntry() {
     }
 
+    /** A retained hash; only {@code PasswordService} creates one (ArchUnit). */
+    public PasswordHistoryEntry(UUID userId, String passwordHash, Instant createdAt) {
+        this.userId = userId;
+        this.passwordHash = passwordHash;
+        this.createdAt = createdAt;
+    }
+
     public UUID getId() {
         return id;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
     }
 }

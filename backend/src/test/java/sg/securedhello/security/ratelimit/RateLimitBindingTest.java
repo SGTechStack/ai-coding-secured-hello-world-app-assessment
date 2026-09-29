@@ -37,7 +37,8 @@ class RateLimitBindingTest extends CtxNondevTest {
     private static final Map<RateLimit, Budget> TABLE = Map.of(
             RateLimit.LOGIN_SOURCE, new Budget(60, Duration.ofSeconds(1)),
             RateLimit.LOGIN_USERNAME, new Budget(10, Duration.ofSeconds(6)),
-            RateLimit.CSRF_SOURCE, new Budget(30, Duration.ofSeconds(2)));
+            RateLimit.CSRF_SOURCE, new Budget(30, Duration.ofSeconds(2)),
+            RateLimit.PROFILE_PASSWORD_SOURCE, new Budget(10, Duration.ofSeconds(6)));
 
     static Stream<Arguments> rows() {
         return Stream.of(RateLimit.values()).map(row -> Arguments.of(row, TABLE.get(row)));

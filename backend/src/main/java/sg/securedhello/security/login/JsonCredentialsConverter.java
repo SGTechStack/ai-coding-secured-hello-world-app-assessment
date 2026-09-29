@@ -10,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 
+import sg.securedhello.password.PasswordPolicy;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.AuthRateLimiter.Refusal;
@@ -75,8 +76,9 @@ final class JsonCredentialsConverter implements AuthenticationConverter {
         cardinality.refusal(details.sourceKey(), credentials.username()).ifPresent(refusal -> {
             throw new LockoutCardinalityException(refusal);
         });
+        // Passwords are hashed in NFC, so they are verified in NFC too (ADR-002; T-CRED-006).
         UsernamePasswordAuthenticationToken token = UsernamePasswordAuthenticationToken.unauthenticated(
-                credentials.username(), credentials.password());
+                credentials.username(), PasswordPolicy.normalise(credentials.password()));
         token.setDetails(details);
         return token;
     }

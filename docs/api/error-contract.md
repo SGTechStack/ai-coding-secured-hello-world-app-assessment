@@ -16,7 +16,7 @@ Every error the API returns is an RFC 9457 `application/problem+json` body with 
 | `traceId` | string | 32 lowercase hex digits identifying the request. |
 | `code` | string | One value from the closed enum below. The only member a client branches on. |
 
-No other member is allowed until the enum declares it.
+No other member is allowed until the contract declares it, as an extension member below.
 
 ## Codes
 
@@ -37,6 +37,14 @@ No other member is allowed until the enum declares it.
 | `FACTOR_ALREADY_ENROLLED` | 409 | Second factor already enrolled | A second factor is already enrolled. | provisioning when a confirmed factor exists |
 | `FACTOR_DISABLED` | 423 | Second factor disabled | The second factor is disabled. Contact an administrator. | tier-2 disable, on the self-read, the admin entry point and verification |
 | `INTERNAL_ERROR` | 500 | Internal error | An unexpected error occurred. | anything unhandled |
+
+## Extension members
+
+Each is required on its code and absent from every other.
+
+| Member | Code | Values | Meaning |
+|---|---|---|---|
+| `rule` | `PASSWORD_REJECTED` | `MIN_LENGTH`, `MAX_BYTES`, `BLOCKLISTED`, `CONTEXT_TERM`, `TOO_WEAK`, `HISTORY_REUSE` | The first password-policy rule the password failed, in the order the rules run (ADR-005). |
 
 ## Rules
 

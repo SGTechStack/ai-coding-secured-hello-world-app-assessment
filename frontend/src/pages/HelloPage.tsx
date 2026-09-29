@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api/errors'
 import { fetchGreeting, signOut } from '@/lib/auth/session'
 
-/** The signed-in page: the server's greeting, and sign-out. */
+/** The signed-in page: the server's greeting, a link to change the password, and sign-out. */
 export function HelloPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -29,6 +29,9 @@ export function HelloPage() {
           The greeting could not be loaded.
         </p>
       )}
+      <Link to="/change-password" className="text-sm underline">
+        Change password
+      </Link>
       <Button variant="outline" onClick={onSignOut}>
         Sign out
       </Button>

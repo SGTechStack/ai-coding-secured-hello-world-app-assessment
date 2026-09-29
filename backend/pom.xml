@@ -41,6 +41,8 @@
         <json-schema-validator.version>3.0.7</json-schema-validator.version>
         <!-- The limiter's buckets (R-STD-011): the core module only, with our own Caffeine cache. -->
         <bucket4j.version>8.20.0</bucket4j.version>
+        <!-- The password strength gate (ADR-005): pinned; T-CRED-004 must pass again before it moves. -->
+        <zxcvbn.version>1.9.0</zxcvbn.version>
     </properties>
 
     <dependencies>
@@ -94,6 +96,11 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.nulab-inc</groupId>
+            <artifactId>zxcvbn</artifactId>
+            <version>${zxcvbn.version}</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>

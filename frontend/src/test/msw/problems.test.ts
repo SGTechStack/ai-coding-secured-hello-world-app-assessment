@@ -35,6 +35,14 @@ describe('error contract', () => {
     },
   )
 
+  it('T-AUTH-012: PASSWORD_REJECTED needs its rule, and no other code may carry one', () => {
+    const { rule: _rule, ...withoutRule } = problemFixtures.PASSWORD_REJECTED
+
+    expect(validate(withoutRule)).toBe(false)
+    expect(validate({ ...problemFixtures.PASSWORD_REJECTED, rule: 'NOT_A_RULE' })).toBe(false)
+    expect(validate({ ...problemFixtures.VALIDATION_FAILED, rule: 'TOO_WEAK' })).toBe(false)
+  })
+
   it('T-AUTH-012: a code paired with another status fails the schema', () => {
     expect(validate({ ...problemFixtures.ACCESS_DENIED, status: 401 })).toBe(false)
   })

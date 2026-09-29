@@ -31,7 +31,8 @@ class AuthRateLimiterTest {
                 new Route(new Budget(loginSourceBurst, Duration.ofSeconds(1)), new Budget(10, Duration.ofSeconds(6)),
                         null),
                 new Route(new Budget(30, Duration.ofSeconds(2)), null, null),
-                new SessionMiss(300, Duration.ofMinutes(15)));
+                new SessionMiss(300, Duration.ofMinutes(15)),
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null));
         return new AuthRateLimiter(properties, ClockTimes.timeMeter(clock), ClockTimes.ticker(clock));
     }
 
@@ -135,7 +136,8 @@ class AuthRateLimiterTest {
     void aRowWithoutABudgetStopsStartupNamingItsProperty() {
         RateLimitProperties missingCsrf = new RateLimitProperties(
                 new Route(new Budget(60, Duration.ofSeconds(1)), new Budget(10, Duration.ofSeconds(6)), null),
-                null, new SessionMiss(300, Duration.ofMinutes(15)));
+                null, new SessionMiss(300, Duration.ofMinutes(15)),
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null));
 
         assertThatIllegalStateException()
                 .isThrownBy(() -> new AuthRateLimiter(missingCsrf, ClockTimes.timeMeter(clock),

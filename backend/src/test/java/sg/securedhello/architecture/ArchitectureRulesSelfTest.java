@@ -12,7 +12,10 @@ import org.junit.jupiter.api.Test;
 
 import sg.securedhello.architecture.fixtures.ArchitectureViolations;
 import sg.securedhello.architecture.fixtures.PlaceholderProves;
+import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
+import sg.securedhello.user.PasswordHistoryEntry;
+import sg.securedhello.user.UserAccount;
 
 /** Proves each rule actually catches what it bans, and lets through what it allows. */
 class ArchitectureRulesSelfTest {
@@ -132,6 +135,32 @@ class ArchitectureRulesSelfTest {
     void anAccountLookupAheadOfTheProviderIsCaught() {
         assertViolates(ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION,
                 ArchitectureViolations.JsonCredentialsConverter.class);
+    }
+
+    @Test
+    void anEncodeOutsidePasswordServiceIsCaught() {
+        assertViolates(ArchitectureRules.ONLY_PASSWORD_SERVICE_ENCODES, ArchitectureViolations.EncodesAPassword.class);
+    }
+
+    @Test
+    void passwordServiceMayEncode() {
+        assertPasses(ArchitectureRules.ONLY_PASSWORD_SERVICE_ENCODES, PasswordService.class,
+                ArchitectureViolations.ReadsTheCredentialColumn.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.WritesTheCredentialColumn.class,
+            ArchitectureViolations.WritesARetainedHash.class})
+    void aCredentialWriteOutsidePasswordServiceIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL, violator, UserAccount.class,
+                PasswordHistoryEntry.class);
+    }
+
+    @Test
+    void readingTheCredentialAndPasswordServiceWritingItAreAllowed() {
+        assertPasses(ArchitectureRules.ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL,
+                ArchitectureViolations.ReadsTheCredentialColumn.class, PasswordService.class, UserAccount.class,
+                PasswordHistoryEntry.class);
     }
 
     private static void assertViolates(ArchRule rule, Class<?>... classes) {

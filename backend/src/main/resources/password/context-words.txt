@@ -1,0 +1,8 @@
+# Context-specific words (ASVS 6.1.2; R-CRED-006). Each is refused as a whole password (BLOCKLISTED) and found inside
+# one (CONTEXT_TERM), compared lower case with letters and digits only, so "Secured-Hello" matches "securedhello".
+# The username, the email local part and the service name (spring.application.name) are added per account; they are
+# not listed here. Extending this list with organisation, product and codename permutations, and refreshing it, is
+# the operator duty in R-CRED-006.
+securedhello
+helloworld
+sghello

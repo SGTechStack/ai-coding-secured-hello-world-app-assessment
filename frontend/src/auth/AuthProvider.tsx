@@ -14,7 +14,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch((error: unknown) => {
         if (cancelled) return
-        if (!(error instanceof ApiError && error.status === 401)) {
+        // Development only: console output in production builds can reveal internals.
+        if (import.meta.env.DEV && !(error instanceof ApiError && error.status === 401)) {
           console.error('Could not load the current session', error)
         }
         setState({ status: 'anonymous' })

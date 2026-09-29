@@ -1,7 +1,7 @@
 # 14 — Test and validation plan
 
 Type: grilling
-Status: open
+Status: resolved
 Blocked by: 02, 08, 12
 Map: [Secured Login App](../map.md)
 
@@ -96,3 +96,162 @@ Note also that 01 restated `prd/assessment-prd.md:160` — the role-enforcement 
 - **A failed current-password check on `PATCH ${api.base-path}/currentUser/changePassword` returns `400`**, never `401` or `403`. The reason is behavioural and worth stating in the test name: `:437`'s global SPA interceptor logs the user out on either of those, so a typo would look identical to a successful change.
 - **Two recipe-free components now owe tests**, joining 01's custom JSON `AuthenticationFilter`: the `authenticationEntryPoint`/`accessDeniedHandler` pair, and the `PasswordChangeFilter`'s response writing. No recipe in the binding set configures `exceptionHandling` at all.
 - **Do not copy `RBAC:114-116`'s verification steps verbatim.** Step 1's `USER_READ` authority does not exist under 03's role model, and step 3's "unconfigured endpoints return `403`" is true for authenticated callers but `401` for anonymous ones under 08's entry point.
+
+## Answer
+
+Resolved by grilling, one round. Decisions delegated by the user to the orchestrating session after the evidence was presented.
+
+**Full-HTTP integration tests via `TestRestTemplate`, H2 by default and the whole security-critical suite re-run against Testcontainers PostgreSQL. A fixed `Clock`. `ListAppender` for log assertions. No coverage threshold — a named required-test list instead. And the handoff-definition-of-done fog dissolves rather than resolving: the gates cannot run before 17 closes, because there is no code yet.**
+
+### The merged plan: §5's thirteen categories
+
+Per the authority order §5 wins, so the plan is organised by its categories rather than the PRD's list, with the PRD's eight folded in as cases.
+
+| §5 category | Status | Source of cases |
+|---|---|---|
+| Authentication and session | **in** | `Std:433-438`; PRD login/logout; 13; 01's custom filter block |
+| Account lockout and rate limiting | **in** | `Std:448-453`; PRD lockout + IP throttling; 07's three counters |
+| Password policy and history | **in** | `Std:467`, `:508`; 04's seven assertions |
+| Password reset | **in** | `Std:458-461`; PRD Stories 6–7; 11 |
+| User data access control | **in** | `Std:471-480`; 08's matrix walk; 10's three projections |
+| Role-based access control | **in** | `Std:423-429`; 08; 03's role hierarchy |
+| Account enumeration resistance | **in** | `Std:504-507`; PRD identical-error; 11's timing floor |
+| CSRF protection | **in** | `Std:87`, `:443-446`; 09 |
+| Security headers and CORS | **in** | `Std:498-501`; `HDR:155`; 09 |
+| Input validation | **in** | `Std:86`; 04; 21's envelope |
+| Logging and audit | **in** | 12's 23 events; 05; 19's encoder |
+| Dependency security checks | **in** | `Std:519`; 15's `dependency-check-maven` |
+| Account hygiene | **VACUOUS** | scheduled hygiene jobs are out of scope; 15's ArchUnit `@Scheduled` ban is the standing guard |
+
+**Three more categories are vacuous and are recorded rather than silently skipped**, so a reviewer sees they were read:
+
+- **Bulk/batch operations** — 10 ruled `Q24` out, so `Std:107`, `:255` and `Priv:484`'s 5000-entry limit have no endpoint to bind. **No test**, because writing one would require building the endpoint to test it.
+- **Admin-generated password composition** (`Std:357-361`) — 11's token model means the system never generates a password. No subject.
+- **Multi-instance / distributed behaviour** (`Std:453`, `:434`'s distributed clause) — 01 fixed single-instance; 02's throttle counters are explicitly not multi-instance-safe. Asserted as *documented limitations* in 17's deltas, not as passing tests.
+
+### Mechanics
+
+**Integration tests are full HTTP: `@SpringBootTest(webEnvironment = RANDOM_PORT)` with `TestRestTemplate`.** Not MockMvc for the security-critical suite. MockMvc runs the filter chain but simulates the servlet layer, and this application's correctness lives precisely in things MockMvc smooths over: real `Set-Cookie` attributes (`SameSite`, `Secure`, `Path` — 13 flagged that logout's cookie deletion must match them or the browser ignores it), the CSRF bootstrap round-trip through `GET /csrf` into an `X-CSRF-TOKEN` header, and `getRemoteAddr()` returning something real for 07's throttle key and 18's `source.ip`. A test that passes under MockMvc and fails in a browser is worse than no test.
+
+MockMvc keeps a narrower job: controller-level slices for request-validation and serialization shapes, where the servlet layer is genuinely irrelevant.
+
+**Database: H2 by default, PostgreSQL for the whole security-critical suite.** 02 handed over the portability obligation and left the design here.
+
+- Default profile `test`: in-memory H2 in `MODE=PostgreSQL`, config in `backend/src/test/resources/application-test.yaml` (15). Fast, runs on every `mvn test`.
+- **The entire security-critical suite re-runs against Testcontainers PostgreSQL** under a `postgres` profile, bound to `mvn verify`. Not a subset — subsetting means choosing which portability bugs to not find, and 02 chose Liquibase specifically to make portability testable rather than aspirational. The cost is wall-clock on `verify`, which is the right place to pay it.
+- 02 already ruled the PRD's containerization exclusion covers deployment packaging, not test infrastructure. Not re-litigated.
+
+**Time: one fixed `Clock` bean**, replacing the application's injectable `Clock` in tests. Lockout cooldown (07's 20 minutes), absolute session timeout (13's 8 hours), idle timeout (15 minutes) and reset-token expiry (11's 30 minutes) all read from it, so every one is tested by advancing a `Clock`, never by sleeping. This was 02's recommendation and it is adopted as the decision.
+
+**Log assertions: Logback `ListAppender`.** `Centralising_Audit_Logging_With_A_Typed_Module.md:327` notes it makes routing assertable without an integration test. Two appenders are attached in tests — one to the `audit` logger, one to root — so "this event reached the audit stream **and not** the application stream" is directly assertable, which is what `Std:327` actually requires.
+
+**Coverage: JaCoCo report generated, no build-failing threshold.** §5 mandates no coverage figure. A percentage gate on a security application rewards testing getters and says nothing about whether the 21-row matrix is walked — and this plan's real gate is the named required-test list below, which a coverage number cannot substitute for. Recorded as a deliberate choice rather than an omission, since `build-check` expects thresholds and will otherwise read this as a gap.
+
+**Which of 12's 23 audit events get assertions: all of them, at two depths.** A named subset invites the unasserted ones to rot, and emission assertions are nearly free via `ListAppender`. So:
+
+- **All 23** get an emission assertion — the event fires on its trigger, with the right `event.action`, `event.reason` and level.
+- **Six get a full field-schema assertion** — login success, login failure (unknown username), lockout, authorization denial, forced-change denial, reset requested. These are the security-critical lines, the ones 18 and 12 fought over, and the ones where a missing field is invisible.
+
+### Frontend testing: narrow and named
+
+The PRD permits implementer discretion. **Vitest + React Testing Library, scoped to two things only**: the auth context (how `requirePasswordChange` and `role` are read from `GET /currentUser` and gate routes) and the global axios interceptor (that it distinguishes a bare `401` from a `403` carrying `PASSWORD_CHANGE_REQUIRED` or `SELF_ACTION_NOT_ALLOWED`, and logs out only on the first).
+
+Those two are where 10's refinement of 08's constraint actually lands — the whole reason 21's `code` field exists is so the interceptor can tell session death from an in-app error, and nothing on the backend can test that. Everything else on the frontend is left to implementer discretion, explicitly.
+
+**No Playwright/E2E suite in this plan.** The repo's `browser-test` skill is an acceptance gate against the issue's criteria, and it belongs to 17's handoff rather than to this test plan — running it needs a built application. Named here so its absence is a decision, not an oversight.
+
+### Dependency security (`Std:519`)
+
+**`dependency-check-maven` in its non-default profile with `failBuildOnCVSS=7` (15), part of the definition of done, run at `verify` — not on every build.** A finding at CVSS ≥ 7 fails the gate.
+
+Two honest operational notes, because this gate fails for boring reasons more often than real ones: it needs an **NVD API key** to avoid severe rate-limiting, which is an environment variable an integrator must supply; and its first run downloads a large vulnerability database, so a cold CI cache makes it slow. Both belong in 17's handoff rather than being discovered on the first pipeline run. 15 left the *schedule* to the integrator and that stands — this plan fixes only that it must pass once before the build is called done.
+
+### The definition-of-done fog dissolves
+
+This ticket was handed the map's **"handoff definition of done"** patch — whether `im8-review` and/or `pre-prod-check` must run clean before 17 closes.
+
+**They cannot run before 17 closes, because when 17 closes there is no code.** The map is a planning effort; 17's job is to hand a specification to `stories-to-issues` and `/do-work`. Every one of those skills inspects a codebase that does not yet exist. The question as posed has no answer, and the right response is to say so rather than to invent a gate.
+
+**So the definition of done belongs to the build, and 17's job is to record it, not satisfy it.** Two distinct lists:
+
+**A. Per slice, inside `/do-work`'s loop:**
+1. `mvn verify` green — unit, integration (H2), and the Testcontainers PostgreSQL run
+2. **Five ArchUnit rows** — 15's four (no `System.out`/`printStackTrace`; only `com.assessment.auth.audit` logs to the audit logger; no `@Async`/`@Scheduled`; no manual HTTP clients) plus 13's fifth (**no `response.sendError` under `com.assessment.auth`**, now three filters deep)
+3. `semgrep` clean on changed code
+4. Frontend: `tsc --noEmit`, lint, Vitest
+
+**B. Once, before the build is called finished:**
+5. `im8-review` clean — 05 removed the excuse: logging conformance needs no external platform, collector or exporter (`Trace:14`, `Std:287` note), so it is fully assertable in-repo
+6. `dependency-vuln-scan` / `dependency-check-maven` with no CVSS ≥ 7
+7. `browser-test` against the PRD's twelve stories — **including 16's three-step first boot** (log in → change password → log in again), which reads as broken software if a reviewer meets it unannounced
+8. `arch-tests-plan` / `arch-tests-gen` rows all green
+
+**`pre-prod-check` is not required, and that is a decision with a reason.** It orchestrates seven gates — API code docs, authorization matrix verification, OWASP threat modelling, technical architecture doc with dependency scan, full-codebase IM8/ARC, observability readiness, secrets and config audit. Three of them are already discharged by this map and would be re-derived from scratch (the authorization matrix is 08's; the threat surface is spread across 07/09/11/18; the secrets posture is 15's), and it terminates in a **tech-lead sign-off report** — a human governance step, not a build gate. Recorded as *available and recommended before any real deployment*, not as a condition for calling this build done. Reopening it is an integrator's call.
+
+### The required-test list: cases that would otherwise ship silently
+
+Beyond the category sweep, these are the ones where a plausible implementation passes every other test and is still wrong. Each is named so it cannot be quietly dropped.
+
+**From 09 — and this one runs first:**
+- **A `Secure` session cookie round-trips over `http://localhost`.** 09 kept `secure: true` in every profile on the basis that browsers treat localhost as a trustworthy origin — and explicitly recorded that this was *not verified in a browser*. It is the single load-bearing unverified claim on the map, and **everything else in the integration suite depends on it**. First test to run; if it fails, 09's fallback is a one-line `dev` override.
+- No `XSRF-TOKEN` cookie exists (`HDR:157`) — proves session-bound CSRF, not double-submit
+- `POST /auth/login` without a CSRF token returns `403` (`Std:87`)
+- The five headers via `curl -I` equivalent (`HDR:155`); `preload` **absent** from HSTS; `Referrer-Policy` present
+- A non-allowlisted origin is rejected (`Std:501`)
+- `/actuator/**` returns `403` for everyone including `USER_MANAGER`
+
+**From 19 — the highest-value logging assertion in the plan:**
+- **Lockout emits `error.code == 423`, `error.category == "cert/auth"`, `error.follow_up_action == true`, and no `error.type`/`message`/`stack_trace`.** Under `Encoder:408` as written, all nine fields across the three throwable-less security events vanish **silently** — no failing build, no error line, a gutted audit trail. 19 deviated deliberately; this test is what pins the deviation.
+- The encoder test class is a **named required gate**, because the encoder extends an internal Spring Boot class with no migration guarantee (`Encoder:24`) and is now the only mechanism discharging `Std:328`'s masking constraint. A Boot bump that breaks it is a compliance break, not a formatting glitch.
+- Every appender's output parses as JSON and carries `ecs.version` (`Std:320`, `:326`)
+
+**From 05 — the defect that ships silently:**
+- **A successful login's audit event carries authentication method `password`.** `AuthN:112-118` resolves the method by switching on the authentication **class name**, and 01 chose a custom subclass of `UsernamePasswordAuthenticationFilter` — so the recipe's resolver yields `"unknown"`, breaching `Std:240`. Nothing fails visibly.
+- `trace.id` and `span.id` on **every** line, asserted specifically on the failed-login and `403` paths — where 12 established `trace.id` plus `source.ip` are the *only* fields present
+- MDC does not leak between requests: a failed login followed by a successful one carries no residue (`Std:323`; `MDC:233-235`'s `putCloseable` trap, which 12 banned outright)
+
+**From 12 — enumeration resistance in the logs, not just the responses:**
+- **An unknown username and a wrong password produce audit lines that are equally indistinguishable.** A correct HTTP response with a leaky log line passes every other test in this plan.
+- No log line anywhere contains a password, a password hash, a reset token (plaintext **or** hashed), a session id, a username, or an email address
+- `event.reason` never takes a value outside 12's closed vocabulary
+- Audit events reach the `AUDIT` appender **and not** the application one
+
+**From 04 — the test most likely to be written backwards:**
+- **After three updates from `TempPassword1!`, that value is still rejected**; it frees only on the fourth. `Self-Service:269-272` says the opposite, and a test transcribed from the recipe fails against a correct implementation.
+- A 12-character all-lowercase passphrase **with spaces** is accepted — composition is deliberately not required
+- 72 characters accepted, 73 rejected **as a validation error, not a `500`**
+- Stored hashes carry `$2a$12$`, proving the encoder was not left at its default cost of 10
+- The `PasswordChangeFilter` allowlist is exactly four entries, **including logout** — the row the privileged recipe omits and 04 added
+
+**From 08 — two criteria that pass only because of explicit configuration:**
+- **Unauthenticated `GET /hello` returns `401`, not `403`.** Without the explicit `HttpStatusEntryPoint`, `createDefaultEntryPoint` returns `Http403ForbiddenEntryPoint`. Assert the status, not "rejected".
+- A genuine controller `400` reaches the client as a `400` — without row 6's `permitAll` on `/error`, `filterErrorDispatch=true` turns every error forward into a `403`
+- `USER_MANAGER` reaches `GET /hello` — the **only** load-bearing role-hierarchy row; drop this and deleting `role-hierarchy` breaks nothing visible
+- A flagged `USER_MANAGER` gets `PASSWORD_CHANGE_REQUIRED` in the **body**, and **no authorization-failure audit line** is written (12's named hole, pinned here)
+- A wrong current password returns `400` — `401`/`403` would log the user out on a typo
+
+**From 10, 11, 13, 16:**
+- Delete writes a tombstone **before** removing the row, atomically; re-registering a tombstoned username **or email** both fail; `password_history` rows vanish on delete
+- `/currentUser` never returns a hash, a lock state or a failed-attempt count; a `USER` calling `GET /users/{ownId}` gets `403`
+- Reset: token single-use; expiry on the fixed `Clock`; a new token invalidates the prior; confirm invalidates all sessions and clears `requirePasswordChange`
+- Identical body **and bounded timing** for registered versus unregistered reset email (11's floor is a *partial* discharge of `Std:247` — assert the bound, do not claim constant time)
+- A second login expires the first session; the concurrent limit **survives a restart** (`Std:409`'s actual property, and what `SessionRegistryImpl` would have broken)
+- A replayed post-logout cookie is rejected; `Clear-Site-Data` present on logout
+- **Bootstrap idempotence across two starts against file-based H2** — the branch 02 chose a persistent dev database to make observable; plus startup failure when `APP_ADMIN_PASSWORD` is absent or violates 04's policy
+
+**From 02 and 15:**
+- Liquibase applies clean on **both** vendors; a checksum failure on Spring Session's packaged DDL is the **intended loud failure** on upgrade, not a bug to suppress
+- The `PRINCIPAL_NAME` index exists — `ddl-auto: validate` does **not** catch its absence, and Story 7 breaks without it
+
+**From 01 — the component with no recipe behind it:**
+- The custom JSON `AuthenticationFilter`: JSON body parsed; **session id rotates** on success; failures still reach the lockout counter through the retained `failureHandler`; `200` carries an empty body; `401` is generic and identical for unknown-username and wrong-password; ordering relative to `CsrfFilter` holds
+
+Three components now carry the "no standards recipe behind it" flag — 01's JSON filter, 08's entry-point/access-denied pair, and the `PasswordChangeFilter`'s response writing — plus 19's encoder. For all four, **the tests are the only thing standing in for a missing standards review**, and that is why they are named individually rather than left to a coverage number.
+
+### Amends
+
+- **15** — a fifth ArchUnit row (no `response.sendError`); `dependency-check-maven`'s profile is part of the definition of done at `verify`; note the NVD API key requirement.
+- **17** — takes definition-of-done list **B** verbatim, plus the `browser-test` note about 16's three-step first boot, plus the two documented limitations (throttle counters not restart-durable, single-instance only) that must appear as deltas rather than as failing tests.
+- **12** — all 23 events are asserted for emission; six for full field schema.
+- **09** — the `Secure`-cookie-on-localhost test is the first gate; its failure has a known one-line fix.
+- The map's **handoff definition of done** fog patch is **dissolved, not graduated**: the gates run against a build, and 17 closes before one exists.

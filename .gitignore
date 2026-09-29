@@ -1,0 +1,39 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Agent tooling and local skill installs.
+# Ignored because the skill trees are sourced in part from SGTechStack/ai-coding-workflow-d2,
+# which answers 404 unauthenticated while this repo answers 200 — committing them would
+# disclose a private repo into a public one. Same boundary as App-Standards (see wayfinder
+# ticket 06). `.claude/skills/*` are additionally absolute symlinks into `.agents/`, which
+# would not resolve on any other machine.
+.agents/
+.claude/
+.kiro/
+agent/
+skills-lock.json
+
+# Build output
+target/
+node_modules/
+dist/
+*.log
+
+# Generated documentation
+**/javadoc/
+**/tsdoc/
+
+# NOTE: `.scratch/` is deliberately NOT ignored on this branch — the wayfinder map and its
+# decision tickets are the planning deliverable. This is a conscious departure from the
+# `samuelwong` branch, which ignores it.

@@ -3,6 +3,11 @@ spring:
     name: secured-hello-backend
   profiles:
     default: dev
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
+    timeout: 30m
 
 app:
   cors:

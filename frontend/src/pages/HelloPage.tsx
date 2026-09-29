@@ -2,13 +2,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api/errors'
-import { fetchGreeting, signOut } from '@/lib/auth/session'
+import { fetchGreeting, fetchProfile, PROFILE_KEY, signOut } from '@/lib/auth/session'
 
-/** The signed-in page: the server's greeting, a link to change the password, and sign-out. */
+/** The signed-in page: the server's greeting, links to change the password and, for an admin, to set up TOTP, and sign-out. */
 export function HelloPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const greeting = useQuery({ queryKey: ['hello'], queryFn: fetchGreeting })
+  const profile = useQuery({ queryKey: PROFILE_KEY, queryFn: fetchProfile })
 
   // Authority: whatever the client believed, the server's code decides that the session is over.
   if (greeting.error instanceof ApiError && greeting.error.code === 'AUTHENTICATION_FAILED') {
@@ -36,6 +37,11 @@ export function HelloPage() {
       <Link to="/change-password" className="text-sm underline">
         Change password
       </Link>
+      {profile.data?.role === 'ADMIN' && (
+        <Link to="/settings/mfa" className="text-sm underline">
+          Two-factor authentication
+        </Link>
+      )}
       <Button variant="outline" onClick={onSignOut}>
         Sign out
       </Button>

@@ -1,0 +1,75 @@
+{
+  "issue": {
+    "reference": ".scratch/secured-hello-world/issues/07-ip-throttle-and-registration-rate-limit.md",
+    "slug": "ip-throttle-and-registration-rate-limit",
+    "goal": "IP Throttle (20 failures / 15 min blocks address 15 min, direct address only), registration 10/hour/IP, source.ip_hash audit, HMAC key required outside dev"
+  },
+  "detailed_kb_evidence": false,
+  "implementer": {
+    "updates": []
+  },
+  "reviewer": {
+    "updates": [
+      {
+        "round": 1,
+        "kb_lanes": [],
+        "status": "completed",
+        "changed_files": [
+          "backend/src/main/java/com/example/securedhello/ratelimit/IpThrottle.java",
+          "backend/src/main/java/com/example/securedhello/audit/SourceIpHash.java",
+          "backend/src/main/java/com/example/securedhello/config/IpThrottleProperties.java",
+          "backend/src/main/java/com/example/securedhello/config/IpHashProperties.java",
+          "backend/src/main/java/com/example/securedhello/account/AuthenticationGuard.java",
+          "backend/src/main/java/com/example/securedhello/account/AuthenticationController.java",
+          "backend/src/main/java/com/example/securedhello/account/RegistrationController.java",
+          "backend/src/main/java/com/example/securedhello/ratelimit/RateLimiter.java",
+          "backend/src/main/java/com/example/securedhello/ratelimit/RateLimiters.java",
+          "backend/src/main/java/com/example/securedhello/ratelimit/RateLimitExceededException.java",
+          "backend/src/main/java/com/example/securedhello/config/RateLimitProperties.java",
+          "backend/src/main/java/com/example/securedhello/web/GlobalExceptionHandler.java",
+          "backend/src/main/java/com/example/securedhello/logging/ApplicationLifecycleLogger.java",
+          "backend/src/main/resources/application.properties",
+          "backend/src/main/resources/application-dev.properties",
+          "backend/src/test/resources/application-test.properties",
+          "backend/src/test/java/com/example/securedhello/IpThrottleApiTest.java",
+          "backend/src/test/java/com/example/securedhello/RegistrationRateLimitApiTest.java",
+          "backend/src/test/java/com/example/securedhello/LoginRateLimitApiTest.java",
+          "backend/src/test/java/com/example/securedhello/StartupConfigurationTest.java",
+          "backend/src/test/java/com/example/securedhello/support/ResetRateLimitersListener.java"
+        ],
+        "kb_queries": 0,
+        "findings": [
+          {
+            "evidence_id": "forward-headers-auto-enabled-on-cloud",
+            "location": "backend/src/main/resources/application.properties:50-55 (app.ip-throttle.*; server.forward-headers-strategy unset)",
+            "violation": "KB unavailable. The acceptance criterion says the IP Throttle uses the direct client address and ignores forwarded headers. server.forward-headers-strategy is not set. When it is unset, Spring Boot 4.1.1 switches to NATIVE on any detected cloud platform: CloudPlatform.isUsingForwardHeaders() returns true for Kubernetes, Cloud Foundry, Heroku, Azure App Service, Nomad and SAP. Kubernetes is detected from KUBERNETES_SERVICE_HOST/PORT. Tomcat's RemoteIpValve then rewrites getRemoteAddr() from X-Forwarded-For when the request arrives from an internal-range address. That changes the IP Throttle key, the registration limiter key and source.ip_hash, depending on where the app runs. forwardedHeadersAreIgnored uses MockMvc, which never runs Tomcat valves, so it cannot catch this.",
+            "proposed": "Set server.forward-headers-strategy=none explicitly in application.properties, next to the existing reverse-proxy comment. Operators who add a trusted proxy then change it on purpose, as the spec's deployment note describes. Add a bootstrap assertion in StartupConfigurationTest that the prod profile resolves server.forward-headers-strategy to none, even when KUBERNETES_SERVICE_HOST/PORT or spring.main.cloud-platform=kubernetes is set.",
+            "status": "Resolved"
+          }
+        ],
+        "decisions": [],
+        "comparisons": []
+      },
+      {
+        "round": 2,
+        "kb_lanes": [],
+        "status": "completed",
+        "changed_files": [
+          "backend/src/main/resources/application.properties",
+          "backend/src/main/java/com/example/securedhello/config/IpThrottleProperties.java",
+          "backend/src/test/java/com/example/securedhello/StartupConfigurationTest.java"
+        ],
+        "kb_queries": 0,
+        "findings": [],
+        "decisions": [],
+        "comparisons": [
+          {
+            "evidence_id": "forward-headers-auto-enabled-on-cloud",
+            "concern": "application.properties server.forward-headers-strategy; StartupConfigurationTest.forwardedHeadersAreNeverTrustedEvenOnADetectedCloudPlatform",
+            "result": "Compliant: server.forward-headers-strategy=none is set explicitly (no profile overrides it). Spring Boot 4.1.1 TomcatWebServerFactoryCustomizer.getOrDeduceUseForwardHeaders only consults CloudPlatform when the strategy is null, so RemoteIpValve is not added. The prod-profile bootstrap test asserts NONE with spring.main.cloud-platform=none and =kubernetes. KB unavailable."
+          }
+        ]
+      }
+    ]
+  }
+}

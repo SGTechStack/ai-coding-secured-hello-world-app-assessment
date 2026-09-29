@@ -82,7 +82,7 @@ A React single-page app (its own origin) talks to a Spring Boot REST API (its ow
 
 ### Authentication & session
 - Custom `POST /api/auth/login` controller delegates to `AuthenticationManager.authenticate()`; the controller/service owns failed-attempt increment/reset, Account Lockout check, IP Throttling check, generic-error shaping, Audit Events, and explicit session-fixation protection (`changeSessionId`). `UserDetails.isAccountNonLocked()` derives from `locked_until`; `isEnabled()` derives from `enabled`.
-- Passwords hashed with `BCryptPasswordEncoder`. Password policy: length ≥ 12, max 72 (BCrypt byte cap); no complexity classes.
+- Passwords hashed with `BCryptPasswordEncoder`. Password policy (IM8-aligned, see ADR-0003): length 12–72 (BCrypt byte cap) AND characters from at least 3 of the 4 categories — uppercase (A-Z), lowercase (a-z), digits (0-9), special characters. Enforced server-side by `PasswordPolicy` + `@ValidPassword` Bean Validation; applied identically to registration and password-reset confirm. Frontend mirrors the rules for UX but backend is authoritative.
 - Logout invalidates the current Session and clears the cookie. Password reset invalidates **all** of the User's Sessions via `FindByIndexNameSessionRepository.findByPrincipalName(username)` → delete each.
 
 ### Abuse controls

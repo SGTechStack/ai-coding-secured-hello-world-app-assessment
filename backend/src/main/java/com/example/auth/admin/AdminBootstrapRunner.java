@@ -2,9 +2,11 @@ package com.example.auth.admin;
 
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 import com.example.auth.config.AdminProperties;
+import com.example.auth.user.PasswordPolicy;
 import com.example.auth.user.Role;
 import com.example.auth.user.User;
 import com.example.auth.user.UserRepository;
@@ -92,6 +94,13 @@ public class AdminBootstrapRunner implements ApplicationRunner {
             throw new IllegalStateException(
                     "Refusing to seed the initial admin with a known placeholder password under a non-dev "
                     + "profile. Set a strong app.admin.password (e.g. via the APP_ADMIN_PASSWORD env var).");
+        }
+        if (!isDevMode()) {
+            List<String> violations = PasswordPolicy.validate(password);
+            if (!violations.isEmpty()) {
+                throw new IllegalStateException(
+                        "app.admin.password does not meet the password policy: " + violations);
+            }
         }
     }
 

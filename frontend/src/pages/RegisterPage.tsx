@@ -5,16 +5,7 @@ import { ApiError } from '../api/client';
 import { FormField } from '../components/FormField';
 import { PasswordField } from '../components/PasswordField';
 import { useField } from '../hooks/useField';
-
-const MIN_PASSWORD = 12;
-const MAX_PASSWORD = 72;
-
-function validatePassword(v: string): string | null {
-  if (!v) return 'Password is required.';
-  if (v.length < MIN_PASSWORD) return `Password must be at least ${MIN_PASSWORD} characters.`;
-  if (v.length > MAX_PASSWORD) return `Password must not exceed ${MAX_PASSWORD} characters.`;
-  return null;
-}
+import { buildRequirements, validatePassword } from '../utils/passwordPolicy';
 
 export function RegisterPage() {
   const usernameField = useField((v) => (!v.trim() ? 'Username is required.' : null));
@@ -91,10 +82,7 @@ export function RegisterPage() {
     );
   }
 
-  const pwRequirements = [
-    { label: `At least ${MIN_PASSWORD} characters`, met: passwordField.value.length >= MIN_PASSWORD },
-    { label: `No more than ${MAX_PASSWORD} characters`, met: passwordField.value.length <= MAX_PASSWORD && passwordField.value.length > 0 },
-  ];
+  const pwRequirements = buildRequirements(passwordField.value);
 
   return (
     <div className="auth-page">
@@ -141,7 +129,7 @@ export function RegisterPage() {
             autoComplete="new-password"
             onChange={passwordField.onChange}
             onBlur={passwordField.onBlur}
-            requirements={passwordField.touched || passwordField.value ? pwRequirements : undefined}
+            requirements={passwordField.touched || passwordField.value.length > 0 ? pwRequirements : undefined}
           />
 
           <PasswordField

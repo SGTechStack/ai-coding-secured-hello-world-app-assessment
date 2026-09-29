@@ -124,7 +124,7 @@ This project targets local development over HTTP. A real deployment must:
 | Requirement | Implementation | Test |
 | --- | --- | --- |
 | Password hashing (BCrypt) | `BCryptPasswordEncoder` bean; `RegistrationService` | `RegistrationIntegrationTest` |
-| Password policy (12–72) | `@Size` on `RegistrationRequest` / `PasswordResetConfirmRequest` | `RegistrationIntegrationTest` |
+| Password policy (12–72, 3-of-4 categories, IM8-aligned, ADR-0003) | `PasswordPolicy` + `@ValidPassword` on both DTOs; `passwordPolicy.ts` mirrors for UX | `PasswordPolicyTest` (unit), `PasswordPolicyIntegrationTest` (HTTP boundary) |
 | Session cookie hardening | `application.yml` (`HttpOnly`, `SameSite=Lax`, `Secure` prod) | `LoginIntegrationTest` |
 | Session fixation | `changeSessionId()` in `SecurityConfig` + login flow | `LoginIntegrationTest` |
 | Logout invalidation | `AuthController.logout` invalidates Spring Session | `LoginIntegrationTest.reusingSessionCookieAfterLogout` |

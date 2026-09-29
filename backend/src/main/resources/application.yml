@@ -54,12 +54,13 @@ app:
       window-minutes: 15
   # Initial admin seed. The shipped password is a KNOWN PLACEHOLDER: it works for
   # local/dev startup only. Under any non-dev profile the bootstrap refuses to seed
-  # with a placeholder and fails fast — a real password must be supplied via config
+  # with a placeholder and fails fast — a real password must meet the full policy
+  # (length 12-72, 3-of-4 character categories) and be supplied via config
   # (e.g. APP_ADMIN_PASSWORD env var). See Story 51.
   admin:
     username: admin
     email: admin@example.com
-    password: change-me-please-12+
+    password: change-me-please-12+  # dev placeholder — lower+special+digit = 3 categories
   # Password reset token lifetime + per-IP request rate limit
   reset:
     token-ttl-minutes: 30

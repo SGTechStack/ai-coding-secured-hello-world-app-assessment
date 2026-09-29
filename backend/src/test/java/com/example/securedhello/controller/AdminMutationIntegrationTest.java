@@ -2,27 +2,23 @@ package com.example.securedhello.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import com.example.securedhello.HttpIntegrationTest;
 import com.example.securedhello.entity.Role;
 import com.example.securedhello.entity.User;
 import com.example.securedhello.repository.UserRepository;
 import com.example.securedhello.service.AdminBootstrapService;
+import com.example.securedhello.support.AuthTestClient;
 
 /**
  * Integration tests for admin account mutations and the Admin Self-Action
@@ -34,8 +30,7 @@ class AdminMutationIntegrationTest extends HttpIntegrationTest {
 
     private static final String ADMIN_PASSWORD = "change-me-admin-pw";
 
-    // JDK HttpClient factory so PATCH is supported (the default factory is not).
-    private final RestTemplate client = new RestTemplate(new JdkClientHttpRequestFactory());
+    private AuthTestClient http;
 
     @Autowired
     private UserRepository userRepository;
@@ -45,61 +40,23 @@ class AdminMutationIntegrationTest extends HttpIntegrationTest {
 
     private long adminId;
     private long bobId;
-    private CsrfSession adminSession;
+    private AuthTestClient.Session adminSession;
 
     @BeforeEach
     void setUp() {
         resetClock();
+        http = new AuthTestClient(baseUrl());
         userRepository.deleteAll();
         adminBootstrapService.seedIfMissing();
-        client.postForEntity(baseUrl() + "/api/register",
-                Map.of("username", "bob", "email", "bob@example.com",
-                        "password", "correcthorsebattery"), Map.class);
+        http.register("bob", "bob@example.com", "correcthorsebattery");
         adminId = userRepository.findByUsername("admin").orElseThrow().getId();
         bobId = userRepository.findByUsername("bob").orElseThrow().getId();
-        adminSession = loginSession("admin", ADMIN_PASSWORD);
-    }
-
-    private record CsrfSession(String sessionCookie, String csrfCookie, String csrfToken) {
-    }
-
-    private CsrfSession loginSession(String username, String password) {
-        ResponseEntity<Map> csrf = client.getForEntity(baseUrl() + "/api/csrf", Map.class);
-        String token = (String) csrf.getBody().get("token");
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add("X-XSRF-TOKEN", token);
-        String csrfCookie = null;
-        for (String c : csrf.getHeaders().get(HttpHeaders.SET_COOKIE)) {
-            String pair = c.split(";", 2)[0];
-            headers.add(HttpHeaders.COOKIE, pair);
-            if (pair.startsWith("XSRF-TOKEN=")) {
-                csrfCookie = pair;
-            }
-        }
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(
-                Map.of("username", username, "password", password), headers);
-        ResponseEntity<Map> login =
-                client.exchange(baseUrl() + "/api/login", HttpMethod.POST, entity, Map.class);
-        String sessionCookie = login.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
-                .filter(c -> c.startsWith("SESSION="))
-                .map(c -> c.split(";", 2)[0])
-                .findFirst().orElseThrow();
-        return new CsrfSession(sessionCookie, csrfCookie, token);
-    }
-
-    private HttpHeaders adminHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add(HttpHeaders.COOKIE, adminSession.sessionCookie());
-        headers.add(HttpHeaders.COOKIE, adminSession.csrfCookie());
-        headers.add("X-XSRF-TOKEN", adminSession.csrfToken());
-        return headers;
+        adminSession = http.login("admin", ADMIN_PASSWORD).session();
     }
 
     private ResponseEntity<Map> patch(String path, Map<String, Object> body) {
-        return client.exchange(baseUrl() + path, HttpMethod.PATCH,
-                new HttpEntity<>(body, adminHeaders()), Map.class);
+        return http.rest().exchange(http.url(path), HttpMethod.PATCH,
+                new HttpEntity<>(body, http.authedCsrfHeaders(adminSession)), Map.class);
     }
 
     private HttpClientErrorException patchExpectingFailure(String path, Map<String, Object> body) {
@@ -120,11 +77,31 @@ class AdminMutationIntegrationTest extends HttpIntegrationTest {
 
         // Disabled bob cannot log in.
         try {
-            loginSession("bob", "correcthorsebattery");
+            http.login("bob", "correcthorsebattery");
             throw new AssertionError("Expected disabled user login to fail");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    @Test
+    void loginToDisabledAccountDoesNotCountFailuresOrLockIt() {
+        patch("/api/admin/users/" + bobId + "/enabled", Map.of("enabled", false));
+
+        // Several login attempts against the disabled account.
+        for (int i = 0; i < 6; i++) {
+            try {
+                http.login("bob", "correcthorsebattery");
+            } catch (HttpClientErrorException ignored) {
+                // expected 401
+            }
+        }
+
+        // A disabled account is refused outright: no failed-attempt increment,
+        // no lockout timestamp set.
+        User bob = userRepository.findByUsername("bob").orElseThrow();
+        assertThat(bob.getFailedLoginAttempts()).isZero();
+        assertThat(bob.getLockedUntil()).isNull();
     }
 
     @Test
@@ -138,9 +115,9 @@ class AdminMutationIntegrationTest extends HttpIntegrationTest {
 
     @Test
     void adminCanDeleteAnotherAccount() {
-        ResponseEntity<Void> response = client.exchange(
-                baseUrl() + "/api/admin/users/" + bobId, HttpMethod.DELETE,
-                new HttpEntity<>(adminHeaders()), Void.class);
+        ResponseEntity<Void> response = http.rest().exchange(
+                http.url("/api/admin/users/" + bobId), HttpMethod.DELETE,
+                new HttpEntity<>(http.authedCsrfHeaders(adminSession)), Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(userRepository.findByUsername("bob")).isEmpty();
     }
@@ -158,8 +135,8 @@ class AdminMutationIntegrationTest extends HttpIntegrationTest {
         assertThat(demote.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
         try {
-            client.exchange(baseUrl() + "/api/admin/users/" + adminId, HttpMethod.DELETE,
-                    new HttpEntity<>(adminHeaders()), Void.class);
+            http.rest().exchange(http.url("/api/admin/users/" + adminId), HttpMethod.DELETE,
+                    new HttpEntity<>(http.authedCsrfHeaders(adminSession)), Void.class);
             throw new AssertionError("Expected self-delete to be rejected");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);

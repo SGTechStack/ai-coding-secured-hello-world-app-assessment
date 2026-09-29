@@ -3,7 +3,6 @@ package com.example.securedhello.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -18,26 +17,25 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import com.example.securedhello.HttpIntegrationTest;
 import com.example.securedhello.controller.PasswordResetConfirmIntegrationTest.CapturingEmailConfig;
 import com.example.securedhello.repository.UserRepository;
 import com.example.securedhello.service.EmailService;
+import com.example.securedhello.support.AuthTestClient;
 
 /**
  * Integration tests for password-reset confirm and all-session revocation
  * (issue 08). A capturing {@link EmailService} exposes the one-time plaintext
  * token (which is otherwise never returned) so the confirm flow can be driven
- * end-to-end.
+ * end-to-end. Confirm is CSRF-protected, so requests carry a CSRF token.
  */
 @Import(CapturingEmailConfig.class)
 class PasswordResetConfirmIntegrationTest extends HttpIntegrationTest {
 
-    private final RestTemplate client = new RestTemplate();
+    private AuthTestClient http;
 
     @Autowired
     private UserRepository userRepository;
@@ -48,27 +46,32 @@ class PasswordResetConfirmIntegrationTest extends HttpIntegrationTest {
     @BeforeEach
     void setUp() {
         resetClock();
+        http = new AuthTestClient(baseUrl());
         userRepository.deleteAll();
         capturingEmailService.lastLink.set(null);
-        client.postForEntity(baseUrl() + "/api/register",
-                Map.of("username", "alice", "email", "alice@example.com",
-                        "password", "correcthorsebattery"), Map.class);
+        http.register("alice", "alice@example.com", "correcthorsebattery");
     }
 
     private String requestResetAndCaptureToken() {
-        client.postForEntity(baseUrl() + "/api/password-reset/request",
+        // Reset request is public and CSRF-exempt.
+        http.rest().postForEntity(http.url("/api/password-reset/request"),
                 Map.of("email", "alice@example.com"), Map.class);
         String link = capturingEmailService.lastLink.get();
         assertThat(link).as("stub email must capture a reset link").isNotNull();
         return link.substring(link.indexOf("token=") + "token=".length());
     }
 
+    @SuppressWarnings("unchecked")
     private ResponseEntity<Map> confirm(String token, String newPassword) {
+        // Confirm is CSRF-protected: obtain a token and echo it.
+        AuthTestClient.Csrf csrf = http.csrf();
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        headers.add("X-XSRF-TOKEN", csrf.token());
+        headers.add(HttpHeaders.COOKIE, csrf.cookie());
         HttpEntity<Map<String, String>> entity =
                 new HttpEntity<>(Map.of("token", token, "newPassword", newPassword), headers);
-        return client.exchange(baseUrl() + "/api/password-reset/confirm",
+        return http.rest().exchange(http.url("/api/password-reset/confirm"),
                 HttpMethod.POST, entity, Map.class);
     }
 
@@ -81,26 +84,6 @@ class PasswordResetConfirmIntegrationTest extends HttpIntegrationTest {
         }
     }
 
-    /** Logs in and returns the SESSION cookie (name=value). */
-    private String loginSessionCookie() {
-        ResponseEntity<Map> csrf = client.getForEntity(baseUrl() + "/api/csrf", Map.class);
-        String csrfToken = (String) csrf.getBody().get("token");
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add("X-XSRF-TOKEN", csrfToken);
-        for (String c : csrf.getHeaders().get(HttpHeaders.SET_COOKIE)) {
-            headers.add(HttpHeaders.COOKIE, c.split(";", 2)[0]);
-        }
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(
-                Map.of("username", "alice", "password", "correcthorsebattery"), headers);
-        ResponseEntity<Map> login =
-                client.exchange(baseUrl() + "/api/login", HttpMethod.POST, entity, Map.class);
-        return login.getHeaders().get(HttpHeaders.SET_COOKIE).stream()
-                .filter(c -> c.startsWith("SESSION="))
-                .map(c -> c.split(";", 2)[0])
-                .findFirst().orElseThrow();
-    }
-
     @Test
     void validTokenUpdatesPasswordMarksTokenUsedAndAllowsNewPassword() {
         String token = requestResetAndCaptureToken();
@@ -111,27 +94,25 @@ class PasswordResetConfirmIntegrationTest extends HttpIntegrationTest {
         // Old password no longer works, new one does.
         HttpClientErrorException oldPwd = tryLogin("correcthorsebattery");
         assertThat(oldPwd.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        ResponseEntity<Map> newPwd = successfulLogin("brandnewpassword1");
-        assertThat(newPwd.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(http.login("alice", "brandnewpassword1").response().getStatusCode())
+                .isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void allExistingSessionsAreInvalidatedOnSuccessfulReset() {
-        String sessionCookie = loginSessionCookie();
-
-        // Session is valid before reset.
-        HttpHeaders authed = new HttpHeaders();
-        authed.add(HttpHeaders.COOKIE, sessionCookie);
-        assertThat(client.exchange(baseUrl() + "/api/hello", HttpMethod.GET,
+        // Log in against the real (jdbc) session store and confirm the session works.
+        AuthTestClient.Session session = http.login("alice", "correcthorsebattery").session();
+        HttpHeaders authed = http.sessionHeaders(session);
+        assertThat(http.rest().exchange(http.url("/api/hello"), HttpMethod.GET,
                 new HttpEntity<>(authed), String.class).getStatusCode())
                 .isEqualTo(HttpStatus.OK);
 
         String token = requestResetAndCaptureToken();
         assertThat(confirm(token, "brandnewpassword1").getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        // The pre-reset session must now be rejected.
+        // The pre-reset session must now be rejected under the real session store.
         try {
-            client.exchange(baseUrl() + "/api/hello", HttpMethod.GET,
+            http.rest().exchange(http.url("/api/hello"), HttpMethod.GET,
                     new HttpEntity<>(authed), String.class);
             throw new AssertionError("Expected pre-reset session to be revoked");
         } catch (HttpClientErrorException ex) {
@@ -148,7 +129,8 @@ class PasswordResetConfirmIntegrationTest extends HttpIntegrationTest {
         assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
         // Original password still works.
-        assertThat(successfulLogin("correcthorsebattery").getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(http.login("alice", "correcthorsebattery").response().getStatusCode())
+                .isEqualTo(HttpStatus.OK);
     }
 
     @Test
@@ -162,25 +144,11 @@ class PasswordResetConfirmIntegrationTest extends HttpIntegrationTest {
 
     private HttpClientErrorException tryLogin(String password) {
         try {
-            successfulLogin(password);
+            http.login("alice", password);
             throw new AssertionError("Expected login to fail");
         } catch (HttpClientErrorException ex) {
             return ex;
         }
-    }
-
-    private ResponseEntity<Map> successfulLogin(String password) {
-        ResponseEntity<Map> csrf = client.getForEntity(baseUrl() + "/api/csrf", Map.class);
-        String csrfToken = (String) csrf.getBody().get("token");
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add("X-XSRF-TOKEN", csrfToken);
-        for (String c : csrf.getHeaders().get(HttpHeaders.SET_COOKIE)) {
-            headers.add(HttpHeaders.COOKIE, c.split(";", 2)[0]);
-        }
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(
-                Map.of("username", "alice", "password", password), headers);
-        return client.exchange(baseUrl() + "/api/login", HttpMethod.POST, entity, Map.class);
     }
 
     /** Test-only EmailService that records the last reset link. */

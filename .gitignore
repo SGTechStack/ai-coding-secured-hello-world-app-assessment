@@ -29,3 +29,6 @@ Thumbs.db
 # Python / agent worktrees
 __pycache__/
 .claude/worktrees/
+
+# Review subagent findings (do-work)
+artifacts/review/

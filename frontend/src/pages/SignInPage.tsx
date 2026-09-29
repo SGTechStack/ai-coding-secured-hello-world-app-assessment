@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -90,9 +90,14 @@ export function SignInPage() {
         <p role="alert" className="text-sm text-destructive">
           {failure}
         </p>
-        <Button type="submit" disabled={isSubmitting}>
-          Sign in
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button type="submit" disabled={isSubmitting}>
+            Sign in
+          </Button>
+          <Link to="/register" className="text-sm underline">
+            Register
+          </Link>
+        </div>
       </form>
     </section>
   )

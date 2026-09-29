@@ -1,16 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link, Navigate } from 'react-router'
 import { z } from 'zod'
+import { NewPasswordHints } from '@/components/NewPasswordHints'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError, type ErrorCode } from '@/lib/api/errors'
 import { changePassword, fetchProfile, PROFILE_KEY } from '@/lib/auth/session'
-import { isPasswordRule, lengthRule, MAX_BYTES, RULE_COPY, utf8Bytes } from '@/lib/password/policy'
-import { estimateStrength, type StrengthScore } from '@/lib/password/strength'
+import { isPasswordRule, lengthRule, RULE_COPY } from '@/lib/password/policy'
 
 const schema = z.object({
   currentPassword: z.string().min(1, 'Enter your current password.'),
@@ -24,14 +24,6 @@ const schema = z.object({
 })
 
 type PasswordChangeForm = z.infer<typeof schema>
-
-const STRENGTH_LABELS: Readonly<Record<StrengthScore, string>> = {
-  0: 'Very weak',
-  1: 'Weak',
-  2: 'Fair',
-  3: 'Strong',
-  4: 'Very strong',
-}
 
 const WRONG_CURRENT = 'The current password is not correct.'
 const FAILURE_COPY: Partial<Record<ErrorCode, string>> = {
@@ -61,22 +53,6 @@ export function ChangePasswordPage() {
   })
   const newPassword = useWatch({ control, name: 'newPassword' })
   const username = profile.data?.username
-  const [estimate, setEstimate] = useState<{ password: string; score: StrengthScore }>()
-
-  useEffect(() => {
-    if (!newPassword) {
-      return
-    }
-    let current = true
-    void estimateStrength(newPassword, username ? [username] : []).then((score) => {
-      if (current) {
-        setEstimate({ password: newPassword, score })
-      }
-    })
-    return () => {
-      current = false
-    }
-  }, [newPassword, username])
 
   // Authority: whatever the client believed, the server's code decides that the session is over.
   if (profile.error instanceof ApiError && profile.error.code === 'AUTHENTICATION_FAILED') {
@@ -106,7 +82,6 @@ export function ChangePasswordPage() {
     }
   }
 
-  const score = newPassword && estimate?.password === newPassword ? estimate.score : undefined
   const newPasswordDescription = ['new-password-bytes', errors.newPassword ? 'new-password-error' : undefined]
     .filter(Boolean)
     .join(' ')
@@ -143,14 +118,7 @@ export function ChangePasswordPage() {
             aria-describedby={newPasswordDescription}
             {...register('newPassword')}
           />
-          <p id="new-password-bytes" className="text-sm text-muted-foreground">
-            {utf8Bytes(newPassword)} of {MAX_BYTES} bytes
-          </p>
-          <div className="flex items-center gap-2 text-sm">
-            <label htmlFor="new-password-strength">Strength (indicative)</label>
-            <meter id="new-password-strength" min={0} max={4} low={2} high={3} optimum={4} value={score ?? 0} />
-            <span aria-live="polite">{score === undefined ? '' : STRENGTH_LABELS[score]}</span>
-          </div>
+          <NewPasswordHints id="new-password" password={newPassword} userInputs={username ? [username] : []} />
           {errors.newPassword && (
             <p id="new-password-error" className="text-sm text-destructive">
               {errors.newPassword.message}

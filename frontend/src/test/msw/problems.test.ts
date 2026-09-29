@@ -43,6 +43,17 @@ describe('error contract', () => {
     expect(validate({ ...problemFixtures.VALIDATION_FAILED, rule: 'TOO_WEAK' })).toBe(false)
   })
 
+  it('T-AUTH-012: VALIDATION_FAILED may carry its own USERNAME_UNAVAILABLE rule, and needs none', async () => {
+    const unavailable: unknown = await problemResponse('VALIDATION_FAILED', '/api/register', {
+      rule: 'USERNAME_UNAVAILABLE',
+    }).json()
+
+    expect(validate(unavailable), JSON.stringify(validate.errors)).toBe(true)
+    expect(validate(problemFixtures.VALIDATION_FAILED)).toBe(true)
+    expect(validate({ ...problemFixtures.PASSWORD_REJECTED, rule: 'USERNAME_UNAVAILABLE' })).toBe(false)
+    expect(validate({ ...problemFixtures.ACCESS_DENIED, rule: 'USERNAME_UNAVAILABLE' })).toBe(false)
+  })
+
   it('T-AUTH-012: a code paired with another status fails the schema', () => {
     expect(validate({ ...problemFixtures.ACCESS_DENIED, status: 401 })).toBe(false)
   })

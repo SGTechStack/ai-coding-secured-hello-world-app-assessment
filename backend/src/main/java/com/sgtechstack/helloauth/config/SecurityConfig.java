@@ -60,6 +60,7 @@ public class SecurityConfig {
 						"/api/auth/password-reset/request", "/api/auth/password-reset/confirm")
 				.permitAll()
 				.requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+				.requestMatchers(HttpMethod.GET, "/.well-known/security.txt").permitAll()
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
 				.requestMatchers("/api/**").authenticated()
 				.anyRequest().denyAll())

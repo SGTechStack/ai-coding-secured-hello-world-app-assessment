@@ -54,6 +54,11 @@ export function Layout() {
       <main>
         <Outlet />
       </main>
+      <footer className="site-footer">
+        <a href="https://tech.gov.sg/report_vulnerability" target="_blank" rel="noopener noreferrer">
+          Report Vulnerability
+        </a>
+      </footer>
     </>
   )
 }

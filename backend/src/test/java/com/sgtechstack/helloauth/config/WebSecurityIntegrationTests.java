@@ -1,10 +1,13 @@
 package com.sgtechstack.helloauth.config;
 
+import java.time.Instant;
+
 import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import com.sgtechstack.helloauth.support.ApiClient;
 import com.sgtechstack.helloauth.support.IntegrationTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,6 +82,18 @@ class WebSecurityIntegrationTests extends IntegrationTest {
 			.contains("\"status\":\"UP\"")
 			.doesNotContain("components")
 			.doesNotContain("details");
+	}
+
+	@Test
+	void securityTxtPublishesAnUnexpiredDisclosureContact() {
+		MockHttpServletResponse response = newClient().get("/.well-known/security.txt");
+
+		assertThat(response.getStatus()).isEqualTo(200);
+		assertThat(response.getContentType()).startsWith("text/plain");
+		String body = ApiClient.body(response);
+		assertThat(body).contains("Contact: https://");
+		String expires = body.lines().filter(line -> line.startsWith("Expires: ")).findFirst().orElseThrow();
+		assertThat(Instant.parse(expires.substring("Expires: ".length()))).isAfter(Instant.now());
 	}
 
 	@Test

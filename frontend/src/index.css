@@ -97,6 +97,12 @@ main {
   padding: 2rem 1rem;
 }
 
+.site-footer {
+  padding: 1rem 1.25rem 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
 .card {
   max-width: 28rem;
   margin: 0 auto;

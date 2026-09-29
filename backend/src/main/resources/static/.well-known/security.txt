@@ -1,0 +1,5 @@
+# Vulnerability disclosure contact (RFC 9116). Renew Expires before it lapses:
+# WebSecurityIntegrationTests fails once it is in the past.
+Contact: https://tech.gov.sg/report_vulnerability
+Expires: 2027-09-28T00:00:00.000Z
+Preferred-Languages: en

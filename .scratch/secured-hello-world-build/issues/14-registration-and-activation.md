@@ -14,12 +14,12 @@
 
 **Blocked by:** 13
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Registering with a used and an unused email gives identical responses.
-- [ ] `Alice`, ` alice` and a non-NFC username are rejected rather than changed. `Bob@Example.COM` is stored lowercased.
-- [ ] A reserved name or a name containing `@` is rejected.
-- [ ] The activation token works once. After 24 hours on the `Clock` it gets `RESET_TOKEN_INVALID`.
-- [ ] A policy-violating password at activation gets `PASSWORD_REJECTED`, and no password-rejected audit row comes before a successful token check.
-- [ ] A pending account can't sign in (uniform 401).
-- [ ] A Playwright test covers register → activate → sign in.
+- [x] Registering with a used and an unused email gives identical responses.
+- [x] `Alice`, ` alice` and a non-NFC username are rejected rather than changed. `Bob@Example.COM` is stored lowercased.
+- [x] A reserved name or a name containing `@` is rejected.
+- [x] The activation token works once. After 24 hours on the `Clock` it gets `RESET_TOKEN_INVALID`.
+- [x] A policy-violating password at activation gets `PASSWORD_REJECTED`, and no password-rejected audit row comes before a successful token check.
+- [x] A pending account can't sign in (uniform 401).
+- [x] A Playwright test covers register → activate → sign in.

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 14-registration-and-activation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/2/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN 0/0/1/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN 0/0/1/0</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">zacharylim</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 14: registration and activation, plus the step-0 lockout/cap session-termination carry-over. Run inline (no subagents available) on <code>zacharylim</code>. Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/0</td><td class="p-2"><code>mvn -f backend/pom.xml verify -Ddependency-check.skip=true</code> green: 779 tests and 6 ITs, including <code>TraceabilityGateIT</code> and <code>ErrorContractDriftIT</code> with the regenerated contract. <code>-Pmutation</code>: 150 of 150 mutants killed (100%), now including <code>CredentialTokenHash</code> and <code>CredentialTokenConsumption</code>. Frontend: <code>tsc -b</code>, <code>oxlint</code>, <code>prettier --check</code>, Vitest 112 passed, production build. Playwright: 12 passed on Chromium and Firefox (ports 18014/15114).</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">The decisions are pure and small: <code>CredentialTokenHash</code> (generate, shape, domain-separated hash), <code>CredentialTokenConsumption</code> (lookup, exactly-one-row), <code>Identifiers</code> (canonicalise, username and email rules). <code>CredentialTokens</code> holds mint and the single conditional update; <code>Registration</code> and <code>Activation</code> each hold one flow. The strength meter moved into a shared <code>NewPasswordHints</code> instead of being copied. Low: <code>Registration.reserve</code> branches on four email states in one method; it stays short, but a fifth state (invite handling in ticket 23) should split it.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/2/1</td><td class="p-2">Every acceptance criterion has a test (see the ticket file). Medium: no audit row records a registration or an activation. ADR-032 mentions a specific registration row, but neither the spec's required-row list nor the ticket names one, so it is left for the audit catalogue close-out (ticket 28). Medium: T-AUTH-006, T-CRED-003, T-CRED-011, T-CRED-016 to 019 and T-ADM-002 are only partly covered (each also needs reset or admin create), so they stay on the ledger. Low: a registration that races another on the same username or email hits a unique index and answers 500 rather than 400 or 202.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">The semgrep CLI is not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">WARN</td><td class="p-2">0/0/1/1</td><td class="p-2">as-4: both routes have their tabled per-source budgets, bound and exercised (<code>RateLimitBindingTest</code>, <code>RegistrationUniformityTest</code>). Tokens are 256-bit <code>SecureRandom</code>, stored only as domain-separated SHA-256, consumed by one conditional update. The link origin comes only from <code>app.origins.spa</code>, and the token travels in the URL fragment. The dev link logger writes the link, never the recipient, and only under <code>dev</code>. Captured tokens and their hashes are registered canaries, so a leak into any log fails the suite. Medium: registration and activation are not audited (see code-review). Low: after activation the used link stays in browser history; it no longer redeems.</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">RHF and Zod on both pages, with <code>useWatch</code>. Server codes map to field errors with focus (<code>USERNAME_UNAVAILABLE</code>, every <code>PASSWORD_REJECTED</code> rule), and other failures go to a live region. The confirmation never says whether the address was known. <code>autocomplete</code> values are set and paste is allowed. Low: the zxcvbn dictionary chunk still raises Vite's size warning; it loads only on the password pages.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">WARN</td><td class="p-2">0/0/1/0</td><td class="p-2">Activation consumes, sets the password and stamps <code>activated_at</code> in one transaction, and a rejection rolls the consume back (T-CRED-015). Registration commits before the link is sent. The consume uses <code>@Modifying(clearAutomatically, flushAutomatically)</code>. Advice for <code>RESET_TOKEN_INVALID</code> is ordered ahead of the catch-all. The step-0 lockout kill is registered inside the row-lock transaction and runs after commit. Medium, fixed in this change: <code>E2eBackend.Fixtures</code> was a <code>@Configuration</code> inside the scanned package, so every test context loaded the e2e fixtures. It is now a plain source class, passed only by <code>E2eBackend</code>. The capturing <code>EmailService</code> is the one fixed <code>@TestBean</code> override of ADR-067.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

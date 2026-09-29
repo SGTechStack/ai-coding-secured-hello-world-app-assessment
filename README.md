@@ -172,6 +172,54 @@ This project targets local development over HTTP. A real deployment must:
 - **No MFA**, no real SMTP (reset email is a logging stub), no JWT, no CI/CD,
   no containerization — all explicitly out of scope per the PRD.
 
+## Dependency audit (`npm audit`) — accepted, non-production findings
+
+`npm audit` reports advisories in the frontend dependency tree. Each was
+assessed **against this application's actual architecture** — not simply
+ignored — and classified below. **None is a production/runtime vulnerability of
+the deployed application.** Dependency versions are intentionally left unchanged
+(React Router `6.30.6`, Vitest `2.1.9`); no overrides were added and
+`npm audit fix` was not run, because doing so would force unnecessary major
+upgrades (e.g. React Router 7) against issues that do not apply here.
+
+| Advisory | Package (installed) | Dependency path | Classification |
+| --- | --- | --- | --- |
+| GHSA-wrjc-x8rr-h8h6 (open redirect in `<Link>`/`useNavigate`) | `react-router` / `react-router-dom` **6.30.6** | direct runtime dep | **Not applicable** — no untrusted input reaches routing |
+| GHSA-337j-9hxr-rhxg (constructor injection in SSR hydration) | `react-router` / `react-router-dom` **6.30.6** | direct runtime dep | **Not applicable** — no SSR/hydration |
+| GHSA-67mh-4wv8-2f99 | `esbuild` **0.21.5** | `vitest@2.1.9 → vite@5.4.21 → esbuild@0.21.5` | **Dev/test tooling only** — not shipped |
+| GHSA-82fw-gwwq-j7x9 | `@vitest/mocker` **2.1.9** | `vitest@2.1.9 → @vitest/mocker@2.1.9` | **Dev/test tooling only** — not shipped |
+
+- **React Router advisories — not applicable to this application's use of the
+  library.** This app is a **client-side SPA** using `BrowserRouter` in the
+  browser (see `frontend/src/App.tsx`) with **no SSR, no `StaticRouter`, no
+  framework mode, and no server-side data loaders**. Assessed per advisory:
+  - *GHSA-337j-9hxr-rhxg* (arbitrary constructor injection via
+    `deserializeErrors()` during **SSR hydration**) requires server-side
+    rendering/hydration, which this SPA does not perform. Not triggerable.
+  - *GHSA-wrjc-x8rr-h8h6* (**open redirect** via a backslash in a value passed to
+    `<Link to>` / `useNavigate()`) requires an **untrusted/user-controlled value**
+    to be used as a navigation target. In this app **every** routing target
+    (`<Link>`, `<Navigate>`, `navigate()`) is a **hardcoded static path**
+    (`/`, `/login`, `/admin`, `/register`, `/forgot-password`); no user input
+    ever flows into a navigation target, so the open-redirect precondition never
+    occurs.
+
+  There is no patched 6.x release (the fix landed only in 7.x), and a React
+  Router v7 major upgrade is unwarranted for issues that do not apply here.
+- **`esbuild` 0.21.5 — development/test only.** This vulnerable version is a
+  transitive dependency **only** under the Vitest test runner
+  (`vitest → vite@5 → esbuild@0.21.5`). It is a build/test tool and is **not
+  part of the production bundle**.
+- **`esbuild` 0.25.12 — already patched.** The Vite version used for the actual
+  dev server and production build (`vite@6.4.3`) resolves `esbuild@0.25.12`,
+  which is not affected by GHSA-67mh-4wv8-2f99.
+- **`@vitest/mocker` 2.1.9 — test only.** Part of Vitest; used solely during
+  `npm test` and **never shipped to production**.
+
+The production artifact produced by `npm run build` contains only the
+application code plus React and the client-side React Router runtime; it does
+**not** include `esbuild`, `vitest`, or `@vitest/mocker`.
+
 ---
 
 ## Assessment / branching

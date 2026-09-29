@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -11,22 +11,55 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 800, margin: '0 auto', padding: '1rem' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ccc', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-        <nav style={{ display: 'flex', gap: '1rem' }}>
-          {user && <Link to="/">Hello</Link>}
-          {user?.role === 'ADMIN' && <Link to="/admin">Admin</Link>}
-          {!user && <Link to="/login">Login</Link>}
-          {!user && <Link to="/register">Register</Link>}
+    <div className="app-shell">
+      <header className="app-header">
+        <span className="app-header-brand">🔐 Hello World Auth</span>
+
+        <nav className="app-nav" aria-label="Main navigation">
+          {user && (
+            <NavLink to="/" end className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>
+              Home
+            </NavLink>
+          )}
+          {user?.role === 'ADMIN' && (
+            <NavLink to="/admin" className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>
+              Admin
+            </NavLink>
+          )}
+          {!user && (
+            <>
+              <NavLink to="/login" className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>
+                Login
+              </NavLink>
+              <NavLink to="/register" className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>
+                Register
+              </NavLink>
+            </>
+          )}
         </nav>
+
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '0.9rem', color: '#555' }}>{user.username} ({user.role})</span>
-            <button onClick={() => { void handleLogout(); }} style={{ cursor: 'pointer' }}>Logout</button>
+          <div className="app-header-user">
+            <span>
+              {user.username}
+              {' '}
+              <span className={`badge ${user.role === 'ADMIN' ? 'badge-admin' : 'badge-user'}`}>
+                {user.role}
+              </span>
+            </span>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => { void handleLogout(); }}
+            >
+              Sign out
+            </button>
           </div>
         )}
       </header>
-      <main>{children}</main>
+
+      <main className="app-main">
+        {children}
+      </main>
     </div>
   );
 }

@@ -10,15 +10,19 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading…</div>;
+    return (
+      <div className="loading-page" aria-label="Checking authentication">
+        <div className="loading-spinner" aria-hidden="true" />
+        Loading…
+      </div>
+    );
   }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // UI gating only — the backend still enforces ADMIN authorization on all
-  // /api/admin/** calls regardless of what the frontend allows through.
+  // UI gating only — backend still enforces ADMIN authorization on all API calls.
   if (requireAdmin && user.role !== 'ADMIN') {
     return <Navigate to="/" replace />;
   }

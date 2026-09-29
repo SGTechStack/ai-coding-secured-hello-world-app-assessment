@@ -1,75 +1,174 @@
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useRef, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { register } from '../api/auth';
 import { ApiError } from '../api/client';
+import { FormField } from '../components/FormField';
+import { PasswordField } from '../components/PasswordField';
+import { useField } from '../hooks/useField';
 
 const MIN_PASSWORD = 12;
 const MAX_PASSWORD = 72;
 
+function validatePassword(v: string): string | null {
+  if (!v) return 'Password is required.';
+  if (v.length < MIN_PASSWORD) return `Password must be at least ${MIN_PASSWORD} characters.`;
+  if (v.length > MAX_PASSWORD) return `Password must not exceed ${MAX_PASSWORD} characters.`;
+  return null;
+}
+
 export function RegisterPage() {
-  const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const usernameField = useField((v) => (!v.trim() ? 'Username is required.' : null));
+  const emailField = useField((v) => {
+    if (!v.trim()) return 'Email is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) return 'Enter a valid email address.';
+    return null;
+  });
+  const passwordField = useField(validatePassword);
+  // Confirm validates matching only; length is the password field's concern
+  const confirmField = useField((v) => {
+    if (!v) return 'Please confirm your password.';
+    if (v !== passwordField.value) return 'Passwords do not match.';
+    return null;
+  });
+
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
+
+  const usernameRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
 
-    if (!username.trim()) { setError('Username is required.'); return; }
-    if (!email.trim()) { setError('Email is required.'); return; }
-    if (password.length < MIN_PASSWORD) {
-      setError(`Password must be at least ${MIN_PASSWORD} characters.`);
+    const err1 = usernameField.touch();
+    const err2 = emailField.touch();
+    const err3 = passwordField.touch();
+    // Re-evaluate confirm against the CURRENT password value
+    const confirmErr = (() => {
+      const v = confirmField.value;
+      if (!v) return 'Please confirm your password.';
+      if (v !== passwordField.value) return 'Passwords do not match.';
+      return null;
+    })();
+    // Sync the confirm field's visible error
+    if (confirmErr) confirmField.touch();
+
+    const firstError = err1 ?? err2 ?? err3 ?? confirmErr;
+    if (firstError) {
+      setFormError(firstError);
+      usernameRef.current?.focus();
       return;
     }
-    if (password.length > MAX_PASSWORD) {
-      setError(`Password must not exceed ${MAX_PASSWORD} characters.`);
-      return;
-    }
-    if (password !== confirm) { setError('Passwords do not match.'); return; }
 
     setLoading(true);
     try {
-      await register(username.trim(), email.trim(), password);
-      navigate('/login', { state: { registered: true } });
+      await register(usernameField.value.trim(), emailField.value.trim(), passwordField.value);
+      setRegistered(true);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.detail);
+        setFormError(err.detail);
       } else {
-        setError('Registration failed. Please try again.');
+        setFormError('Registration failed. Please try again.');
       }
     } finally {
       setLoading(false);
     }
   };
 
+  if (registered) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <span className="success-icon" role="img" aria-label="Success">🎉</span>
+          <h1 className="success-title">Account created!</h1>
+          <p className="success-message">
+            Your account has been created. You can now sign in.
+          </p>
+          <Link to="/login" className="btn btn-primary">Go to Login</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const pwRequirements = [
+    { label: `At least ${MIN_PASSWORD} characters`, met: passwordField.value.length >= MIN_PASSWORD },
+    { label: `No more than ${MAX_PASSWORD} characters`, met: passwordField.value.length <= MAX_PASSWORD && passwordField.value.length > 0 },
+  ];
+
   return (
-    <div style={{ maxWidth: 400 }}>
-      <h1>Create account</h1>
-      <form onSubmit={(e) => { void handleSubmit(e); }} noValidate>
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="username">Username</label><br />
-          <input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" required style={{ width: '100%', padding: '0.4rem' }} />
+    <div className="auth-page">
+      <div className="auth-card">
+        <h1 className="auth-card-title">Create account</h1>
+        <p className="auth-card-subtitle">Fill in the details below to register.</p>
+
+        {formError && (
+          <div role="alert" className="form-banner form-banner-error">
+            <span className="form-banner-icon" aria-hidden="true">✕</span>
+            {formError}
+          </div>
+        )}
+
+        <form className="form" onSubmit={(e) => { void handleSubmit(e); }} noValidate>
+          <FormField
+            id="username"
+            label="Username"
+            type="text"
+            autoComplete="username"
+            value={usernameField.value}
+            error={usernameField.error}
+            onChange={usernameField.onChange}
+            onBlur={usernameField.onBlur}
+            ref={usernameRef}
+          />
+
+          <FormField
+            id="email"
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={emailField.value}
+            error={emailField.error}
+            onChange={emailField.onChange}
+            onBlur={emailField.onBlur}
+          />
+
+          <PasswordField
+            id="password"
+            label="Password"
+            value={passwordField.value}
+            error={passwordField.error}
+            autoComplete="new-password"
+            onChange={passwordField.onChange}
+            onBlur={passwordField.onBlur}
+            requirements={passwordField.touched || passwordField.value ? pwRequirements : undefined}
+          />
+
+          <PasswordField
+            id="confirm"
+            label="Confirm password"
+            value={confirmField.value}
+            error={confirmField.error}
+            autoComplete="new-password"
+            onChange={confirmField.onChange}
+            onBlur={confirmField.onBlur}
+          />
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary btn-full"
+            style={{ marginTop: '0.5rem' }}
+          >
+            {loading && <span className="spinner" aria-hidden="true" />}
+            {loading ? 'Creating account…' : 'Register'}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          Already have an account? <Link to="/login">Sign in</Link>
         </div>
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="email">Email</label><br />
-          <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required style={{ width: '100%', padding: '0.4rem' }} />
-        </div>
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="password">Password (min {MIN_PASSWORD} chars)</label><br />
-          <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required style={{ width: '100%', padding: '0.4rem' }} />
-        </div>
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="confirm">Confirm password</label><br />
-          <input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required style={{ width: '100%', padding: '0.4rem' }} />
-        </div>
-        {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={loading}>{loading ? 'Creating account…' : 'Register'}</button>
-      </form>
-      <p style={{ marginTop: '1rem' }}><Link to="/login">Already have an account?</Link></p>
+      </div>
     </div>
   );
 }

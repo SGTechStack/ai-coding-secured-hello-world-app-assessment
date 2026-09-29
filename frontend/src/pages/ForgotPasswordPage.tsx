@@ -2,27 +2,35 @@ import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { requestPasswordReset } from '../api/auth';
 import { ApiError } from '../api/client';
+import { FormField } from '../components/FormField';
+import { useField } from '../hooks/useField';
 
 export function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+  const emailField = useField((v) => {
+    if (!v.trim()) return 'Email is required.';
+    return null;
+  });
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
-    if (!email.trim()) { setError('Email is required.'); return; }
+    setFormError(null);
+
+    const err = emailField.touch();
+    if (err) { setFormError(err); return; }
+
     setLoading(true);
     try {
-      await requestPasswordReset(email.trim());
-      // Always show generic success — do not indicate whether the email is registered
+      await requestPasswordReset(emailField.value.trim());
       setSubmitted(true);
     } catch (err) {
       if (err instanceof ApiError && err.isTooManyRequests) {
-        setError('Too many requests — please wait before trying again.');
+        setFormError('Too many requests — please wait before trying again.');
       } else {
-        // Treat all other errors as generic; do not expose whether the email exists
+        // All other errors: show the same generic success so we don't reveal
+        // whether the email was registered (enumeration resistance).
         setSubmitted(true);
       }
     } finally {
@@ -32,26 +40,62 @@ export function ForgotPasswordPage() {
 
   if (submitted) {
     return (
-      <div style={{ maxWidth: 400 }}>
-        <h1>Check your email</h1>
-        <p>If that email address is registered, you'll receive a password reset link shortly.</p>
-        <p><Link to="/login">Back to login</Link></p>
+      <div className="auth-page">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <span className="success-icon" role="img" aria-label="Email sent">📧</span>
+          <h1 className="success-title">Check your email</h1>
+          <p className="success-message">
+            If that email address is registered, you'll receive a password reset link shortly.
+            Check your inbox (and spam folder) and follow the link to reset your password.
+          </p>
+          <Link to="/login" className="btn btn-secondary">Back to Login</Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 400 }}>
-      <h1>Forgot password</h1>
-      <form onSubmit={(e) => { void handleSubmit(e); }} noValidate>
-        <div style={{ marginBottom: '1rem' }}>
-          <label htmlFor="email">Email address</label><br />
-          <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required style={{ width: '100%', padding: '0.4rem' }} />
+    <div className="auth-page">
+      <div className="auth-card">
+        <h1 className="auth-card-title">Forgot password?</h1>
+        <p className="auth-card-subtitle">
+          Enter your email address and we'll send you a reset link.
+        </p>
+
+        {formError && (
+          <div role="alert" className="form-banner form-banner-error">
+            <span className="form-banner-icon" aria-hidden="true">✕</span>
+            {formError}
+          </div>
+        )}
+
+        <form className="form" onSubmit={(e) => { void handleSubmit(e); }} noValidate>
+          <FormField
+            id="email"
+            label="Email address"
+            type="email"
+            autoComplete="email"
+            value={emailField.value}
+            error={emailField.error}
+            onChange={emailField.onChange}
+            onBlur={emailField.onBlur}
+          />
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary btn-full"
+            style={{ marginTop: '0.5rem' }}
+          >
+            {loading && <span className="spinner" aria-hidden="true" />}
+            {loading ? 'Sending…' : 'Send reset link'}
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          <Link to="/login">← Back to Login</Link>
         </div>
-        {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={loading}>{loading ? 'Sending…' : 'Send reset link'}</button>
-      </form>
-      <p style={{ marginTop: '1rem' }}><Link to="/login">Back to login</Link></p>
+      </div>
     </div>
   );
 }

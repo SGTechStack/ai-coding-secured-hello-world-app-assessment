@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: 03
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 

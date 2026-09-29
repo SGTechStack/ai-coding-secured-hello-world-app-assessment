@@ -62,7 +62,7 @@ The `EmailService` change is the sharpest PRD conflict on the map. A reset link 
 
 | PRD | Built | Ruling |
 |---|---|---|
-| Seven audit events (`prd:122`) | **23 events** | [12](../issues/12-audit-and-logging-contract.md), [05](../issues/05-logging-standards-applicability.md) — `Std:239` binds regardless of recipe coverage |
+| Nine audit events (`prd:122`) | **27 events** | [12](../issues/12-audit-and-logging-contract.md), [05](../issues/05-logging-standards-applicability.md) — `Std:239` binds regardless of recipe coverage |
 | "role change/enable/disable/delete (**actor + target**)" (`prd:122`) | Actor is `user.id`; target is **`target_user_id`**, a non-schema underscore key | [12](../issues/12-audit-and-logging-contract.md) — the schema defines no target field at all |
 | "Never log passwords" (`prd:122`) | **No log line contains a password, a password hash, a reset token, a session id, a username, or an email address** | [12](../issues/12-audit-and-logging-contract.md) — `Std:331` bans raw usernames/emails; the `LS:105` policy hatch is deliberately shut |
 
@@ -93,11 +93,11 @@ Reading the audit trail therefore requires database access to resolve UUIDs. Tha
 | **`sendPasswordChangedEmail(...)`** stub | [11](../issues/11-password-reset-flow.md) — `Std:65`, `:71` |
 | **Re-enabling a disabled account sets `requirePasswordChange`** | [10](../issues/10-account-lifecycle-and-delete-semantics.md) — `Std:130` |
 | **Micrometer Tracing + Actuator** — `trace.id`/`span.id` on every line, no exporter | [05](../issues/05-logging-standards-applicability.md) — `Std_Logging:321` |
-| **Custom structured log encoder** — the only mechanism discharging `Std:328`'s masking constraint | [19](../issues/19-log-format-and-custom-encoder.md) |
+| **Custom structured log encoder** — the only mechanism discharging `Std_Logging:326`'s masking constraint | [19](../issues/19-log-format-and-custom-encoder.md) |
 | **Three log appenders** — console, application, audit | [19](../issues/19-log-format-and-custom-encoder.md) — `Std:275` and `:327` are distinct clauses |
 | **RFC 9457 `ProblemDetail`** error envelope with a `code` extension | [21](../issues/21-error-contract-shape.md) |
 | **Five ArchUnit rules** | [15](../issues/15-tech-baseline-and-module-structure.md), [13](../issues/13-session-policy.md) |
-| **`docs/adr/`** (18's client-IP ADR) and **`docs/logging/log-inventory.md`** (`Std:283`) | [18](../issues/18-client-ip-in-logs.md), [12](../issues/12-audit-and-logging-contract.md) |
+| **`docs/adr/`** (18's client-IP ADR) and **`docs/logging/log-inventory.md`** (`Std_Logging:284`) | [18](../issues/18-client-ip-in-logs.md), [12](../issues/12-audit-and-logging-contract.md) |
 
 ---
 

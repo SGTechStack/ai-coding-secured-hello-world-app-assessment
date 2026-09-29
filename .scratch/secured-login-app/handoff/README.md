@@ -7,6 +7,7 @@ The wayfinder map is complete. This directory is what the delivery pipeline cons
 | [`spec.md`](spec.md) | The consolidated specification — every decision from the map's 21 tickets in one document |
 | [`prd-deltas.md`](prd-deltas.md) | Every place the build will differ from `prd/assessment-prd.md`, with the ruling that caused it. **Read this before reviewing the build against the PRD** |
 | [`secured-login-app.stories.yaml`](secured-login-app.stories.yaml) | 24 stories, 141 acceptance criteria. Validated against `dependency-orchestrator/schemas/stories-schema.json` |
+| [`validation.md`](validation.md) | The validation record: what was audited, the twelve defects fixed, and the two residual risks. **Verdict: approved** |
 
 The tickets themselves are in [`../issues/`](../issues/) and the index is [`../map.md`](../map.md). Nothing here restates their reasoning — where a decision looks arbitrary, the ticket has the citations.
 

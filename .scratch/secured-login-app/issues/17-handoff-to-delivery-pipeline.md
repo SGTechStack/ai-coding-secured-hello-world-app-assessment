@@ -4,6 +4,7 @@ Type: task
 Status: resolved
 Blocked by: 01–16, 18, 19, 21 — all closed; unblocked
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 

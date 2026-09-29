@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: 02, 08, 12
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -81,9 +82,9 @@ Note also that 01 restated `prd/assessment-prd.md:160` — the role-enforcement 
 
 **Amended by [19 — Structured log format and the custom encoder](19-log-format-and-custom-encoder.md).** 19 confirmed the custom encoder is built, which adds two **named** test cases — not review notes — plus one assertion that guards a compliance clause.
 
-- **Assert the three throwable-less events emit nested `error.code`.** This is the single most important logging assertion in the plan, because it guards 19's one intentional departure from its recipe. `Recipes/Logging_AuthN_And_AuthZ_Events.md:76-87`, `:89-101` and `:438-449` template account-lockout (`ERROR`, `error_code: 423`), authentication failure (`WARN`, `401`) and authorisation denial (`WARN`, `403`); **none** attaches a throwable. Under `Custom_Structured_Log_Encoder.md:408` as written, the encoder strips the workaround keys and the `error` object is never created, so **all nine fields vanish silently**. 19 deviated — the encoder creates the object — because the drop violates `Structured_Logging_Application_Standard.md:167`. Assert on captured log output that lockout yields `error.code == 423`, `error.category == "cert/auth"`, `error.follow_up_action == true`, and no `error.type`/`error.message`/`error.stack_trace`. A regression here would gut the audit trail with **no failing build and no error line** — exactly the class of failure a test exists for.
-- **The Spring Boot upgrade retest is a compliance retest, not hygiene.** `Custom_Structured_Log_Encoder.md:24` warns the encoder extends an internal Spring Boot class (`org.springframework.boot.logging.logback.StructuredLogEncoder`) with no migration guarantee, and 15 recorded that liability against the Boot 4.0.x pin. 19 raised the stakes: the encoder is now the **only** mechanism discharging `Structured_Logging_Application_Standard.md:328`'s masking constraint, so a silent break on upgrade is an IM8/Appfw compliance break, not a formatting glitch. Name the encoder test class in the plan as a required gate, so a Boot bump cannot be merged without it.
-- **Assert the emitted format is JSON on every appender, and that no appender was left on a literal.** `:320` requires format selection via `CONSOLE_LOG_STRUCTURED_FORMAT` / `FILE_LOG_STRUCTURED_FORMAT`; `:326` bans mixing plain text with JSON in one stream. With three appenders (19's correction to 15: `CONSOLE`, `APPLICATION`, `AUDIT`), the cheap structural check is that each parses as JSON and carries `ecs.version`.
+- **Assert the three throwable-less events emit nested `error.code`.** This is the single most important logging assertion in the plan, because it guards 19's one intentional departure from its recipe. `Recipes/Logging_AuthN_And_AuthZ_Events.md:76-87`, `:89-101` and `:438-449` template account-lockout (`ERROR`, `error_code: 423`), authentication failure (`WARN`, `401`) and authorisation denial (`WARN`, `403`); **none** attaches a throwable. Under `Custom_Structured_Log_Encoder.md:408` as written, the encoder strips the workaround keys and the `error` object is never created, so **all nine fields vanish silently**. 19 deviated — the encoder creates the object — because the drop violates `Structured_Logging_Application_Standard.md:164`. Assert on captured log output that lockout yields `error.code == 423`, `error.category == "cert/auth"`, `error.follow_up_action == true`, and no `error.type`/`error.message`/`error.stack_trace`. A regression here would gut the audit trail with **no failing build and no error line** — exactly the class of failure a test exists for.
+- **The Spring Boot upgrade retest is a compliance retest, not hygiene.** `Custom_Structured_Log_Encoder.md:24` warns the encoder extends an internal Spring Boot class (`org.springframework.boot.logging.logback.StructuredLogEncoder`) with no migration guarantee, and 15 recorded that liability against the Boot 4.0.x pin. 19 raised the stakes: the encoder is now the **only** mechanism discharging `Structured_Logging_Application_Standard.md:326`'s masking constraint, so a silent break on upgrade is an IM8/Appfw compliance break, not a formatting glitch. Name the encoder test class in the plan as a required gate, so a Boot bump cannot be merged without it.
+- **Assert the emitted format is JSON on every appender, and that no appender was left on a literal.** `:320` requires format selection via `CONSOLE_LOG_STRUCTURED_FORMAT` / `FILE_LOG_STRUCTURED_FORMAT`; `:332` bans mixing plain text with JSON in one stream. With three appenders (19's correction to 15: `CONSOLE`, `APPLICATION`, `AUDIT`), the cheap structural check is that each parses as JSON and carries `ecs.version`.
 - **Assert masking at the encoder boundary, and sanitisation at the log site separately.** `Sensitive_Data_Masking_For_Logs.md:230` means masking never reaches `message` text, so the two need distinct assertions — a masked field path, and a log site that does not put the value in the message in the first place. The field list is 12's; the plan needs a case per entry.
 
 **Amended by [08 — Authorization matrix](08-authorization-matrix.md).** The matrix is the single source of authorization truth now, so it becomes a test table rather than prose — and 08 added two recipe-free components to the list 01 started.
@@ -119,7 +120,7 @@ Per the authority order §5 wins, so the plan is organised by its categories rat
 | CSRF protection | **in** | `Std:87`, `:443-446`; 09 |
 | Security headers and CORS | **in** | `Std:498-501`; `HDR:155`; 09 |
 | Input validation | **in** | `Std:86`; 04; 21's envelope |
-| Logging and audit | **in** | 12's 23 events; 05; 19's encoder |
+| Logging and audit | **in** | 12's 27 events; 05; 19's encoder |
 | Dependency security checks | **in** | `Std:519`; 15's `dependency-check-maven` |
 | Account hygiene | **VACUOUS** | scheduled hygiene jobs are out of scope; 15's ArchUnit `@Scheduled` ban is the standing guard |
 
@@ -147,9 +148,9 @@ MockMvc keeps a narrower job: controller-level slices for request-validation and
 
 **Coverage: JaCoCo report generated, no build-failing threshold.** §5 mandates no coverage figure. A percentage gate on a security application rewards testing getters and says nothing about whether the 21-row matrix is walked — and this plan's real gate is the named required-test list below, which a coverage number cannot substitute for. Recorded as a deliberate choice rather than an omission, since `build-check` expects thresholds and will otherwise read this as a gap.
 
-**Which of 12's 23 audit events get assertions: all of them, at two depths.** A named subset invites the unasserted ones to rot, and emission assertions are nearly free via `ListAppender`. So:
+**Which of 12's 27 audit events get assertions: all of them, at two depths.** A named subset invites the unasserted ones to rot, and emission assertions are nearly free via `ListAppender`. So:
 
-- **All 23** get an emission assertion — the event fires on its trigger, with the right `event.action`, `event.reason` and level.
+- **All 27** get an emission assertion — the event fires on its trigger, with the right `event.action`, `event.reason` and level.
 - **Six get a full field-schema assertion** — login success, login failure (unknown username), lockout, authorization denial, forced-change denial, reset requested. These are the security-critical lines, the ones 18 and 12 fought over, and the ones where a missing field is invisible.
 
 ### Frontend testing: narrow and named
@@ -202,7 +203,7 @@ Beyond the category sweep, these are the ones where a plausible implementation p
 
 **From 19 — the highest-value logging assertion in the plan:**
 - **Lockout emits `error.code == 423`, `error.category == "cert/auth"`, `error.follow_up_action == true`, and no `error.type`/`message`/`stack_trace`.** Under `Encoder:408` as written, all nine fields across the three throwable-less security events vanish **silently** — no failing build, no error line, a gutted audit trail. 19 deviated deliberately; this test is what pins the deviation.
-- The encoder test class is a **named required gate**, because the encoder extends an internal Spring Boot class with no migration guarantee (`Encoder:24`) and is now the only mechanism discharging `Std:328`'s masking constraint. A Boot bump that breaks it is a compliance break, not a formatting glitch.
+- The encoder test class is a **named required gate**, because the encoder extends an internal Spring Boot class with no migration guarantee (`Encoder:24`) and is now the only mechanism discharging `Std:326`'s masking constraint. A Boot bump that breaks it is a compliance break, not a formatting glitch.
 - Every appender's output parses as JSON and carries `ecs.version` (`Std:320`, `:326`)
 
 **From 05 — the defect that ships silently:**
@@ -252,6 +253,6 @@ Three components now carry the "no standards recipe behind it" flag — 01's JSO
 
 - **15** — a fifth ArchUnit row (no `response.sendError`); `dependency-check-maven`'s profile is part of the definition of done at `verify`; note the NVD API key requirement.
 - **17** — takes definition-of-done list **B** verbatim, plus the `browser-test` note about 16's three-step first boot, plus the two documented limitations (throttle counters not restart-durable, single-instance only) that must appear as deltas rather than as failing tests.
-- **12** — all 23 events are asserted for emission; six for full field schema.
+- **12** — all 27 events are asserted for emission (events 24–27 are the system events 12 numbered during validation); six for full field schema.
 - **09** — the `Secure`-cookie-on-localhost test is the first gate; its failure has a known one-line fix.
 - The map's **handoff definition of done** fog patch is **dissolved, not graduated**: the gates run against a build, and 17 closes before one exists.

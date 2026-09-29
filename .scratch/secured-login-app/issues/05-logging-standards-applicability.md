@@ -4,6 +4,7 @@ Type: research
 Status: resolved
 Blocked by: —
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 

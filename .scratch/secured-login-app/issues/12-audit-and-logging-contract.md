@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: 05, 18, 19 — all closed
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -52,13 +53,13 @@ Blocked on 05, which establishes which of the 7,169 binding lines actually have 
 
 **Bean Validation log level is unsettled in the binding set**: `Std:97` says `ERROR`, `Q:298` says `WARN`. Pick one; it interacts with the §3.2 error contract this ticket's sibling fog patch owns.
 
-**One artifact obligation, easy to miss.** `Structured_Logging_Application_Standard.md:283` requires maintaining "a log inventory that documents what is logged, where it is stored, how it is used, how access is controlled, and how long logs are kept". That document is essentially this ticket's output written down, so produce it as the deliverable rather than as a separate task — and note the access-control and storage columns interact with `Std:327`'s separate audit destination and with whatever line this ticket draws against the hosting exclusion.
+**One artifact obligation, easy to miss.** `Structured_Logging_Application_Standard.md:284` requires maintaining "a log inventory that documents what is logged, where it is stored, how it is used, how access is controlled, and how long logs are kept". That document is essentially this ticket's output written down, so produce it as the deliverable rather than as a separate task — and note the access-control and storage columns interact with `Std:327`'s separate audit destination and with whatever line this ticket draws against the hosting exclusion.
 
 **Amended by [18 — Client IP in logs](18-client-ip-in-logs.md).** One of this ticket's two remaining blockers is cleared; [19 — Log format and custom encoder](19-log-format-and-custom-encoder.md) is still open, so this ticket stays blocked. 18 settled `source.ip` and hands down one settled ruling, two new obligations and one correction.
 
 - **Settled; do not re-litigate.** `source.ip` is logged **in cleartext**, sourced **only** from `WebAuthenticationDetails.getRemoteAddress()` / `request.getRemoteAddr()` (never `X-Forwarded-For`), stored **verbatim** with no IPv6 normalization, and **omitted entirely** — not set to the recipe's `"unavailable"` sentinel (`AuthN:121-126`) — on events with no request context. It appears on exactly **six** event classes: authN success, authN failure, lockout, logout, authorisation denial, and IP-throttle rejection. It appears on **no** request-start/request-end line and **never enters MDC**, which is the reading that lets `Std:52`/`Std:359` and `MDC:94`/`:98` all be followed. Write the six-event scope into the field schema; 18 carries the full clause-by-clause status and the four recorded deviations.
 - **New obligation 1: define the IP-throttle rejection event.** No recipe in the binding set templates it, so its entire field set is this ticket's to author — `event.action` in particular, since 05 already found `event.action`'s closed enum lacks values for the role- and status-change cases. Check whether it lacks one here too; if so this is a *fourth* schema gap, not a third. Coupled to [07 — Lockout and IP throttling](07-lockout-and-ip-throttling.md)'s `429`-versus-generic-error decision: the response shape bounds what the audit line can say without confirming the throttle's existence to a prober.
-- **New obligation 2: the audit appender's classification is now load-bearing.** Because `source.ip` lands only in the audit stream, that stream is classified **above** the application log. This is a real obligation on the integrator and it belongs in the `Std:283` log-inventory deliverable this ticket already owns — specifically in its access-control and storage columns, alongside `Std:327`'s separate-destination requirement.
+- **New obligation 2: the audit appender's classification is now load-bearing.** Because `source.ip` lands only in the audit stream, that stream is classified **above** the application log. This is a real obligation on the integrator and it belongs in the `Std:284` log-inventory deliverable this ticket already owns — specifically in its access-control and storage columns, alongside `Std:327`'s separate-destination requirement.
 - **Correction to this ticket's own citation.** It cites `Std:257` for "what resource was affected"; the clause is at **`Std:255`**. Also note what `:255` does *not* say: client IP is absent from its required-context list, which is why 18 found the `source.ip` mandate to be recipe-level only and treated the six-event scope as a deliberate choice rather than an inherited clause.
 - **One `MDC:98` reinforcement.** This ticket already warns against `MDCInsertingServletFilter` as a shortcut. 18 supplies the sharper reason: `:98` rejects it *specifically because* it populates client IP (`req.remoteHost`, `req.xForwardedFor`) — so reaching for it would breach 18's scope split at its single most important point, putting IP on every line.
 
@@ -74,10 +75,10 @@ Blocked on 05, which establishes which of the 7,169 binding lines actually have 
 
 **Amended by [19 — Structured log format and the custom encoder](19-log-format-and-custom-encoder.md).** 19 resolved the last of this ticket's three blockers, and it hands over one responsibility plus three inherited shapes.
 
-- **This ticket owns the masked-field list, and the custom encoder is where masking lives.** 19's decisive finding: `Structured_Logging_Application_Standard.md:328` is an `[Enforced Constraint]` whose three permitted mechanisms reduce, under ECS with Spring Boot's native structured logging, to **a structured log encoder extension** — the same artifact 19 built for error-field nesting. So there is exactly one boundary-masking hook and it already exists; this ticket supplies the field paths, not the mechanism. Note this is *not* in tension with 05's "plaintext password never logged is satisfied by prevention" or 04's reinforcement of it: `Sensitive_Data_Masking_For_Logs.md:146`'s "skip masking and rely on prevention" hatch is scoped to that recipe's `logstash-logback-encoder` technique, **not** to `:328`'s clause, which stands regardless. Prevention remains the answer for credentials; `:328` still requires a defence-in-depth mechanism to exist.
+- **This ticket owns the masked-field list, and the custom encoder is where masking lives.** 19's decisive finding: `Structured_Logging_Application_Standard.md:326` is an `[Enforced Constraint]` whose three permitted mechanisms reduce, under ECS with Spring Boot's native structured logging, to **a structured log encoder extension** — the same artifact 19 built for error-field nesting. So there is exactly one boundary-masking hook and it already exists; this ticket supplies the field paths, not the mechanism. Note this is *not* in tension with 05's "plaintext password never logged is satisfied by prevention" or 04's reinforcement of it: `Sensitive_Data_Masking_For_Logs.md:146`'s "skip masking and rely on prevention" hatch is scoped to that recipe's `logstash-logback-encoder` technique, **not** to `:326`'s clause, which stands regardless. Prevention remains the answer for credentials; `:326` still requires a defence-in-depth mechanism to exist.
 - **Masking cannot reach `message` text** (`Sensitive_Data_Masking_For_Logs.md:230`). So this ticket must still mandate sanitisation at the log site, and must not present the encoder as covering the message field. The same line rules out relying on masking for error-related fields, which must be sanitised at the throw site.
 - **Every audit log site sets `error_category` explicitly.** 19 dropped the recipe's `ErrorCategoryResolver` (`Custom_Structured_Log_Encoder.md:128-243`) because `:334` fires it only when a throwable is present, and this application's three highest-value security events have none. There is therefore **no automatic categorisation to fall back on** — an omitted `error_category` is simply absent, not inferred.
-- **The error triplet's shape is now fixed and uniform.** Log sites use the underscore keys `error_code` / `error_category` / `error_follow_up_action` (`Structured_Logging_Application_Standard.md:188`); output carries them dotted and nested inside `error`. Critically, 19 deviated from `Custom_Structured_Log_Encoder.md:408` so this holds on **throwable-less** events too: the encoder creates the `error` object rather than stripping the keys, because the recipe's silent drop violates `Structured_Logging_Application_Standard.md:167`. This ticket can therefore specify one field shape for every audit event, with no exception-present/absent branch — and it should record why, since the uniformity is bought by a deliberate departure from the recipe.
+- **The error triplet's shape is now fixed and uniform.** Log sites use the underscore keys `error_code` / `error_category` / `error_follow_up_action` (`Structured_Logging_Application_Standard.md:188`); output carries them dotted and nested inside `error`. Critically, 19 deviated from `Custom_Structured_Log_Encoder.md:408` so this holds on **throwable-less** events too: the encoder creates the `error` object rather than stripping the keys, because the recipe's silent drop violates `Structured_Logging_Application_Standard.md:164`. This ticket can therefore specify one field shape for every audit event, with no exception-present/absent branch — and it should record why, since the uniformity is bought by a deliberate departure from the recipe.
 - **A third appender exists.** 19 corrected 15: `CONSOLE` + rolling `APPLICATION` + rolling `AUDIT`, because `:275`'s durable local buffer (all logs, for a forwarding agent) and `:327`'s separate audit destination are distinct clauses. This ticket's retention-evidence reasoning still lands on the `AUDIT` file, but it can no longer assume that file is also the general durable buffer.
 
 **Amended by [08 — Authorization matrix](08-authorization-matrix.md).** One audit-trail hole named at source rather than left for 14 to find, and a small vocabulary this ticket inherits.
@@ -129,7 +130,7 @@ The line carries **no subject field whatsoever** — no `user.id`, no `user.name
 
 Consequence for investigators, stated plainly: **no log line in this application contains a username or an email address.** Reading the audit trail requires database access to resolve UUIDs. That is the privacy posture the standard asks for, and it has a real operational cost.
 
-### The event list — 23 events
+### The event list — 27 events
 
 `Std:239` binds independently of whether a recipe supplies a template, so this is the enumeration, not a selection. All at `INFO` unless marked.
 
@@ -167,9 +168,14 @@ Consequence for investigators, stated plainly: **no log line in this application
 
 **Rate limiting** — `reason=rate_limit_account` / `rate_limit_ip`, `source.ip`, **`WARN`** (`Std:325`: rate-limit breaches at WARN "with endpoint"). Folded into events 2/3's action space rather than given their own, since `event.action` has no value for them.
 
-**System** — `profile-read` (`SelfRead:56-60`); application startup and shutdown (`Std:252`); **bootstrap seed** with a **system actor** (16) — the only actor-less audit event, and `actor=system` is a literal string in `user.id`'s place rather than an omission, because omitting it would make the event indistinguishable from a malformed one.
+**System** — the four events below are numbered so that "every event is asserted" has a countable subject; `actor=system` is a literal string in `user.id`'s place rather than an omission, because omitting it would make the event indistinguishable from a malformed one.
 
-Roughly **2.5× the PRD's seven**, exactly as 05 predicted, and the size is what sizes the build.
+24. Self-read — `profile-read` (`SelfRead:56-60`), `user.id`
+25. Application startup — `Std:252`, `actor=system`
+26. Application shutdown — `Std:252`, `actor=system`
+27. Bootstrap seed — `Std:252`/16, `actor=system`, `target_user_id` — the only actor-less audit event
+
+Roughly **3× the PRD's nine** (`prd/assessment-prd.md:122`), the order of magnitude 05 predicted, and the size is what sizes the build. Events 1–23 are the security and business events; 24–27 are the system events the standard mandates independently of any story.
 
 ### The seventh `source.ip` class — an amendment to 18, not a detail
 
@@ -185,15 +191,15 @@ Roughly **2.5× the PRD's seven**, exactly as 05 predicted, and the size is what
 
 So the recommended module is the cheap route to a mandatory constraint, and the alternative (scattered `LoggerFactory.getLogger("audit")` calls) defeats 15's ArchUnit row on day one. **Built, minimal**, in `com.assessment.auth.audit`, which 15 already fixed as the single owner of audit emission.
 
-Under §4 Separation of Concerns it sits **beside** the service layer, not beneath it: services call it explicitly. Not an AOP aspect and not a decorator — 12 of the 23 events have no method boundary that corresponds to them (the unknown-username failure happens inside a filter; the throttle rejection happens before authentication), so an aspect would cover half the surface and create the illusion of covering all of it.
+Under §4 Separation of Concerns it sits **beside** the service layer, not beneath it: services call it explicitly. Not an AOP aspect and not a decorator — 12 of the 27 events have no method boundary that corresponds to them (the unknown-username failure happens inside a filter; the throttle rejection happens before authentication), so an aspect would cover half the surface and create the illusion of covering all of it.
 
 ### Masking: the field list, and what masking cannot reach
 
-19 handed over the mechanism and this ticket supplies the paths. `Std:328` is an `[Enforced Constraint]` and under ECS with Spring Boot's native structured logging its three permitted mechanisms reduce to one — the encoder extension 19 already built for error nesting. One artifact, two clauses.
+19 handed over the mechanism and this ticket supplies the paths. `Std:326` is an `[Enforced Constraint]` and under ECS with Spring Boot's native structured logging its three permitted mechanisms reduce to one — the encoder extension 19 already built for error nesting. One artifact, two clauses.
 
 **Masked paths:** `password`, `currentPassword`, `newPassword`, `rawPassword`, `passwordHash`, `password_hash`, `passwordHistory`, `token`, `resetToken`, `token_hash`, `csrfToken`, `_csrf`, `authorization`, `cookie`, `set-cookie`, `sessionId`, `JSESSIONID`, `SESSION`.
 
-**This is defence in depth, not the primary control.** 05 ruled and 04 reinforced that "plaintext password never logged" is satisfied by **prevention** — the values never enter the logging path. 19 correctly noted that `Sensitive_Data_Masking_For_Logs.md:146`'s "skip masking and rely on prevention" hatch is scoped to *that recipe's* technique and does not discharge `:328`'s clause. Both hold: prevention is how we are safe, masking is how we prove we tried.
+**This is defence in depth, not the primary control.** 05 ruled and 04 reinforced that "plaintext password never logged" is satisfied by **prevention** — the values never enter the logging path. 19 correctly noted that `Sensitive_Data_Masking_For_Logs.md:146`'s "skip masking and rely on prevention" hatch is scoped to *that recipe's* technique and does not discharge `:326`'s clause. Both hold: prevention is how we are safe, masking is how we prove we tried.
 
 **Two things masking cannot do**, which must be written into the contract rather than assumed away:
 
@@ -204,7 +210,7 @@ Under §4 Separation of Concerns it sits **beside** the service layer, not benea
 
 ### The error triplet, uniform
 
-Log sites set `error_code` / `error_category` / `error_follow_up_action` (underscores, `Std:188`); output carries them dotted inside `error`. **One shape for every audit event, with no throwable-present branch** — bought by 19's deliberate departure from `Encoder:408`, which strips the keys when no throwable exists and thereby violates `Std:167`'s "MUST NOT suppress or drop it silently". The uniformity is worth recording as purchased rather than free.
+Log sites set `error_code` / `error_category` / `error_follow_up_action` (underscores, `Std:188`); output carries them dotted inside `error`. **One shape for every audit event, with no throwable-present branch** — bought by 19's deliberate departure from `Encoder:408`, which strips the keys when no throwable exists and thereby violates `Std:164`'s "MUST NOT suppress or drop it silently". The uniformity is worth recording as purchased rather than free.
 
 The four codes 08 fixed plus 10's fifth are audit field values, not just response fields: `PASSWORD_CHANGE_REQUIRED`, `ACCESS_DENIED`, `LAST_USER_MANAGER`, `CURRENT_PASSWORD_INVALID`, `SELF_ACTION_NOT_ALLOWED`.
 
@@ -238,7 +244,7 @@ The four codes 08 fixed plus 10's fifth are audit field values, not just respons
 
 ### The deliverable: a log inventory
 
-`Std:283` requires "a log inventory that documents what is logged, where it is stored, how it is used, how access is controlled, and how long logs are kept" — which is this ticket's output written down. Produced as **`docs/logging/log-inventory.md`**, content specified here, **file left for 15 or 17 to land** alongside 18's ADR, same treatment and same reason (it waits on the module layout).
+`Std:284` requires "a log inventory that documents what is logged, where it is stored, how it is used, how access is controlled, and how long logs are kept" — which is this ticket's output written down. Produced as **`docs/logging/log-inventory.md`**, content specified here, **file left for 15 or 17 to land** alongside 18's ADR, same treatment and same reason (it waits on the module layout).
 
 Required content: the 23-event table with fields and levels; the `event.reason` vocabulary; the masked-path list; the three appenders and their destinations; **access control** — the `AUDIT` stream is classified **above** the application log because `source.ip` lands only there (18), and `Std:259`'s integrity controls are the integrator's; **retention** — 90 days minimum on the integrator, rotation on the application, and the tombstone asymmetry above.
 
@@ -249,4 +255,4 @@ Required content: the 23-event table with fields and levels; the `event.reason` 
 - **15** — lands `docs/logging/log-inventory.md`; the ArchUnit audit-logger row now has a concrete owner (`com.assessment.auth.audit`) and a concrete violation to catch.
 - **16** — the bootstrap seed's system actor is `user.id = "system"`, a literal, not an omission.
 - **21** — no change; its `ERROR`/`WARN` ruling is consumed as settled.
-- **14** — tests for: no log line anywhere contains a password, a password hash, a reset token (plaintext or hashed), a session id, a username or an email; the unknown-username failure carries no subject field; all 23 events fire on their trigger; `event.reason` never takes an unlisted value; audit lines route to the `AUDIT` appender and application lines do not; `trace.id` and `span.id` present on every line; MDC empty after every request including failure paths.
+- **14** — tests for: no log line anywhere contains a password, a password hash, a reset token (plaintext or hashed), a session id, a username or an email; the unknown-username failure carries no subject field; all 27 events fire on their trigger; `event.reason` never takes an unlisted value; audit lines route to the `AUDIT` appender and application lines do not; `trace.id` and `span.id` present on every line; MDC empty after every request including failure paths.

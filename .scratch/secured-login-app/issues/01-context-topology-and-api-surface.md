@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: —
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -95,7 +96,7 @@ Roles below are placeholders pending ticket 03; the privileged role is written `
 
 **Amendment (ticket 03).** The inventory above originally omitted `GET /api/v1/roles`. This inventory was built from the PRD's story list, and no PRD story asks for it — but the standard requires read-only access to role definitions twice (`Standalone_User_Access_Control_Application_Standard.md:14`, `:118`). [03 — Role model reconciliation](03-role-model-reconciliation.md) ruled it in scope and the row is added above; that ticket holds the reasoning and the payload shape.
 
-Deliberately not fixed here: the `/currentUser` path string itself (`/me` vs `/profile` vs `/currentUser`) is **ticket 10's** to decide. Note for 10 — the standards contradict themselves: `Standalone_Privileged_User_Administration_and_Password_Reset.md:536` says `/currentUser`, while `Common_Secure_Self-Read_User_Endpoint.md:53` mounts the controller at `/api/v1/profile`. This inventory uses `/currentUser` provisionally.
+Deliberately not fixed here: the `/currentUser` path string itself (`/me` vs `/profile` vs `/currentUser`) is **ticket 10's** to decide. Note for 10 — the standards contradict themselves: `Standalone_Privileged_User_Administration_and_Password_Reset.md:536` says `/currentUser`, while `Common_Secure_Self-Read_User_Endpoint.md:45` mounts the controller at `/api/v1/profile`. This inventory uses `/currentUser` provisionally.
 
 ### `Q9` — admin mutation granularity: sub-resource verbs
 

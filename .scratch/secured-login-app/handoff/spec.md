@@ -6,6 +6,33 @@ The locked plan. Every decision on the [wayfinder map](../map.md) assembled into
 
 **Standards pin:** `App-Standards/` is a git submodule at `ff5ab8205fdfb641210164eeaa2365e48e04846b`. Every `path:line` citation across this plan is against that pin, so **re-pinning invalidates line numbers map-wide**. Clone with `git clone --recurse-submodules`, or run `git submodule update --init`; without it every citation points at an empty directory ([06](../issues/06-standards-repo-checkin.md)).
 
+### Citation legend
+
+Every `path:line` below is against the pinned submodule. Short prefixes resolve as follows — paths are relative to [`App-Standards/`](../../../App-Standards/).
+
+| Prefix | File |
+|---|---|
+| `Std:` | `Appfw-User-Standards/User_Standalone/Standalone_User_Access_Control_Application_Standard.md` |
+| `Std_Logging:` | `Appfw-Logging-Standards/Structured_Logging_Application_Standard.md` |
+| `Q:` `Qs:` `Questions:` | `…/User_Standalone/Standalone_User_Access_Control_Application_Standard_Questions.md` |
+| `Priv:` `Privileged:` | `…/Standalone_User_Access_Control_Recipes/Standalone_Privileged_User_Administration_and_Password_Reset.md` |
+| `Self-Service:` `SELFPW:` | `…/Standalone_User_Access_Control_Recipes/Standalone_Self-Service_Password_and_History_Management.md` |
+| `BOOT:` | `…/Standalone_User_Access_Control_Recipes/Standalone_Session_Login_with_CSRF_Bootstrap.md` |
+| `HDR:` | `Appfw-User-Standards/Shared_Recipes/Common_Security_Headers_and_SPA_CSRF_Configuration.md` |
+| `RBAC:` | `Appfw-User-Standards/Shared_Recipes/Common_Role-Based_Access_Control_Configuration.md` |
+| `SelfRead:` | `Appfw-User-Standards/Shared_Recipes/Common_Secure_Self-Read_User_Endpoint.md` |
+| `LS:` | `Appfw-Logging-Standards/Log_Schema.md` |
+| `Trace:` | `Appfw-Logging-Standards/Recipes/Structured_Logging_Trace_Correlation_And_Context_Propagation.md` |
+| `AuthN:` | `Appfw-Logging-Standards/Recipes/Logging_AuthN_And_AuthZ_Events.md` |
+| `MDC:` | `Appfw-Logging-Standards/Recipes/Enriching_Logs_With_MDC.md` |
+| `Mask:` `Masking:` | `Appfw-Logging-Standards/Recipes/Sensitive_Data_Masking_For_Logs.md` |
+| `Encoder:` `CSLE:` | `Appfw-Logging-Standards/Recipes/Custom_Structured_Log_Encoder.md` |
+| `Typed:` | `Appfw-Logging-Standards/Recipes/Centralising_Audit_Logging_With_A_Typed_Module.md` |
+| `Batch:` | `Appfw-Logging-Standards/Recipes/Logging_Batch_And_Scheduled_Jobs.md` |
+| `prd:` | `prd/assessment-prd.md` (this repo, not the submodule) |
+
+A bare `` `:NNN` `` inherits the prefix of the citation immediately before it. **`Std:` and `Std_Logging:` are two different files** — the logging standard is never `Std:`.
+
 ---
 
 ## 1. Tech baseline
@@ -14,13 +41,13 @@ Fixed by [15](../issues/15-tech-baseline-and-module-structure.md). The pin is th
 
 **Backend** — Java 21 · Spring Boot 4.0.x · Spring Security 7.0.x · Maven with a committed wrapper.
 
-**Frontend** — Vite · React 19 · TypeScript · react-router v7 · **axios** (specifically, because `Std:437` requires a global `401`/`403` interceptor).
+**Frontend** — Vite · React 19 · TypeScript · react-router v7 · **axios** (specifically, because `Std:438` requires a global `401`/`403` interceptor).
 
 **Layout** — one repo, sibling `backend/` and `frontend/`. Feature-first packages under `com.assessment.auth`, with `audit/` the single logging owner and `common/` holding the global exception handler, the MDC filters and the `ProblemDetailWriter`.
 
 §4 Separation of Concerns (`:411-417`) prescribes **endpoint** boundaries, not a package layout — the layout is a free choice, and the frontend is wholly unconstrained.
 
-**Dependencies of note** — Liquibase; Spring Session JDBC; Micrometer Tracing with the **OpenTelemetry** starter (W3C propagation by default, `Std:277`) plus Actuator as its carrier; **Bucket4j** (rate-limit algorithm) **and Caffeine** (its TTL-evicting backing map — both, with distinct jobs, [07](../issues/07-lockout-and-ip-throttling.md)); `dependency-check-maven` in a non-default profile with `failBuildOnCVSS=7`.
+**Dependencies of note** — Liquibase; Spring Session JDBC; Micrometer Tracing with the **OpenTelemetry** starter (W3C propagation by default, `Std_Logging:169`) plus Actuator as its carrier; **Bucket4j** (rate-limit algorithm) **and Caffeine** (its TTL-evicting backing map — both, with distinct jobs, [07](../issues/07-lockout-and-ip-throttling.md)); `dependency-check-maven` in a non-default profile with `failBuildOnCVSS=7`.
 
 **Secrets** — environment variables, no committed defaults. A missing `APP_ADMIN_PASSWORD` **fails startup** rather than seeding a guessable admin. A committed `.env.example` documents the set.
 
@@ -173,7 +200,7 @@ Min **12**, max **72**, **no composition rules**, full printable ASCII, bundled 
 
 **72 is not arbitrary:** BCrypt in the pinned Spring Security 7.0.6 *throws* above 72 bytes (verified in the jar), so `Questions.md:296`'s recommended 128 and the recipe's 1024 both turn a long passphrase into a `500`. ASCII-only makes a 72-character cap an exact byte cap.
 
-**Composition is deliberately dropped** — `Priv:106`'s regex is recipe-only, the standard's one-of-each-class clause is scoped to the admin-generated password (now inapplicable, [11](../issues/11-password-reset-flow.md)), and the recipe's own note says to remove it. A 12-character all-lowercase passphrase **with spaces** must be accepted.
+**Composition is deliberately dropped** — `Priv:109`'s regex is recipe-only, the standard's one-of-each-class clause is scoped to the admin-generated password (now inapplicable, [11](../issues/11-password-reset-flow.md)), and the recipe's own note says to remove it. A 12-character all-lowercase passphrase **with spaces** must be accepted.
 
 **History blocks four values** — current + three previous, the literal reading of `Std:355`. ⚠️ This makes `Self-Service:269-272`'s verification procedure **wrong for us**; do not transcribe it.
 
@@ -271,17 +298,17 @@ A **profile-independent `ApplicationRunner`**, not a Liquibase changeset — `Co
 
 **One `ProblemDetailWriter` bean in `common/`**, used by the advice and four off-MVC sites. **The `401` has an empty body** (`HttpStatusEntryPoint` cannot write one, and that is `Std:247`'s most generic response).
 
-**The SPA's axios interceptor must inspect `code` before logging out.** A bare `401` is session death; a `403` carrying `PASSWORD_CHANGE_REQUIRED` or `SELF_ACTION_NOT_ALLOWED` is an in-app error. This refines `Std:437` and is the reason the `code` field exists.
+**The SPA's axios interceptor must inspect `code` before logging out.** A bare `401` is session death; a `403` carrying `PASSWORD_CHANGE_REQUIRED` or `SELF_ACTION_NOT_ALLOWED` is an in-app error. This refines `Std:438` and is the reason the `code` field exists.
 
 ---
 
 ## 11. Audit and logging ([12](../issues/12-audit-and-logging-contract.md))
 
-**23 events** — see the ticket for the full table with fields and levels. ~2.5× the PRD's seven.
+**27 events** — 1–23 security and business, 24–27 system (self-read, startup, shutdown, bootstrap seed). See the ticket for the full list with fields and levels. ~3× the PRD's nine (`prd/assessment-prd.md:122`).
 
-**Format:** ECS via Spring Boot's **native** `logging.structured.format.*`, plus a **custom encoder** that discharges both `Std:328` (masking — the only available mechanism under this route) and `Std:186` (error nesting). ⚠️ The encoder **creates** the `error` object when no throwable exists rather than stripping the keys, deviating from `Encoder:408` because the silent drop violates `Std:167` — without it, **nine fields across the three most important security events vanish with no failing build**.
+**Format:** ECS via Spring Boot's **native** `logging.structured.format.*`, plus a **custom encoder** that discharges both `Std_Logging:326` (masking — the only available mechanism under this route) and `Std_Logging:186` (error nesting). ⚠️ The encoder **creates** the `error` object when no throwable exists rather than stripping the keys, deviating from `Encoder:408` because the silent drop violates `Std_Logging:164` — without it, **nine fields across the three most important security events vanish with no failing build**.
 
-**Three appenders:** `CONSOLE`, rolling `APPLICATION` (`Std:275`'s durable buffer), rolling `AUDIT` (`Std:327`'s separate destination). Bound **by logger name, not marker**, so ArchUnit can enforce that only `com.assessment.auth.audit` writes to it.
+**Three appenders:** `CONSOLE`, rolling `APPLICATION` (`Std_Logging:275`'s durable buffer), rolling `AUDIT` (`Std_Logging:327`'s separate destination). Bound **by logger name, not marker**, so ArchUnit can enforce that only `com.assessment.auth.audit` writes to it.
 
 **Identity fields:** `user.id` is **always the actor**; the target is **`target_user_id`**, an underscore key following the standard's own `error_*` precedent. `event.reason` (closed 21-value vocabulary) is the discriminator, because `event.action`'s enum cannot name seven of our operations.
 
@@ -289,11 +316,11 @@ A **profile-independent `ApplicationRunner`**, not a Liquibase changeset — `Co
 
 **`source.ip` in cleartext on seven event classes only**, from `getRemoteAddr()` verbatim, never `X-Forwarded-For`, never in MDC ([18](../issues/18-client-ip-in-logs.md) fixed six; [12](../issues/12-audit-and-logging-contract.md) added forced-change denial as the seventh).
 
-**`trace.id` / `span.id` on every line** via Micrometer Tracing — mandatory (`Std:321`), with **no exporter or collector needed** (`Trace:14`). `correlation.id` is used **nowhere**.
+**`trace.id` / `span.id` on every line** via Micrometer Tracing — mandatory (`Std_Logging:321`), with **no exporter or collector needed** (`Trace:14`). `correlation.id` is used **nowhere**.
 
-**Retention:** 90 days minimum, an **integrator** obligation (`Std:287`); the application does rotation only.
+**Retention:** 90 days minimum, an **integrator** obligation (`Std_Logging:287`); the application does rotation only.
 
-**Deliverables:** `docs/adr/` (18's client-IP ADR) and `docs/logging/log-inventory.md` (`Std:283`) — content specified in their tickets, files to be landed during the build.
+**Deliverables:** `docs/adr/` (18's client-IP ADR) and `docs/logging/log-inventory.md` (`Std_Logging:284`) — content specified in their tickets, files to be landed during the build.
 
 ---
 

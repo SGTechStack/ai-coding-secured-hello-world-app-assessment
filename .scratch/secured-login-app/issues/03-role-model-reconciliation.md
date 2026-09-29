@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: —
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -73,7 +74,7 @@ Not anticipated by the ticket. The standard makes it an *enforced constraint* th
 
 `url-guards` key on **`ROLE_USER_MANAGER` / `ROLE_USER`**, not on synthesized privileges.
 
-The RBAC recipe's example keys `url-guards` on authorities like `USER_READ`/`USER_WRITE` (`Common_Role-Based_Access_Control_Configuration.md:40-43`, called via `hasAuthority` at `:88`), but `Q18` states outright that "if your application doesn't need fine-grained privilege abstraction, you can define roles without explicit privileges" — so this is sanctioned, and consistent with the map's out-of-scope ruling on the fine-grained privileges model (`Questions.md:485`).
+The RBAC recipe's example keys `url-guards` on authorities like `USER_READ`/`USER_WRITE` (`Common_Role-Based_Access_Control_Configuration.md:40-43`, called via `hasAuthority` at `:83`), but `Q18` states outright that "if your application doesn't need fine-grained privilege abstraction, you can define roles without explicit privileges" — so this is sanctioned, and consistent with the map's out-of-scope ruling on the fine-grained privileges model (`Questions.md:482`).
 
 Rejected: a thin privilege layer purely to match the recipe's literal shape. With exactly one role holding every write, the privilege set would be a bijection with the role set — an indirection that never varies.
 

@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: 01, 03
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -232,7 +233,7 @@ This is the "precondition column or stated precedence rule" 04 demanded. `Priv:6
 
 **The failed current-password check on `PATCH /currentUser/changePassword` is `400 Bad Request`** — the question 04 explicitly left open.
 
-The decisive constraint is downstream, not in the standard's status-code table. `Std:437` requires the SPA to run a global `401`/`403` interceptor that clears local state and redirects to login, and 15 chose axios specifically to have it. So returning `401` or `403` for a mistyped current password would **log the user out on a typo** — and since a successful change already kills every session (04's step 6), the user could not tell the two outcomes apart. `400` says what is actually true: the session is valid, the caller is authorized, and a field in the request body is wrong. It also sits inside the class 04 settled as permitted to carry a specific error, since `Std:247` scopes itself to authentication outcomes and this is not one.
+The decisive constraint is downstream, not in the standard's status-code table. `Std:438` requires the SPA to run a global `401`/`403` interceptor that clears local state and redirects to login, and 15 chose axios specifically to have it. So returning `401` or `403` for a mistyped current password would **log the user out on a typo** — and since a successful change already kills every session (04's step 6), the user could not tell the two outcomes apart. `400` says what is actually true: the session is valid, the caller is authorized, and a field in the request body is wrong. It also sits inside the class 04 settled as permitted to carry a specific error, since `Std:247` scopes itself to authentication outcomes and this is not one.
 
 **Generalised as a constraint on the error contract:** no non-authentication rejection on an authenticated path may use `401` or `403`, because those two codes are reserved as the interceptor's logout signal.
 

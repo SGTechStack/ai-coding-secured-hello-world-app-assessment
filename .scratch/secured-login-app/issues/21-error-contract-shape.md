@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: —
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -22,7 +23,7 @@ This is the standard's §3.2 error contract. Settle:
 - **The four codes and their statuses**, fixed by 08: `PASSWORD_CHANGE_REQUIRED` (`403`), `ACCESS_DENIED` (`403`), `LAST_USER_MANAGER` (`409`), `CURRENT_PASSWORD_INVALID` (`400`). This ticket wraps them; it does not rename or renumber them.
 - **`Std:110` and `:247` do not conflict** — settled by 04. `:247` scopes itself to authentication outcomes, so a policy or state violation may name the violated rule.
 - **The `401` body is empty**, by 08's ruling: `HttpStatusEntryPoint` writes a status and nothing else, which is `Std:247`'s generic response. **This ticket must not give the `401` an envelope.**
-- **No non-authentication rejection on an authenticated path may use `401` or `403`** — 08's constraint, because `Std:437`'s global SPA interceptor treats both as a logout signal.
+- **No non-authentication rejection on an authenticated path may use `401` or `403`** — 08's constraint, because `Std:438`'s global SPA interceptor treats both as a logout signal.
 - **`/error` is `permitAll` and `server.error.whitelabel.enabled=false`** — 08's row 6. This ticket decides what reaches a client when the advice does *not* handle something, given that `/error` is a backstop rather than the normal path.
 - **The `PasswordChangeFilter` never calls `sendError`** — 08, because an `ERROR` dispatch is authorized (`filterErrorDispatch=true`, verified) and because `sendError` cannot carry a code.
 

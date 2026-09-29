@@ -5,6 +5,7 @@ Status: resolved
 Assignee: taniakoh
 Blocked by: —
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -56,7 +57,7 @@ Blocks [12 — Audit and logging contract](12-audit-and-logging-contract.md) and
 
 `Custom_Structured_Log_Encoder.md:408` and `:512` are explicit: no throwable → no `error` object → the workaround keys are **stripped from root and silently dropped**. The encoder *as the recipe specifies it* would therefore delete **nine fields across the three events at the centre of this application's audit trail** — including the lockout code that is the entire machine-readable signal of an active brute-force attack. This is not a corner case to note; it is the majority of this app's audit failures, and it is why the recipe is followed only in part.
 
-**3. That behaviour is non-compliant with the standard the recipe serves.** `Structured_Logging_Application_Standard.md:167`: *"If required fields are absent, the application MUST still emit the event and MUST NOT suppress or drop it silently."* The recipe's strip-without-inject is exactly a silent drop of a required field. The deviation below is therefore **compelled, not chosen** — the recipe and the standard genuinely conflict, and the standard is the clause list (05's governing finding).
+**3. That behaviour is non-compliant with the standard the recipe serves.** `Structured_Logging_Application_Standard.md:164`: *"If required fields are absent, the application MUST still emit the event and MUST NOT suppress or drop it silently."* The recipe's strip-without-inject is exactly a silent drop of a required field. The deviation below is therefore **compelled, not chosen** — the recipe and the standard genuinely conflict, and the standard is the clause list (05's governing finding).
 
 **Trap 1 dissolves: it is already solved inside the binding set.** The ticket treats `Custom_Structured_Log_Encoder.md:389`'s hardcoded `<format>ecs</format>` as an unresolved conflict with `:320`. But `Structured_Logging_Trace_Correlation_And_Context_Propagation.md:912` gives the correct form the encoder recipe botches: `<format>${FILE_LOG_STRUCTURED_FORMAT:-ecs}</format>`, and `:949` documents the variable mapping. `:389` is a defect in one recipe, not a standards conflict. The `:-ecs` fallback is load-bearing, not cosmetic — a custom `logback-spring.xml` disables Spring Boot's logging auto-configuration (`Trace:897`), so an unset variable yields *no* format rather than a default one.
 
@@ -85,9 +86,9 @@ Every recipe, verification checklist and configuration property in the binding s
 
 The ticket frames the encoder as ~200 lines serving one cosmetic nesting concern. That undersells it, because of a coupling the ticket does not mention.
 
-`Structured_Logging_Application_Standard.md:328` is an `[Enforced Constraint]`: apply masking at the logging boundary via one of three named mechanisms — a custom Logback converter, a `PatternLayout` masking rule, or **a structured log encoder extension**. Under ECS with the native route, `PatternLayout` is irrelevant to JSON output, which leaves the converter or the encoder. `Sensitive_Data_Masking_For_Logs.md:146` does offer an escape — *"If the application does not use this encoder, skip this section and rely on prevention at the source"* — but that hatch is scoped to **that recipe's specific `logstash-logback-encoder` technique**, not to the standard's clause. The clause stands.
+`Structured_Logging_Application_Standard.md:326` is an `[Enforced Constraint]`: apply masking at the logging boundary via one of three named mechanisms — a custom Logback converter, a `PatternLayout` masking rule, or **a structured log encoder extension**. Under ECS with the native route, `PatternLayout` is irrelevant to JSON output, which leaves the converter or the encoder. `Sensitive_Data_Masking_For_Logs.md:146` does offer an escape — *"If the application does not use this encoder, skip this section and rely on prevention at the source"* — but that hatch is scoped to **that recipe's specific `logstash-logback-encoder` technique**, not to the standard's clause. The clause stands.
 
-So one boundary mechanism is required, and the only fitting one is an encoder extension — **the same artifact the error-nesting question is about**. The encoder is therefore not optional overhead bought for field cosmetics; it is the single artifact discharging **both** `:328` (masking mechanism) and `:186`/`:188` (nested error fields). That is the reasoning that decides this ticket.
+So one boundary mechanism is required, and the only fitting one is an encoder extension — **the same artifact the error-nesting question is about**. The encoder is therefore not optional overhead bought for field cosmetics; it is the single artifact discharging **both** `:326` (masking mechanism) and `:186`/`:188` (nested error fields). That is the reasoning that decides this ticket.
 
 **One encoder, two responsibilities:** move `error_*` root keys into the `error` object, and mask sensitive fields at the boundary. The masked-field list is **not this ticket's** — it belongs to [12 — Audit and logging contract](12-audit-and-logging-contract.md); this ticket fixes only where masking lives and that the hook exists. `Sensitive_Data_Masking_For_Logs.md:230` constrains 12: masking reaches JSON fields only, **never `message` text**, so sanitisation at the log site remains mandatory alongside it.
 
@@ -106,7 +107,7 @@ Two rejected alternatives, recorded so the choice is legible:
 - **Strip only when injectable, leaving underscore keys at root otherwise.** No data loss, and defensible — `Std:390` itself names the underscore keys. Rejected because one logical field would carry two shapes depending on whether a throwable happened to be present, and every query over the audit trail would have to know which.
 - **Attach a synthetic throwable so the `error` object exists.** Disqualified outright: it fabricates a stack trace pointing at the logging code rather than at a fault, putting fiction into an audit record to satisfy a formatter.
 
-The deviation is from a **recipe**, not from the standard — and it is the standard (`:167`) that compels it. Under 05's governing finding, that is the correct direction of travel.
+The deviation is from a **recipe**, not from the standard — and it is the standard (`:164`) that compels it. Under 05's governing finding, that is the correct direction of travel.
 
 ### `ErrorCategoryResolver` is out
 
@@ -116,7 +117,7 @@ Dropped. Every log site sets `error_category` explicitly. This roughly halves th
 
 ### Appender wiring, and a correction to 15
 
-**Both appenders carry the custom encoder.** `Structured_Logging_Application_Standard.md:326` bans mixing plain text with JSON in one stream, and audit records need the same masking and nesting as application logs. `CONSOLE` reads `${CONSOLE_LOG_STRUCTURED_FORMAT:-ecs}`, the file appenders read `${FILE_LOG_STRUCTURED_FORMAT:-ecs}` (`Trace:912`, `:949`). The `:-ecs` fallback is mandatory, per `Trace:897`.
+**Both appenders carry the custom encoder.** `Structured_Logging_Application_Standard.md:332` bans mixing plain text with JSON in one stream, and audit records need the same masking and nesting as application logs. `CONSOLE` reads `${CONSOLE_LOG_STRUCTURED_FORMAT:-ecs}`, the file appenders read `${FILE_LOG_STRUCTURED_FORMAT:-ecs}` (`Trace:912`, `:949`). The `:-ecs` fallback is mandatory, per `Trace:897`.
 
 **`logback-spring.xml` is confirmed mandatory**, settling the "likely" in `15:35`: `:327` requires a dedicated audit appender, which `application.yaml` cannot express. Note this is now doubly forced — the custom encoder must be registered in XML regardless (`Custom_Structured_Log_Encoder.md:32`).
 
@@ -130,10 +131,10 @@ Under the two-appender inventory, ordinary application logs have **no durable lo
 ### Downstream effects
 
 - **[12 — Audit and logging contract](12-audit-and-logging-contract.md)** — unblocked. Owns the masked-field list (hosted in this encoder), must require `message`-text sanitisation separately per `Masking:230`, and inherits: every audit log site sets `error_category` explicitly; the error triplet uses underscore keys at the log site and appears dotted-and-nested in output on **all** events including throwable-less ones.
-- **[14 — Test and validation plan](14-test-and-validation-plan.md)** — gains two **named** cases, not comments. First, the encoder is now load-bearing for an enforced constraint (`:328`), so `Custom_Structured_Log_Encoder.md:24`'s "retest after every Spring Boot upgrade" is an audit-compliance retest. Second, a test asserting the three throwable-less events emit nested `error.code` — that is the `Encoder:408` deviation, the one place our encoder intentionally departs from its recipe, and the regression that would silently gut the audit trail.
+- **[14 — Test and validation plan](14-test-and-validation-plan.md)** — gains two **named** cases, not comments. First, the encoder is now load-bearing for an enforced constraint (`:326`), so `Custom_Structured_Log_Encoder.md:24`'s "retest after every Spring Boot upgrade" is an audit-compliance retest. Second, a test asserting the three throwable-less events emit nested `error.code` — that is the `Encoder:408` deviation, the one place our encoder intentionally departs from its recipe, and the regression that would silently gut the audit trail.
 - **[15](15-tech-baseline-and-module-structure.md)** — amended: third appender; `logback-spring.xml` confirmed mandatory rather than likely; encoder confirmed built, so the maintenance liability 15 recorded against the Boot 4.0.x pin is real and now also a compliance liability.
 - **Error-contract fog** — one of its two constraints is discharged: the `error_code`-dropped-on-non-exception-`ERROR` collision (`Custom_Structured_Log_Encoder.md:408` vs `Structured_Logging_Application_Standard.md:186`) is resolved here by the create-the-object deviation, so the error contract no longer has to work around it. The `ERROR`-vs-`WARN` contradiction for Bean Validation (`:97` vs `Questions.md:298`) is untouched and remains that patch's problem.
 
 ### No ADR
 
-Deliberately, against 18's precedent. 18 earned an ADR because it recorded four genuine deviations from the *standard* and an unused compliance hatch. This ticket deviates from a **recipe** in the direction the standard commands, and the standard's own clause list is the justification. Recording it as an architectural decision would misrepresent a defect-workaround as a policy choice. The ticket body is the record; `Std:167` is the authority.
+Deliberately, against 18's precedent. 18 earned an ADR because it recorded four genuine deviations from the *standard* and an unused compliance hatch. This ticket deviates from a **recipe** in the direction the standard commands, and the standard's own clause list is the justification. Recording it as an architectural decision would misrepresent a defect-workaround as a policy choice. The ticket body is the record; `Std:164` is the authority.

@@ -4,6 +4,7 @@ Type: grilling
 Status: resolved
 Blocked by: —
 Map: [Secured Login App](../map.md)
+Validated: approved — [validation record](../handoff/validation.md)
 
 ## Question
 
@@ -51,7 +52,7 @@ The grace period is a different animal. `Standard:50` and `:372` require that a 
 | Hash | **BCrypt, cost 12** | `prd:116` + `Questions.md:287` |
 | Banned passwords | **bundled static denylist** | `Questions.md:314`, `:317` |
 
-**No composition rules, and this overrides the recipe.** `Standalone_Privileged_User_Administration_and_Password_Reset.md:106` enforces a regex demanding digit + lower + upper + one of `@#$%^&+=` and `(?=\S+$)` — no whitespace. The standard's clause list contains **no composition clause for user-chosen passwords**: `Standard:357-362`'s one-of-each-class rule is scoped to the *administratively generated* 12-character password, and nothing else. `Questions.md:305` argues against composition rules outright, and the recipe's own note at `Privileged:112` says to remove the check for strict NIST compliance. The map's standing rule from 05 — *the recipes are guides; the standard is the clause list* — settles it. The no-whitespace clause is dropped as well: it is recipe-only and it bans passphrases, the strongest thing a user can type. Composition **is retained** for the admin-generated password, where it is an actual clause.
+**No composition rules, and this overrides the recipe.** `Standalone_Privileged_User_Administration_and_Password_Reset.md:109` enforces a regex demanding digit + lower + upper + one of `@#$%^&+=` and `(?=\S+$)` — no whitespace. The standard's clause list contains **no composition clause for user-chosen passwords**: `Standard:357-362`'s one-of-each-class rule is scoped to the *administratively generated* 12-character password, and nothing else. `Questions.md:305` argues against composition rules outright, and the recipe's own note at `Privileged:112` says to remove the check for strict NIST compliance. The map's standing rule from 05 — *the recipes are guides; the standard is the clause list* — settles it. The no-whitespace clause is dropped as well: it is recipe-only and it bans passphrases, the strongest thing a user can type. Composition **is retained** for the admin-generated password, where it is an actual clause.
 
 **Maximum length is 72, not `Questions.md:296`'s recommended 128 and not the recipe's 1024, because BCrypt in the pinned version throws rather than truncates.** Verified against the jar 15's pin resolves to:
 
@@ -152,7 +153,7 @@ On success, in order:
 
 **Step 7 adds a method the PRD did not anticipate.** `Standard:65` and `:72` require notifying the account owner on both admin-initiated reset and self-service change. The PRD's stub `EmailService` (`prd:20`) has only `sendPasswordResetEmail`. Add `sendPasswordChangedEmail(...)` as a second logging stub. This stays inside the PRD's real-SMTP exclusion, which excludes *delivery*, not the call site.
 
-**Not this ticket's to decide:** the `/currentUser` path string itself is 10's, per 01's note that `Privileged:536` says `/currentUser` while `Common_Secure_Self-Read_User_Endpoint.md:53` mounts at `/profile`. Whatever 10 rules, the change endpoint and the filter allowlist follow it; they are written against the segment, not a literal.
+**Not this ticket's to decide:** the `/currentUser` path string itself is 10's, per 01's note that `Privileged:536` says `/currentUser` while `Common_Secure_Self-Read_User_Endpoint.md:45` mounts at `/profile`. Whatever 10 rules, the change endpoint and the filter allowlist follow it; they are written against the segment, not a literal.
 
 ### Downstream
 

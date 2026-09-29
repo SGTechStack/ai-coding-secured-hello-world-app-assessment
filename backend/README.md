@@ -30,6 +30,13 @@ $b = [byte[]]::new(32); [System.Security.Cryptography.RandomNumberGenerator]::Fi
 
 Never use PowerShell's `Get-Random`. Never commit a key, or put one in a committed properties or YAML file.
 
+Rotating the TOTP key (yearly, ADR-022; R-CFG-005): generate a new key, raise `APP_MFA_TOTP_ENCRYPTION_KEYVERSION`, and
+keep the old key under its old version as `APP_MFA_TOTP_ENCRYPTION_RETIREDKEYS_<old version>`
+(`app.mfa.totp.encryption.retired-keys.<old version>`). New secrets are sealed under the new version, and rows still
+sealed under a retired version keep opening with its key. Re-sealing each row under the new key, and then dropping the
+retired key, is the operator's rotation procedure; a row whose version has no configured key fails with a 500 naming
+the version. A retired key is checked like any other key and must differ from every other key.
+
 Then start the app under the `dev` profile:
 
 ```sh
@@ -121,11 +128,18 @@ The seeded password is a forced-change credential (ADR-046):
    answers 403 `PASSWORD_CHANGE_REQUIRED`.
 2. Enter `lantern-orchard-copper-tide` as the current password and a new one that passes the policy. The session
    stays signed in and is no longer confined.
-3. An unchanged seed password expires 30 days after the first start: sign-in then fails with the uniform 401. Delete
-   `backend/data/` to get a fresh seed.
+3. Enrol an authenticator app (ADR-023). After the change the app shows the greeting page without a greeting
+   (`/api/hello` is for the `USER` role only), with a **Two-factor authentication** link to
+   http://localhost:5173/settings/mfa. Choose **Generate QR code**, scan the code with any TOTP app (or type the key
+   shown under it: time-based, 6 digits, 30 seconds), then enter the app's current code and **Confirm**. The key is
+   shown once: generating again replaces it, and nothing re-displays it. Enrolment is refused until the password has
+   been changed.
 
-The administrator surface itself (TOTP enrolment, user administration) is not built yet, so after the change an
-administrator sees the greeting page without a greeting: `/api/hello` is for the `USER` role only.
+An unchanged seed password expires 30 days after the first start: sign-in then fails with the uniform 401. Delete
+`backend/data/` to get a fresh seed.
+
+The issuer the app shows beside the account is `app.mfa.totp.issuer`, `Secured Hello World` in `application.yml`; it
+is required and may not be blank. User administration is not built yet.
 
 ### The fixture backend
 

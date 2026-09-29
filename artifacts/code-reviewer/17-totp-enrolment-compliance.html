@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 17-totp-enrolment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-green-100 text-green-800">Overall: PASS</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">build WARN · C0 H0 M2 L4</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN · C0 H0 M6 L6</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN · C0 H0 M1 L10</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED · C0 H0 M0 L4 (manual)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN · C0 H0 M3 L2 (H1 fixed)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">react WARN · C0 H0 M2 L5</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN · C0 H0 M0 L9</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t17-totp-enrolment</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+          <p class="text-sm text-slate-500 mt-1">Issue 17: TOTP enrolment. Uncommitted and untracked changes on <span class="font-mono">t17-totp-enrolment</span>, compared with base <span class="font-mono">18a7654</span>.</p>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall status across the 7 active checks. A check is FAIL if it has at least one Critical or High finding, WARN if it has only Medium or Low findings, and PASS if it has none. The first run was <span class="font-semibold text-red-700">FAIL</span> because the IM8 check had one High finding (ck-2, key rotation). That finding is fixed and re-checked (see "Correction pass" below), so the overall status is now <span class="font-semibold text-green-700">PASS</span>: no check has an open Critical or High finding.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Check</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Status</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">C / H / M / L</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 font-medium">build</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 2 / 4</td><td class="px-4 py-2">Compile, type-check, tests (FE 139, BE 892 + 6 ITs) and builds all pass. <span class="font-mono text-xs">fallow audit</span> exits 1 because MfaSettingsPage has cognitive complexity 20. The check graded this WARN, noting it is FAIL on a strict reading. There is no backend JaCoCo gate (pre-existing).</td></tr>
+            <tr><td class="px-4 py-2 font-medium">thermo-nuclear</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 6 / 6</td><td class="px-4 py-2">Duplicated DTO and session-rotation sequence, hand-rolled mutation state, redirect logic copied again, a stale profile contract, and a positional RateLimitProperties record.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">code-review</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 1 / 10</td><td class="px-4 py-2">Every acceptance criterion is met and tested. The worst finding is the stale PROFILE_KEY cache after enrolment (S1).</td></tr>
+            <tr><td class="px-4 py-2 font-medium">semgrep</td><td class="px-4 py-2 text-slate-600 font-semibold">SKIPPED</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 4</td><td class="px-4 py-2">Semgrep is not installed and the Docker engine is not running. A manual fallback found only Low or informational items. The tool still needs to be run.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">im8</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 3 / 2</td><td class="px-4 py-2">ck-2 (High, key rotation) was FAIL on the first run and is now FIXED with a version-keyed key ring. The Medium and Low items remain open for triage.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">react</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 2 / 5</td><td class="px-4 py-2">Base64 decoding during render can crash the route. The object URL is tied to the blob rather than to the img element.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">springboot</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 9</td><td class="px-4 py-2">All seven Spring skills ran. The check reported PASS, but its 9 Low hardening and consistency items map to WARN.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues (resolved)</h3>
+          <div class="rounded border border-green-200 bg-green-50 p-4 text-sm space-y-1">
+            <p><span class="text-green-700 font-semibold">FIXED</span> · <span class="text-orange-600 font-semibold">High</span> · im8 ck-2 Key Rotation · <span class="font-mono text-xs">backend/src/main/java/sg/securedhello/mfa/TotpSecretCipher.java:47-51, 73-81</span></p>
+            <p>The cipher is built with one <span class="font-mono text-xs">BytesEncryptor</span> and one <span class="font-mono text-xs">keyVersion</span>. <span class="font-mono text-xs">open()</span> decrypts every envelope with the current key. The key version is written into the envelope and the row, but there is no key ring keyed by version and no re-encryption job. After a key rotation every stored row fails GCM decryption and returns 500, which breaks the yearly incremental rotation that ADR-022 requires. Fix: add a version-keyed key ring, or explicitly record rotation as deferred in the pending ledger or handover.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-green-200 bg-white shadow-sm p-6 space-y-3 text-sm">
+        <h2 class="text-xl font-bold text-slate-900">Correction pass: re-check of im8 ck-2 and the changed files</h2>
+        <p>These changes fix ck-2. The re-check was done by the do-work orchestrator on the changed files. It covered the reviewer re-review, which surfaced one new must-fix, and an im8-focused re-check of the key-ring change.</p>
+        <ul class="list-disc pl-6 space-y-1">
+          <li><span class="font-mono text-xs">TotpSecretCipher</span> takes a ring <span class="font-mono text-xs">Map&lt;Integer, BytesEncryptor&gt;</span> and the current version. It seals under the current version and opens each row with its stored <span class="font-mono text-xs">key_version</span>. An unknown version throws <span class="font-mono text-xs">UnknownTotpKeyVersionException</span>, a 500 whose message names the version only. The cipher refuses to build when the current version has no key. The constant-time prefix check and the mismatch audit are unchanged.</li>
+          <li><span class="font-mono text-xs">app.mfa.totp.encryption.retired-keys.&lt;version&gt;</span> is optional. <span class="font-mono text-xs">ApplicationKeys</span> and <span class="font-mono text-xs">SecretsConfig</span> check each retired key for shape and distinct material, and log only its fingerprint. Startup is refused when a retired key uses the current version or repeats a retired version. <span class="font-mono text-xs">TotpConfig</span> builds the ring.</li>
+          <li>Re-review must-fix MF-1 (High, now FIXED): a <span class="font-mono text-xs">@Min/@Max</span> constraint on the map key made Spring print the retired key as the rejected value when a version was out of range. The keys are now bound as text and range-checked in <span class="font-mono text-xs">SecretsConfig</span>, which throws <span class="font-mono text-xs">InvalidKeyMaterialException</span> naming only the property. <span class="font-mono text-xs">SecretsConfigTest</span> checks that neither the failure chain nor the captured output for versions 256, 1000 and v1 contains the key.</li>
+          <li>Tests: ring cases in <span class="font-mono text-xs">TotpSecretCipherTest</span>, <span class="font-mono text-xs">TotpKeyRotationTest</span> (a row sealed under v1 opens after rotating to v2), and retired-key tests in <span class="font-mono text-xs">SecretsConfigTest</span> (48 tests). <span class="font-mono text-xs">TotpSecretCipher</span> is in PIT scope. The full <span class="font-mono text-xs">mvn verify -Pmutation</span> run is green (see the ticket verification).</li>
+          <li>Re-sealing rows and later dropping a retired key is the operator procedure (R-CFG-005). The README documents it.</li>
+        </ul>
+        <p class="text-slate-600">Findings below High in the other checks are unchanged and left for triage. Examples: MfaSettingsPage complexity, the stale PROFILE_KEY cache, runtime validation of the provisioning response, and duplicated redirect logic.</p>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">build</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">38</td><td class="px-4 py-2">Cognitive complexity is 20, over the fallow threshold, and this change introduced it. It is the only reason <span class="font-mono text-xs">fallow audit</span> exits 1. Move the enrol/confirm state machine into a hook and split out the QR/confirm step.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">—</td><td class="px-4 py-2">There is no JaCoCo plugin, so the ≥80% backend coverage gate cannot be measured for the new <span class="font-mono text-xs">sg.securedhello.mfa</span> classes. This is pre-existing; the project uses PIT instead.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">MfaSettingsPage.tsx; MfaSettingsPage.test.tsx:56; useObjectUrlImage.test.tsx:41</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Large functions (142, 129 and 65 LOC) exceed fallow's 60-LOC band. Advisory only.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/lib/mfa/enrolment.ts; MfaSettingsPage.tsx</td><td class="px-4 py-2">37; 57, 70-71, 105-106</td><td class="px-4 py-2">Branch coverage gaps in new frontend code: enrolment.ts is at 50% branch coverage, and the page is at 80.43%.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">MetadataCaseNamingStrategy.java</td><td class="px-4 py-2">14</td><td class="px-4 py-2">Pre-existing build warnings: a Vite chunk over 500 kB and a deprecated <span class="font-mono text-xs">CamelCaseToUnderscoresNamingStrategy</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">—</td><td class="px-4 py-2">New dependencies (<span class="font-mono text-xs">zxing core 3.5.3</span>, commons-codec) were not CVE-checked because dependency-check was skipped. Run dependency-vuln-scan.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolmentController.java</td><td class="px-4 py-2">44-50, 71-79</td><td class="px-4 py-2">M1: <span class="font-mono text-xs">ProvisioningResponse</span> duplicates <span class="font-mono text-xs">Provisioning</span> only to Base64-encode <span class="font-mono text-xs">qrPng</span>, which Jackson already does for <span class="font-mono text-xs">byte[]</span>. Keep one record.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpFactorGrant.java</td><td class="px-4 py-2">39-49</td><td class="px-4 py-2">M2: repeats the "replace the Authentication, then rotate the session" sequence from <span class="font-mono text-xs">PasswordChangeController:55-62</span>. Extract a single <span class="font-mono text-xs">replaceAuthentication(...)</span> helper.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">104-108, 144-173</td><td class="px-4 py-2">M3: five <span class="font-mono text-xs">useState</span>s and two try/catch/finally blocks rebuild mutation state by hand. Use two <span class="font-mono text-xs">useMutation</span>s instead.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">120-142</td><td class="px-4 py-2">M4: the authority redirect logic (AUTHENTICATION_FAILED / PASSWORD_CHANGE_REQUIRED) now exists in four places, and this page routes it through state. Add a shared <span class="font-mono text-xs">authorityRoute(error)</span> helper.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../profile/Profile.java</td><td class="px-4 py-2">28</td><td class="px-4 py-2">M5: <span class="font-mono text-xs">Profile.Factors</span> is still hard-coded, so <span class="font-mono text-xs">enrolled</span> and <span class="font-mono text-xs">held</span> are always false. The SPA does not update <span class="font-mono text-xs">PROFILE_KEY</span> after confirmation.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/ratelimit/RateLimitProperties.java</td><td class="px-4 py-2">188-192</td><td class="px-4 py-2">M6: this positional 10-route record means each new route edits five places and duplicated test fixtures. Bind a <span class="font-mono text-xs">Map&lt;String, Route&gt;</span> instead.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">85-88, 108-111</td><td class="px-4 py-2">L1: the "lock, then refuse if enrolled" preamble is repeated. Extract <span class="font-mono text-xs">lockUnenrolled(userId)</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">TotpEnrolment.java; PendingTotp.java</td><td class="px-4 py-2">90-92; 41-46</td><td class="px-4 py-2">L2: <span class="font-mono text-xs">PendingTotp.replace</span> and the <span class="font-mono text-xs">ifPresentOrElse</span> branch could be a plain save.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">114, 116</td><td class="px-4 py-2">L3: <span class="font-mono text-xs">confirm</span> reads the clock twice. Capture <span class="font-mono text-xs">Instant now</span> once.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolmentController.java</td><td class="px-4 py-2">73, 84</td><td class="px-4 py-2">L4: the principal is cast by hand. Use <span class="font-mono text-xs">@AuthenticationPrincipal</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">86-95</td><td class="px-4 py-2">L5: the TOO_MANY_REQUESTS copy is duplicated across both copy maps.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpFactorGrant.java</td><td class="px-4 py-2">40-43</td><td class="px-4 py-2">L6: the authority list is copied twice to append one element. Use <span class="font-mono text-xs">Stream.concat</span>.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">code-review (Standards + Spec)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">onConfirm</td><td class="px-4 py-2">S1: the profile belief goes stale after enrolment. <span class="font-mono text-xs">PROFILE_KEY</span> is never updated or invalidated, which can send a freshly enrolled admin back to enrolment once the gates land.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/lib/mfa/enrolment.ts</td><td class="px-4 py-2">confirmTotp</td><td class="px-4 py-2">S2: a <span class="font-mono text-xs">refreshCsrfToken</span> failure after a successful 204 is shown as a confirmation failure. A retry then gets an unmapped 409.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">JSDoc</td><td class="px-4 py-2">S3: the comment says the secret is dropped on failure, but it is kept on 412 so the user can retry.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S4: the page ignores <span class="font-mono text-xs">profile.data.factors.enrolled</span>, so an enrolled admin only learns the state from a 409.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">provision / confirm</td><td class="px-4 py-2">S5: the lock and already-enrolled guard is duplicated.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">copy maps</td><td class="px-4 py-2">S6: the TOO_MANY_REQUESTS copy is duplicated, and <span class="font-mono text-xs">followAuthority</span> re-implements the AUTHENTICATION_FAILED redirect.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">TotpEnrolment.java; TotpSecretCipher.java</td><td class="px-4 py-2">seal/open</td><td class="px-4 py-2">S7: secret byte arrays are not zeroed, and <span class="font-mono text-xs">provision</span> seals before the enrolled check.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolmentController.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S8: the principal is cast by hand instead of using <span class="font-mono text-xs">@AuthenticationPrincipal</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/spec.md (Frontend)</td><td class="px-4 py-2">—</td><td class="px-4 py-2">P1: the spec-side view of S1. The enrolled state never reaches the self-read belief.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">P2: "no factor" is enforced as a service-level 409, not in the authorization layer. This matches the spec.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">n/a</td><td class="px-4 py-2">—</td><td class="px-4 py-2">P3: small justified additions beyond the ticket: the issuer config, the HelloPage link, E2E fixtures and the README.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">SKIPPED</span>
+        </summary>
+        <p class="px-5 pb-3 text-sm text-slate-600">Semgrep could not run: it is not on PATH, it is not installed as a Python module, and the Docker Desktop engine is not running. The items below come from a manual review of the same rule categories, which is not a substitute for a real run. Re-run with <span class="font-mono text-xs">semgrep --config p/security-audit --config p/default .</span></p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpWindow.java; frontend/e2e/mfa-enrolment.spec.ts</td><td class="px-4 py-2">76-77; 20</td><td class="px-4 py-2">HMAC-SHA1 may be flagged as weak crypto. This is likely a false positive: RFC 6238 requires HMAC-SHA1 for TOTP. Suppress with a justification if flagged.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/e2e/fixtures.ts; backend/src/test/.../E2eBackend.java</td><td class="px-4 py-2">4</td><td class="px-4 py-2">A hard-coded test-fixture password. It predates this change and is test scope only.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../E2eBackend.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Constant-literal SQL in the test harness. It is not injectable. Informational.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">123</td><td class="px-4 py-2">An internal UUID appears in an <span class="font-mono text-xs">IllegalStateException</span> message. It is not a secret or PII. Acceptable.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">im8</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN (was FAIL; H1 fixed)</span>
+        </summary>
+        <p class="px-5 pb-3 text-sm text-slate-600">The check reported WARN. Under the dispatcher's severity mapping, one High finding makes it FAIL. Risk classification: Low Risk (LR column).</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-green-700 font-semibold">High · FIXED</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/mfa/TotpSecretCipher.java</td><td class="px-4 py-2">47-51, 73-81</td><td class="px-4 py-2">ck-2 Key Rotation: the cipher holds one key and one version, and <span class="font-mono text-xs">open()</span> decrypts every envelope with the current key. After a rotation every stored row fails decryption and returns 500. ADR-022 requires incremental per-row rotation. Add a version-keyed key ring, or record rotation as deferred.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolmentController.java; frontend/src/lib/mfa/enrolment.ts</td><td class="px-4 py-2">53; 14</td><td class="px-4 py-2">as-1 Input Validation: <span class="font-mono text-xs">ConfirmationRequest.code</span> has only <span class="font-mono text-xs">@NotNull</span>, and the <span class="font-mono text-xs">Provisioning</span> response is not validated at runtime before <span class="font-mono text-xs">atob()</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">86-88, 109-115</td><td class="px-4 py-2">lm-4 Audit Logging: failed confirmations (INVALID_FACTOR) and FACTOR_ALREADY_ENROLLED attempts are not audited.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java; SecurityConfig.java</td><td class="px-4 py-2">112</td><td class="px-4 py-2">ac-2 MFA Enforcement: no FACTOR_TOTP enforcement yet (likely a later ticket). Enrolment is trust-on-first-use, and a pending enrolment has no TTL.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">123</td><td class="px-4 py-2">lm-19 Log Sanitisation (note): an internal UUID is logged in an exception message. Not PII. Acceptable.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">ApplicationKeys</td><td class="px-4 py-2">—</td><td class="px-4 py-2">ck-1 Key Establishment (manual): verify that <span class="font-mono text-xs">ApplicationKeys</span> rejects a TOTP key that is not 256-bit.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">react</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">45</td><td class="px-4 py-2">M1: <span class="font-mono text-xs">qrPngBlob</span> (<span class="font-mono text-xs">atob</span>) runs in <span class="font-mono text-xs">useMemo</span> during render. Malformed Base64 throws past the handler's try/catch and replaces the route with the error screen. Decode in the event handler instead.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/lib/mfa/useObjectUrlImage.ts</td><td class="px-4 py-2">10-23</td><td class="px-4 py-2">M2: the object URL is tied to the blob, not to the img element. Remounting the img with the same blob leaves it blank. Use a callback ref with cleanup.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">63</td><td class="px-4 py-2">L1: admin-only UI renders briefly before the profile loads. UX only.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">127</td><td class="px-4 py-2">L2: Generate is not disabled while a confirmation is in flight, so the two handlers can race.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/MfaSettingsPage.tsx</td><td class="px-4 py-2">43, 59-60, 68-78</td><td class="px-4 py-2">L3: navigation goes through state and <span class="font-mono text-xs">&lt;Navigate&gt;</span> instead of <span class="font-mono text-xs">useNavigate</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/HelloPage.tsx</td><td class="px-4 py-2">12, 40</td><td class="px-4 py-2">L4: the admin link disappears silently if the profile query fails.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/e2e/mfa-enrolment.spec.ts</td><td class="px-4 py-2">45</td><td class="px-4 py-2">L5: the <span class="font-mono text-xs">code</span> tag selector is structural, and the test could flake at a TOTP step boundary.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">springboot</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <p class="px-5 pb-3 text-sm text-slate-600">The check reported PASS. Under the dispatcher's severity mapping, Low-only findings make it WARN. Skills run: core, web, data, batch (N/A), security, logging, test.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">92, 116</td><td class="px-4 py-2">L1 [Data]: <span class="font-mono text-xs">save()</span> on entities with assigned IDs goes through <span class="font-mono text-xs">merge()</span>, which adds a SELECT. Consider <span class="font-mono text-xs">Persistable&lt;UUID&gt;</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">confirm</td><td class="px-4 py-2">L2 [Security/Logging]: failed confirmations are neither audited nor counted per account.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpFactorGrant.java</td><td class="px-4 py-2">47</td><td class="px-4 py-2">L3 [Security]: the SecurityContext is changed in place rather than through <span class="font-mono text-xs">createEmptyContext()</span> and <span class="font-mono text-xs">setContext</span>. PasswordChangeController does the same.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolmentController.java</td><td class="px-4 py-2">73, 84</td><td class="px-4 py-2">L4 [Web]: the principal is cast by hand instead of using <span class="font-mono text-xs">@AuthenticationPrincipal</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolmentController.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L5 [Web]: no <span class="font-mono text-xs">consumes</span> or <span class="font-mono text-xs">produces</span> media types. This matches the repo convention.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolmentController.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L6 [Web]: <span class="font-mono text-xs">ConfirmationRequest.code</span> has only <span class="font-mono text-xs">@NotNull</span>. Add <span class="font-mono text-xs">@Size(max = 16)</span>, not <span class="font-mono text-xs">@Pattern</span>, because the spec wants a 412 for a wrong code.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">TotpSecretCipher.java; ProblemExceptionHandler.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L7 [Logging]: a context mismatch produces two ERROR entries (the audit row plus the unhandled-exception log).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../mfa/TotpEnrolment.java</td><td class="px-4 py-2">provision / confirm</td><td class="px-4 py-2">L8 [Security]: plaintext secret buffers are not zeroed.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../mfa/TotpEnrolmentTest.java</td><td class="px-4 py-2">247</td><td class="px-4 py-2">L9 [Test]: a test contains a conditional, there is no test for a null code returning 400 or for a missing CSRF header on the new routes, and a cipher test covers TotpEnrolment.</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

@@ -123,6 +123,7 @@ class StartupRefusalTest {
     }
 
     @Test
+    @Proves("T-CRED-028")
     void outsideDevATestSpeedBcryptCostStopsStartupBeforeThePortOpens() {
         Boot boot = RestartHarness.boot(builder -> { }, "--app.security.password.bcrypt-strength=4");
 
@@ -131,6 +132,7 @@ class StartupRefusalTest {
     }
 
     @Test
+    @Proves("T-CFG-039")
     void outsideDevAPublishedDemoPasswordStopsStartupBeforeThePortOpens() {
         Boot boot = RestartHarness.boot(builder -> { }, "--app.admin.password=lantern-orchard-copper-tide");
 

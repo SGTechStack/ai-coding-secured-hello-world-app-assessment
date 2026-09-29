@@ -11,6 +11,8 @@ import org.springframework.boot.context.properties.bind.validation.BindValidatio
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import sg.securedhello.testsupport.Proves;
+
 /**
  * {@code app.security.password.*} is refused at startup when a value would weaken ADR-001, ADR-002, ADR-003 or ADR-005,
  * or would fail only at runtime: a history of 0 throws on every password set, and more than 72 bytes reaches BCrypt,
@@ -25,6 +27,7 @@ class PasswordPropertiesTest {
     @CsvSource({"history-length, 0", "history-length, -1", "max-bytes, 73", "max-bytes, 0", "max-bytes, 14",
             "min-length, 14", "min-length, 0", "min-strength-score, 2", "min-strength-score, 5",
             "bcrypt-strength, 3", "bcrypt-strength, 32"})
+    @Proves("T-CRED-029")
     void aValueOutsideItsBoundRefusesStartup(String property, String value) {
         runner().withPropertyValues(PREFIX + property + "=" + value).run(context -> {
             assertThat(context).hasFailed();
@@ -36,12 +39,14 @@ class PasswordPropertiesTest {
     @ParameterizedTest
     @CsvSource({"history-length, 1", "max-bytes, 72", "max-bytes, 15", "min-length, 15", "min-length, 64",
             "min-strength-score, 3", "min-strength-score, 4", "bcrypt-strength, 12", "bcrypt-strength, 31"})
+    @Proves("T-CRED-029")
     void aValueOnItsBoundStarts(String property, String value) {
         runner().withPropertyValues(PREFIX + property + "=" + value).run(context -> assertThat(context)
                 .hasNotFailed().hasSingleBean(PasswordProperties.class));
     }
 
     @Test
+    @Proves("T-CRED-029")
     void aMinimumLengthAboveTheByteCeilingRefusesStartup() {
         runner().withPropertyValues(PREFIX + "min-length=40", PREFIX + "max-bytes=39").run(context -> {
             assertThat(context).hasFailed();
@@ -51,6 +56,7 @@ class PasswordPropertiesTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"4", "11", "+4", "0x4", "#4", "1 1", " 4 "})
+    @Proves("T-CRED-028")
     void outsideDevABcryptCostBelowTwelveInAnySpellingBootConvertsRefusesStartup(String cost) {
         runner().withPropertyValues(PREFIX + "bcrypt-strength=" + cost).run(context -> {
             assertThat(context).hasFailed();
@@ -61,12 +67,14 @@ class PasswordPropertiesTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"12", "13"})
+    @Proves("T-CRED-028")
     void outsideDevABcryptCostOfTwelveOrMoreStarts(String cost) {
         runner().withPropertyValues(PREFIX + "bcrypt-strength=" + cost)
                 .run(context -> assertThat(context).hasNotFailed().hasSingleBean(PasswordEncoder.class));
     }
 
     @Test
+    @Proves("T-CRED-028")
     void theFloorIsCheckedAtRefreshEvenUnderLazyInitialization() {
         runner().withPropertyValues(PREFIX + "bcrypt-strength=4")
                 .withInitializer(context -> context.addBeanFactoryPostProcessor(
@@ -75,6 +83,7 @@ class PasswordPropertiesTest {
     }
 
     @Test
+    @Proves("T-CRED-028")
     void underDevTheTestSpeedBcryptCostStarts() {
         runner().withPropertyValues(PREFIX + "bcrypt-strength=4", "spring.profiles.active=dev")
                 .run(context -> assertThat(context.getBean(PasswordEncoder.class).encode("a passphrase to encode"))

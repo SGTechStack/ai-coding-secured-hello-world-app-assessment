@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.LazyInitializationBeanFactoryPostProcessor;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.TestSecrets;
 
 /**
@@ -41,6 +42,7 @@ class PublishedDemoValuesTest {
             "APP_ADMIN_PASSWORD", TestSecrets.ADMIN_PASSWORD_PROPERTY);
 
     @Test
+    @Proves("T-CFG-039")
     void everyDemoValueInTheReadmeIsOnTheDenylist() throws IOException {
         Map<String, String> demo = readmeDemoValues();
         assertThat(demo).as("the README's demo block").containsOnlyKeys(ENVIRONMENT_TO_PROPERTY.keySet());
@@ -54,6 +56,7 @@ class PublishedDemoValuesTest {
     }
 
     @Test
+    @Proves("T-CFG-039")
     void theDenylistHoldsNoRawValue() throws IOException {
         String source = Files.readString(Path.of("src/main/java/sg/securedhello/config/PublishedDemoValues.java"));
         readmeDemoValues().values().forEach(value -> assertThat(source).doesNotContain(value));
@@ -68,6 +71,7 @@ class PublishedDemoValuesTest {
     @ParameterizedTest
     @ValueSource(strings = {"APP_MFA_TOTP_ENCRYPTION_KEY", "APP_SECURITY_HMAC_TOMBSTONE_KEY",
             "APP_SECURITY_HMAC_LOG_KEY", "APP_ADMIN_PASSWORD"})
+    @Proves("T-CFG-039")
     void outsideDevAPublishedDemoValueRefusesStartupNamingThePropertyButNotTheValue(String variable)
             throws IOException {
         String property = ENVIRONMENT_TO_PROPERTY.get(variable);
@@ -82,6 +86,7 @@ class PublishedDemoValuesTest {
     }
 
     @Test
+    @Proves("T-CFG-039")
     void theRefusalStillRunsUnderLazyInitialization() throws IOException {
         String demoLogKey = readmeDemoValues().get("APP_SECURITY_HMAC_LOG_KEY");
 
@@ -92,6 +97,7 @@ class PublishedDemoValuesTest {
     }
 
     @Test
+    @Proves("T-CFG-039")
     void aDemoKeyInAnotherKeysSlotIsStillRefused() throws IOException {
         String demoLogKey = readmeDemoValues().get("APP_SECURITY_HMAC_LOG_KEY");
 
@@ -102,6 +108,7 @@ class PublishedDemoValuesTest {
     }
 
     @Test
+    @Proves("T-CFG-039")
     void everyPublishedValueIsReportedTogether() throws IOException {
         Map<String, String> demo = readmeDemoValues();
         Map<String, String> overrides = new HashMap<>();
@@ -112,6 +119,7 @@ class PublishedDemoValuesTest {
     }
 
     @Test
+    @Proves("T-CFG-039")
     void underDevEveryPublishedDemoValueStarts() throws IOException {
         Map<String, String> overrides = new HashMap<>();
         readmeDemoValues().forEach((variable, value) -> overrides.put(ENVIRONMENT_TO_PROPERTY.get(variable), value));

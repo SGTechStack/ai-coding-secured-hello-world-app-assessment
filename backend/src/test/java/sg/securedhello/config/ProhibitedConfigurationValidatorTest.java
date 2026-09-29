@@ -126,7 +126,7 @@ class ProhibitedConfigurationValidatorTest {
             "jdbc:h2:file:nioMemLZF:x;LOCK_TIMEOUT=1000", "jdbc:h2:file:memLZF:x;LOCK_TIMEOUT=1000",
             "jdbc:h2:.;LOCK_TIMEOUT=1000", "jdbc:h2:./data/x;LOCK_TIMEOUT=1000",
             "jdbc:h2:tcp://db/./data/x;LOCK_TIMEOUT=1000"})
-    @Proves("T-CFG-031")
+    @Proves({"T-CFG-031", "T-CFG-041"})
     void anInMemoryBlankOrNonFileH2DatasourceRefusesStartupInEveryPosture(String url) {
         assertRefused(production().withProperty("spring.datasource.url", url), "spring.datasource.url");
         assertRefused(dev().withProperty("spring.datasource.url", url), "spring.datasource.url");
@@ -175,7 +175,7 @@ class ProhibitedConfigurationValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {"jdbc:h2:file:./data/secured-hello\\;AUTO_SERVER=TRUE;LOCK_TIMEOUT=1000",
             "jdbc:h2:file:./data/secured-hello\\;FILE_LOCK=NO;LOCK_TIMEOUT=1000"})
-    @Proves({"T-CFG-012", "T-CFG-013"})
+    @Proves({"T-CFG-012", "T-CFG-013", "T-CFG-041"})
     void aBackslashBeforeTheFirstSemicolonDoesNotHideASettingBecauseH2EndsTheNameThere(String url) {
         assertRefused(production().withProperty("spring.datasource.url", url), "spring.datasource.url");
         assertRefused(dev().withProperty("spring.datasource.url", url), "spring.datasource.url");
@@ -184,7 +184,7 @@ class ProhibitedConfigurationValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {";MODE=REGULAR\\;SET LOCK_TIMEOUT 0", ";SCHEMA=PUBLIC\\;CALL 1",
             ";CACHE_SIZE=8192\\\\", ";AUTO_SERVER=TR\\UE", ";AUTO\\_SERVER=TRUE", ";FILE_LOCK=N\\O"})
-    @Proves({"T-CFG-012", "T-CFG-013"})
+    @Proves({"T-CFG-012", "T-CFG-013", "T-CFG-041"})
     void aBackslashInTheSettingsRefusesStartupBecauseAnEscapedSemicolonRunsAsSql(String settings) {
         for (MockEnvironment environment : List.of(production(), dev())) {
             assertThat(ProhibitedConfigurationValidator.violations(
@@ -195,6 +195,7 @@ class ProhibitedConfigurationValidatorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {";INIT=SET LOCK_TIMEOUT 0", "; init = RUNSCRIPT FROM 'x.sql'"})
+    @Proves("T-CFG-041")
     void anInitSettingRefusesStartupInEveryPosture(String settings) {
         assertRefused(production().withProperty("spring.datasource.url", FILE_URL + settings), "spring.datasource.url");
         assertRefused(dev().withProperty("spring.datasource.url", FILE_URL + settings), "spring.datasource.url");
@@ -212,17 +213,20 @@ class ProhibitedConfigurationValidatorTest {
     @ValueSource(strings = {"jdbc:h2:file:./data/secured-hello", "jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=50",
             "jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=10000", "jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=",
             "jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=1000;LOCK_TIMEOUT=50"})
+    @Proves("T-LCK-023")
     void outsideDevAnH2UrlMustPinLockTimeoutAtOneThousand(String url) {
         assertRefused(production().withProperty("spring.datasource.url", url), "spring.datasource.url");
     }
 
     @Test
+    @Proves("T-LCK-023")
     void underDevTheHarnessMayShortenTheLockTimeout() {
         assertThat(ProhibitedConfigurationValidator.violations(dev().withProperty("spring.datasource.url",
                 "jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=50"))).isEmpty();
     }
 
     @Test
+    @Proves("T-LCK-023")
     void aLockTimeoutPinnedWithSpacesOrLowerCaseIsAccepted() {
         assertThat(ProhibitedConfigurationValidator.violations(production().withProperty("spring.datasource.url",
                 "jdbc:h2:file:./data/secured-hello; lock_timeout = 1000 "))).isEmpty();
@@ -231,7 +235,7 @@ class ProhibitedConfigurationValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {"spring.flyway.url", "spring.flyway.init-sqls[0]", "spring.sql.init.mode",
             "spring.sql.init.schema-locations"})
-    @Proves({"T-CFG-012", "T-CFG-013"})
+    @Proves({"T-CFG-012", "T-CFG-013", "T-CFG-040"})
     void settingsThatReachTheDatabasePastTheUrlRulesRefuseStartup(String property) {
         String prefix = ProhibitedConfigurationValidator.DATASOURCE_BYPASS_PREFIXES.stream()
                 .filter(property::startsWith).findFirst().orElseThrow();
@@ -248,13 +252,14 @@ class ProhibitedConfigurationValidatorTest {
             "spring.datasource.hikari.connection-test-query, connection-test-query",
             "spring.datasource.hikari.exception-override-class-name, exception-override-class-name",
             "spring.datasource.hikari.data-source-class-name, data-source-class-name"})
-    @Proves({"T-CFG-012", "T-CFG-013"})
+    @Proves({"T-CFG-012", "T-CFG-013", "T-CFG-040"})
     void anyHikariSettingOutsideTheAllowlistRefusesStartup(String property, String setting) {
         assertRefused(production().withProperty(property, "anything"), "spring.datasource.hikari." + setting + " ");
         assertRefused(dev().withProperty(property, "anything"), "spring.datasource.hikari." + setting + " ");
     }
 
     @Test
+    @Proves("T-CFG-040")
     void aHikariSettingFromTheEnvironmentIsJudgedInItsRelaxedSpelling() {
         MockEnvironment environment = production();
         environment.getPropertySources().addFirst(new SystemEnvironmentPropertySource(
@@ -268,6 +273,7 @@ class ProhibitedConfigurationValidatorTest {
     @ParameterizedTest
     @ValueSource(strings = {"maximum-pool-size", "minimum-idle", "connection-timeout", "idle-timeout", "max-lifetime",
             "keepalive-time", "validation-timeout", "leak-detection-threshold", "pool-name"})
+    @Proves("T-CFG-040")
     void theHikariPoolSizingTimeoutAndNameSettingsAreAllowed(String setting) {
         assertThat(ProhibitedConfigurationValidator.violations(
                 production().withProperty("spring.datasource.hikari." + setting, "5"))).isEmpty();

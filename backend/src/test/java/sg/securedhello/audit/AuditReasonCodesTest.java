@@ -26,7 +26,13 @@ class AuditReasonCodesTest {
             // SessionStartReason: row 8
             "LOGIN",
             // CsrfReason: row 13
-            "CSRF_MISSING", "CSRF_INVALID");
+            "CSRF_MISSING", "CSRF_INVALID",
+            // SourceThrottleReason: row 5
+            "RATE_LIMITED_SOURCE", "RATE_LIMITED_SOURCE_MISSES",
+            // IdentifierThrottleReason: row 6
+            "RATE_LIMITED_IDENTIFIER",
+            // TruncationReason: row 46
+            "SOURCE_CAP_REACHED", "USER_CAP_REACHED");
 
     @Test
     @Proves("T-AUD-045")

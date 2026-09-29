@@ -21,10 +21,16 @@ import sg.securedhello.security.source.SourceKey;
  *   <li>{@code http.request.method}: a known method, or {@code OTHER}, since the token is client-supplied.</li>
  *   <li>{@code source.ip_hash}: the keyed hash of the source key; the address itself is never logged (ADR-054).</li>
  *   <li>{@code session.hash}: the keyed hash of the current session's id, only if a session already exists. Nothing
- *       here creates one.</li>
+ *       here creates one. A request marked {@link #SESSION_UNREAD} gets none, and its session is not looked up.</li>
  * </ul>
  */
 final class AuditRequestFields {
+
+    /**
+     * Set on a request refused before its session was looked up, such as by the early rate limiter: reading the
+     * session for {@code session.hash} would cost the very store lookup the refusal exists to avoid (ADR-017).
+     */
+    static final String SESSION_UNREAD = AuditRequestFields.class.getName() + ".sessionUnread";
 
     static final Set<String> KNOWN_METHODS = Set.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS",
             "TRACE");
@@ -49,7 +55,7 @@ final class AuditRequestFields {
         fields.put("http.request.method", KNOWN_METHODS.contains(request.getMethod()) ? request.getMethod()
                 : OTHER_METHOD);
         fields.put("source.ip_hash", hasher.sourceIpHash(sourceKeys.apply(request)));
-        HttpSession session = request.getSession(false);
+        HttpSession session = request.getAttribute(SESSION_UNREAD) == null ? request.getSession(false) : null;
         if (session != null) {
             fields.put("session.hash", hasher.sessionHash(session.getId()));
         }

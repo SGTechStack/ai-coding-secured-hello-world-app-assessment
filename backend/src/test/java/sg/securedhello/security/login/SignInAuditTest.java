@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.Accounts.Account;
 import sg.securedhello.testsupport.AuditCapture;
@@ -42,6 +43,9 @@ class SignInAuditTest extends CtxDefaultTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AuditEmitter auditEmitter;
 
     private Accounts accounts;
 
@@ -126,6 +130,7 @@ class SignInAuditTest extends CtxDefaultTest {
             CsrfSession session = SignedIn.as(mockMvc, alice);
             mockMvc.perform(post("/api/logout").cookie(session.cookie())); // a CSRF refusal, row 13
             mockMvc.perform(post("/api/logout").with(session.inHeader())).andExpect(status().isNoContent());
+            auditEmitter.closeKeyingWindow(); // row 13 is keyed, written as its window closes (ADR-019)
 
             assertThat(audit.rows()).hasSizeGreaterThanOrEqualTo(5).allSatisfy(row -> {
                 assertThat(row).doesNotContainKeys("user.name", "user.hash", "user.email");

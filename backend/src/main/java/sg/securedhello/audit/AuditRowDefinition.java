@@ -21,10 +21,11 @@ import org.slf4j.event.Level;
  * @param reasonFamily the {@code event.reason} family; {@link AuditReason.None} for a row without a reason
  * @param required     the context keys the row must carry
  * @param allowed      the context keys the row may carry
+ * @param keying       whether the row is written per event or as a keyed row, and on which key (ADR-019)
  */
 public record AuditRowDefinition(String action, List<String> type, Outcome outcome, Level level, Severity severity,
         String message, Scope scope, Class<? extends AuditReason> reasonFamily, Set<AuditKey> required,
-        Set<AuditKey> allowed) {
+        Set<AuditKey> allowed, Keying keying) {
 
     public AuditRowDefinition {
         type = List.copyOf(type);
@@ -33,6 +34,16 @@ public record AuditRowDefinition(String action, List<String> type, Outcome outco
         if (!allowed.containsAll(required)) {
             throw new IllegalArgumentException("every required key must also be allowed");
         }
+        if (keying != Keying.NONE && scope != Scope.REQUEST) {
+            throw new IllegalArgumentException("a keyed row is keyed on request fields, so it must be request-scoped");
+        }
+    }
+
+    /** A per-event definition, for callers that predate keying. */
+    public AuditRowDefinition(String action, List<String> type, Outcome outcome, Level level, Severity severity,
+            String message, Scope scope, Class<? extends AuditReason> reasonFamily, Set<AuditKey> required,
+            Set<AuditKey> allowed) {
+        this(action, type, outcome, level, severity, message, scope, reasonFamily, required, allowed, Keying.NONE);
     }
 
     /** Starts a definition with its action and static message; everything else has a default. */
@@ -66,7 +77,34 @@ public record AuditRowDefinition(String action, List<String> type, Outcome outco
         REQUEST, PROCESS
     }
 
-    /** Defaults: {@code ["info"]}, success, INFO, low, request-scoped, no reason, no keys. */
+    /**
+     * How often a row is written (ADR-019). A keyed row is written at most once per key, row, reason and keying
+     * window, when the window closes, with {@code event.count} (the occurrences it stands for) and {@code event.start}
+     * (the first one's time). Past a tier's distinct-key cap, occurrences are only counted, on the window's
+     * truncation row. See {@link AuditKeying}.
+     */
+    public enum Keying {
+
+        /** Tier 3: one row per event. */
+        NONE(null),
+        /** Tier 1: keyed on {@code source.ip_hash}, the source key, whose key space an attacker can grow. */
+        SOURCE("source.ip_hash"),
+        /** Tier 2: keyed on {@code user.id}, whose key space is the user population. */
+        USER("user.id");
+
+        private final String keyField;
+
+        Keying(String keyField) {
+            this.keyField = keyField;
+        }
+
+        /** The field whose value is the row's key. */
+        public String keyField() {
+            return keyField;
+        }
+    }
+
+    /** Defaults: {@code ["info"]}, success, INFO, low, request-scoped, no reason, no keys, one row per event. */
     static final class Builder {
 
         private final String action;
@@ -79,6 +117,7 @@ public record AuditRowDefinition(String action, List<String> type, Outcome outco
         private Class<? extends AuditReason> reasonFamily = AuditReason.None.class;
         private final Set<AuditKey> required = EnumSet.noneOf(AuditKey.class);
         private final Set<AuditKey> allowed = EnumSet.noneOf(AuditKey.class);
+        private Keying keying = Keying.NONE;
 
         private Builder(String action, String message) {
             this.action = action;
@@ -122,9 +161,14 @@ public record AuditRowDefinition(String action, List<String> type, Outcome outco
             return this;
         }
 
+        Builder keyed(Keying value) {
+            this.keying = value;
+            return this;
+        }
+
         AuditRowDefinition build() {
             return new AuditRowDefinition(action, type, outcome, level, severity, message, scope, reasonFamily,
-                    required, allowed);
+                    required, allowed, keying);
         }
     }
 }

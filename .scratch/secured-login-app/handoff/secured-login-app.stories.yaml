@@ -1,0 +1,309 @@
+groups:
+  - id: foundation
+    name: Foundation
+    priority: 1
+  - id: authentication
+    name: Authentication and Session
+    priority: 2
+  - id: account_security
+    name: Account Security
+    priority: 3
+  - id: password_management
+    name: Password Management
+    priority: 4
+  - id: user_administration
+    name: User Administration
+    priority: 5
+  - id: operability
+    name: Operability and Assurance
+    priority: 6
+
+releases:
+  - number: 1
+    description: "Secured login app, full Appfw Standalone-Login conformance"
+
+stories:
+  - id: "1.1"
+    title: "Application skeleton with structured logging and tracing"
+    group: foundation
+    release: 1
+    acceptance_criteria:
+      - "Backend boots on Java 21 / Spring Boot 4.0.x / Spring Security 7.0.x via Maven wrapper; frontend boots on Vite + React 19 + TypeScript; both live in one repo as sibling backend/ and frontend/ directories."
+      - "Every log line is ECS JSON emitted via Spring Boot native logging.structured.format.*, and carries trace.id and span.id supplied by Micrometer Tracing with the OpenTelemetry starter; no exporter, collector or trace platform is configured."
+      - "Three appenders exist: CONSOLE, a rolling APPLICATION file, and a rolling AUDIT file bound by logger name (not marker); no appender emits plain text alongside JSON."
+      - "TZ is pinned to Asia/Singapore for log rendering while all stored timestamps are UTC, and an injectable Clock bean is used everywhere time is read."
+      - "Packages are feature-first under com.assessment.auth with audit/ and common/ subpackages; api.base-path is externalized and resolves to /api/v1."
+      - "All secrets resolve from environment variables with no committed defaults; a committed .env.example documents the required set."
+
+  - id: "1.2"
+    title: "Database schema managed by Liquibase on H2 and PostgreSQL"
+    group: foundation
+    release: 1
+    acceptance_criteria:
+      - "Liquibase owns every table through a master changelog including one versioned file per logical change under db/changelog/; spring.jpa.hibernate.ddl-auto is validate, so entity drift fails at startup."
+      - "The users and roles tables exist with UUID primary keys and TIMESTAMP WITH TIME ZONE columns stored in UTC; users.role is a validated String, not a Java enum, and there is no account_non_locked boolean."
+      - "SPRING_SESSION tables are created by Liquibase via sqlFile against Spring Session's packaged per-vendor script under dbms guards; spring.session.jdbc.initialize-schema is never set to always."
+      - "The SPRING_SESSION PRINCIPAL_NAME index exists and is asserted by a test, because ddl-auto: validate does not detect its absence."
+      - "The changelog applies cleanly against both file-based H2 in MODE=PostgreSQL and a real PostgreSQL instance started by Testcontainers."
+      - "The dev H2 JDBC URL is pinned absolute from the project root so that running from backend/ and from the repo root use the same database."
+
+  - id: "1.3"
+    title: "RFC 9457 error contract with a shared writer"
+    group: foundation
+    release: 1
+    acceptance_criteria:
+      - "Error responses are RFC 9457 ProblemDetail bodies served as application/problem+json, carrying a stable machine-readable code as an extension property, with type left as about:blank."
+      - "A single ProblemDetailWriter bean in common/ serializes the body, and is used by the global @RestControllerAdvice and by every off-MVC site including Spring Security's accessDeniedHandler and all custom filters."
+      - "No filter or handler anywhere under com.assessment.auth calls response.sendError, and an ArchUnit rule enforces this."
+      - "A 401 response has an empty body, produced by HttpStatusEntryPoint, and never carries an error envelope."
+      - "A global exception handler logs unhandled exceptions once at the boundary, while business exceptions are logged where they are handled; client input validation failures log at WARN and business rule violations at ERROR."
+      - "server.error.whitelabel.enabled is false, and a genuine controller 400 reaches the client as a 400 rather than being converted by an error dispatch."
+
+  - id: "1.4"
+    title: "HTTP security: CSRF bootstrap, CORS, headers and the authorization matrix"
+    group: foundation
+    release: 1
+    acceptance_criteria:
+      - "CSRF uses the session-bound Synchronizer Token pattern with HttpSessionCsrfTokenRepository and XOR encoding; no XSRF-TOKEN cookie is ever set, and a test asserts its absence."
+      - "GET /api/v1/csrf returns the token as JSON with explicit no-store cache headers, and is the mandatory first call before any state-changing request including login, registration and password reset; no endpoint is CSRF-exempt."
+      - "CORS is configured on the security filter chain with an explicit origin allowlist, allowCredentials true, and X-CSRF-TOKEN among the allowed headers; wildcard origins are rejected and a non-allowlisted origin is refused."
+      - "Responses carry Content-Security-Policy default-src 'self'; object-src 'none';, Permissions-Policy, X-Frame-Options DENY, X-Content-Type-Options nosniff, Strict-Transport-Security with max-age 31536000 and includeSubDomains but without preload, and Referrer-Policy no-referrer."
+      - "Authorization is enforced solely by a flat ordered 21-row matrix in app.security.authorization-matrix with first-match-wins and a terminal denyAll; @EnableMethodSecurity is disabled and no @PreAuthorize annotation exists."
+      - "No matrix path uses a bare single-segment wildcard; /actuator/** and Swagger are closed by the terminal denyAll with no row, and management.endpoints.web.exposure.include lists only health."
+      - "Session cookies are HttpOnly, Secure in every profile including local dev over HTTP, and SameSite=Lax; a test proves the cookie round-trips over http://localhost before any other integration test runs."
+
+  - id: "1.5"
+    title: "Self-registration"
+    group: authentication
+    release: 1
+    acceptance_criteria:
+      - "POST /api/v1/auth/register creates an enabled account with role USER after the caller has fetched a CSRF token, and the password is stored as a BCrypt hash at cost 12."
+      - "A username or email that is already held by a live user is rejected with a validation error naming the conflict."
+      - "A username or email that appears in the deleted-users tombstone table is also rejected, so neither can ever be reused."
+      - "The registration path writes the account's first password-history row."
+      - "Registration enforces the same password policy as every other write path through the shared PasswordPolicy component."
+
+  - id: "1.6"
+    title: "Login, logout and session policy"
+    group: authentication
+    release: 1
+    acceptance_criteria:
+      - "POST /api/v1/auth/login accepts a JSON body through a custom filter registered at UsernamePasswordAuthenticationFilter's position, and returns 200 with an empty body on success."
+      - "The session id rotates on successful authentication, and the failed-login counter resets to zero."
+      - "Invalid credentials, an unknown username, a locked account and a disabled account all return an identical generic 401 with identical body and comparable response timing."
+      - "Sessions expire after 15 minutes idle and 8 hours absolute; absolute expiry is enforced by a filter that writes its own response rather than calling sendError."
+      - "A user may hold at most one concurrent session, enforced through SpringSessionBackedSessionRegistry so the limit survives an application restart; a second login expires the earlier session."
+      - "POST /api/v1/auth/logout invalidates the server-side session, clears the session cookie, and returns 200 with a Clear-Site-Data header; a session cookie replayed after logout is rejected as unauthenticated."
+      - "Logout retains CSRF protection, so logout on an already-expired session returns 401 and is absorbed by the SPA rather than shown as an error."
+
+  - id: "1.7"
+    title: "Protected greeting endpoint"
+    group: authentication
+    release: 1
+    acceptance_criteria:
+      - "GET /api/v1/hello returns a greeting to an authenticated user holding role USER."
+      - "An unauthenticated request to GET /api/v1/hello returns 401 with an empty body, not 403, because an explicit HttpStatusEntryPoint is configured."
+      - "A user holding USER_MANAGER also reaches GET /api/v1/hello through the configured role hierarchy ROLE_USER_MANAGER > ROLE_USER, without an explicit grant."
+
+  - id: "1.8"
+    title: "Password policy and reuse history"
+    group: password_management
+    release: 1
+    acceptance_criteria:
+      - "Passwords must be at least 12 and at most 72 characters of printable ASCII; a 72-character password is accepted and a 73-character one is rejected as a validation error rather than causing a 500."
+      - "No composition rules are applied: a 12-character all-lowercase passphrase containing spaces is accepted."
+      - "Passwords on a bundled denylist, and passwords containing the username or the email local part, are rejected."
+      - "Password reuse is blocked against four values: the current password plus the three previous ones, so a password becomes available again only after four subsequent changes."
+      - "Policy and history are enforced by explicit PasswordPolicy and PasswordHistoryService components invoked from all four write paths — registration, admin create, reset confirm and self-service change — not by Bean Validation."
+      - "Stored password hashes carry a BCrypt cost of 12."
+
+  - id: "1.9"
+    title: "Account lockout after consecutive failed logins"
+    group: account_security
+    release: 1
+    acceptance_criteria:
+      - "Five consecutive failed login attempts lock the account for 20 minutes by setting locked_until; the counter has no time window and decays only on a successful login."
+      - "Lockout state is persisted in the users table and survives an application restart."
+      - "A locked account is rejected with the same generic 401 as any other authentication failure, revealing nothing about the lock."
+      - "The lock lifts automatically once locked_until has passed, verified by advancing an injected Clock rather than by sleeping."
+      - "Lock state is derived solely from locked_until; no separate boolean flag exists that could disagree with it."
+
+  - id: "1.10"
+    title: "Rate limiting on authentication and reset endpoints"
+    group: account_security
+    release: 1
+    acceptance_criteria:
+      - "Login is rate limited per account at 10 attempts per minute and per source IP at 50 attempts per minute, using Bucket4j over a Caffeine cache with expireAfterAccess eviction and no scheduled sweep."
+      - "Both password reset endpoints are rate limited, keyed on source IP because an anonymous request has no account to key on."
+      - "Every rate-limited request is rejected with 429 and a Retry-After header, written by the shared ProblemDetailWriter rather than by sendError."
+      - "The rate-limit filter runs before authentication and outside the authorization matrix, so its rejection is never an authorization decision."
+      - "The IP counter keys on the verbatim string from getRemoteAddr(); any X-Forwarded-For header is ignored entirely."
+      - "Account lockout and IP throttling operate independently, so repeated failures from one source against one account cannot be used to lock out a legitimate user across the board."
+
+  - id: "1.11"
+    title: "Forced password change and self-service change"
+    group: password_management
+    release: 1
+    acceptance_criteria:
+      - "A user flagged requirePasswordChange can reach only GET /api/v1/csrf, GET /api/v1/currentUser, PATCH /api/v1/currentUser/changePassword and POST /api/v1/auth/logout; every other endpoint returns 403 with code PASSWORD_CHANGE_REQUIRED, including for a USER_MANAGER."
+      - "The forced-change filter runs ahead of the authorization matrix, writes its own response body carrying the code, and never calls sendError."
+      - "PATCH /api/v1/currentUser/changePassword requires both currentPassword and newPassword; a wrong current password returns 400 with code CURRENT_PASSWORD_INVALID, never 401 or 403."
+      - "A successful change enforces the full password policy and history rule, clears the requirePasswordChange flag, invalidates every session for that user including the caller's own, and invalidates any pending unused reset token."
+      - "A successful change triggers the stubbed password-changed notification."
+
+  - id: "1.12"
+    title: "Self-read current user endpoint"
+    group: authentication
+    release: 1
+    acceptance_criteria:
+      - "GET /api/v1/currentUser returns the caller's own record, looked up solely from the authenticated principal and never from a client-supplied identifier."
+      - "The payload contains username, email, role, requirePasswordChange, createdAt, lastLoginAt and lastPasswordChangeAt."
+      - "The payload never contains a password hash, account lock state, or the failed-login attempt count."
+      - "The response carries no-store cache headers, and any attempt to mutate the endpoint is rejected."
+      - "The self-read payload is a distinct type from the administrator user-detail payload, so widening one cannot widen the other."
+
+  - id: "1.13"
+    title: "Self-service password reset by email"
+    group: password_management
+    release: 1
+    acceptance_criteria:
+      - "POST /api/v1/auth/password-reset/request returns an identical generic success response whether or not the email is registered, with response timing bounded to a fixed floor so the two cannot be distinguished by latency."
+      - "A reset token is 32 alphanumeric characters from SecureRandom, stored only as an unsalted SHA-256 hash with a unique index, and expires 30 minutes after issue."
+      - "Issuing a new token deletes any prior unused token for that account, so only the most recently issued token is ever valid."
+      - "POST /api/v1/auth/password-reset/confirm validates the token, enforces the password policy and history rule, marks the token used, invalidates every session for that account, clears requirePasswordChange, and triggers the password-changed notification."
+      - "A token that is expired or already used is rejected with a single merged 400 error that does not distinguish the two cases."
+      - "The stubbed EmailService logs a structured event containing no token and no reset link; the reset URL is written to standard output in the dev profile only and never passes through the logging framework."
+      - "The audit event for a reset request is byte-identical whether or not the email is registered, carrying no field that could distinguish the two."
+
+  - id: "1.14"
+    title: "Administrator user listing and detail"
+    group: user_administration
+    release: 1
+    acceptance_criteria:
+      - "GET /api/v1/users returns username, email, role, enabled status and creation date for every live user, and never a password hash."
+      - "GET /api/v1/users/{userId} returns those fields plus locked_until, failed_login_attempts, requirePasswordChange and lastLoginAt."
+      - "Both endpoints require role USER_MANAGER; a plain USER receives 403, including when requesting their own user id."
+      - "Tombstoned users do not appear in either response."
+
+  - id: "1.15"
+    title: "Administrator creates a user account"
+    group: user_administration
+    release: 1
+    acceptance_criteria:
+      - "POST /api/v1/users creates an immediately active account with an administrator-supplied password and a chosen role, requiring role USER_MANAGER."
+      - "The created account is flagged requirePasswordChange, so the new user's first action after logging in is choosing their own password."
+      - "The supplied password is validated against the full password policy, and the account's first password-history row is written."
+      - "Username and email uniqueness is checked against both live users and tombstones."
+
+  - id: "1.16"
+    title: "Administrator enables or disables an account"
+    group: user_administration
+    release: 1
+    acceptance_criteria:
+      - "PATCH /api/v1/users/{userId}/status updates the enabled flag and records disabled_at, requiring role USER_MANAGER."
+      - "Disabling an account immediately invalidates all of that user's active sessions, and a subsequent request on a pre-existing session is rejected as unauthenticated."
+      - "A disabled user attempting to log in receives the same generic 401 as any other authentication failure."
+      - "Re-enabling a disabled account sets requirePasswordChange, so the user must choose a new password before regaining access."
+      - "An administrator targeting their own account is rejected with 403 and code SELF_ACTION_NOT_ALLOWED."
+
+  - id: "1.17"
+    title: "Administrator changes a user's role"
+    group: user_administration
+    release: 1
+    acceptance_criteria:
+      - "PATCH /api/v1/users/{userId}/role sets the target's single role to either USER or USER_MANAGER, requiring role USER_MANAGER."
+      - "GET /api/v1/roles returns the available role names from the read-only roles table, seeded from configuration at startup."
+      - "Roles cannot be created, modified or deleted through any endpoint."
+      - "A role change immediately invalidates the target user's active sessions so a demoted user cannot retain elevated authority."
+      - "An administrator targeting their own account is rejected with 403 and code SELF_ACTION_NOT_ALLOWED."
+      - "A change that would leave no enabled USER_MANAGER in the system is rejected with 409 and code LAST_USER_MANAGER."
+
+  - id: "1.18"
+    title: "Administrator unlocks a locked account"
+    group: user_administration
+    release: 1
+    acceptance_criteria:
+      - "PATCH /api/v1/users/{userId}/unlock clears locked_until and resets the failed-login counter, requiring role USER_MANAGER."
+      - "No justification or reason field is required."
+      - "A user attempting to unlock their own account is rejected with 403 and code SELF_ACTION_NOT_ALLOWED."
+      - "The unlock is recorded as an audit event attributable to the acting administrator and naming the target user."
+
+  - id: "1.19"
+    title: "Administrator deletes an account, leaving a tombstone"
+    group: user_administration
+    release: 1
+    acceptance_criteria:
+      - "DELETE /api/v1/users/{userId} writes a deleted_users tombstone row and then removes the users row, both in one transaction, requiring role USER_MANAGER."
+      - "The tombstone records the original id, username, email, role, enabled state, deletion timestamp and the id of the deleting administrator, and never a password hash."
+      - "The deleted user's password-history rows are removed with the account by cascade."
+      - "The deleted user's active sessions are invalidated."
+      - "Both the deleted username and the deleted email are permanently unavailable for re-registration."
+      - "An administrator targeting their own account is rejected with 403 and code SELF_ACTION_NOT_ALLOWED."
+      - "Tombstones are retained indefinitely and no process purges them."
+
+  - id: "1.20"
+    title: "Administrator initiates a password reset"
+    group: user_administration
+    release: 1
+    acceptance_criteria:
+      - "PATCH /api/v1/users/{userId}/resetPassword issues a reset token for the target account and returns the plaintext token exactly once in the response body, requiring role USER_MANAGER."
+      - "The system never generates a password on the user's behalf; the user chooses their own through the shared reset-confirm endpoint."
+      - "The issued token follows the same generation, hashing, expiry and single-use rules as a self-service token, and supersedes any prior unused token."
+      - "A reset does not clear an existing account lock; the dedicated unlock endpoint remains the only way to lift it."
+      - "The plaintext token appears in no log line, in plaintext or hashed form."
+      - "An administrator targeting their own account is rejected with 403 and code SELF_ACTION_NOT_ALLOWED."
+
+  - id: "1.21"
+    title: "Initial administrator bootstrap on first start"
+    group: operability
+    release: 1
+    acceptance_criteria:
+      - "On startup, if no user holds the USER_MANAGER role in any state, an ApplicationRunner seeds one from app.admin.username and APP_ADMIN_PASSWORD, after Liquibase and after the roles seed."
+      - "If a USER_MANAGER already exists, a restart creates no duplicate account, verified against a persistent database rather than an in-memory one."
+      - "The seeded account's password is hashed identically to any other account, and the account's first password-history row is written."
+      - "The seeded account is flagged requirePasswordChange, so the first login leads straight to a forced password change."
+      - "If APP_ADMIN_PASSWORD is absent, application startup fails rather than seeding a default or guessable credential."
+      - "If APP_ADMIN_PASSWORD violates the password policy, application startup fails naming the violated rule."
+      - "If the configured administrator username exists in the tombstone table, startup fails with an explicit message rather than silently skipping the seed."
+      - "The seed emits one audit event recording a system actor, and a restart that seeds nothing emits none."
+
+  - id: "1.22"
+    title: "Audit and logging contract"
+    group: operability
+    release: 1
+    acceptance_criteria:
+      - "All twenty-three audit events defined in the logging contract are emitted on their triggers with the correct event.action, event.reason and log level, including login success at INFO, login failure at WARN and account lockout at ERROR."
+      - "Audit events are emitted only from com.assessment.auth.audit through a typed audit module bound to a named audit logger, enforced by an ArchUnit rule, and they reach the AUDIT appender and not the application appender."
+      - "user.id always identifies the acting principal, while the affected account is carried in target_user_id; event.reason only ever takes a value from the closed contract vocabulary."
+      - "No log line anywhere contains a plaintext password, a password hash, a reset token in plaintext or hashed form, a session identifier, a username or an email address."
+      - "A failed login against an unknown username carries no subject field at all, only trace.id and source.ip."
+      - "source.ip is logged in cleartext from getRemoteAddr() on exactly seven security event classes, never on request-lifecycle lines and never in MDC."
+      - "The three throwable-less security events emit a nested error object containing error.code, error.category and error.follow_up_action, created by the custom encoder rather than stripped."
+      - "A successful login's audit event records the authentication method as password despite the custom authentication filter subclass."
+      - "MDC is cleared in a finally block on every exit path including authentication failure and access denial, and no request observes MDC state left by a previous request."
+      - "A correlation id is generated server-side on every request and any inbound correlation header is ignored."
+
+  - id: "1.23"
+    title: "React single-page application"
+    group: authentication
+    release: 1
+    acceptance_criteria:
+      - "The SPA bootstraps by fetching a CSRF token, logging in, then reading GET /api/v1/currentUser to learn its role and forced-change state."
+      - "Screens exist for registration, login, the protected greeting, changing a password, requesting a password reset and confirming one."
+      - "Administrator screens for the user list, user detail, user creation, status change, role change, unlock and delete are reachable only by a USER_MANAGER."
+      - "When requirePasswordChange is true the SPA routes to the change-password screen and blocks every other route, and it treats a successful change as a logout because all sessions are invalidated."
+      - "A global axios interceptor inspects the error code before acting: a bare 401 clears local state and redirects to login, while a 403 carrying PASSWORD_CHANGE_REQUIRED or SELF_ACTION_NOT_ALLOWED is surfaced in-app without logging the user out."
+      - "Vitest tests cover the auth context and the interceptor's code-before-logout behaviour."
+
+  - id: "1.24"
+    title: "Assurance gates and architecture tests"
+    group: operability
+    release: 1
+    acceptance_criteria:
+      - "Five ArchUnit rules pass: no System.out or printStackTrace, only the audit package logs to the audit logger, no @Async or @Scheduled under com.assessment.auth, no manually constructed HTTP clients, and no call to response.sendError."
+      - "The security-critical integration suite runs over full HTTP against file-based H2 by default and is re-run in its entirety against PostgreSQL started by Testcontainers during mvn verify."
+      - "Time-dependent behaviour — lockout cooldown, idle and absolute session expiry, and reset-token expiry — is tested by advancing an injected Clock, never by sleeping."
+      - "Audit assertions are made through a Logback ListAppender attached to both the audit logger and root, proving routing as well as emission."
+      - "dependency-check-maven runs in its profile and fails the build on any dependency vulnerability scoring CVSS 7 or above."
+      - "A custom log encoder test class is a named required gate, because the encoder extends an internal Spring Boot class and is the only mechanism satisfying the boundary-masking constraint."
+      - "The documented limitations are recorded rather than tested: rate-limit counters are in-memory and neither restart-durable nor multi-instance-safe, and the application is single-instance only."

@@ -118,6 +118,18 @@ describe('CSRF_TOKEN_INVALID backstop', () => {
     expect(tokens).toHaveLength(2)
   })
 
+  it('is not applied to a caller that opts out', async () => {
+    const state = tokenServer()
+    const tokens = changeRoute(() => problemResponse('CSRF_TOKEN_INVALID'), noContent)
+
+    await expect(
+      apiFetch('/api/profile/password', { method: 'PATCH', body: '{}' }, { csrfRetry: false }),
+    ).rejects.toMatchObject({ code: 'CSRF_TOKEN_INVALID' })
+
+    expect(state.bootstraps).toBe(1)
+    expect(tokens).toHaveLength(1)
+  })
+
   it('does not retry any other refusal', async () => {
     const state = tokenServer()
     const tokens = changeRoute(() => problemResponse('ACCESS_DENIED'))

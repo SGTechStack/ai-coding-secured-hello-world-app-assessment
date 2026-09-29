@@ -22,6 +22,9 @@ class SpringSessionSchemaTest {
 
     private static final String V7 = "db/migration/V7__spring_session.sql";
 
+    /** The H2 schema inside the spring-session-jdbc jar the application actually runs with. */
+    private static final String CLASSPATH_SCHEMA = "org/springframework/session/jdbc/schema-h2.sql";
+
     /** {@code git hash-object} of spring-session-jdbc 4.1.1's {@code org/springframework/session/jdbc/schema-h2.sql}. */
     private static final String UPSTREAM_BLOB_HASH = "be6e515720a5434a898bcb6d186f42d7b4766006";
 
@@ -32,6 +35,19 @@ class SpringSessionSchemaTest {
 
         assertThat(new String(body, StandardCharsets.UTF_8)).startsWith("CREATE TABLE SPRING_SESSION");
         assertThat(gitBlobHash(body)).isEqualTo(UPSTREAM_BLOB_HASH);
+    }
+
+    /**
+     * The pinned hash alone would stay green after a Spring Session upgrade changed its DDL, and the stale V7 would
+     * first fail on a session write at runtime. So V7 is also compared with the schema in the jar on the classpath.
+     */
+    @Test
+    @Proves("T-BLD-001")
+    void v7MatchesTheSchemaInTheSpringSessionJarOnTheClasspath() throws IOException {
+        byte[] body = stripHeader(readV7());
+
+        assertThat(new String(body, StandardCharsets.UTF_8))
+                .isEqualTo(new String(readResource(CLASSPATH_SCHEMA), StandardCharsets.UTF_8));
     }
 
     @Test
@@ -46,8 +62,12 @@ class SpringSessionSchemaTest {
     }
 
     private static byte[] readV7() throws IOException {
-        try (InputStream in = SpringSessionSchemaTest.class.getClassLoader().getResourceAsStream(V7)) {
-            assertThat(in).as(V7).isNotNull();
+        return readResource(V7);
+    }
+
+    private static byte[] readResource(String name) throws IOException {
+        try (InputStream in = SpringSessionSchemaTest.class.getClassLoader().getResourceAsStream(name)) {
+            assertThat(in).as(name).isNotNull();
             return in.readAllBytes();
         }
     }

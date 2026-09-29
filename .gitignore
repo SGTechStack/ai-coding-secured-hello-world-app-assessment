@@ -1,2 +1,5 @@
 # Generated E2E evidence (Allure results, videos, traces); local only
 artifacts/e2e/
+
+# Playwright MCP session output (browser snapshots, console logs)
+.playwright-mcp/

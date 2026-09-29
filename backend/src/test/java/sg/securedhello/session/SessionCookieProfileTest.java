@@ -30,7 +30,7 @@ class SessionCookieProfileTest {
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(SecuredHelloApplication.class)
                 .profiles(profiles)
                 .initializers(new TemporaryH2FileInitializer())
-                .run("--server.port=0", "--app.security.password.bcrypt-strength=4")) {
+                .run("--server.port=0")) {
             int port = ((WebServerApplicationContext) context).getWebServer().getPort();
             try (HttpClient client = HttpClient.newHttpClient()) {
                 List<String> setCookies = client.send(HttpRequest.newBuilder(

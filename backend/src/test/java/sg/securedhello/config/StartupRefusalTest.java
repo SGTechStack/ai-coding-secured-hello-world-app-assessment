@@ -103,6 +103,23 @@ class StartupRefusalTest {
     }
 
     @Test
+    void outsideDevATestSpeedBcryptCostStopsStartupBeforeThePortOpens() {
+        Boot boot = RestartHarness.boot(builder -> { }, "--app.security.password.bcrypt-strength=4");
+
+        assertThat(boot.portOpened()).isFalse();
+        assertThat(boot.failureMessages()).contains("app.security.password.bcrypt-strength", "below 12");
+    }
+
+    @Test
+    void outsideDevAPublishedDemoPasswordStopsStartupBeforeThePortOpens() {
+        Boot boot = RestartHarness.boot(builder -> { }, "--app.admin.password=lantern-orchard-copper-tide");
+
+        assertThat(boot.portOpened()).isFalse();
+        assertThat(boot.failureMessages()).contains(TestSecrets.ADMIN_PASSWORD_PROPERTY, "published demo value")
+                .doesNotContain("lantern-orchard-copper-tide");
+    }
+
+    @Test
     @Proves("T-CFG-010")
     void theResetLinkLoggerEnabledThroughSpringApplicationJsonOutsideDevRefusesToRun() {
         String json = "{\"logging\":{\"level\":{\"" + ResetLinkLoggerGuard.LOGGER_NAME + "\":\"DEBUG\"}}}";

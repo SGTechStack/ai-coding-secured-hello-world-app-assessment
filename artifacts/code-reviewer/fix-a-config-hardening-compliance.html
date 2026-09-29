@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — fix-a-config-hardening</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">Overall: FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">build WARN · C0 H0 M0 L2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN · C0 H0 M1 L7</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">code-review FAIL · C0 H1 M3 L5</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">semgrep WARN (skipped) · C0 H0 M0 L0 · 2 info</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN · C0 H0 M0 L2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS (N/A) · 0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN · C0 H0 M0 L3</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">fix-a</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report, round 4</h1>
+        <p class="text-sm text-slate-500 mt-1">fix-a-config-hardening: review-fix batch A (configuration hardening), uncommitted working tree over base <span class="font-mono">3c24e41</span>. Backend only. Round 4 changed only <span class="font-mono">DatasourceUrlRules</span> and the bypass-prefix list, so only the build and code-review checks were re-run. The other five results are from round 2.</p>
+      </div>
+
+      <div class="rounded-lg border border-emerald-200 bg-emerald-50 shadow-sm p-6 space-y-2">
+        <h2 class="text-xl font-bold text-slate-900">Round 5 addendum (final): PASS, must-fix 0</h2>
+        <p class="text-sm text-slate-700">Round 5 was reviewed inline by the implementer, as the coordinator instructed after an interruption. It covers the only open must-fix below (code-review SP-11) and the two new Mediums.</p>
+        <ul class="list-disc pl-6 text-sm text-slate-700 space-y-1">
+          <li><strong>SP-11 (High): closed.</strong> Every <span class="font-mono">spring.datasource.hikari.*</span> key refuses startup in both postures, apart from pool sizing, timeouts and the pool name. That includes <span class="font-mono">connection-test-query</span> and every other SQL, URL or driver key. Relaxed environment spellings are covered, and the tests fail when the check is disabled.</li>
+          <li><strong>SP-12 (Medium): closed.</strong> The in-memory check now recognises every H2 in-memory file system, and every H2 URL must be <span class="font-mono">jdbc:h2:file:</span> in every posture. There are seven new cases, each failing without the fix.</li>
+          <li><strong>SP-13 (Medium): recorded decision.</strong> Settings that name script files (Flyway locations and callbacks, JPA load scripts) point at files shipped with the deployment. They are outside the validator's scope, and the Javadoc now says so.</li>
+          <li><strong>Final gates.</strong> <span class="font-mono">mvn clean verify</span> ran 1031 tests and 6 ITs, all green. <span class="font-mono">-Pmutation</span> killed 190/190 mutants (100%, threshold 85). Playwright passed 18/18. The five round-2 checks (thermo-nuclear, semgrep, im8, react, springboot) had no must-fix and stand.</li>
+          <li><strong>Carried, for the orchestrator:</strong> ST-1. The new controls have no test-plan T-IDs, because the brief forbids inventing them.</li>
+        </ul>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall status across the seven active checks: <strong>FAIL</strong>, with 1 must-fix finding (code-review SP-11, High). Round-3 findings SP-9 (High) and SP-10 (Medium) are closed, and code-review found no remaining realistic bypass through the H2 URL itself. The build is green with 1014 tests and 6 ITs. The remaining gap is on the Spring side: <span class="font-mono">spring.datasource.hikari.connection-test-query</span> runs arbitrary SQL on the app's connections and is not refused.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Check</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Status</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">C / H / M / L</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Summary</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 font-medium">build (round 4)</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 2</td><td class="px-4 py-2">Clean verify passed: 1014 tests (up from 1007) and 6 ITs, 0 failures. The round-4 SP-9 and SP-10 tests ran and passed. The check itself reports PASS. It is WARN here only because of the two pre-existing Lows: there is no JaCoCo gate, and Dependency-Check was skipped by instruction.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">thermo-nuclear (round 2)</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 1 / 7</td><td class="px-4 py-2">M3, the side-effect-only component, is kept by a recorded decision. The Lows are small duplication and stale-Javadoc items. Round 3 fixed L6 (the RestartHarness Javadoc), and round 4 removed the escape-aware splitter that this check praised. Neither change has been re-verified by this check.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">code-review (round 4)</td><td class="px-4 py-2 text-red-700 font-semibold">FAIL</td><td class="px-4 py-2 font-mono text-xs">0 / 1 / 3 / 5</td><td class="px-4 py-2">SP-9 and SP-10 are closed. New findings: SP-11 (High), <span class="font-mono">hikari.connection-test-query</span> runs SQL on every connection; SP-12 (Medium), in-memory H2 spellings such as <span class="font-mono">jdbc:h2:.</span> and <span class="font-mono">memFS:</span> evade the ADR-051 check; SP-13 (Medium), script-file channels (Flyway locations, session schema, JPA load scripts) must be refused or recorded as out of scope. ST-1 is carried by decision.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">semgrep (round 2)</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 0 (+2 info)</td><td class="px-4 py-2">Semgrep is not installed, so the tool did not run. A manual fallback found no P0/P1 findings. This is WARN because the scanner itself did not run. The round-3 and round-4 edits were not scanned.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">im8 (round 2)</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 2</td><td class="px-4 py-2">All controls PASS. Round 3 refused <span class="font-mono">INIT=</span> and <span class="font-mono">connection-init-sql</span> for advisory 1, and round 4 closed the escaped-<span class="font-mono">;</span> route, but code-review SP-11 shows the lock timeout can still be reset through <span class="font-mono">connection-test-query</span>. Advisory 2 is accepted.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">react (round 2)</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 0</td><td class="px-4 py-2">N/A: nothing under <span class="font-mono">frontend/</span> changed. Rounds 3 and 4 were backend only.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">springboot (round 2)</td><td class="px-4 py-2 text-amber-600 font-semibold">WARN</td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 3</td><td class="px-4 py-2">Round 3 addressed R2-1 (<span class="font-mono">@Lazy(false)</span>, confirmed by code-review as SP-8) and R2-2 (the Javadoc). R2-3, the <span class="font-mono">dev</span> literal, is kept by decision.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <div class="rounded border border-red-200 bg-red-50 p-4 text-sm space-y-2">
+            <p><span class="text-orange-600 font-semibold">High, must fix (code-review SP-11):</span> <span class="font-mono">spring.datasource.hikari.connection-test-query</span> runs SQL on the app's connections and is not refused.</p>
+            <p>When the property is set, Hikari stops using JDBC4 <span class="font-mono">isValid()</span> and runs the query with <span class="font-mono">statement.execute(...)</span>: once at pool start (<span class="font-mono">checkValidationSupport</span>) and on every borrow of a connection idle for more than about 500 ms (<span class="font-mono">isConnectionDead</span>). H2's <span class="font-mono">Parser.prepareCommand</span> accepts <span class="font-mono">;</span>-separated statements. So <span class="font-mono">spring.datasource.hikari.connection-test-query=SET LOCK_TIMEOUT 0</span> (or <span class="font-mono">SPRING_DATASOURCE_HIKARI_CONNECTIONTESTQUERY</span>) passes the validator in both postures and keeps undoing the LOCK_TIMEOUT pin. Because <span class="font-mono">sa</span> is admin, <span class="font-mono">CREATE ALIAS … createTcpServer; CALL …</span> also opens a database server, which defeats ADR-072 / R-CFG-021. This is the same effect as the <span class="font-mono">connection-init-sql</span> that round 3 refused.</p>
+            <p><strong>Fix:</strong> add <span class="font-mono">spring.datasource.hikari.connection-test-query</span> to <span class="font-mono">DATASOURCE_BYPASS_PREFIXES</span> and a case to <span class="font-mono">settingsThatReachTheDatabasePastTheUrlRulesRefuseStartup</span>. H2's driver supports <span class="font-mono">isValid()</span>, so the property is not needed. Suggested, not required: since a sibling key has turned up for the third round running, switch the Hikari rule to an allowlist (<span class="font-mono">maximum-pool-size</span>, <span class="font-mono">minimum-idle</span>, <span class="font-mono">connection-timeout</span>, <span class="font-mono">idle-timeout</span>, <span class="font-mono">max-lifetime</span>, <span class="font-mono">pool-name</span>).</p>
+            <p>File: <a class="font-mono text-xs underline" href="../../backend/src/main/java/sg/securedhello/config/ProhibitedConfigurationValidator.java">backend/src/main/java/sg/securedhello/config/ProhibitedConfigurationValidator.java</a></p>
+          </div>
+          <div class="rounded border border-amber-200 bg-amber-50 p-4 text-sm space-y-2">
+            <p><span class="text-amber-600 font-semibold">Medium, should fix (code-review SP-12):</span> the ADR-051 in-memory check is a substring test for <span class="font-mono">mem:</span>. <span class="font-mono">jdbc:h2:.</span> (which H2 maps to <span class="font-mono">mem:</span>) and the <span class="font-mono">memFS:</span>, <span class="font-mono">memLZF:</span>, <span class="font-mono">nioMemFS:</span> and <span class="font-mono">nioMemLZF:</span> file systems pass outside <span class="font-mono">dev</span>, and <span class="font-mono">jdbc:h2:file:memFS:./data/x</span> passes under <span class="font-mono">dev</span> too. Refuse a name of <span class="font-mono">.</span>, or a file-system scheme containing <span class="font-mono">mem</span>, after removing an optional <span class="font-mono">file:</span>. The check predates this change.</p>
+            <p>File: <a class="font-mono text-xs underline" href="../../backend/src/main/java/sg/securedhello/config/DatasourceUrlRules.java">backend/src/main/java/sg/securedhello/config/DatasourceUrlRules.java</a></p>
+          </div>
+          <div class="rounded border border-amber-200 bg-amber-50 p-4 text-sm space-y-2">
+            <p><span class="text-amber-600 font-semibold">Medium, should fix or record a decision (code-review SP-13):</span> <span class="font-mono">spring.flyway.locations</span> / <span class="font-mono">callbacks</span>, <span class="font-mono">spring.session.jdbc.schema</span> with <span class="font-mono">initialize-schema</span> other than <span class="font-mono">never</span>, and JPA schema-generation load scripts all run operator-supplied SQL on the app's connections. Either refuse them, or record that script-file channels are out of scope for ADR-072 and correct the <span class="font-mono">DATASOURCE_BYPASS_PREFIXES</span> Javadoc, which claims to cover settings that "run SQL on the application's connections".</p>
+          </div>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">build</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <p class="px-5 pb-3 text-xs text-slate-500">Round 4 ran <span class="font-mono">mvn -B -f backend/pom.xml clean verify -Ddependency-check.skip=true</span>: BUILD SUCCESS in 1m51s. Surefire ran 1014 tests and Failsafe ran 6 ITs, all with 0 failures, 0 errors and 0 skipped. These round-4 tests ran and passed: <span class="font-mono">aBackslashInTheSettingsRefusesStartupBecauseAnEscapedSemicolonRunsAsSql</span> [1]–[6] and <span class="font-mono">settingsThatReachTheDatabasePastTheUrlRulesRefuseStartup</span> [1]–[9]. The database-name backslash case still passes. The only compiler warning is a pre-existing deprecation in <span class="font-mono">MetadataCaseNamingStrategy</span>, which is outside the changeset.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">L1: there is no JaCoCo plugin, so the 80% coverage gate cannot be checked. The project uses PIT (<span class="font-mono">-Pmutation</span>) instead, and PIT was not run. Pre-existing.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">L2 (informational): Dependency-Check was skipped by instruction, so the CVE gate still has to run in the release build.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">config/PublishedDemoValues.java</td><td class="px-4 py-2">28</td><td class="px-4 py-2">M3 (carried, decision recorded): a <span class="font-mono">@Component</span> that exists only for its constructor side effect and now needs <span class="font-mono">@Lazy(false)</span>. The reviewer prefers a static <span class="font-mono">violations(...)</span> called from <span class="font-mono">SecretsConfig</span> or the admin seed. Not a blocker.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/PublishedDemoValues.java</td><td class="px-4 py-2">64</td><td class="px-4 py-2">L1: the <span class="font-mono">sha256</span> helper duplicates <span class="font-mono">KeyMaterial.sha256()</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/PublishedDemoValues.java</td><td class="px-4 py-2">31, 34</td><td class="px-4 py-2">L2: the denylist seams are asymmetric (<span class="font-mono">KEY_FINGERPRINTS</span> is package-private, <span class="font-mono">PASSWORD_DIGESTS</span> is private). Add <span class="font-mono">isPublishedKey</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/ProhibitedConfigurationValidator.java</td><td class="px-4 py-2">82</td><td class="px-4 py-2">L3: violations are assembled in two places. The H2-server messages are built inline in <span class="font-mono">postProcessBeanFactory</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/StartupRefusalTest.java</td><td class="px-4 py-2">114</td><td class="px-4 py-2">L4: the published demo password is a hard-coded literal, whereas <span class="font-mono">PublishedDemoValuesTest</span> reads it from the README.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">security/PasswordEncoderConfig.java</td><td class="px-4 py-2">31</td><td class="px-4 py-2">L5: the <span class="font-mono">"dev"</span> profile name and the cost property name are each spelled in several places across packages. Promote shared constants.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">testsupport/RestartHarness.java</td><td class="px-4 py-2">40</td><td class="px-4 py-2">L6: the <span class="font-mono">TEST_SPEED_BCRYPT_UNDER_DEV</span> Javadoc credited the validator with the floor. Round 3 reports this fixed, but this check has not re-verified it.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/ProhibitedConfigurationValidator.java</td><td class="px-4 py-2">34</td><td class="px-4 py-2">L7: the validator Javadoc has two overlapping datasource bullets. Also, the URL rules are not unit-tested directly through <span class="font-mono">DatasourceUrlRules.violations</span>.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">code-review</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <p class="px-5 pb-3 text-xs text-slate-500">Round 4: both axes ran inline, and H2 behaviour was checked against the <span class="font-mono">h2-2.4.240</span> sources. SP-9 is closed: any <span class="font-mono">\</span> after the first <span class="font-mono">;</span> is refused in every posture, so the plain split matches H2's <span class="font-mono">arraySplit</span>, and each remaining setting runs as exactly one <span class="font-mono">SET</span>. SP-10 is closed as scoped: Flyway <span class="font-mono">url</span> and <span class="font-mono">init-sqls</span> and <span class="font-mono">spring.sql.init</span> are refused and tested in both postures. The reviewer found no way through <span class="font-mono">DatasourceUrlRules</span> to AUTO_SERVER, FILE_LOCK=NO, INIT or a second SQL statement. Standards: no new hard violations. One nit is not counted: <span class="font-mono">settingsText(url)</span> is computed twice.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2 font-mono text-xs">config/ProhibitedConfigurationValidator.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">SP-11 (must fix): <span class="font-mono">spring.datasource.hikari.connection-test-query</span> is not refused. Hikari runs it with <span class="font-mono">statement.execute</span> at pool start and on idle borrows, so <span class="font-mono">SET LOCK_TIMEOUT 0</span> or <span class="font-mono">CREATE ALIAS …; CALL …</span> undoes the pin or starts a server. Add it to <span class="font-mono">DATASOURCE_BYPASS_PREFIXES</span> with a test. Consider a Hikari allowlist.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">config/DatasourceUrlRules.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">SP-12 (should fix; pre-existing check): <span class="font-mono">lower.contains("mem:")</span> misses <span class="font-mono">jdbc:h2:.</span>, the <span class="font-mono">memFS:</span>, <span class="font-mono">memLZF:</span>, <span class="font-mono">nioMemFS:</span> and <span class="font-mono">nioMemLZF:</span> file systems, and <span class="font-mono">jdbc:h2:file:memFS:…</span>, which also passes under <span class="font-mono">dev</span>. Parse the name and its file-system scheme, and add the four spellings as tests.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">config/ProhibitedConfigurationValidator.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">SP-13 (should fix or record a decision): script-file channels still run SQL on app connections: <span class="font-mono">spring.flyway.locations</span> / <span class="font-mono">callbacks</span>, <span class="font-mono">spring.session.jdbc.schema</span> with <span class="font-mono">initialize-schema</span> other than <span class="font-mono">never</span>, and JPA schema-generation load scripts. Refuse them, or record them as out of scope for ADR-072 and fix the prefix-list Javadoc.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">docs/test-plan</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">ST-1 (carried, decision recorded): the new controls have no test-plan row or <span class="font-mono">@Proves</span> tag. The orchestrator must assign T-IDs.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/ProhibitedConfigurationValidator.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">Javadoc nit: the class Javadoc lists only FILE_LOCK=NO, AUTO_SERVER and an unpinned LOCK_TIMEOUT for <span class="font-mono">DatasourceUrlRules</span>. Add "INIT and backslash-escaped settings".</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/DatasourceUrlRules.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">Theoretical channels (no change needed): expression-valued URL settings such as <span class="font-mono">THROTTLE=LENGTH(FILE_WRITE(…))</span> run a built-in function at connect time, though none found reaches a second statement, LOCK_TIMEOUT or a server. <span class="font-mono">DATABASE_EVENT_LISTENER</span> and <span class="font-mono">JAVA_OBJECT_SERIALIZER</span> need a class already on the classpath, <span class="font-mono">h2.*</span> system properties need JVM <span class="font-mono">-D</span> arguments, and <span class="font-mono">FILE_LOCK=SOCKET</span> does not open a database server. To close these completely, use an allowlist of URL setting keys.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">.gitignore; docs/test-plan; register</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">SP-6 (carried): the <span class="font-mono">artifacts/review/</span> ignore entry is scope creep, and the untracked compliance HTML should stay out of the fix commit. The T-CFG-025/026 and R-RL-007 wording is narrower than what the code refuses.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">testsupport/RestartHarness.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">ST-2 residue (carried): the <span class="font-mono">bcrypt-strength</span> property literal still appears in both <span class="font-mono">PasswordEncoderConfig</span> and <span class="font-mono">RestartHarness</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">testsupport/RestartHarness.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">ST-3 (carried): the <span class="font-mono">else { sources.addFirst(cost); }</span> branch is unreachable, because <span class="font-mono">HARNESS_ARGUMENTS</span> always creates a command-line source.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN (skipped)</span>
+        </summary>
+        <p class="px-5 pb-3 text-xs text-slate-500">Semgrep is not installed, so a manual fallback checklist covered <span class="font-mono">DatasourceUrlRules</span> and <span class="font-mono">PasswordEncoderConfig</span> as of round 2, with no P0/P1 findings. The round-3 and round-4 edits were not scanned. To confirm, run <span class="font-mono">semgrep --config p/security-audit --config p/default backend/src</span> once the tool is available.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Info</td><td class="px-4 py-2 font-mono text-xs">config/StartupRefusalTest.java</td><td class="px-4 py-2">114</td><td class="px-4 py-2">S-1 (carried): the public README demo password appears as a literal in test code. This is a false positive for a secrets rule.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Info</td><td class="px-4 py-2 font-mono text-xs">security/PasswordEncoderConfig.java</td><td class="px-4 py-2">31</td><td class="px-4 py-2">S-2: the BCrypt floor is exempt under <span class="font-mono">dev</span> by design (ADR-001), so keeping <span class="font-mono">dev</span> off shared hosts is a deployment control.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">im8</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <p class="px-5 pb-3 text-xs text-slate-500">Controls as-4, as-5, as-6, ac-6/as-8, as-13/lm-19 and as-14, plus data integrity (ADR-072), are all PASS. Frontend is N/A. Manual items: confirm <span class="font-mono">dev</span> can never be activated on shared, staging or production hosts; confirm <span class="font-mono">trusted-proxies</span> names the reverse proxy; confirm the README demo values stay in sync with <span class="font-mono">PublishedDemoValues</span>.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/DatasourceUrlRules.java</td><td class="px-4 py-2">&mdash;</td><td class="px-4 py-2">Advisory 1: other channels can reset the lock timeout after the pinned value. Rounds 3 and 4 refused <span class="font-mono">INIT=</span>, <span class="font-mono">connection-init-sql</span> and escaped settings, but <span class="font-mono">hikari.connection-test-query</span> (code-review SP-11) is still open.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">config/PublishedDemoValues.java</td><td class="px-4 py-2">61</td><td class="px-4 py-2">Advisory 2 (carried, accepted): the published-password check reads configuration, not the stored hash. The forced change and expiry (ADR-046) mitigate this.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">react</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS (N/A)</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings</td></tr></tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">springboot</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <p class="px-5 pb-3 text-xs text-slate-500">Results by skill (round 2): core WARN, web N/A, data PASS, batch N/A, security WARN, logging PASS, test WARN. Round-1 findings 1 to 6 and 8 are closed. Finding 7 is accepted. Since then, round 3 has addressed R2-1 and R2-2, but this check has not re-verified them.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Severity</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">File</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Line</th><th class="text-left text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">security/PasswordEncoderConfig.java</td><td class="px-4 py-2">30</td><td class="px-4 py-2">R2-1 (should fix; addressed in round 3): under lazy initialization the BCrypt floor refused on first sign-in or at admin bootstrap, not before the port opens. Round 3 added <span class="font-mono">@Lazy(false)</span> and a lazy-init test.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">testsupport/RestartHarness.java</td><td class="px-4 py-2">40</td><td class="px-4 py-2">R2-2 (should fix; addressed in round 3): the <span class="font-mono">TEST_SPEED_BCRYPT_UNDER_DEV</span> Javadoc named the validator. It should name <span class="font-mono">PasswordEncoderConfig</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">security/PasswordEncoderConfig.java</td><td class="px-4 py-2">31</td><td class="px-4 py-2">R2-3 (nit, kept by decision): the <span class="font-mono">"dev"</span> literal is repeated. Use a shared constant.</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

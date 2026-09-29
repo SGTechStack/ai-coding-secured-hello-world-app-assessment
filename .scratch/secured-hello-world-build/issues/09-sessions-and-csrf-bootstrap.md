@@ -12,7 +12,7 @@
 
 **Blocked by:** 04, 05
 
-**Status:** done. The audit row on a CSRF refusal is deferred to ticket 10 by plan (see the unticked line).
+**Status:** done. The audit row on a CSRF refusal was delivered by ticket 10 (CSRF_REJECTED at `ProblemAccessDeniedHandler#csrfRejected`).
 
 - [x] `GET /api/csrf` sets exactly one cookie with the required attributes, checked in the raw `Set-Cookie` on a real port.
 - [x] No other anonymous route creates a session.
@@ -20,4 +20,4 @@
 - [x] With duplicate session cookies, only the first is honoured.
 - [x] Deserialising a disallowed attribute class is refused.
 - [x] In Vitest, the SPA recovers from one `CSRF_TOKEN_INVALID` with a single re-bootstrap, and gives up on a second.
-- [ ] The audit row on a CSRF refusal. Deferred to ticket 10, which needs the audit emitter from ticket 08. The seam is `ProblemAccessDeniedHandler#csrfRejected`.
+- [x] The audit row on a CSRF refusal. Delivered by ticket 10 at the seam `ProblemAccessDeniedHandler#csrfRejected` (T-CSRF-008).

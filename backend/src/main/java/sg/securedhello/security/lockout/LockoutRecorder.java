@@ -20,6 +20,7 @@ import sg.securedhello.audit.PasswordDisableReason;
 import sg.securedhello.security.lockout.LockoutCounter.Outcome;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.source.SourceKeyAuthenticationDetails;
+import sg.securedhello.session.SessionTerminationService;
 import sg.securedhello.user.PasswordLockoutState;
 import sg.securedhello.user.SignedInUser;
 import sg.securedhello.user.UserAccount;
@@ -41,8 +42,9 @@ import sg.securedhello.user.UserAccountRepository;
  * none is lost (R-DATA-014). The rows are written after commit. A lockout also records the account in its source's
  * lockout-cardinality set, the source read from the token's {@link SourceKeyAuthenticationDetails} (ADR-015).
  *
- * <p>A failed login never touches the account's sessions (ADR-034). Ending them on a lockout or cap disable is the
- * session-termination service's (ADR-037).
+ * <p>A failed login below the threshold never touches the account's sessions (ADR-034). The failure that locks the
+ * account or disables its password ends all of them (ADR-037): once, on the transition, registered inside the row-lock
+ * transaction so the session-termination service runs it after commit (ADR-039).
  */
 final class LockoutRecorder {
 
@@ -50,15 +52,17 @@ final class LockoutRecorder {
     private final TransactionTemplate transactions;
     private final LockoutCounter counter;
     private final LockoutCardinality cardinality;
+    private final SessionTerminationService sessions;
     private final AuditEmitter audit;
     private final Clock clock;
 
     LockoutRecorder(UserAccountRepository accounts, TransactionTemplate transactions, LockoutCounter counter,
-            LockoutCardinality cardinality, AuditEmitter audit, Clock clock) {
+            LockoutCardinality cardinality, SessionTerminationService sessions, AuditEmitter audit, Clock clock) {
         this.accounts = accounts;
         this.transactions = transactions;
         this.counter = counter;
         this.cardinality = cardinality;
+        this.sessions = sessions;
         this.audit = audit;
         this.clock = clock;
     }
@@ -70,7 +74,8 @@ final class LockoutRecorder {
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         Optional<Counted> counted = transactions.execute(status -> accounts.findForUpdateByUsername(username)
                 .filter(account -> account.getPasswordHash() != null)
-                .map(account -> count(account, counter.failure(account.getLockoutState(), now))));
+                .map(account -> count(account, counter.failure(account.getLockoutState(), now)))
+                .map(result -> endSessionsIfRestricted(username, result)));
         counted.ifPresent(result -> {
             report(result);
             if (result.outcome().locked()
@@ -88,6 +93,13 @@ final class LockoutRecorder {
                     .map(account -> count(account, counter.success(account.getLockoutState()))))
                     .ifPresent(this::report);
         }
+    }
+
+    private Counted endSessionsIfRestricted(String username, Counted counted) {
+        if (counted.outcome().locked() || counted.outcome().disabled()) {
+            sessions.endAll(username);
+        }
+        return counted;
     }
 
     private static Counted count(UserAccount account, Outcome outcome) {

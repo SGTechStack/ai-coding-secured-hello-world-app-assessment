@@ -33,7 +33,7 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | LOCKOUT_CLEARED | `user-authentication` | `change` | success | INFO | low | yes | per event | `AUTO_LIFT`, `PASSWORD_RESET_COMPLETED` | `user.id` | — | Account lock cleared. |
 | PASSWORD_FAILURE_ALERT | `user-authentication` | `error` | failure | WARN | high | yes | per event | — | `user.id` | — | Password failures reached the alert threshold. |
 | PASSWORD_DISABLED | `user-authentication` | `error` | failure | ERROR | critical | yes | per event | `FAILURE_CAP` | `user.id` | — | Password disabled. |
-| SOURCE_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `RATE_LIMITED_SOURCE`, `RATE_LIMITED_SOURCE_MISSES`, `RATE_LIMITED_LOCKOUT_CARDINALITY` | — | — | Request throttled for its source. |
+| SOURCE_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `RATE_LIMITED_SOURCE`, `RATE_LIMITED_SOURCE_MISSES`, `RATE_LIMITED_LOCKOUT_CARDINALITY`, `DISK_RESERVE_SHED` | — | — | Request throttled for its source. |
 | IDENTIFIER_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | per event | `RATE_LIMITED_IDENTIFIER` | — | — | Request throttled for its submitted identifier. |
 | PASSWORD_RESET_REQUESTED | `password-reset-request` | `info` | success | INFO | low | yes | tier 1: per source | — | — | — | Password reset requested. |
 | PASSWORD_RESET_COMPLETED | `password-reset` | `change` | success | INFO | low | yes | per event | — | `user.id` | — | Password reset completed. |
@@ -50,6 +50,7 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
+| SHED_EPISODE_CLEARED | `access-control` | `change` | success | INFO | low | no | per event | — | — | — | Anonymous-session shedding cleared. |
 | APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | per event | — | — | — | Application stopping. |
 
 ## Keyed rows and truncation

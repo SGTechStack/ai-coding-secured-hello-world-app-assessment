@@ -89,6 +89,11 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-tracing-bridge-otel</artifactId>
         </dependency>
+        <!-- Metrics leave only by OTLP push, switched off unless the otlp profile is active (ADR-061). -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-session-jdbc</artifactId>
@@ -259,6 +264,8 @@
                             <param>sg.securedhello.*TotpSecretCipher*</param>
                             <!-- emitter key validation -->
                             <param>sg.securedhello.*EmitterKeyValidat*</param>
+                            <!-- Anonymous-session shed lines, bands and dwell (ADR-041). -->
+                            <param>sg.securedhello.*ShedEpisode*</param>
                         </targetClasses>
                         <!-- Until those classes exist there is nothing to mutate; that alone must not fail. -->
                         <failWhenNoMutations>false</failWhenNoMutations>

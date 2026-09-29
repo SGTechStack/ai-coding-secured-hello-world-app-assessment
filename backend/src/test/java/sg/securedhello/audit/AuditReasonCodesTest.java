@@ -30,6 +30,7 @@ class AuditReasonCodesTest {
             "CSRF_MISSING", "CSRF_INVALID",
             // SourceThrottleReason: row 5
             "RATE_LIMITED_SOURCE", "RATE_LIMITED_SOURCE_MISSES", "RATE_LIMITED_LOCKOUT_CARDINALITY",
+            "DISK_RESERVE_SHED",
             // IdentifierThrottleReason: row 6
             "RATE_LIMITED_IDENTIFIER",
             // TruncationReason: row 46

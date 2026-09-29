@@ -8,7 +8,12 @@ public enum SourceThrottleReason implements AuditReason {
     /** The source's session-store miss budget ran out (ADR-017). */
     RATE_LIMITED_SOURCE_MISSES("RATE_LIMITED_SOURCE_MISSES"),
     /** The source has driven its limit of distinct accounts into lockout (ADR-015). */
-    RATE_LIMITED_LOCKOUT_CARDINALITY("RATE_LIMITED_LOCKOUT_CARDINALITY");
+    RATE_LIMITED_LOCKOUT_CARDINALITY("RATE_LIMITED_LOCKOUT_CARDINALITY"),
+    /**
+     * A shed episode started: new anonymous sessions are refused while the session rows or the free disk are past
+     * their line (ADR-041). Written once per episode, not per refused request.
+     */
+    DISK_RESERVE_SHED("DISK_RESERVE_SHED");
 
     private final String code;
 

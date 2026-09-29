@@ -110,6 +110,10 @@ app:
     # A signed-in session ends this long after its AUTH_INSTANT, whatever its traffic (REJ-012; ADR-038).
     session:
       absolute: 8h
+      # New anonymous sessions are shed while free space on the database volume is under k x N x b + floor
+      # (ADR-041). N_max, k and b are planning values in code, not settings.
+      shedding:
+        floor: 256MB
     # Source keys (ADR-020). The client address is the socket peer unless source=proxy, which needs
     # trusted-proxies to name each proxy address; trusted-proxies has no default (R-RL-007).
     client-ip:
@@ -232,9 +236,18 @@ management:
       # No liveness/readiness probes or db indicator (REJ-063).
       probes:
         enabled: false
+      # The shed episode's h2Data indicator is kept out of /actuator/health, so a shed never makes the endpoint a
+      # load balancer polls return 503; /actuator/health/storage reports it, also detail-free (ADR-041).
+      group:
+        storage:
+          include: h2Data
   health:
     db:
       enabled: false
+    # The disk-space indicator watches the audit directory; the deployer computes its threshold (R-OBS-012). The
+    # database volume is watched by the h2Data indicator in the storage group, which shares the shed check's state.
+    diskspace:
+      path: ${app.audit.directory}
   otlp:
     metrics:
       export:

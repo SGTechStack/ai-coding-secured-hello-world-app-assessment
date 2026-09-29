@@ -56,9 +56,9 @@ export default function ResetPasswordForm({ token: tokenProp }) {
     <form
       onSubmit={handleSubmit}
       aria-label="reset password"
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3"
     >
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="reset-new-password">New password</Label>
         <Input
           id="reset-new-password"

@@ -22,8 +22,8 @@ export default function LoginForm({ onLoggedIn }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="login" className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
+    <form onSubmit={handleSubmit} aria-label="login" className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="login-username">Username</Label>
         <Input
           id="login-username"
@@ -33,7 +33,7 @@ export default function LoginForm({ onLoggedIn }) {
           autoComplete="username"
         />
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="login-password">Password</Label>
         <Input
           id="login-password"

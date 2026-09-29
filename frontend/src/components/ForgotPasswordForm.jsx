@@ -43,7 +43,7 @@ export default function ForgotPasswordForm() {
       aria-label="forgot password"
       className="mt-3 flex flex-col gap-3"
     >
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="forgot-email">Email</Label>
         <Input
           id="forgot-email"

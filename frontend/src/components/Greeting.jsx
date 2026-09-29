@@ -27,7 +27,7 @@ export default function Greeting() {
     );
   }
   return (
-    <p data-testid="greeting" className="text-2xl font-semibold tracking-tight">
+    <p data-testid="greeting" className="text-base leading-snug font-medium tracking-tight">
       {message}
     </p>
   );

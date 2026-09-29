@@ -57,10 +57,10 @@ export default function App() {
   // A password-reset link (?token=...) takes over the whole view.
   if (resetToken) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
-        <Card className="w-full max-w-md" size="default">
+      <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+        <Card className="w-full max-w-sm" size="sm">
           <CardHeader>
-            <CardTitle className="text-xl">Reset your password</CardTitle>
+            <CardTitle>Reset your password</CardTitle>
             <CardDescription>Choose a new password for your account.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -73,7 +73,7 @@ export default function App() {
 
   if (!checked) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+      <main className="flex min-h-screen items-center justify-center bg-background px-4">
         <p data-testid="app-loading" className="text-sm text-muted-foreground">
           Loading…
         </p>
@@ -84,52 +84,63 @@ export default function App() {
   if (session) {
     // Guard against a stale "admin" view if role somehow isn't ADMIN.
     const activeView = view === "admin" && session.role === "ADMIN" ? "admin" : "home";
+    // Navbar and content share one centered column, sized to the active card.
+    const columnWidth = activeView === "admin" ? "max-w-3xl" : "max-w-md";
     return (
-      <div className="min-h-screen bg-muted/40">
-        <NavBar
-          username={session.username}
-          role={session.role}
-          current={activeView}
-          onNavigate={setView}
-          onLoggedOut={handleLogout}
-        />
-        <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8">
-          {activeView === "admin" ? (
-            <AdminPage />
-          ) : (
-            <section aria-label="home" className="flex flex-col gap-2">
-              <Greeting />
-              <p className="text-sm text-muted-foreground">
-                You are signed in{session.role === "ADMIN" ? " as an administrator" : ""}.
-              </p>
-            </section>
-          )}
-        </main>
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+        <div className={`flex w-full ${columnWidth} flex-col gap-4`}>
+          <NavBar
+            username={session.username}
+            role={session.role}
+            current={activeView}
+            onNavigate={setView}
+            onLoggedOut={handleLogout}
+          />
+          <main>
+            {activeView === "admin" ? (
+              <AdminPage />
+            ) : (
+              <section aria-label="home">
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle>
+                      <Greeting />
+                    </CardTitle>
+                    <CardDescription>
+                      You are signed in{session.role === "ADMIN" ? " as an administrator" : ""}.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </section>
+            )}
+          </main>
+        </div>
       </div>
     );
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
-      <div className="flex w-full max-w-md flex-col gap-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <div className="flex w-full max-w-sm flex-col gap-4">
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Hello World Auth</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Hello World Auth</h1>
           <p className="text-sm text-muted-foreground">
             Sign in to your account to continue.
           </p>
         </div>
         {showRegister ? (
           <section aria-label="register">
-            <Card size="default">
+            <Card size="sm">
               <CardHeader>
-                <CardTitle className="text-xl">Create an account</CardTitle>
+                <CardTitle>Create an account</CardTitle>
                 <CardDescription>Register a new account to get started.</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
+              <CardContent className="flex flex-col gap-3">
                 <RegisterForm onRegistered={() => setShowRegister(false)} />
                 <Button
                   type="button"
                   variant="link"
+                  size="sm"
                   className="self-center"
                   onClick={() => setShowRegister(false)}
                 >
@@ -140,16 +151,17 @@ export default function App() {
           </section>
         ) : (
           <section aria-label="login">
-            <Card size="default">
+            <Card size="sm">
               <CardHeader>
-                <CardTitle className="text-xl">Log in</CardTitle>
+                <CardTitle>Log in</CardTitle>
                 <CardDescription>Enter your credentials to sign in.</CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
+              <CardContent className="flex flex-col gap-3">
                 <LoginForm onLoggedIn={(s) => setSession(s)} />
                 <Button
                   type="button"
                   variant="link"
+                  size="sm"
                   className="self-center"
                   onClick={() => setShowRegister(true)}
                 >

@@ -33,8 +33,8 @@ export default function RegisterForm({ onRegistered }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="register" className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
+    <form onSubmit={handleSubmit} aria-label="register" className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="register-username">Username</Label>
         <Input
           id="register-username"
@@ -44,7 +44,7 @@ export default function RegisterForm({ onRegistered }) {
           autoComplete="username"
         />
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="register-email">Email</Label>
         <Input
           id="register-email"
@@ -55,7 +55,7 @@ export default function RegisterForm({ onRegistered }) {
           autoComplete="email"
         />
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Label htmlFor="register-password">Password</Label>
         <Input
           id="register-password"

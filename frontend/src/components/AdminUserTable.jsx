@@ -133,16 +133,16 @@ export default function AdminUserTable() {
         </Alert>
       )}
       <div className="overflow-hidden rounded-lg border">
-        <Table data-testid="admin-users-table" aria-label="user list">
+        <Table data-testid="admin-users-table" aria-label="user list" className="text-[0.8rem]">
           <caption className="sr-only">Users</caption>
-          <TableHeader className="bg-muted/50">
+          <TableHeader className="bg-muted/40">
             <TableRow>
-              <TableHead scope="col">Username</TableHead>
-              <TableHead scope="col">Email</TableHead>
-              <TableHead scope="col">Role</TableHead>
-              <TableHead scope="col">Enabled</TableHead>
-              <TableHead scope="col">Created</TableHead>
-              <TableHead scope="col" className="text-right">
+              <TableHead scope="col" className="h-8">Username</TableHead>
+              <TableHead scope="col" className="h-8">Email</TableHead>
+              <TableHead scope="col" className="h-8">Role</TableHead>
+              <TableHead scope="col" className="h-8">Enabled</TableHead>
+              <TableHead scope="col" className="h-8">Created</TableHead>
+              <TableHead scope="col" className="h-8 text-right">
                 Actions
               </TableHead>
             </TableRow>
@@ -150,38 +150,38 @@ export default function AdminUserTable() {
           <TableBody>
             {users.map((u) => (
               <TableRow key={u.username} data-testid="admin-user-row">
-                <TableCell className="font-medium">{u.username}</TableCell>
-                <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                <TableCell>
+                <TableCell className="py-1.5 font-medium">{u.username}</TableCell>
+                <TableCell className="py-1.5 text-muted-foreground">{u.email}</TableCell>
+                <TableCell className="py-1.5">
                   <select
                     data-testid="admin-user-role"
                     value={u.role}
                     onChange={(e) => handleRoleChange(u, e.target.value)}
                     disabled={pendingId === u.username}
                     aria-label={`Role for ${u.username}`}
-                    className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none transition-colors hover:border-brand/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="USER">USER</option>
                     <option value="ADMIN">ADMIN</option>
                   </select>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-1.5">
                   <span
                     className={
                       u.enabled
-                        ? "inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                        ? "inline-flex items-center rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground ring-1 ring-brand/30"
                         : "inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                     }
                   >
                     {u.enabled ? "Yes" : "No"}
                   </span>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{u.createdAt}</TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-2">
+                <TableCell className="py-1.5 tabular-nums text-muted-foreground">{u.createdAt}</TableCell>
+                <TableCell className="py-1.5">
+                  <div className="flex justify-end gap-1.5">
                     <Button
                       type="button"
-                      size="sm"
+                      size="xs"
                       variant="outline"
                       data-testid="admin-user-toggle"
                       onClick={() => handleToggle(u)}
@@ -192,7 +192,7 @@ export default function AdminUserTable() {
                     </Button>
                     <Button
                       type="button"
-                      size="sm"
+                      size="xs"
                       variant="destructive"
                       data-testid="admin-user-delete"
                       onClick={() => handleDelete(u)}

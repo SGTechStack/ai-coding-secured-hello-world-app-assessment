@@ -27,7 +27,7 @@ export default function LogoutButton({ onLoggedOut }) {
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <Button type="button" variant="outline" onClick={handleClick} disabled={busy}>
+      <Button type="button" size="sm" variant="outline" onClick={handleClick} disabled={busy}>
         Log out
       </Button>
       {error && (

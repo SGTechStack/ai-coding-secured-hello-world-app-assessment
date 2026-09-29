@@ -1,0 +1,36 @@
+.agents/
+.claude/
+
+# Secrets — IM8 as-8. The admin seed credential (ticket 16) is supplied by an
+# environment variable or an externally-mounted config file. Nothing matching
+# these patterns may ever be tracked.
+.env
+.env.*
+!.env.example
+*-secrets.properties
+*-secrets.yml
+application-local.properties
+application-local.yml
+
+# Frontend build (ticket 02)
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+
+# Backend build
+target/
+*.class
+
+# H2 dev database
+*.db
+*.mv.db
+*.trace.db
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

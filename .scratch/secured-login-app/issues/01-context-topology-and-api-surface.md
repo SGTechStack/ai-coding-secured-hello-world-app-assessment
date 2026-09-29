@@ -91,6 +91,9 @@ Roles below are placeholders pending ticket 03; the privileged role is written `
 | `DELETE` | `/api/v1/users/{userId}` | PRD Story 11 (tombstone per ticket 10) | `USER_MANAGER` |
 | `PATCH` | `/api/v1/users/{userId}/resetPassword` | standard (`:391`) — owner: **ticket 11** | `USER_MANAGER` |
 | `PATCH` | `/api/v1/users/batchResetPassword` | standard (`:399`) — owner: **ticket 10** (`Q24` bulk ops) | `USER_MANAGER` |
+| `GET` | `/api/v1/roles` | standard (`:14`, `:118`) — **added by ticket 03** | `USER_MANAGER` |
+
+**Amendment (ticket 03).** The inventory above originally omitted `GET /api/v1/roles`. This inventory was built from the PRD's story list, and no PRD story asks for it — but the standard requires read-only access to role definitions twice (`Standalone_User_Access_Control_Application_Standard.md:14`, `:118`). [03 — Role model reconciliation](03-role-model-reconciliation.md) ruled it in scope and the row is added above; that ticket holds the reasoning and the payload shape.
 
 Deliberately not fixed here: the `/currentUser` path string itself (`/me` vs `/profile` vs `/currentUser`) is **ticket 10's** to decide. Note for 10 — the standards contradict themselves: `Standalone_Privileged_User_Administration_and_Password_Reset.md:536` says `/currentUser`, while `Common_Secure_Self-Read_User_Endpoint.md:53` mounts the controller at `/api/v1/profile`. This inventory uses `/currentUser` provisionally.
 

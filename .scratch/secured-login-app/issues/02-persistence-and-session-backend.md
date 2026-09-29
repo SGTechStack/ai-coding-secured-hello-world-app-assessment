@@ -1,7 +1,7 @@
 # 02 — Persistence and session backend
 
 Type: grilling
-Status: open
+Status: in progress (claimed: taniakoh)
 Blocked by: —
 Map: [Secured Login App](../map.md)
 

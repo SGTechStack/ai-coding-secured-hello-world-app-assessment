@@ -15,6 +15,9 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, UUID> 
 
     Optional<UserAccount> findByUsername(String username);
 
+    /** Whether any account, enabled or not, has {@code role} (ADR-047). */
+    boolean existsByRole(String role);
+
     /** The account holding {@code email}, which must be canonical (ADR-045). */
     Optional<UserAccount> findByEmail(String email);
 

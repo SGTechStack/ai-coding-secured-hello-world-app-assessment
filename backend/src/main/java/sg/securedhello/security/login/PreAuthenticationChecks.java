@@ -1,6 +1,7 @@
 package sg.securedhello.security.login;
 
 import org.springframework.security.authentication.AccountStatusUserDetailsChecker;
+import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsChecker;
 
@@ -11,9 +12,9 @@ import sg.securedhello.user.SignedInUser;
  * <ol>
  *   <li>Spring's account-status checks: locked, then disabled (then expired, which never applies);</li>
  *   <li>the NIST cap: a disabled password authenticator throws {@link PasswordDisabledException};</li>
- *   <li>the forced-change expiry (ADR-046). A documented no-op until the forced-change credential exists: nothing
- *       stamps {@code credential_issued_at} yet, so no credential can have expired. Its checker, throwing
- *       {@code CredentialsExpiredException}, is composed here, last.</li>
+ *   <li>the forced-change expiry: a forced-change credential issued more than 30 days ago throws Spring's
+ *       {@link CredentialsExpiredException}, audited as {@code CREDENTIAL_EXPIRED}. It is here, not in
+ *       {@code isCredentialsNonExpired()}, which is hard-wired {@code true} (T-ADM-030).</li>
  * </ol>
  *
  * <p>They run before the password is compared, so a refusal never depends on whether the password was right and its
@@ -27,8 +28,13 @@ final class PreAuthenticationChecks implements UserDetailsChecker {
     @Override
     public void check(UserDetails user) {
         accountStatus.check(user);
-        if (user instanceof SignedInUser account && account.passwordDisabled()) {
-            throw new PasswordDisabledException(account.id());
+        if (user instanceof SignedInUser account) {
+            if (account.passwordDisabled()) {
+                throw new PasswordDisabledException(account.id());
+            }
+            if (account.forcedChangeExpired()) {
+                throw new CredentialsExpiredException("The forced-change credential has expired");
+            }
         }
     }
 }

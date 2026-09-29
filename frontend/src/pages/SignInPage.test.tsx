@@ -12,6 +12,7 @@ const alice: Profile = {
   id: '6f1c2c1e-4f5a-4c1e-9f7e-2d1b3c4d5e6f',
   username: 'alice',
   role: 'USER',
+  passwordChangeRequired: false,
   factors: { held: false, required: false, enrolled: false, rebindRequired: false },
 }
 
@@ -116,5 +117,41 @@ describe('Routing on the self-read', () => {
     renderApp('/')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The service is unavailable.')
+  })
+})
+
+describe('The forced-change gate (ADR-046)', () => {
+  const forced: Profile = { ...alice, passwordChangeRequired: true }
+
+  it('sends a forced-change sign-in straight to the change-password page', async () => {
+    server.use(
+      http.post(apiUrl('/api/login'), () => HttpResponse.json(forced)),
+      http.get(apiUrl('/api/profile'), () => HttpResponse.json(forced)),
+    )
+    const { router } = renderApp('/sign-in')
+
+    await fillAndSubmit('alice', 'issued-password')
+
+    expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/change-password')
+  })
+
+  it('routes a forced-change session from the entry route to the change-password page', async () => {
+    server.use(http.get(apiUrl('/api/profile'), () => HttpResponse.json(forced)))
+    const { router } = renderApp('/')
+
+    expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/change-password')
+  })
+
+  it('lets PASSWORD_CHANGE_REQUIRED override a belief that the app is open', async () => {
+    server.use(
+      http.get(apiUrl('/api/hello'), () => problemResponse('PASSWORD_CHANGE_REQUIRED', '/api/hello')),
+      http.get(apiUrl('/api/profile'), () => HttpResponse.json(forced)),
+    )
+    const { router } = renderApp('/hello')
+
+    expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/change-password')
   })
 })

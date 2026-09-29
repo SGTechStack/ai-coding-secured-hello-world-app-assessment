@@ -1,7 +1,9 @@
 package sg.securedhello.password;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -20,7 +22,8 @@ import sg.securedhello.user.UserAccountRepository;
 
 /**
  * The single path that sets any password (ADR-005): self-service change, forced-change completion, activation, reset
- * redemption and the bootstrap seed all call {@link #setPassword}. No call site is exempt, and ArchUnit holds it to
+ * redemption call {@link #setPassword}, and the forced-change issuances (the bootstrap seed first) call
+ * {@link #issueForcedChangeCredential}, which runs the same policy. No call site is exempt, and ArchUnit holds it to
  * being the only caller of {@code PasswordEncoder.encode()} and the only writer of the credential column (T-CRED-005).
  *
  * <p>It sets a password; it does not check one. A caller that must verify the current password first (the change
@@ -66,6 +69,34 @@ public class PasswordService {
      */
     @Transactional
     public void setPassword(UUID accountId, String rawPassword) {
+        set(accountId, rawPassword, null);
+    }
+
+    /**
+     * Sets the account's password as a <em>forced-change credential</em> (ADR-046): exactly as {@link #setPassword},
+     * then the account's {@code force_password_change} flag is set and {@code credential_issued_at} stamped with the
+     * current time, so the holder must change it before anything else and it expires 30 days after issue. The
+     * issuances that call this are the bootstrap seed (ADR-047) and, later, an admin re-enable and the recovery runner.
+     *
+     * @throws PasswordRejectedException if a rule refuses it; the transaction rolls back and nothing changes
+     * @throws IllegalArgumentException  if no account has {@code accountId}
+     */
+    @Transactional
+    public void issueForcedChangeCredential(UUID accountId, String rawPassword) {
+        set(accountId, rawPassword, clock.instant());
+    }
+
+    /**
+     * The rule an operator-supplied password would fail for a new account with {@code username} and {@code email}, or
+     * empty if it passes: the same policy {@link #setPassword} runs, with no history yet to reuse. The bootstrap checks
+     * its seed password with it during context refresh, before any account exists (ADR-047).
+     */
+    public Optional<PasswordRule> rejection(String rawPassword, String username, String email) {
+        return policy.check(PasswordPolicy.normalise(rawPassword), new PasswordPolicy.Account(username, email),
+                candidate -> false);
+    }
+
+    private void set(UUID accountId, String rawPassword, @Nullable Instant issuedAt) {
         UserAccount account = accounts.findById(accountId)
                 .orElseThrow(() -> new IllegalArgumentException("No account " + accountId));
         String password = PasswordPolicy.normalise(rawPassword);
@@ -77,7 +108,11 @@ public class PasswordService {
                 });
 
         String encoded = encoder.encode(password);
-        account.replacePasswordHash(encoded);
+        if (issuedAt == null) {
+            account.replacePasswordHash(encoded);
+        } else {
+            account.issueCredential(encoded, issuedAt);
+        }
         history.save(new PasswordHistoryEntry(accountId, encoded, clock.instant()));
         history.deleteAll(retained.stream().skip(historyLength - 1L).toList());
         tokens.deletePending(accountId, CredentialTokenType.PASSWORD_RESET);

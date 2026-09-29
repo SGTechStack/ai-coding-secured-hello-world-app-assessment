@@ -8,7 +8,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -50,8 +52,14 @@ public class PasswordChangeController {
             HttpServletResponse response) {
         SignedInUser user = (SignedInUser) authentication.getPrincipal();
         passwordChange.change(user.id(), body.currentPassword(), body.newPassword(), request.getSession().getId());
+        // A completed forced change frees the session: its principal no longer carries the flag (ADR-046).
+        UsernamePasswordAuthenticationToken changed = UsernamePasswordAuthenticationToken.authenticated(
+                user.withPasswordChanged(), null, authentication.getAuthorities());
+        changed.setDetails(authentication.getDetails());
+        SecurityContextHolder.getContext().setAuthentication(changed);
         // Step 5, after the commit: a new id for the surviving session, without re-stamping AUTH_INSTANT (ADR-038).
-        rotation.onAuthentication(authentication, request, response);
+        // The strategy saves the context, so the session keeps the updated principal.
+        rotation.onAuthentication(changed, request, response);
         return ResponseEntity.noContent().build();
     }
 

@@ -1,15 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, Navigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { NewPasswordHints } from '@/components/NewPasswordHints'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError, type ErrorCode } from '@/lib/api/errors'
-import { changePassword, fetchProfile, PROFILE_KEY } from '@/lib/auth/session'
+import { changePassword, fetchProfile, landingFor, type Profile, PROFILE_KEY, signOut } from '@/lib/auth/session'
 import { isPasswordRule, lengthRule, RULE_COPY } from '@/lib/password/policy'
 
 const schema = z.object({
@@ -34,10 +34,14 @@ const GENERIC_REJECTION = 'The new password was not accepted. Choose another.'
 
 /**
  * Self-service password change (ADR-008). The current password is always required. Paste and password managers work
- * on both fields (R-FE-001). The strength meter is indicative only; the server decides (ADR-005).
+ * on both fields (R-FE-001). The strength meter is indicative only; the server decides (ADR-005). For a forced-change
+ * session (the first gate, ADR-046) it explains why, offers sign-out instead of a way back, and on success moves on.
  */
 export function ChangePasswordPage() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const profile = useQuery({ queryKey: PROFILE_KEY, queryFn: fetchProfile })
+  const forced = profile.data?.passwordChangeRequired === true
   const [failure, setFailure] = useState('')
   const [changed, setChanged] = useState(false)
   const {
@@ -64,6 +68,13 @@ export function ChangePasswordPage() {
     setChanged(false)
     try {
       await changePassword(currentPassword, next)
+      if (profile.data && forced) {
+        // The forced change is complete, so the session is free: on to the next gate.
+        const freed: Profile = { ...profile.data, passwordChangeRequired: false }
+        queryClient.setQueryData(PROFILE_KEY, freed)
+        await navigate(landingFor(freed), { replace: true })
+        return
+      }
       reset()
       setChanged(true)
     } catch (error) {
@@ -82,6 +93,11 @@ export function ChangePasswordPage() {
     }
   }
 
+  const onSignOut = async () => {
+    await signOut(queryClient)
+    await navigate('/sign-in', { replace: true })
+  }
+
   const newPasswordDescription = ['new-password-bytes', errors.newPassword ? 'new-password-error' : undefined]
     .filter(Boolean)
     .join(' ')
@@ -91,6 +107,11 @@ export function ChangePasswordPage() {
       <h2 id="change-password-heading" className="text-xl font-semibold">
         Change password
       </h2>
+      {forced && (
+        <p className="mt-2 text-sm">
+          You must choose a new password before you can continue. Enter the password you were given, then your new one.
+        </p>
+      )}
       <form noValidate onSubmit={handleSubmit(onSubmit)} className="mt-4 flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="current-password">Current password</Label>
@@ -136,9 +157,15 @@ export function ChangePasswordPage() {
           <Button type="submit" disabled={isSubmitting}>
             Change password
           </Button>
-          <Link to="/hello" className="text-sm underline">
-            Back
-          </Link>
+          {forced ? (
+            <Button type="button" variant="outline" onClick={onSignOut}>
+              Sign out
+            </Button>
+          ) : (
+            <Link to="/hello" className="text-sm underline">
+              Back
+            </Link>
+          )}
         </div>
       </form>
     </section>

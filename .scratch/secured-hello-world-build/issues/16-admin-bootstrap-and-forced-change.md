@@ -10,10 +10,17 @@
 
 **Blocked by:** 06, 14
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] In the restart harness, the first boot on an empty database seeds one admin, and the second boot seeds nothing.
-- [ ] A disabled existing admin, a tombstoned seed username, or a reserved one stops startup.
-- [ ] The seeded admin can sign in but gets `PASSWORD_CHANGE_REQUIRED` everywhere outside the allowlist.
-- [ ] After 30 days on the `Clock`, the unused seed credential gets the uniform 401.
-- [ ] Completing the change clears both flags.
+- [x] In the restart harness, the first boot on an empty database seeds one admin, and the second boot seeds nothing.
+- [x] A disabled existing admin, a tombstoned seed username, or a reserved one stops startup. (A disabled admin stops the seed, not startup: see the closeout notes.)
+- [x] The seeded admin can sign in but gets `PASSWORD_CHANGE_REQUIRED` everywhere outside the allowlist.
+- [x] After 30 days on the `Clock`, the unused seed credential gets the uniform 401.
+- [x] Completing the change clears both flags.
+
+**Closeout notes:**
+- A disabled existing admin does not seed and startup continues (ADR-047; T-ADM-025: "does not reseed"). Refusing
+  startup would also block the recovery runner, which is the application jar (ADR-072). A tombstoned, reserved,
+  malformed or already-held seed username stops startup.
+- Proven: T-ADM-015, T-ADM-022, T-ADM-023, T-ADM-024, T-ADM-025, T-ADM-026, T-ADM-030, T-ADM-033, T-AUTH-006.
+  T-ADM-005 (needs admin re-enable, ticket 20) and T-ADM-031 (needs the tier-2 factor disable) stay on the ledger.

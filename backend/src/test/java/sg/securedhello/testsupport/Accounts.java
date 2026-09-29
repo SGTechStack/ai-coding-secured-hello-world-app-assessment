@@ -15,8 +15,11 @@ import sg.securedhello.user.PasswordLockoutState;
  */
 public final class Accounts {
 
-    /** The password every fixture account gets unless a test says otherwise; 15+ characters, never a canary. */
+    /** The password every fixture account gets unless a test says otherwise; 15+ characters, scanned for in output. */
     public static final String PASSWORD = "fixture-password-correct-horse";
+
+    /** The wrong password the sign-in tests submit; scanned for in output like {@link #PASSWORD}. */
+    public static final String WRONG_PASSWORD = "not-the-password-at-all";
 
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;

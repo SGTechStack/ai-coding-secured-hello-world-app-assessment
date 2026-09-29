@@ -3,10 +3,14 @@ package com.example.securedhello.service;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +39,8 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final EmailService emailService;
     private final AuditService auditService;
+    private final PasswordEncoder passwordEncoder;
+    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
     private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
     private final Base64.Encoder urlEncoder = Base64.getUrlEncoder().withoutPadding();
@@ -43,11 +49,15 @@ public class PasswordResetService {
                                 PasswordResetTokenRepository tokenRepository,
                                 EmailService emailService,
                                 AuditService auditService,
+                                PasswordEncoder passwordEncoder,
+                                FindByIndexNameSessionRepository<? extends Session> sessionRepository,
                                 Clock clock) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.emailService = emailService;
         this.auditService = auditService;
+        this.passwordEncoder = passwordEncoder;
+        this.sessionRepository = sessionRepository;
         this.clock = clock;
     }
 
@@ -82,5 +92,43 @@ public class PasswordResetService {
         emailService.sendPasswordResetEmail(user.getEmail(),
                 "/reset-password?token=" + plaintextToken);
         auditService.record("PASSWORD_RESET_REQUESTED", user.getUsername(), null, "SUCCESS");
+    }
+
+    /**
+     * Confirms a reset: validates the token, updates the password, marks the
+     * token used, and revokes all of the user's Sessions (ADR-0002).
+     *
+     * @throws InvalidResetTokenException if the token is unknown, used, or expired
+     */
+    @Transactional
+    public void confirmReset(String plaintextToken, String newPassword) {
+        String tokenHash = TokenHasher.sha256Hex(plaintextToken);
+        PasswordResetToken token = tokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(InvalidResetTokenException::new);
+
+        boolean expired = !token.getExpiresAt().isAfter(clock.instant());
+        if (token.isUsed() || expired) {
+            throw new InvalidResetTokenException();
+        }
+
+        User user = userRepository.findById(token.getUserId())
+                .orElseThrow(InvalidResetTokenException::new);
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        token.markUsed();
+        tokenRepository.save(token);
+
+        revokeAllSessions(user.getUsername());
+        auditService.record("PASSWORD_RESET_COMPLETED", user.getUsername(), null, "SUCCESS");
+    }
+
+    /** Deletes every Spring Session indexed under the given principal name. */
+    private void revokeAllSessions(String username) {
+        sessionRepository
+                .findByPrincipalName(username)
+                .keySet()
+                .forEach(sessionRepository::deleteById);
     }
 }

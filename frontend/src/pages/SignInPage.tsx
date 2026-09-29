@@ -97,6 +97,9 @@ export function SignInPage() {
           <Link to="/register" className="text-sm underline">
             Register
           </Link>
+          <Link to="/forgot-password" className="text-sm underline">
+            Forgot password?
+          </Link>
         </div>
       </form>
     </section>

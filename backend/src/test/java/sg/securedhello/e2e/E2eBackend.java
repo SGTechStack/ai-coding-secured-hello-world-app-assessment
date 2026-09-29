@@ -1,5 +1,6 @@
 package sg.securedhello.e2e;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.CommandLinePropertySource;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -39,7 +41,7 @@ public final class E2eBackend {
      * account, the new login wins). Mirrored in {@code frontend/e2e/fixtures.ts}.
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
-            .flatMap(browser -> List.of("hello", "service-worker", "change-password").stream().map(test -> "e2e-" + browser + "-" + test))
+            .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset").stream().map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
 
@@ -48,8 +50,12 @@ public final class E2eBackend {
     private E2eBackend() {
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        // Every browser test arrives from the one loopback source, so the suite's own traffic would spend the source
+        // budgets (the CSRF bootstrap first) and refuse unrelated tests. They are raised as in the shared test contexts.
         Map<String, Object> defaults = new LinkedHashMap<>();
+        PropertiesLoaderUtils.loadAllProperties("harness-budgets.properties")
+                .forEach((name, value) -> defaults.put(String.valueOf(name), value));
         defaults.put("server.port", "18010");
         defaults.put("app.origins.spa", "http://localhost:15110");
         defaults.put("app.origins.api", "http://localhost:18010");

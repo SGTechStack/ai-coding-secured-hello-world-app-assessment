@@ -3,7 +3,7 @@ import { expect, type Page, type TestInfo } from '@playwright/test'
 /** The fixture accounts `sg.securedhello.e2e.E2eBackend` creates: one per browser and test, one shared password. */
 export const PASSWORD = 'e2e-password-correct-horse'
 
-export type FixtureTest = 'hello' | 'service-worker' | 'change-password'
+export type FixtureTest = 'hello' | 'service-worker' | 'change-password' | 'reset'
 
 /** This browser's account for `test`, so parallel tests never displace each other's session. */
 export function usernameFor(testInfo: TestInfo, test: FixtureTest): string {

@@ -4,10 +4,12 @@ import { onSessionEnded } from './api/client'
 import { AuthProvider } from './auth/AuthProvider'
 import { useAuth } from './auth/useAuth'
 import { AdminUsersPage } from './pages/AdminUsersPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { HelloPage } from './pages/HelloPage'
 import { LoginPage } from './pages/LoginPage'
 import { PasswordChangePage } from './pages/PasswordChangePage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 
 export default function App() {
   return (
@@ -31,6 +33,8 @@ function AppRoutes() {
         <Route path="/admin/users" element={<AdminOnly>{<AdminUsersPage />}</AdminOnly>} />
         <Route path="/login" element={<VisitorOnly>{<LoginPage />}</VisitorOnly>} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </main>

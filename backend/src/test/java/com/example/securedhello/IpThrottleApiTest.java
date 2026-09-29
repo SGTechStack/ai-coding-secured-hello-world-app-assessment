@@ -82,6 +82,7 @@ class IpThrottleApiTest {
 
 	@BeforeEach
 	void oneRegisteredAccount() throws Exception {
+		jdbc.update("DELETE FROM password_reset_tokens");
 		jdbc.update("DELETE FROM password_history");
 		jdbc.update("DELETE FROM users");
 		jdbc.update("DELETE FROM spring_session");

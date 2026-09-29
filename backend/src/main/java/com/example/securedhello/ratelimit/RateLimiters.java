@@ -17,9 +17,21 @@ public class RateLimiters {
 
 	private final RateLimiter registration;
 
+	private final RateLimiter resetRequestByEmail;
+
+	private final RateLimiter resetRequestByIp;
+
+	private final RateLimiter resetConfirm;
+
 	RateLimiters(RateLimitProperties properties, Clock clock) {
 		this.login = new RateLimiter(properties.login().capacity(), properties.login().period(), clock, false);
 		this.registration = new RateLimiter(properties.registration().capacity(), properties.registration().period(),
+				clock, true);
+		this.resetRequestByEmail = new RateLimiter(properties.resetRequestEmail().capacity(),
+				properties.resetRequestEmail().period(), clock, false);
+		this.resetRequestByIp = new RateLimiter(properties.resetRequestIp().capacity(),
+				properties.resetRequestIp().period(), clock, true);
+		this.resetConfirm = new RateLimiter(properties.resetConfirm().capacity(), properties.resetConfirm().period(),
 				clock, true);
 	}
 
@@ -33,10 +45,28 @@ public class RateLimiters {
 		return registration;
 	}
 
+	/** Reset requests, keyed by lowercase email address. */
+	public RateLimiter resetRequestByEmail() {
+		return resetRequestByEmail;
+	}
+
+	/** Reset requests, keyed by direct client address. */
+	public RateLimiter resetRequestByIp() {
+		return resetRequestByIp;
+	}
+
+	/** Reset confirmations, keyed by direct client address (never per Account, ADR 0001). */
+	public RateLimiter resetConfirm() {
+		return resetConfirm;
+	}
+
 	/** Empties every limiter. For tests only: lets each test start with full buckets. */
 	public void resetAll() {
 		login.reset();
 		registration.reset();
+		resetRequestByEmail.reset();
+		resetRequestByIp.reset();
+		resetConfirm.reset();
 	}
 
 }

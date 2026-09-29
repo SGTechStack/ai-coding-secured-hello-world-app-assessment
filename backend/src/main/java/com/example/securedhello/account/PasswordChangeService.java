@@ -2,9 +2,7 @@ package com.example.securedhello.account;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.stereotype.Service;
@@ -17,8 +15,9 @@ import com.example.securedhello.notification.EmailService;
 /**
  * Password Change: a logged-in Account holder replaces their known password. Checks, in order, the
  * current password, the Credential policy and the Password History; then stores the new hash and
- * records it in the Password History (keeping only the latest entries). Notifying the Account holder
- * and ending the Account's Sessions are the caller's job, after this transaction commits.
+ * records it in the Password History (keeping only the latest entries), and cancels any pending
+ * Reset Token. Notifying the Account holder and ending the Account's Sessions are the caller's job,
+ * after this transaction commits.
  * <p>
  * A wrong current password counts toward lockout exactly like a failed login (same counter,
  * threshold and duration, and the Account holder is notified when it locks), so a hijacked Session
@@ -30,9 +29,11 @@ class PasswordChangeService {
 
 	private final AccountRepository accounts;
 
-	private final PasswordHistoryRepository passwordHistory;
-
 	private final CredentialPolicy credentialPolicy;
+
+	private final PasswordUpdater passwordUpdater;
+
+	private final PasswordResetTokenCanceller resetTokenCanceller;
 
 	private final LockoutProperties lockout;
 
@@ -40,11 +41,13 @@ class PasswordChangeService {
 
 	private final Clock clock;
 
-	PasswordChangeService(AccountRepository accounts, PasswordHistoryRepository passwordHistory,
-			CredentialPolicy credentialPolicy, LockoutProperties lockout, EmailService emailService, Clock clock) {
+	PasswordChangeService(AccountRepository accounts, CredentialPolicy credentialPolicy,
+			PasswordUpdater passwordUpdater, PasswordResetTokenCanceller resetTokenCanceller, LockoutProperties lockout,
+			EmailService emailService, Clock clock) {
 		this.accounts = accounts;
-		this.passwordHistory = passwordHistory;
 		this.credentialPolicy = credentialPolicy;
+		this.passwordUpdater = passwordUpdater;
+		this.resetTokenCanceller = resetTokenCanceller;
 		this.lockout = lockout;
 		this.emailService = emailService;
 		this.clock = clock;
@@ -77,22 +80,8 @@ class PasswordChangeService {
 		if (account.isLocked(now)) {
 			throw new CurrentPasswordInvalidException(false);
 		}
-		credentialPolicy.check(newPassword);
-		List<PasswordHistoryEntry> history = passwordHistory.findByUserIdOrderByCreatedAtDesc(accountId);
-		int keep = credentialPolicy.historyLength();
-		// The current hash is always checked, even if its history entry is missing.
-		credentialPolicy.checkHistory(newPassword,
-				Stream.concat(Stream.of(account.getPasswordHash()), history.stream().map(PasswordHistoryEntry::getPasswordHash))
-					.distinct()
-					.limit(keep)
-					.toList());
-
-		account.changePassword(credentialPolicy.hash(newPassword));
-		passwordHistory.save(new PasswordHistoryEntry(accountId, account.getPasswordHash(), now));
-		if (history.size() >= keep) {
-			// The new entry is one of the kept ones, so only keep - 1 older ones remain.
-			passwordHistory.deleteAll(history.subList(keep - 1, history.size()));
-		}
+		passwordUpdater.apply(account, newPassword, now);
+		resetTokenCanceller.cancelPending(accountId, now);
 		return account.getEmail();
 	}
 

@@ -87,3 +87,47 @@ export async function changePassword(currentPassword: string, newPassword: strin
   }
   return { ok: false, reason: 'error' }
 }
+
+export type RequestPasswordResetResult = { ok: true } | { ok: false; reason: 'rate_limited' | 'validation' | 'error' }
+
+/**
+ * Requests a password reset. The server always answers 202 with the same generic outcome, whether or
+ * not the email is registered (story 51), so a request that reaches the server is always {@code ok}.
+ */
+export async function requestPasswordReset(email: string): Promise<RequestPasswordResetResult> {
+  const result = await apiRequest('/password-reset/request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+  if (result.ok) return { ok: true }
+  if (result.status === 429) return { ok: false, reason: 'rate_limited' }
+  if (result.status === 400 && result.problem?.code === 'validation') return { ok: false, reason: 'validation' }
+  return { ok: false, reason: 'error' }
+}
+
+export type ConfirmPasswordResetResult =
+  | { ok: true }
+  | { ok: false; reason: 'token_invalid' | 'password_history' | 'validation' | 'rate_limited' | 'error' }
+  | { ok: false; reason: 'password_policy'; violations: string[] }
+
+const RESET_CONFIRM_REFUSALS = new Set(['token_invalid', 'password_history', 'validation'])
+
+/** Redeems a Reset Token. The token never reaches server logs: it travels only in this request body. */
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<ConfirmPasswordResetResult> {
+  const result = await apiRequest('/password-reset/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  })
+  if (result.ok) return { ok: true }
+  if (result.status === 429) return { ok: false, reason: 'rate_limited' }
+  const code = result.problem?.code
+  if (result.status === 400 && code === 'password_policy') {
+    return { ok: false, reason: 'password_policy', violations: result.problem?.violations ?? [] }
+  }
+  if (result.status === 400 && code !== undefined && RESET_CONFIRM_REFUSALS.has(code)) {
+    return { ok: false, reason: code as 'token_invalid' | 'password_history' | 'validation' }
+  }
+  return { ok: false, reason: 'error' }
+}

@@ -27,6 +27,21 @@ class LoggingEmailService implements EmailService {
 		send(to, "Password changed");
 	}
 
+	/**
+	 * The reset link, with its Reset Token, is written in full under {@code reset.link}: that key
+	 * name deliberately avoids every masked-key substring (password, token, secret, csrf, session id,
+	 * email, username), so the encoder never masks it (ADR 0001). The recipient is still masked.
+	 */
+	@Override
+	public void sendPasswordResetLink(String to, String resetLink) {
+		log.atInfo().addKeyValue("email.to", to).addKeyValue("reset.link", resetLink).log("Password reset requested");
+	}
+
+	@Override
+	public void notifyPasswordResetCompleted(String to) {
+		send(to, "Password reset completed");
+	}
+
 	/** One email: the static subject is the message, the recipient a masked key. */
 	private static void send(String to, String subject) {
 		log.atInfo().addKeyValue("email.to", to).log(subject);

@@ -10,8 +10,8 @@ const FAILURE_MESSAGES: Record<Extract<LoginResult, { ok: false }>['reason'], st
   error: 'Something went wrong. Please try again later.',
 }
 
-/** Set in navigation state by the register screen. */
-type LoginNotice = { registered?: boolean }
+/** Set in navigation state by the register, forgot-password and reset-password screens. */
+type LoginNotice = { registered?: boolean; resetRequested?: boolean; resetCompleted?: boolean }
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -46,6 +46,10 @@ export function LoginPage() {
     <section>
       <h1>Log in</h1>
       {notice.registered === true && <p role="status">Your Account has been created. Please log in.</p>}
+      {notice.resetRequested === true && (
+        <p role="status">If an Account exists for that email, a reset link has been sent.</p>
+      )}
+      {notice.resetCompleted === true && <p role="status">Your password has been reset. Please log in.</p>}
       {auth.state.kind === 'anonymous' && 'passwordChanged' in auth.state && (
         <p role="status">Your password has been changed. Please log in again.</p>
       )}
@@ -65,6 +69,9 @@ export function LoginPage() {
           Log in
         </button>
       </form>
+      <p>
+        <Link to="/forgot-password">Forgot password?</Link>
+      </p>
       <p>
         No Account yet? <Link to="/register">Register</Link>
       </p>

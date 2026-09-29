@@ -68,7 +68,8 @@ class SecurityConfig {
 			.authorizeHttpRequests((auth) -> auth
 			.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/csrf")).permitAll()
-			.requestMatchers(HttpMethod.POST, api.path("/register"), api.path("/login")).permitAll()
+			.requestMatchers(HttpMethod.POST, api.path("/register"), api.path("/login"),
+					api.path("/password-reset/request"), api.path("/password-reset/confirm")).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/hello"), api.path("/me")).authenticated()
 			.requestMatchers(HttpMethod.POST, api.path("/logout")).authenticated()
 			.requestMatchers(HttpMethod.PATCH, api.path("/me/password")).authenticated()

@@ -12,4 +12,13 @@ public interface EmailService {
 	/** Tells the Account holder their password has been changed, so they can react if they did not do it. */
 	void notifyPasswordChanged(String to);
 
+	/**
+	 * Sends the password-reset link, with the Reset Token written in full (ADR 0001). The link is
+	 * never written anywhere but the stub's own file.
+	 */
+	void sendPasswordResetLink(String to, String resetLink);
+
+	/** Tells the Account holder their password reset has completed, so they can react if they did not request it. */
+	void notifyPasswordResetCompleted(String to);
+
 }

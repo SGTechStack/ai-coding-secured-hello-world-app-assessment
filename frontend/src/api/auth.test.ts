@@ -121,3 +121,73 @@ describe('fetchOwnAccount', () => {
     expect(await auth.fetchOwnAccount()).toEqual({ kind: 'error' })
   })
 })
+
+describe('requestPasswordReset', () => {
+  it('posts the email as JSON with the CSRF token', async () => {
+    const fetch = fakeApi({
+      'GET /csrf': rotatingCsrf(),
+      'POST /password-reset/request': () => json(202, { message: 'generic' }),
+    })
+
+    const result = await auth.requestPasswordReset('testuser123@test.example.com')
+
+    expect(result).toEqual({ ok: true })
+    const [, init] = fetch.mock.calls.find(([url]) => String(url).endsWith('/password-reset/request'))!
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json')
+    expect(csrfHeaderOf(init)).toBe('token-1')
+    expect(JSON.parse(String(init?.body))).toEqual({ email: 'testuser123@test.example.com' })
+  })
+
+  it.each([
+    [problem(429, 'too_many_requests'), 'rate_limited'],
+    [problem(400, 'validation'), 'validation'],
+    [problem(500, 'internal_error'), 'error'],
+  ] as const)('maps failures (%#)', async (response, reason) => {
+    fakeApi({ 'GET /csrf': rotatingCsrf(), 'POST /password-reset/request': () => response })
+
+    expect(await auth.requestPasswordReset('testuser123@test.example.com')).toEqual({ ok: false, reason })
+  })
+})
+
+describe('confirmPasswordReset', () => {
+  it('posts the token and new password as JSON with the CSRF token', async () => {
+    const fetch = fakeApi({
+      'GET /csrf': rotatingCsrf(),
+      'POST /password-reset/confirm': () => new Response(null, { status: 200 }),
+    })
+
+    const result = await auth.confirmPasswordReset('synthetic-token', 'Synthetic-Pass-42')
+
+    expect(result).toEqual({ ok: true })
+    const [, init] = fetch.mock.calls.find(([url]) => String(url).endsWith('/password-reset/confirm'))!
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json')
+    expect(csrfHeaderOf(init)).toBe('token-1')
+    expect(JSON.parse(String(init?.body))).toEqual({ token: 'synthetic-token', newPassword: 'Synthetic-Pass-42' })
+  })
+
+  it('reports every password-policy violation', async () => {
+    fakeApi({
+      'GET /csrf': rotatingCsrf(),
+      'POST /password-reset/confirm': () =>
+        json(400, { status: 400, code: 'password_policy', violations: ['min_length'] }, 'application/problem+json'),
+    })
+
+    expect(await auth.confirmPasswordReset('synthetic-token', 'weak')).toEqual({
+      ok: false,
+      reason: 'password_policy',
+      violations: ['min_length'],
+    })
+  })
+
+  it.each([
+    [problem(400, 'token_invalid'), 'token_invalid'],
+    [problem(400, 'password_history'), 'password_history'],
+    [problem(400, 'validation'), 'validation'],
+    [problem(429, 'too_many_requests'), 'rate_limited'],
+    [problem(500, 'internal_error'), 'error'],
+  ] as const)('maps other failures (%#)', async (response, reason) => {
+    fakeApi({ 'GET /csrf': rotatingCsrf(), 'POST /password-reset/confirm': () => response })
+
+    expect(await auth.confirmPasswordReset('synthetic-token', 'Synthetic-Pass-42')).toEqual({ ok: false, reason })
+  })
+})

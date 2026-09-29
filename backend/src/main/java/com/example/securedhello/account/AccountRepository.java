@@ -18,6 +18,9 @@ interface AccountRepository extends JpaRepository<Account, UUID> {
 
 	boolean existsByEmail(String email);
 
+	/** The Account with this (already lowercase) email, if any: for password-reset issuance. */
+	Optional<Account> findByEmail(String email);
+
 	/** Whether any Account holds the role, enabled or not. */
 	boolean existsByRole(Role role);
 

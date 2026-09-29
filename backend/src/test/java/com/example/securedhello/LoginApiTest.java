@@ -64,6 +64,7 @@ class LoginApiTest {
 
 	@BeforeEach
 	void emptyAccountsAndSessions() {
+		jdbc.update("DELETE FROM password_reset_tokens");
 		jdbc.update("DELETE FROM password_history");
 		jdbc.update("DELETE FROM users");
 		jdbc.update("DELETE FROM spring_session");
@@ -361,6 +362,7 @@ class LoginApiTest {
 	void meGets401OnceTheAccountNoLongerExists() throws Exception {
 		register("testuser123", "testuser123@test.example.com");
 		Cookie session = loggedIn("testuser123");
+		jdbc.update("DELETE FROM password_reset_tokens");
 		jdbc.update("DELETE FROM password_history");
 		jdbc.update("DELETE FROM users");
 

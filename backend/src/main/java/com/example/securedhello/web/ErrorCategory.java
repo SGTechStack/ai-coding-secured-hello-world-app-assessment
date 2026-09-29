@@ -6,9 +6,11 @@ import org.springframework.dao.DataAccessException;
 
 /**
  * The Structured Logging standard's {@code error.category} for an unexpected exception, and whether
- * it needs follow-up action ({@code server}, {@code database} and {@code application} do).
+ * it needs follow-up action ({@code server}, {@code database} and {@code application} do). Public so
+ * code running outside a request (for example the password-reset background executor) can log an
+ * unexpected exception the same way {@link GlobalExceptionHandler} does.
  */
-enum ErrorCategory {
+public enum ErrorCategory {
 
 	DATABASE("database", true), APPLICATION("application", true);
 
@@ -21,15 +23,15 @@ enum ErrorCategory {
 		this.followUpAction = followUpAction;
 	}
 
-	String value() {
+	public String value() {
 		return value;
 	}
 
-	boolean followUpAction() {
+	public boolean followUpAction() {
 		return followUpAction;
 	}
 
-	static ErrorCategory of(Throwable exception) {
+	public static ErrorCategory of(Throwable exception) {
 		for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
 			if (cause instanceof DataAccessException || cause instanceof SQLException) {
 				return DATABASE;

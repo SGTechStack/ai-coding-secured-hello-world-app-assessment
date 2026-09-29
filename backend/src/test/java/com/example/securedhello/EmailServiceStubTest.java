@@ -57,4 +57,39 @@ class EmailServiceStubTest {
 		assertThat(capture.auditText()).noneMatch((line) -> line.contains(RECIPIENT));
 	}
 
+	/**
+	 * ADR 0001: the reset link, Reset Token included, is written in full to the stub's own file, so it
+	 * can be used locally; the recipient is still masked like every other email.
+	 */
+	@Test
+	void theResetLinkEmailGoesOnlyToTheEmailFileWithTheRecipientMaskedAndTheLinkInFull() {
+		LogCapture capture = LogCapture.start();
+		String link = "http://localhost:3000/reset-password#token=synthetic-reset-token-value";
+
+		emailService.sendPasswordResetLink(RECIPIENT, link);
+
+		assertThat(capture.email()).singleElement().satisfies((line) -> {
+			assertThat(field(line, "log.logger")).isEqualTo("email");
+			assertThat(field(line, "email.to")).isEqualTo(LogSanitizer.MASK);
+			assertThat(field(line, "reset.link")).isEqualTo(link);
+			assertThat(field(line, "message")).isEqualTo("Password reset requested");
+		});
+		assertThat(capture.applicationText()).noneMatch((line) -> line.contains(RECIPIENT) || line.contains(link));
+		assertThat(capture.auditText()).noneMatch((line) -> line.contains(RECIPIENT) || line.contains(link));
+	}
+
+	@Test
+	void theResetCompletedEmailGoesOnlyToTheEmailFileWithTheRecipientMasked() {
+		LogCapture capture = LogCapture.start();
+
+		emailService.notifyPasswordResetCompleted(RECIPIENT);
+
+		assertThat(capture.email()).singleElement().satisfies((line) -> {
+			assertThat(field(line, "email.to")).isEqualTo(LogSanitizer.MASK);
+			assertThat(field(line, "message")).isEqualTo("Password reset completed");
+		});
+		assertThat(capture.applicationText()).noneMatch((line) -> line.contains(RECIPIENT));
+		assertThat(capture.auditText()).noneMatch((line) -> line.contains(RECIPIENT));
+	}
+
 }

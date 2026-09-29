@@ -135,8 +135,17 @@ public final class AuditEvent {
 
 	/** {@code url.path} (sanitised, no query string) and {@code http.request.method} of the request. */
 	public AuditEvent request(HttpServletRequest request) {
-		fields.put("url.path", CorrelationFilter.urlPath(request));
-		fields.put("http.request.method", LogSanitizer.escapeControl(request.getMethod()));
+		return request(LogSanitizer.escapeControl(request.getMethod()), CorrelationFilter.urlPath(request));
+	}
+
+	/**
+	 * {@code url.path} and {@code http.request.method}, already known rather than read from a live
+	 * request. For events emitted on a background thread (password-reset issuance) after the request
+	 * that triggered them has already completed.
+	 */
+	public AuditEvent request(String httpMethod, String urlPath) {
+		fields.put("url.path", urlPath);
+		fields.put("http.request.method", httpMethod);
 		return this;
 	}
 

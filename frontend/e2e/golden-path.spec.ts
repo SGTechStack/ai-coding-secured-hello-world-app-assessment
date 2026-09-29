@@ -1,6 +1,5 @@
-import { createHmac } from 'node:crypto'
 import { expect, type Page, test } from '@playwright/test'
-import { PASSWORD, usernameFor } from './fixtures.ts'
+import { PASSWORD, totp, usernameFor } from './fixtures.ts'
 
 /** RFC 4648 Base32, as the manual-entry key is shown (spaces are cosmetic). */
 function base32Decode(text: string): Buffer {
@@ -11,15 +10,6 @@ function base32Decode(text: string): Buffer {
   }
   const bytes = bits.match(/.{8}/g) ?? []
   return Buffer.from(bytes.map((byte) => parseInt(byte, 2)))
-}
-
-/** The RFC 6238 code at `at`: HMAC-SHA1, 30-second step, 6 digits. */
-function totp(secret: Buffer, at = Date.now()): string {
-  const counter = Buffer.alloc(8)
-  counter.writeBigUInt64BE(BigInt(Math.floor(at / 1000 / 30)))
-  const hash = createHmac('sha1', secret).update(counter).digest()
-  const offset = hash[hash.length - 1] & 0x0f
-  return String((hash.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0')
 }
 
 async function signIn(page: Page, username: string) {

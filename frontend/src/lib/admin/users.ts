@@ -28,3 +28,17 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 export async function fetchAdminUser(id: string): Promise<AdminUser> {
   return adminUserSchema.parse(await apiFetch<unknown>(`/api/admin/users/${encodeURIComponent(id)}`))
 }
+
+/**
+ * `PUT /api/admin/users/{id}/enabled`: needs a factor from the last 10 minutes (ADR-021). Returns the account as it
+ * now is, checked at runtime. A disable ends the user's sessions; a re-enable makes them change their password.
+ */
+export async function setAdminUserEnabled(id: string, enabled: boolean): Promise<AdminUser> {
+  return adminUserSchema.parse(
+    await apiFetch<unknown>(`/api/admin/users/${encodeURIComponent(id)}/enabled`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    }),
+  )
+}

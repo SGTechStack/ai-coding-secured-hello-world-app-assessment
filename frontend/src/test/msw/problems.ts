@@ -60,6 +60,12 @@ export const problemFixtures: Readonly<Record<ErrorCode, Problem>> = {
     'Second factor disabled',
     'The second factor is disabled. Contact an administrator.',
   ),
+  TWO_ADMIN_INVARIANT: fixture(
+    'TWO_ADMIN_INVARIANT',
+    409,
+    'Two-admin minimum',
+    'The change would leave fewer than two enrolled administrators.',
+  ),
   INTERNAL_ERROR: fixture('INTERNAL_ERROR', 500, 'Internal error', 'An unexpected error occurred.'),
 }
 

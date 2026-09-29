@@ -1,15 +1,29 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
+import { Button } from '@/components/ui/button'
 import type { ErrorCode } from '@/lib/api/errors'
-import { adminUserKey, fetchAdminUser } from '@/lib/admin/users'
-import { authorityRoute } from '@/lib/auth/authority'
+import { ADMIN_USERS_KEY, type AdminUser, adminUserKey, fetchAdminUser, setAdminUserEnabled } from '@/lib/admin/users'
+import { authorityRoute, useAuthorityFailure } from '@/lib/auth/authority'
+import { fetchProfile, PROFILE_KEY } from '@/lib/auth/session'
 
 /** An unknown id is also refused with `ACCESS_DENIED`, so that code is shown here as not found, not followed. */
 const OWN_CODES: readonly ErrorCode[] = ['ACCESS_DENIED']
 
+/** A two-admin refusal names the way out, in order (spec, user story 40). */
+const TWO_ADMIN_NEXT_STEPS =
+  'At least two administrators with an authenticator app must remain, so this account cannot be disabled yet. ' +
+  'To continue: invite a new user, have them redeem the invitation, promote them to administrator, and have them ' +
+  'set up their authenticator app. Then try again.'
+const CHANGE_COPY: Partial<Record<ErrorCode, string>> = {
+  TWO_ADMIN_INVARIANT: TWO_ADMIN_NEXT_STEPS,
+  ACCESS_DENIED: 'This account cannot be changed from here.',
+}
+const CHANGE_FAILED = 'The account could not be changed. Try again.'
+
 /**
- * `/admin/users/:id`: one account (PRD Story 8). Like the list, it renders only what the server returned, and a
- * refusal's code sends the session where it belongs.
+ * `/admin/users/:id`: one account (PRD Story 8), and the control that enables or disables it (PRD Story 9). Like the
+ * list, it renders only what the server returned, and a refusal's code sends the session where it belongs.
  */
 export function AdminUserDetailPage() {
   const { id = '' } = useParams()
@@ -32,22 +46,81 @@ export function AdminUserDetailPage() {
         </p>
       )}
       {user.data && !user.error && (
-        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt>Email</dt>
-          <dd>{user.data.email}</dd>
-          <dt>Role</dt>
-          <dd>{user.data.role}</dd>
-          <dt>Status</dt>
-          <dd>{user.data.enabled ? 'Enabled' : 'Disabled'}</dd>
-          <dt>Created</dt>
-          <dd>
-            <time dateTime={user.data.createdAt}>{user.data.createdAt.slice(0, 10)}</time>
-          </dd>
-        </dl>
+        <>
+          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt>Email</dt>
+            <dd>{user.data.email}</dd>
+            <dt>Role</dt>
+            <dd>{user.data.role}</dd>
+            <dt>Status</dt>
+            <dd>{user.data.enabled ? 'Enabled' : 'Disabled'}</dd>
+            <dt>Created</dt>
+            <dd>
+              <time dateTime={user.data.createdAt}>{user.data.createdAt.slice(0, 10)}</time>
+            </dd>
+          </dl>
+          <EnabledControl user={user.data} />
+        </>
       )}
       <Link to="/admin/users" className="text-sm underline">
         Back to the user list
       </Link>
     </section>
+  )
+}
+
+/**
+ * Enables or disables the account. Not offered on the admin's own account, which the server refuses anyway
+ * (REJ-050). The server's answer replaces the cached account, and the list is refreshed.
+ */
+function EnabledControl({ user }: { user: AdminUser }) {
+  const queryClient = useQueryClient()
+  const profile = useQuery({ queryKey: PROFILE_KEY, queryFn: fetchProfile })
+  const [pending, setPending] = useState(false)
+  const [done, setDone] = useState('')
+  const { redirect, failure, fail, clearFailure } = useAuthorityFailure(OWN_CODES)
+
+  if (redirect) {
+    return <Navigate to={redirect} replace />
+  }
+  if (profile.data?.id === user.id) {
+    return <p className="text-sm text-muted-foreground">You cannot disable your own account.</p>
+  }
+
+  const onToggle = async () => {
+    clearFailure()
+    setDone('')
+    setPending(true)
+    try {
+      const updated = await setAdminUserEnabled(user.id, !user.enabled)
+      queryClient.setQueryData(adminUserKey(user.id), updated)
+      await queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY, exact: true })
+      setDone(
+        updated.enabled
+          ? 'Account enabled. The user must change their password when they next sign in.'
+          : 'Account disabled. The user has been signed out.',
+      )
+    } catch (error) {
+      fail(error, CHANGE_COPY, CHANGE_FAILED)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div>
+        <Button type="button" variant={user.enabled ? 'destructive' : 'default'} onClick={onToggle} disabled={pending}>
+          {user.enabled ? 'Disable account' : 'Enable account'}
+        </Button>
+      </div>
+      {/* Always rendered, so a screen reader announces each message when it appears (live regions). */}
+      <p role="status" className="text-sm">
+        {done}
+      </p>
+      <p role="alert" className="text-sm text-destructive">
+        {failure}
+      </p>
+    </div>
   )
 }

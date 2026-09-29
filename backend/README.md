@@ -67,7 +67,9 @@ For local development and demos only, anyone who checks out this branch can past
 terminal and then run the `spring-boot:run` command above, from the repository root.
 
 > **These values are public.** They are committed to git, so treat them as compromised. Never use them outside a
-> local `dev` run: generate fresh keys for any shared, staging or production environment.
+> local `dev` run: generate fresh keys for any shared, staging or production environment. Without the `dev` profile,
+> startup refuses any of these keys (in any key variable) and this admin password, or an earlier published one
+> (`PublishedDemoValues` holds only their fingerprints and digests).
 
 PowerShell (current window only):
 

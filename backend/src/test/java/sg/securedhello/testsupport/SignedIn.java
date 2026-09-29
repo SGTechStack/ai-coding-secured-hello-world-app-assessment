@@ -36,6 +36,19 @@ public final class SignedIn {
                 .contentType(MediaType.APPLICATION_JSON).content(credentials(username, password)));
     }
 
+    /**
+     * Posts a login from {@code remoteAddr} on a freshly bootstrapped session, for tests that move the clock between
+     * attempts (an anonymous session lives W from its creation) or isolate state by source address.
+     */
+    public static ResultActions loginFrom(MockMvc mockMvc, String remoteAddr, String username, String password)
+            throws Exception {
+        CsrfSession session = CsrfSession.bootstrap(mockMvc, remoteAddr);
+        return mockMvc.perform(post("/api/login").with(session.inHeader()).with(request -> {
+            request.setRemoteAddr(remoteAddr);
+            return request;
+        }).contentType(MediaType.APPLICATION_JSON).content(credentials(username, password)));
+    }
+
     /** Signs {@code account} in and returns the signed-in session with its current token. */
     public static CsrfSession as(MockMvc mockMvc, Accounts.Account account) throws Exception {
         MvcResult result = login(mockMvc, CsrfSession.bootstrap(mockMvc), account.username(), account.password())

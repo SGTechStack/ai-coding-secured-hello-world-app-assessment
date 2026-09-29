@@ -101,6 +101,24 @@ app:
       session-miss:
         capacity: 300
         window: 15m
+      # Not a budget row: the distinct accounts one source may drive into lockout, each held for a window from its
+      # first lockout (ADR-015). Past k, that source's sign-ins for any other username get 429.
+      lockout-cardinality:
+        k: 5
+        window: 1h
+    # Password lockout (ADR-011; ADR-012) and the NIST cap (ADR-013). threshold failures inside observation-window
+    # lock the account for a rung, cycles-per-rung locks per rung, read from the cap counter; the lock lifts on its
+    # own. cap failures since the last success disable the password until it is rebound, with an alert at
+    # alert-threshold. Startup refuses a ladder that disables in under 840 minutes or warns for under 580.
+    lockout:
+      threshold: 5
+      observation-window: 20m
+      ladder:
+        rungs: 20m, 40m, 60m
+        cycles-per-rung: 5
+      nist:
+        cap: 100
+        alert-threshold: 50
     request:
       # Counted in bytes as the body is read, before the login converter parses it (Std §5:494).
       max-body-bytes: 16384

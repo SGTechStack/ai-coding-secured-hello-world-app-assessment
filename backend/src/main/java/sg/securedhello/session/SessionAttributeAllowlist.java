@@ -16,7 +16,7 @@ import org.springframework.core.serializer.Deserializer;
  *
  * <p>The allowlist is the types the application stores: the security context (a {@code SecurityContextImpl} holding
  * an authentication token, its {@code SignedInUser} principal and authorities, {@code FactorGrantedAuthority}
- * included), the {@code AUTH_INSTANT}, the CSRF token and Spring Session's concurrent-session expiry flag, plus the
+ * included, and its {@code SourceKeyAuthenticationDetails}), the {@code AUTH_INSTANT}, the CSRF token and Spring Session's concurrent-session expiry flag, plus the
  * JDK types they are built from. Storing a new type in a session means adding it here.
  */
 final class SessionAttributeAllowlist implements Deserializer<Object> {
@@ -31,6 +31,8 @@ final class SessionAttributeAllowlist implements Deserializer<Object> {
             "org.springframework.security.web.authentication.WebAuthenticationDetails",
             "org.springframework.security.web.csrf.DefaultCsrfToken",
             "sg.securedhello.user.SignedInUser",
+            "sg.securedhello.security.source.SourceKeyAuthenticationDetails",
+            "sg.securedhello.security.source.SourceKey",
             "!*");
 
     private static final ObjectInputFilter FILTER = ObjectInputFilter.Config.createFilter(PATTERN);

@@ -23,6 +23,26 @@ public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason
         return new AccountContext(userId, reason);
     }
 
+    /** Lockout engaged (row 3). */
+    public static AccountContext lockout(UUID userId) {
+        return new AccountContext(userId, LockoutReason.THRESHOLD_REACHED);
+    }
+
+    /** Lockout cleared (row 4). */
+    public static AccountContext lockCleared(UUID userId, LockoutClearReason reason) {
+        return new AccountContext(userId, reason);
+    }
+
+    /** The password-failure alert (row 45). */
+    public static AccountContext passwordFailureAlert(UUID userId) {
+        return new AccountContext(userId, null);
+    }
+
+    /** The password authenticator was disabled. */
+    public static AccountContext passwordDisabled(UUID userId, PasswordDisableReason reason) {
+        return new AccountContext(userId, reason);
+    }
+
     /** Session start (row 8). */
     public static AccountContext sessionStart(UUID userId, SessionStartReason reason) {
         return new AccountContext(userId, reason);

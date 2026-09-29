@@ -39,12 +39,16 @@ import org.springframework.security.web.session.ConcurrentSessionFilter;
 import sg.securedhello.audit.AccountContext;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.audit.AuditEvent;
+import sg.securedhello.audit.LoginFailureReason;
 import sg.securedhello.audit.SessionStartReason;
+import sg.securedhello.audit.SourceThrottleReason;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.profile.Profile;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
+import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.TooManyRequests;
+import sg.securedhello.security.source.SourceKeyAuthenticationDetailsSource;
 import sg.securedhello.session.SessionAttributes;
 import sg.securedhello.user.SignedInUser;
 
@@ -91,10 +95,13 @@ public final class SignIn {
     private final JsonMapper jsonMapper;
     private final Clock clock;
     private final AuthRateLimiter limiter;
+    private final SourceKeyAuthenticationDetailsSource detailsSource;
+    private final LockoutCardinality cardinality;
 
     SignIn(AuthenticationProvider provider, AuthenticationEventPublisher events, SessionRegistry sessionRegistry,
             AuditEmitter audit, ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock,
-            AuthRateLimiter limiter) {
+            AuthRateLimiter limiter, SourceKeyAuthenticationDetailsSource detailsSource,
+            LockoutCardinality cardinality) {
         this.authenticationManager = new ProviderManager(provider);
         this.authenticationManager.setAuthenticationEventPublisher(events);
         this.sessionRegistry = sessionRegistry;
@@ -103,6 +110,8 @@ public final class SignIn {
         this.jsonMapper = jsonMapper;
         this.clock = clock;
         this.limiter = limiter;
+        this.detailsSource = detailsSource;
+        this.cardinality = cardinality;
     }
 
     /**
@@ -115,7 +124,7 @@ public final class SignIn {
     public void configure(HttpSecurity http, CsrfTokenRepository csrfTokens, CsrfTokenRequestHandler csrfHandler,
             Duration idleWindow) {
         JsonLoginFilter login = new JsonLoginFilter(authenticationManager,
-                new JsonCredentialsConverter(jsonMapper, limiter));
+                new JsonCredentialsConverter(jsonMapper, limiter, detailsSource, cardinality));
         login.setSessionAuthenticationStrategy(loginComposite(csrfTokens, csrfHandler, idleWindow));
         login.setSecurityContextRepository(new DelegatingSecurityContextRepository(
                 new RequestAttributeSecurityContextRepository(), new HttpSessionSecurityContextRepository()));
@@ -154,7 +163,9 @@ public final class SignIn {
     /**
      * The uniform 401 for every password-axis failure (ADR-033), 400 for a malformed body, and the deliberate 429 for
      * a spent username budget (ADR-010; T-RL-002). Row 6 is transition-keyed: written on the first refusal after the
-     * username was last admitted, not on every refusal.
+     * username was last admitted, not on every refusal. A full lockout-cardinality set is the same 429, on row 5,
+     * which is keyed by source (ADR-015). A capped password is the uniform 401; its refusal publishes no failure
+     * event, so its login-failure row is written here (ADR-013).
      */
     private void loginFailed(HttpServletRequest request, HttpServletResponse response, AuthenticationException failure)
             throws IOException {
@@ -163,7 +174,15 @@ public final class SignIn {
                 audit.emit(AuditEvent.IDENTIFIER_THROTTLED, AccountContext.identifierThrottled());
             }
             TooManyRequests.write(writer, request, response, throttled.refusal());
+        } else if (failure instanceof JsonCredentialsConverter.LockoutCardinalityException refused) {
+            audit.emit(AuditEvent.SOURCE_THROTTLED,
+                    AccountContext.sourceThrottled(SourceThrottleReason.RATE_LIMITED_LOCKOUT_CARDINALITY));
+            TooManyRequests.write(writer, request, response, refused.refusal());
         } else {
+            if (failure instanceof PasswordDisabledException capped) {
+                audit.emit(AuditEvent.LOGIN_FAILURE,
+                        AccountContext.loginFailure(capped.userId(), LoginFailureReason.PASSWORD_DISABLED));
+            }
             writer.write(request, response, failure instanceof JsonCredentialsConverter.MalformedLoginException
                     ? ErrorCode.VALIDATION_FAILED
                     : ErrorCode.AUTHENTICATION_FAILED);

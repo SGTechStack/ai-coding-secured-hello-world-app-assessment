@@ -70,6 +70,52 @@ public enum AuditEvent {
             .build()),
 
     /**
+     * Row 3: an account was locked by consecutive password failures (ADR-011; ADR-012). WARN, not ERROR: the
+     * catalogue fixes the level (REJ-043). Not keyed: lockout transitions are tier 3, and an account locks at most
+     * once a rung (ADR-019).
+     */
+    LOCKOUT_TRIGGERED(row("user-authentication", "Account locked.")
+            .type("error")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.HIGH)
+            .reasons(LockoutReason.class)
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 4: a password lock was cleared. The lift is lazy, with no scheduler, so it is observed where the lock is
+     * cleared: for now the next sign-in that finds it lifted; admin unlock and reset redemption add their reasons.
+     */
+    LOCKOUT_CLEARED(row("user-authentication", "Account lock cleared.")
+            .type("change")
+            .reasons(LockoutClearReason.class)
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 45: an account's password failures since its last success reached the alert threshold, the warning about
+     * 580 minutes before the NIST cap disables its password (ADR-011; ADR-013). Once per transition; an alert.
+     */
+    PASSWORD_FAILURE_ALERT(row("user-authentication", "Password failures reached the alert threshold.")
+            .type("error")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.HIGH)
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * The NIST cap disabled an account's password authenticator; only rebinding clears it (ADR-013; R-LCK-004). ERROR
+     * and critical, like the factor's tier-2 disable. The reason tells the automatic trip from an operator action.
+     */
+    PASSWORD_DISABLED(row("user-authentication", "Password disabled.")
+            .type("error")
+            .outcome(Outcome.FAILURE)
+            .level(Level.ERROR, Severity.CRITICAL)
+            .reasons(PasswordDisableReason.class)
+            .required(USER_ID)
+            .build()),
+
+    /**
      * Row 5: a request was throttled on its source key, by a budget-table row or by the session-miss budget. A tier-1
      * keyed row: one per source, reason and keying window, with its count (ADR-019).
      */

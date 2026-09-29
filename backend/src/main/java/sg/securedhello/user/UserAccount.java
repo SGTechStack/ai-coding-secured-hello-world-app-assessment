@@ -98,4 +98,19 @@ public class UserAccount {
     public Instant getActivatedAt() {
         return activatedAt;
     }
+
+    /** The password-lockout columns (ADR-011; ADR-012; ADR-013). */
+    public PasswordLockoutState getLockoutState() {
+        return new PasswordLockoutState(failedLoginAttempts, lastFailedAt, lockedUntil,
+                consecutiveFailuresSinceSuccess, passwordDisabledAt);
+    }
+
+    /** Writes the password-lockout columns; the caller holds the row lock. */
+    public void setLockoutState(PasswordLockoutState state) {
+        this.failedLoginAttempts = state.failedLoginAttempts();
+        this.lastFailedAt = state.lastFailedAt();
+        this.lockedUntil = state.lockedUntil();
+        this.consecutiveFailuresSinceSuccess = state.consecutiveFailuresSinceSuccess();
+        this.passwordDisabledAt = state.passwordDisabledAt();
+    }
 }

@@ -6,6 +6,9 @@ import static org.mockito.Mockito.mockingDetails;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.sql.Timestamp;
+import java.time.Duration;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +16,13 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
+import sg.securedhello.security.lockout.LockoutProperties;
+import sg.securedhello.security.ratelimit.LockoutCardinalityProperties;
 import sg.securedhello.security.ratelimit.RateLimitProperties;
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxBudgetTest;
+import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SignedIn;
 
 /**
@@ -25,13 +31,20 @@ import sg.securedhello.testsupport.SignedIn;
  * exists, is disabled or was never activated.
  *
  * <p>It runs on {@link CtxBudgetTest}: counting calls needs the encoder bean wrapped in a spy, which a shared
- * context must not have, and the limiter cases need {@code application.yml}'s budgets. A limiter refusal costs no
- * {@code matches()} at all. The lockout and NIST-cap rows of T-AUTH-003 extend it when those controls land.
+ * context must not have, and the limiter cases need {@code application.yml}'s budgets. A limiter refusal, the
+ * lockout-cardinality axis's included, costs no {@code matches()} at all. A locked or capped account costs one, like
+ * every other account: the pre-authentication checks refuse it, and the provider still compares the password.
  */
 class PasswordMatchCountTest extends CtxBudgetTest {
 
     @Autowired
     private RateLimitProperties budgets;
+
+    @Autowired
+    private LockoutCardinalityProperties cardinality;
+
+    @Autowired
+    private LockoutProperties lockout;
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -57,8 +70,15 @@ class PasswordMatchCountTest extends CtxBudgetTest {
     }
 
     @Test
+    @Proves("T-AUTH-003")
     void matchesRunsOncePerLoginWhetherOrNotTheAccountExists() throws Exception {
         Accounts.Account known = accounts.user();
+        Accounts.Account locked = accounts.user();
+        jdbc.update("UPDATE users SET locked_until = ? WHERE id = ?",
+                Timestamp.from(clock.instant().plus(Duration.ofHours(1))), locked.id());
+        Accounts.Account capped = accounts.user();
+        jdbc.update("UPDATE users SET password_disabled_at = ? WHERE id = ?", Timestamp.from(clock.instant()),
+                capped.id());
 
         assertThat(matchesCalls(known.username(), known.password())).as("success").isEqualTo(1);
         assertThat(matchesCalls(known.username(), "not-the-password-at-all")).as("wrong password").isEqualTo(1);
@@ -66,9 +86,16 @@ class PasswordMatchCountTest extends CtxBudgetTest {
         assertThat(matchesCalls(accounts.disabled().username(), Accounts.PASSWORD)).as("disabled").isEqualTo(1);
         assertThat(matchesCalls(accounts.notActivated().username(), Accounts.PASSWORD)).as("never activated")
                 .isEqualTo(1);
+        assertThat(matchesCalls(locked.username(), Accounts.PASSWORD)).as("locked, right password").isEqualTo(1);
+        assertThat(matchesCalls(locked.username(), "not-the-password-at-all")).as("locked, wrong password")
+                .isEqualTo(1);
+        assertThat(matchesCalls(capped.username(), Accounts.PASSWORD)).as("capped, right password").isEqualTo(1);
+        assertThat(matchesCalls(capped.username(), "not-the-password-at-all")).as("capped, wrong password")
+                .isEqualTo(1);
     }
 
     @Test
+    @Proves("T-AUTH-003")
     void aSourceRefusalCostsNoMatches() throws Exception {
         String source = nextSource();
         CsrfSession session = CsrfSession.bootstrap(mockMvc, source);
@@ -83,6 +110,7 @@ class PasswordMatchCountTest extends CtxBudgetTest {
     }
 
     @Test
+    @Proves("T-AUTH-003")
     void aUsernameRefusalCostsNoMatches() throws Exception {
         String source = nextSource();
         CsrfSession session = CsrfSession.bootstrap(mockMvc, source);
@@ -93,6 +121,24 @@ class PasswordMatchCountTest extends CtxBudgetTest {
         clearInvocations(passwordEncoder);
 
         loginFrom(source, session, known.username()).andExpect(status().isTooManyRequests());
+
+        assertThat(matchesCalls()).isZero();
+    }
+
+    @Test
+    @Proves("T-AUTH-003")
+    void aLockoutCardinalityRefusalCostsNoMatches() throws Exception {
+        String source = nextSource();
+        CsrfSession session = CsrfSession.bootstrap(mockMvc, source);
+        for (int i = 0; i < cardinality.k(); i++) {
+            Accounts.Account victim = accounts.user();
+            for (int attempt = 0; attempt < lockout.threshold(); attempt++) {
+                loginFrom(source, session, victim.username()).andExpect(status().isUnauthorized());
+            }
+        }
+        clearInvocations(passwordEncoder);
+
+        loginFrom(source, session, accounts.user().username()).andExpect(status().isTooManyRequests());
 
         assertThat(matchesCalls()).isZero();
     }

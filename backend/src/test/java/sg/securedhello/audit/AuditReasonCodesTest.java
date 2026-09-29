@@ -23,16 +23,23 @@ class AuditReasonCodesTest {
             "UNKNOWN_KEY", "MISSING_KEY", "REASON_OUTSIDE_FAMILY", "EMIT_FAILED",
             // LoginFailureReason: row 2
             "BAD_CREDENTIALS", "UNKNOWN_USER", "ACCOUNT_LOCKED", "ACCOUNT_DISABLED", "CREDENTIAL_EXPIRED",
+            "PASSWORD_DISABLED",
             // SessionStartReason: row 8
             "LOGIN",
             // CsrfReason: row 13
             "CSRF_MISSING", "CSRF_INVALID",
             // SourceThrottleReason: row 5
-            "RATE_LIMITED_SOURCE", "RATE_LIMITED_SOURCE_MISSES",
+            "RATE_LIMITED_SOURCE", "RATE_LIMITED_SOURCE_MISSES", "RATE_LIMITED_LOCKOUT_CARDINALITY",
             // IdentifierThrottleReason: row 6
             "RATE_LIMITED_IDENTIFIER",
             // TruncationReason: row 46
-            "SOURCE_CAP_REACHED", "USER_CAP_REACHED");
+            "SOURCE_CAP_REACHED", "USER_CAP_REACHED",
+            // LockoutReason: row 3
+            "THRESHOLD_REACHED",
+            // LockoutClearReason: row 4
+            "AUTO_LIFT",
+            // PasswordDisableReason: the NIST cap's disable
+            "FAILURE_CAP");
 
     @Test
     @Proves("T-AUD-045")

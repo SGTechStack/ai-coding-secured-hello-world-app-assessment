@@ -12,7 +12,8 @@ package sg.securedhello.audit;
  * {@code permits}.
  */
 public sealed interface AuditReason permits AuditReason.None, Degradation, LoginFailureReason,
-        SessionStartReason, CsrfReason, SourceThrottleReason, IdentifierThrottleReason, TruncationReason {
+        SessionStartReason, CsrfReason, SourceThrottleReason, IdentifierThrottleReason, TruncationReason,
+        LockoutReason, LockoutClearReason, PasswordDisableReason {
 
     /** The pinned value written to {@code event.reason}. */
     String code();

@@ -14,20 +14,46 @@ import org.springframework.boot.web.server.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.env.CommandLinePropertySource;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
+import org.springframework.core.env.MutablePropertySources;
 
 import sg.securedhello.SecuredHelloApplication;
 import sg.securedhello.config.ResetLinkLoggerGuard;
 
 /**
  * {@code restart}: boots the whole application through {@code SpringApplication}, on its own temporary H2 file and a
- * random port, with the {@link TestSecrets}. Used where a test needs a real startup, e.g. to prove that startup is
- * refused before the port opens. The context is closed before {@link #boot} returns.
+ * random port, with the {@link TestSecrets} and, under {@code dev} only, BCrypt cost 4. Used where a test needs a real
+ * startup, e.g. to prove that startup is refused before the port opens. The context is closed before {@link #boot}
+ * returns.
  */
 public final class RestartHarness {
 
-    /** A random port and the test-speed BCrypt cost, as command-line arguments so they outrank application.yml. */
-    private static final String[] HARNESS_ARGUMENTS = {"--server.port=0", "--app.security.password.bcrypt-strength=4"};
+    /** A random port, as a command-line argument so it outranks application.yml. */
+    private static final String[] HARNESS_ARGUMENTS = {"--server.port=0"};
+
+    private static final String BCRYPT_STRENGTH = "app.security.password.bcrypt-strength";
+
+    /**
+     * The test-speed BCrypt cost 4, under {@code dev} only: outside {@code dev} {@code PasswordEncoderConfig} refuses
+     * a cost below 12 (ADR-001), so a non-dev boot hashes at the production cost. It sits just below the
+     * command line, so a caller's {@code --app.security.password.bcrypt-strength} still wins.
+     */
+    private static final ApplicationContextInitializer<ConfigurableApplicationContext> TEST_SPEED_BCRYPT_UNDER_DEV =
+            context -> {
+                ConfigurableEnvironment environment = context.getEnvironment();
+                if (!environment.matchesProfiles("dev")) {
+                    return;
+                }
+                MutablePropertySources sources = environment.getPropertySources();
+                MapPropertySource cost = new MapPropertySource("harnessBcryptCost", Map.of(BCRYPT_STRENGTH, "4"));
+                if (sources.contains(CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME)) {
+                    sources.addAfter(CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME, cost);
+                } else {
+                    sources.addFirst(cost);
+                }
+            };
 
     private RestartHarness() {
     }
@@ -64,7 +90,7 @@ public final class RestartHarness {
         // (ADR-057). A restart is a fresh process, so it starts from the logger's default level, as production would.
         LoggingSystem.get(RestartHarness.class.getClassLoader()).setLogLevel(ResetLinkLoggerGuard.LOGGER_NAME, null);
         SpringApplicationBuilder builder = new SpringApplicationBuilder(SecuredHelloApplication.class)
-                .initializers(new TemporaryH2FileInitializer())
+                .initializers(new TemporaryH2FileInitializer(), TEST_SPEED_BCRYPT_UNDER_DEV)
                 .listeners((ApplicationListener<WebServerInitializedEvent>) event -> portOpened.set(true));
         customiser.accept(builder);
         // A caller's argument replaces the harness's own for the same property: a repeated option would bind as a list.

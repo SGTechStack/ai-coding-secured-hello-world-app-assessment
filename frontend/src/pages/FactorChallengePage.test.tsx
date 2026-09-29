@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -126,5 +126,56 @@ describe('/verify', () => {
         true,
       ),
     )
+  })
+
+  it('a 429 with Retry-After says how long and holds Verify disabled until it elapses', async () => {
+    let retryAfter = '1200'
+    server.use(
+      http.post(VERIFICATION, () => {
+        const locked = problemResponse('TOO_MANY_REQUESTS', '/api/mfa/totp/verification', {
+          factor: 'TOTP',
+          reason: 'LOCKED',
+        })
+        locked.headers.set('Retry-After', retryAfter)
+        return locked
+      }),
+    )
+    renderApp('/verify')
+    const user = userEvent.setup()
+
+    await user.type(await screen.findByLabelText('Code from the app'), '123456')
+    await user.click(screen.getByRole('button', { name: 'Verify' }))
+
+    expect(await screen.findByText('Too many attempts. Try again in 20 minutes.')).toHaveAttribute('role', 'alert')
+    expect(screen.getByRole('button', { name: 'Verify' })).toBeDisabled()
+
+    // A short lock lifts on its own: Verify comes back and the copy clears.
+    cleanup()
+    retryAfter = '1'
+    renderApp('/verify')
+    await user.type(await screen.findByLabelText('Code from the app'), '123456')
+    await user.click(screen.getByRole('button', { name: 'Verify' }))
+    expect(await screen.findByText('Too many attempts. Try again in 1 second.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Verify' })).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Verify' })).toBeEnabled(), { timeout: 3000 })
+    expect(screen.queryByText(/Try again in/)).not.toBeInTheDocument()
+  })
+
+  it('a self-read that fails without a redirect shows an error with a retry, not an endless load', async () => {
+    let fail = true
+    server.use(
+      http.get(apiUrl('/api/profile'), () =>
+        fail ? problemResponse('INTERNAL_ERROR', '/api/profile') : HttpResponse.json(enrolledAdmin),
+      ),
+    )
+    renderApp('/verify')
+    const user = userEvent.setup()
+
+    expect(await screen.findByText('The service is unavailable. Try again later.')).toHaveAttribute('role', 'alert')
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+
+    fail = false
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByRole('heading', { name: 'TOTP Verification' })).toBeInTheDocument()
   })
 })

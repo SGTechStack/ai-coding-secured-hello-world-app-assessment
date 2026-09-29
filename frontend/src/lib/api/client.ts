@@ -1,4 +1,4 @@
-import { ApiError, isProblem, UnexpectedResponseError } from './errors'
+import { ApiError, isProblem, retryAfterSeconds, UnexpectedResponseError } from './errors'
 
 /**
  * The headers every API request carries. The server's entry point is configured against exactly this `Accept`
@@ -106,7 +106,9 @@ async function send<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => undefined)
-    throw isProblem(body) ? new ApiError(body) : new UnexpectedResponseError(response.status)
+    throw isProblem(body)
+      ? new ApiError(body, retryAfterSeconds(response.headers.get('Retry-After')))
+      : new UnexpectedResponseError(response.status)
   }
   const text = await response.text()
   return (text ? JSON.parse(text) : undefined) as T

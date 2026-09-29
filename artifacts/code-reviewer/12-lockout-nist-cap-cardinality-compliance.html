@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 12-lockout-nist-cap-cardinality</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+        <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall: WARN (no FAIL)</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">thermo-nuclear PASS 0/0/0/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/1/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">semgrep SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">im8 PASS 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">react SKIPPED</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">springboot PASS 0/0/0/1</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t12-lockout</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 12: lockout, NIST cap and cardinality axis. Run inline (no subagents available). Counts are Critical/High/Medium/Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="bg-slate-50"><tr><th class="p-2">Check</th><th class="p-2">Status</th><th class="p-2">C/H/M/L</th><th class="p-2">Summary</th></tr></thead>
+          <tbody>
+            <tr class="border-t"><td class="p-2">build</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2"><code>mvn -f backend/pom.xml verify -Ddependency-check.skip=true</code> green: 615 unit and context tests and 6 ITs, including <code>TraceabilityGateIT</code> (25 rows off the ledger) and <code>AuditInventoryDriftIT</code> with the regenerated inventory. <code>-Pmutation</code>: 107 of 107 mutants killed; <code>LockoutCounter</code> and <code>LockoutLadder</code> 58 of 58, which the pom's existing class-name scope already matched. Frontend (untouched): typecheck, oxlint, prettier, Vitest 71 passed, production build. Playwright on ports 18012/15112: 8 passed. Low: the first full Playwright run had two Firefox failures that did not recur, either in a Firefox-only run or in a second full run.</td></tr>
+            <tr class="border-t"><td class="p-2">thermo-nuclear</td><td class="p-2">PASS</td><td class="p-2">0/0/0/2</td><td class="p-2">The pure logic is split into <code>LockoutLadder</code> (arithmetic and floor) and <code>LockoutCounter</code> (transitions over one <code>PasswordLockoutState</code> value). <code>LockoutRecorder</code> is the only stateful piece. The cardinality axis is its own small class, <code>LockoutCardinality</code>, next to <code>AuthRateLimiter</code>. Low: <code>SignIn.loginFailed</code> now has four branches. Low: the compact constructor of <code>LockoutProperties</code> skips the floor check while any value is missing, and leaves those to bean validation.</td></tr>
+            <tr class="border-t"><td class="p-2">code-review</td><td class="p-2">WARN</td><td class="p-2">0/0/1/2</td><td class="p-2">All six acceptance criteria are tested. Medium: ADR-037 says a lockout and a cap disable end the account's sessions. That needs ticket 13's <code>SessionTerminationService</code>, so T-SES-017 and T-SES-021 stay on the ledger. Low: T-LCK-008 has a parallel-login test, but it runs in ctx-default at cost 4, not ctx-nondev at cost 12, so the row is not claimed. T-LCK-007 (restart persistence) needs a same-file restart harness and stays pending. Low: T-AUTH-006 still needs the reset and registration endpoints.</td></tr>
+            <tr class="border-t"><td class="p-2">semgrep</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">The semgrep CLI is not installed on this machine.</td></tr>
+            <tr class="border-t"><td class="p-2">im8</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">as-4 and as-5: an escalating lockout that lifts on its own, a NIST 100-failure disable with an alert at 50, and a per-source cap on accounts driven into lockout. Refusals stay the uniform 401 and <code>matches()</code> runs once for every account state. No lockout branch runs before the account lookup, and an ArchUnit rule enforces it. Lockout, clear, alert and disable are audited at the catalogue's levels: lockout at WARN (REJ-043), disable at ERROR/critical. Low: until ticket 13 lands, a lockout leaves the account's live sessions running (ADR-037).</td></tr>
+            <tr class="border-t"><td class="p-2">react</td><td class="p-2">SKIPPED</td><td class="p-2">-</td><td class="p-2">No frontend source changed in this ticket.</td></tr>
+            <tr class="border-t"><td class="p-2">springboot</td><td class="p-2">PASS</td><td class="p-2">0/0/0/1</td><td class="p-2">Values bind through validated <code>@ConfigurationProperties</code> records, and a startup floor fails the refresh. Counting uses a <code>PESSIMISTIC_WRITE</code> repository query inside a <code>TransactionTemplate</code>, and rows are emitted after commit. Time comes from the <code>Clock</code>, truncated to the column's microsecond precision. The Caffeine cache runs on the Clock <code>Ticker</code>. Tests read every value from the bound properties. Low: every successful sign-in now takes the row lock to reset the counters.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

@@ -76,4 +76,26 @@ public class UserAccount {
     public UUID getId() {
         return id;
     }
+
+    public String getUsername() {
+        return username;
+    }
+
+    /** The encoded password, or {@code null} for an account that has never set one. */
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /** When the account was activated, or {@code null} if it never was. */
+    public Instant getActivatedAt() {
+        return activatedAt;
+    }
 }

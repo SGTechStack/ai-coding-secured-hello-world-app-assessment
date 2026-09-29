@@ -84,7 +84,7 @@ class ErrorEnvelopeTest extends CtxDefaultTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {UNMATCHED, "/", "/api/hello", "/api/admin/users"})
+    @ValueSource(strings = {UNMATCHED, "/", "/api/profile/password", "/api/admin/users"})
     @Proves({"T-ADM-007", "T-AUTH-011"})
     void anUnmatchedRouteRefusesASignedInUserWith403(String path) throws Exception {
         mockMvc.perform(get(path).with(user("user-adm007").roles("USER")))

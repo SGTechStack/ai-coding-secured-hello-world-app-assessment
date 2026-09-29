@@ -21,7 +21,12 @@ public enum AuditKey {
     /** Each application key's property and fingerprint, never the key (R-CFG-022). */
     KEY_FINGERPRINTS("labels.key_fingerprints"),
     /** The effective level of each audit-relevant logger (ADR-057). */
-    AUDIT_LOGGERS("labels.audit_loggers");
+    AUDIT_LOGGERS("labels.audit_loggers"),
+    /**
+     * The account the row is about, by its UUID; never a username or email (ADR-054). On a failed login it is written
+     * only when the account resolves, and set explicitly by the caller, never from MDC (REJ-042; R-AUD-007).
+     */
+    USER_ID("user.id");
 
     private final String field;
 

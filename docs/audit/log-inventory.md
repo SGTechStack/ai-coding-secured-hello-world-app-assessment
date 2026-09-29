@@ -27,6 +27,11 @@ Every row is written once per event; no row is keyed or truncated yet (ADR-019).
 
 | Event | `event.action` | `event.type` | `event.outcome` | Level | Severity | Request fields | Reason codes | Required keys | Optional keys | `message` |
 |---|---|---|---|---|---|---|---|---|---|---|
+| LOGIN_SUCCESS | `user-authentication` | `user` | success | INFO | low | yes | — | `user.id` | — | Login succeeded. |
+| LOGIN_FAILURE | `user-authentication` | `user` | failure | WARN | medium | yes | `BAD_CREDENTIALS`, `UNKNOWN_USER`, `ACCOUNT_LOCKED`, `ACCOUNT_DISABLED`, `CREDENTIAL_EXPIRED` | — | `user.id` | Login failed. |
+| LOGOUT | `user-logout` | `end` | success | INFO | low | yes | — | `user.id` | — | Logout succeeded. |
+| SESSION_START | `session-start` | `start` | success | INFO | low | yes | `LOGIN` | `user.id` | — | Session started. |
+| CSRF_REJECTED | `access-control` | `denied` | failure | WARN | medium | yes | `CSRF_MISSING`, `CSRF_INVALID` | — | `user.id` | CSRF validation failed. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
 | APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | — | — | — | Application stopping. |
 

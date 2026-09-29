@@ -11,7 +11,8 @@ package sg.securedhello.audit;
  * <p>A later ticket adds a family by writing an enum that implements this interface and naming it in
  * {@code permits}.
  */
-public sealed interface AuditReason permits AuditReason.None, Degradation {
+public sealed interface AuditReason permits AuditReason.None, Degradation, LoginFailureReason,
+        SessionStartReason, CsrfReason {
 
     /** The pinned value written to {@code event.reason}. */
     String code();

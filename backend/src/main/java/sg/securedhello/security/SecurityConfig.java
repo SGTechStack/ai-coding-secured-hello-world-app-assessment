@@ -1,5 +1,6 @@
 package sg.securedhello.security;
 
+import java.time.Clock;
 import java.time.Duration;
 
 import jakarta.servlet.DispatcherType;
@@ -10,21 +11,25 @@ import org.springframework.boot.security.autoconfigure.actuate.web.servlet.Endpo
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.session.SessionRepository;
 
+import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.config.OriginsProperties;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.security.csrf.HeaderOnlyCsrfTokenRequestHandler;
 import sg.securedhello.security.csrf.SessionOnlyCsrfTokenRepository;
+import sg.securedhello.security.login.SignIn;
 import sg.securedhello.session.AbsoluteLifetimeFilter;
+import sg.securedhello.session.SessionLifetimeProperties;
 
 /**
  * The application's security filter chain. Declaring it makes Boot's management security auto-configuration back
@@ -43,7 +48,7 @@ import sg.securedhello.session.AbsoluteLifetimeFilter;
  * every unsafe method, stored without ever creating a session, and never set as a cookie.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(AuthorizationMatrix.class)
+@EnableConfigurationProperties({AuthorizationMatrix.class, SessionLifetimeProperties.class})
 public class SecurityConfig {
 
     /** Role-definition paths: refused to everyone, including an admin (ADR-043; T-ADM-020). */
@@ -52,15 +57,21 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, AuthorizationMatrix matrix,
             AuthenticationEntryPoint problemAuthenticationEntryPoint, AccessDeniedHandler problemAccessDeniedHandler,
-            SessionRepository<?> sessionRepository, OriginsProperties origins, ProblemDetailWriter writer) {
+            SessionRepository<?> sessionRepository, OriginsProperties origins, ProblemDetailWriter writer,
+            SignIn signIn, SessionLifetimeProperties lifetime, Clock clock) {
         // W is what the repository really applies, not the raw timeout property (T-SES-033). Nothing is saved.
         Duration idleWindow = sessionRepository.createSession().getMaxInactiveInterval();
+        CsrfTokenRepository csrfTokens = new SessionOnlyCsrfTokenRepository();
+        CsrfTokenRequestHandler csrfHandler = new HeaderOnlyCsrfTokenRequestHandler();
+        // Sign-in, the concurrent-session filter and sign-out (ADR-038); the login composite rotates the CSRF token.
+        signIn.configure(http, csrfTokens, csrfHandler, idleWindow);
         return http
                 .addFilter(CorsPolicy.filter(origins, writer))
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(new SessionOnlyCsrfTokenRepository())
-                        .csrfTokenRequestHandler(new HeaderOnlyCsrfTokenRequestHandler()))
-                .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow), SecurityContextHolderFilter.class)
+                        .csrfTokenRepository(csrfTokens)
+                        .csrfTokenRequestHandler(csrfHandler))
+                .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow, lifetime.absolute(), clock, writer),
+                        SecurityContextHolderFilter.class)
                 .authorizeHttpRequests(requests -> {
                     // The /error dispatch only renders the envelope for a request that has already failed.
                     requests.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
@@ -78,10 +89,9 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(problemAuthenticationEntryPoint)
                         .accessDeniedHandler(problemAccessDeniedHandler))
-                // The API never redirects: no saved request to return to, and no default /logout redirect. The cache
+                // The API never redirects: no saved request to return to, and sign-out answers 204 (SignIn). The cache
                 // is an explicit NullRequestCache (ADR-040), so no filter can fall back to the session-backed default.
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
-                .logout(LogoutConfigurer::disable)
                 .build();
     }
 
@@ -93,8 +103,8 @@ public class SecurityConfig {
 
     /** Envelope producer 3: 403 {@code ACCESS_DENIED}, or {@code CSRF_TOKEN_INVALID} for a CSRF refusal. */
     @Bean
-    AccessDeniedHandler problemAccessDeniedHandler(ProblemDetailWriter writer) {
-        return new ProblemAccessDeniedHandler(writer);
+    AccessDeniedHandler problemAccessDeniedHandler(ProblemDetailWriter writer, AuditEmitter audit) {
+        return new ProblemAccessDeniedHandler(writer, audit);
     }
 
     /**

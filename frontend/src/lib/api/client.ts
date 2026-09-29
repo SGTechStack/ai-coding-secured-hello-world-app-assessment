@@ -43,6 +43,15 @@ export function refreshCsrfToken(): Promise<CsrfToken> {
   return bootstrapCsrf()
 }
 
+/** Per-call options for {@link apiFetch}. */
+export interface ApiFetchOptions {
+  /**
+   * Whether a `CSRF_TOKEN_INVALID` refusal is retried once after a re-bootstrap; default `true`. Sign-out turns it
+   * off: it is terminal on 204, 401 and 403 alike, and never retried (REJ-051; T-FE-017).
+   */
+  csrfRetry?: boolean
+}
+
 /**
  * Calls the API with the session cookie and the fixed headers. Resolves with the parsed JSON body (or `undefined` for
  * an empty one), and rejects with {@link ApiError} for an envelope or {@link UnexpectedResponseError} for any other
@@ -50,16 +59,16 @@ export function refreshCsrfToken(): Promise<CsrfToken> {
  *
  * An unsafe request carries the CSRF token, fetched lazily (ADR-040). If the server still answers
  * `CSRF_TOKEN_INVALID`, the token is fetched again and the request retried once, silently; a second refusal is
- * returned to the caller.
+ * returned to the caller. A caller that must not be retried passes `{ csrfRetry: false }`.
  */
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}, options: ApiFetchOptions = {}): Promise<T> {
   if (SAFE_METHODS.has((init.method ?? 'GET').toUpperCase())) {
     return send<T>(path, init)
   }
   try {
     return await send<T>(path, withToken(init, await bootstrapCsrf()))
   } catch (error) {
-    if (!(error instanceof ApiError && error.code === 'CSRF_TOKEN_INVALID')) {
+    if (options.csrfRetry === false || !(error instanceof ApiError && error.code === 'CSRF_TOKEN_INVALID')) {
       throw error
     }
     return send<T>(path, withToken(init, await refreshCsrfToken()))

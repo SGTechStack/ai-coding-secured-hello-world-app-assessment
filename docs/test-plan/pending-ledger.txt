@@ -2,26 +2,15 @@
 # Each entry is a test-plan row that has no test yet. A ticket that proves a row removes its line here in the same
 # change. The gate fails when an entry is missing, already proven, or not a row, so this file only shrinks.
 # Ticket 28 deletes it. Reconcile after a merge with the command in backend/README.md.
-T-AUTH-002
 T-AUTH-003
-T-AUTH-004
-T-AUTH-005
 T-AUTH-006
 T-AUTH-008
-T-AUTH-010
-T-AUTH-013
 T-AUTH-014
 T-AUTH-016
 T-AUTH-017
-T-SES-001
 T-SES-003
 T-SES-004
-T-SES-005
-T-SES-006
-T-SES-007
 T-SES-008
-T-SES-009
-T-SES-010
 T-SES-012
 T-SES-013
 T-SES-014
@@ -37,16 +26,8 @@ T-SES-023
 T-SES-027
 T-SES-028
 T-SES-029
-T-SES-034
-T-SES-035
 T-SES-036
-T-CSRF-001
-T-CSRF-003
 T-CSRF-004
-T-CSRF-005
-T-CSRF-006
-T-CSRF-007
-T-CSRF-008
 T-LCK-001
 T-LCK-002
 T-LCK-003
@@ -170,22 +151,17 @@ T-MFA-023
 T-AUD-001
 T-AUD-002
 T-AUD-004
-T-AUD-005
 T-AUD-006
 T-AUD-007
-T-AUD-008
-T-AUD-009
 T-AUD-010
 T-AUD-014
 T-AUD-015
 T-AUD-018
 T-AUD-019
-T-AUD-020
 T-AUD-021
 T-AUD-022
 T-AUD-023
 T-AUD-024
-T-AUD-025
 T-AUD-026
 T-AUD-027
 T-AUD-028
@@ -249,10 +225,7 @@ T-FE-001
 T-FE-002
 T-FE-003
 T-FE-004
-T-FE-005
-T-FE-006
 T-FE-007
-T-FE-008
 T-FE-009
 T-FE-010
 T-FE-011
@@ -261,7 +234,6 @@ T-FE-013
 T-FE-014
 T-FE-015
 T-FE-016
-T-FE-017
 T-FE-018
 T-FE-019
 T-FE-020
@@ -272,9 +244,6 @@ T-FE-024
 T-FE-025
 T-FE-026
 T-FE-027
-T-E2E-002
-T-E2E-003
-T-E2E-004
 T-E2E-005
 T-BLD-004
 T-BLD-005

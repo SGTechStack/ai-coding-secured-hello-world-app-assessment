@@ -1,15 +1,11 @@
 import { CSPProvider } from '@base-ui/react/csp-provider'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router'
-import { shouldRetry } from '@/lib/api/client'
-import { HomePage } from '@/pages/HomePage'
-
-const routes = [{ path: '/', element: <HomePage /> }]
+import { createQueryClient, routes } from '@/routes'
 
 export function App() {
-  // Only a request that got no status is retried (REJ-052).
-  const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: shouldRetry } } }))
+  const [queryClient] = useState(createQueryClient)
   const [router] = useState(() => createBrowserRouter(routes))
 
   return (

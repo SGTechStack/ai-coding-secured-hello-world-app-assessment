@@ -42,9 +42,9 @@ class AdminUserController {
 	}
 
 	@GetMapping
-	UserPage list(@RequestParam(defaultValue = "0") @Min(0) int page,
-			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-		return this.adminUserService.list(page, size);
+	UserPage list(@AuthenticationPrincipal AuthenticatedUser actor, @RequestParam(defaultValue = "0") @Min(0) int page,
+			@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size, HttpServletRequest http) {
+		return this.adminUserService.list(actor, page, size, http.getRemoteAddr());
 	}
 
 	@PatchMapping("/{id}/status")

@@ -45,9 +45,17 @@ class AdminUserService {
 		this.audit = audit;
 	}
 
+	/** Audited because it reveals every user's email address. */
 	@Transactional(readOnly = true)
-	public UserPage list(int page, int size) {
-		return UserPage.from(this.users.findAll(PageRequest.of(page, size, LIST_ORDER)));
+	public UserPage list(AuthenticatedUser actor, int page, int size, String clientIp) {
+		UserPage result = UserPage.from(this.users.findAll(PageRequest.of(page, size, LIST_ORDER)));
+		this.audit.event(AuditEvent.USER_LIST_VIEWED)
+			.actor(actor.username())
+			.ip(clientIp)
+			.with("page", page)
+			.with("size", size)
+			.log();
+		return result;
 	}
 
 	@Transactional

@@ -71,6 +71,24 @@ class AuditLoggingIntegrationTests extends IntegrationTest {
 	}
 
 	@Test
+	void accessDenialsAndUserListingAreAudited(CapturedOutput output) {
+		User user = createUser(Role.USER);
+		User admin = createUser(Role.ADMIN);
+
+		loggedIn(user).get("/api/admin/users");
+		newClient().postWithoutCsrf("/api/auth/login", Map.of("username", user.getUsername(), "password", "x"));
+		loggedIn(admin).get("/api/admin/users?page=0&size=10");
+
+		assertThat(output)
+			.contains("event=ACCESS_DENIED actor=" + user.getUsername())
+			.contains("reason=FORBIDDEN method=GET path=/api/admin/users")
+			.contains("event=ACCESS_DENIED actor=-")
+			.contains("reason=CSRF_INVALID method=POST path=/api/auth/login")
+			.contains("event=USER_LIST_VIEWED actor=" + admin.getUsername())
+			.contains("page=0 size=10");
+	}
+
+	@Test
 	void passwordResetEventsAreAudited(CapturedOutput output) {
 		User user = createUser(Role.USER);
 		newClient().post("/api/auth/password-reset/request", Map.of("email", user.getEmail()));

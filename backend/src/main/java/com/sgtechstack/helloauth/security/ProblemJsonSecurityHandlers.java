@@ -12,23 +12,33 @@ import tools.jackson.databind.json.JsonMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.stereotype.Component;
 
+import com.sgtechstack.helloauth.audit.AuditEvent;
+import com.sgtechstack.helloauth.audit.AuditLog;
+
 /**
  * Writes Spring Security's 401 and 403 responses as problem details, matching the rest of the
- * API, instead of redirects or HTML error pages.
+ * API, instead of redirects or HTML error pages. Every 403 (a failed authorization or CSRF check)
+ * is audited; 401s are not, because every anonymous page load produces one.
  */
 @Component
 public class ProblemJsonSecurityHandlers implements AuthenticationEntryPoint, AccessDeniedHandler {
 
 	private final JsonMapper jsonMapper;
 
-	public ProblemJsonSecurityHandlers(JsonMapper jsonMapper) {
+	private final AuditLog audit;
+
+	public ProblemJsonSecurityHandlers(JsonMapper jsonMapper, AuditLog audit) {
 		this.jsonMapper = jsonMapper;
+		this.audit = audit;
 	}
 
 	@Override
@@ -40,7 +50,17 @@ public class ProblemJsonSecurityHandlers implements AuthenticationEntryPoint, Ac
 	@Override
 	public void handle(HttpServletRequest request, HttpServletResponse response,
 			AccessDeniedException accessDeniedException) throws IOException {
-		if (accessDeniedException instanceof CsrfException) {
+		boolean csrf = accessDeniedException instanceof CsrfException;
+		Authentication authentication = SecurityContextHolder.getContextHolderStrategy().getContext().getAuthentication();
+		boolean anonymous = authentication == null || authentication instanceof AnonymousAuthenticationToken;
+		this.audit.event(AuditEvent.ACCESS_DENIED)
+			.actor(anonymous ? null : authentication.getName())
+			.ip(request.getRemoteAddr())
+			.reason(csrf ? "CSRF_INVALID" : "FORBIDDEN")
+			.with("method", request.getMethod())
+			.with("path", request.getRequestURI())
+			.log();
+		if (csrf) {
 			write(request, response, HttpStatus.FORBIDDEN, "CSRF_INVALID", "Missing or invalid CSRF token.");
 		}
 		else {

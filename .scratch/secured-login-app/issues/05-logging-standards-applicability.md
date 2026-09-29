@@ -133,3 +133,9 @@ Only two of the ~30 candidate questions across the three reports are genuinely s
 - **[11 — Password reset flow](11-password-reset-flow.md)** — reset-request auditability under enumeration resistance, and the one workflow a single `trace.id` cannot span.
 - **[14 — Test and validation plan](14-test-and-validation-plan.md)** — assertable log requirements, plus a latent defect in the recipe's auth-method resolution that 01's custom filter will trip.
 - **[15 — Tech baseline and module structure](15-tech-baseline-and-module-structure.md)** — the dependency and configuration consequences of the enforced constraints above.
+
+---
+
+**Narrowed by [02 — Persistence and session backend](02-persistence-and-session-backend.md).** This ticket ruled `Recipes/Logging_Batch_And_Scheduled_Jobs.md` **confirmed vacuous** on the grounds that neither of its gates — Spring Batch on the classpath, and `@Scheduled` — holds. The second gate **does** hold: 02 chose Spring Session JDBC, which ships a framework-internal expired-session cleanup sweep, exposed by Boot as `spring.session.jdbc.cleanup-cron` (default: every minute). 02 verified this from the property's existence and Spring Session's documented behaviour, **not** by inspecting the jar — there is no `pom.xml` yet — so it is to be confirmed at build time.
+
+The ruling is narrowed, not reversed: **vacuous for jobs we author.** The recipe's subject is logging emitted *from* batch and scheduled jobs, and we neither write this sweep nor log from it. 02 kept the task rather than disabling it via `cleanup-cron: "-"`, because disabling it would leave the `SPRING_SESSION` table unbounded — and under 02's file-based `dev` H2, that table now actually persists across restarts.

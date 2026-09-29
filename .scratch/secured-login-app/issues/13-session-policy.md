@@ -19,3 +19,11 @@ Answer `Q9` (session timeout policies, `Questions.md:211`) and `Q11` (login and 
 `Q10` (remember-me) is already **out of scope** — record that it was consciously declined rather than leaving `Q10` blank.
 
 Blocked on 02 (the session store decides what timeout and concurrency controls are available).
+
+**Amended by [02 — Persistence and session backend](02-persistence-and-session-backend.md); this ticket is now unblocked.** The store is **Spring Session JDBC on the shared application datasource**, so the controls this ticket's `Q9` chooses between are all available:
+
+- **Find-by-principal works**, which is what makes a concurrent-session cap and Story 7's "invalidate all sessions" enforceable at all — `FindByIndexNameSessionRepository` is backed by the `PRINCIPAL_NAME` index carried in Spring Session's packaged DDL. 02 owns that DDL through Liquibase specifically to guarantee the index is not lost; if this ticket sets a concurrent-session maximum, that index is the mechanism.
+- **Idle and absolute timeouts** are `server.servlet.session.timeout` plus Spring Session's own settings; the `SPRING_SESSION` row carries `EXPIRY_TIME`, so expiry is server-side fact, not cookie arithmetic.
+- **A framework-internal expired-session sweep already runs** (`spring.session.jdbc.cleanup-cron`, default every minute). This ticket should note its interaction with whatever absolute timeout it sets — the sweep is what reclaims rows, not what enforces expiry — and that 02 deliberately left it enabled.
+- **Under 02's file-based `dev` H2, sessions now survive an application restart.** That is a behaviour this ticket should state explicitly: a pre-restart cookie is still valid afterwards unless the timeout has passed. In `test` (in-memory) it is not.
+- Timestamp comparisons follow 02: UTC `Instant`, with an injectable `Clock` so 14 can test expiry without sleeping.

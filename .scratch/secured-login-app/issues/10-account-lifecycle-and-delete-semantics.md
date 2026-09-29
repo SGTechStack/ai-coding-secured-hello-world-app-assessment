@@ -27,3 +27,11 @@ Also settle the **admin self-action guards** the PRD requires in Stories 9, 10 a
 - **`PATCH /api/v1/users/batchResetPassword`** (`Standalone_Privileged_User_Administration_and_Password_Reset.md:399`) is the concrete bulk operation `Q24` must rule in or out.
 
 Blocked on 03 (role model) and 04 (which self-service surface exists at all).
+
+**Amended by [02 — Persistence and session backend](02-persistence-and-session-backend.md).** Schema mechanics are settled, so this ticket's schema extension has a prescribed home and fixed column conventions:
+
+- **Liquibase**, with `spring.jpa.hibernate.ddl-auto: validate` — so the changelog is the source of truth and any drift from the entities fails at startup.
+- **This ticket owns its own changelog file** under `db/changelog/db.changelog-master.yaml`, one versioned file per logical change. 02 locked that convention because several tickets add schema concurrently and a single growing changelog would guarantee conflicts.
+- **Column conventions are not this ticket's to choose:** primary keys are `UUID`, declared as `java.sql.Types.UUID` so Liquibase resolves the vendor type; every timestamp is `TIMESTAMP WITH TIME ZONE` mapped to `java.time.Instant` and stored UTC, read through an injectable `Clock`.
+- 02's table inventory already **reserves the slot** for what this ticket adds; only the columns are open.
+- Whatever DDL this ticket writes must hold on **both** H2 and PostgreSQL — 02 answered `Q6` as PostgreSQL-declared-target, and [14](14-test-and-validation-plan.md) now runs the security-critical suite against real PostgreSQL via Testcontainers, so vendor-specific DDL will fail visibly rather than silently.

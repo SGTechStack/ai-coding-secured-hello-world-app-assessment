@@ -11,21 +11,30 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class CurrentAccountFilter extends OncePerRequestFilter {
-    private final UserRepository users;
-    public CurrentAccountFilter(UserRepository users) { this.users = users; }
+  private final UserRepository users;
 
-    @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
-            throws ServletException, IOException {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof AuthPrincipal principal) {
-            boolean current = users.findById(principal.id())
-                    .filter(user -> user.isEnabled() && user.getSecurityVersion() == principal.securityVersion()).isPresent();
-            if (!current) {
-                SecurityContextHolder.clearContext();
-                if (request.getSession(false) != null) request.getSession(false).invalidate();
-            }
-        }
-        chain.doFilter(request, response);
+  public CurrentAccountFilter(UserRepository users) {
+    this.users = users;
+  }
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+      throws ServletException, IOException {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    if (auth != null && auth.getPrincipal() instanceof AuthPrincipal principal) {
+      boolean current =
+          users
+              .findById(principal.id())
+              .filter(
+                  user ->
+                      user.isEnabled() && user.getSecurityVersion() == principal.securityVersion())
+              .isPresent();
+      if (!current) {
+        SecurityContextHolder.clearContext();
+        if (request.getSession(false) != null) request.getSession(false).invalidate();
+      }
     }
+    chain.doFilter(request, response);
+  }
 }

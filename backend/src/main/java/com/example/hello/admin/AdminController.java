@@ -14,24 +14,40 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/users")
 public class AdminController {
-    private final AdminService service;
-    public AdminController(AdminService service) { this.service = service; }
+  private final AdminService service;
 
-    @GetMapping List<UserView> users() { return service.list(); }
+  public AdminController(AdminService service) {
+    this.service = service;
+  }
 
-    @PatchMapping("/{id}/status")
-    UserView status(@AuthenticationPrincipal AuthPrincipal actor, @PathVariable UUID id, @Valid @RequestBody StatusRequest request) {
-        return service.status(actor, id, request.enabled());
-    }
+  @GetMapping
+  List<UserView> users() {
+    return service.list();
+  }
 
-    @PatchMapping("/{id}/role")
-    UserView role(@AuthenticationPrincipal AuthPrincipal actor, @PathVariable UUID id, @Valid @RequestBody RoleRequest request) {
-        return service.role(actor, id, request.role());
-    }
+  @PatchMapping("/{id}/status")
+  UserView status(
+      @AuthenticationPrincipal AuthPrincipal actor,
+      @PathVariable UUID id,
+      @Valid @RequestBody StatusRequest request) {
+    return service.status(actor, id, request.enabled());
+  }
 
-    @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
-    void delete(@AuthenticationPrincipal AuthPrincipal actor, @PathVariable UUID id) { service.delete(actor, id); }
+  @PatchMapping("/{id}/role")
+  UserView role(
+      @AuthenticationPrincipal AuthPrincipal actor,
+      @PathVariable UUID id,
+      @Valid @RequestBody RoleRequest request) {
+    return service.role(actor, id, request.role());
+  }
 
-    public record StatusRequest(@NotNull Boolean enabled) {}
-    public record RoleRequest(@NotNull Role role) {}
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  void delete(@AuthenticationPrincipal AuthPrincipal actor, @PathVariable UUID id) {
+    service.delete(actor, id);
+  }
+
+  public record StatusRequest(@NotNull Boolean enabled) {}
+
+  public record RoleRequest(@NotNull Role role) {}
 }

@@ -12,23 +12,33 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class ApiErrors {
-    @ExceptionHandler(ApiException.class)
-    ResponseEntity<?> application(ApiException error) {
-        return ResponseEntity.status(error.status()).body(Map.of("message", error.getMessage()));
-    }
+  @ExceptionHandler(ApiException.class)
+  ResponseEntity<?> application(ApiException error) {
+    return ResponseEntity.status(error.status()).body(Map.of("message", error.getMessage()));
+  }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<?> validation(MethodArgumentNotValidException error) {
-        Map<String, String> fields = new LinkedHashMap<>();
-        error.getBindingResult().getFieldErrors().forEach(field -> fields.putIfAbsent(field.getField(), field.getDefaultMessage()));
-        return ResponseEntity.badRequest().body(Map.of("message", "Please check the highlighted fields.", "errors", fields));
-    }
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  ResponseEntity<?> validation(MethodArgumentNotValidException error) {
+    Map<String, String> fields = new LinkedHashMap<>();
+    error
+        .getBindingResult()
+        .getFieldErrors()
+        .forEach(field -> fields.putIfAbsent(field.getField(), field.getDefaultMessage()));
+    return ResponseEntity.badRequest()
+        .body(Map.of("message", "Please check the highlighted fields.", "errors", fields));
+  }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
-    ResponseEntity<?> malformed() { return ResponseEntity.badRequest().body(Map.of("message", "Invalid request.")); }
+  @ExceptionHandler({
+    HttpMessageNotReadableException.class,
+    MethodArgumentTypeMismatchException.class
+  })
+  ResponseEntity<?> malformed() {
+    return ResponseEntity.badRequest().body(Map.of("message", "Invalid request."));
+  }
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    ResponseEntity<?> conflict() {
-        return ResponseEntity.status(409).body(Map.of("message", "Username or email is already registered."));
-    }
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  ResponseEntity<?> conflict() {
+    return ResponseEntity.status(409)
+        .body(Map.of("message", "Username or email is already registered."));
+  }
 }

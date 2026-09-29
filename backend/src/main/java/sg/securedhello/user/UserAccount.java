@@ -81,6 +81,10 @@ public class UserAccount {
         return username;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
     /** The encoded password, or {@code null} for an account that has never set one. */
     public String getPasswordHash() {
         return passwordHash;
@@ -97,5 +101,15 @@ public class UserAccount {
     /** When the account was activated, or {@code null} if it never was. */
     public Instant getActivatedAt() {
         return activatedAt;
+    }
+
+    /**
+     * Stores a user-chosen password's hash, which also completes any forced change: the flag and the issue time clear
+     * (ADR-046). The one writer of the credential column; only {@code PasswordService} may call it (ArchUnit).
+     */
+    public void replacePasswordHash(String encoded) {
+        this.passwordHash = encoded;
+        this.forcePasswordChange = false;
+        this.credentialIssuedAt = null;
     }
 }

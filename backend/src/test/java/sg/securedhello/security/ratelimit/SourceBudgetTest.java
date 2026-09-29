@@ -7,6 +7,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -206,6 +207,30 @@ class SourceBudgetTest extends CtxBudgetTest {
                 return request;
             })).andExpect(status().isOk());
         }
+    }
+
+    @Test
+    void pastTheProfilePasswordBurstAChangeIs429BeforeTheCurrentPasswordIsChecked() throws Exception {
+        long burst = budgets.profilePassword().source().burst();
+        String source = nextSource();
+        Accounts.Account account = accounts.user();
+        MvcResult login = SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc, source), account.username(),
+                account.password()).andExpect(status().isOk()).andReturn();
+        CsrfSession session = SignedIn.refreshed(mockMvc, login.getResponse().getCookie("SESSION"));
+        MockHttpServletRequestBuilder wrongCurrent = patch("/api/profile/password").with(session.inHeader())
+                .with(request -> {
+                    request.setRemoteAddr(source);
+                    return request;
+                }).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"currentPassword\":\"not the password\",\"newPassword\":\"velvet harbour quietly hums\"}");
+        for (long i = 0; i < burst; i++) {
+            mockMvc.perform(wrongCurrent).andExpect(problem(ErrorCode.VALIDATION_FAILED));
+        }
+        clearInvocations(passwordEncoder);
+
+        mockMvc.perform(wrongCurrent).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS))
+                .andExpect(header().string(HttpHeaders.RETRY_AFTER, "6"));
+        verify(passwordEncoder, never()).matches(any(), any());
     }
 
     /** A JSON login body of exactly {@code bytes} bytes, for an unknown username. */

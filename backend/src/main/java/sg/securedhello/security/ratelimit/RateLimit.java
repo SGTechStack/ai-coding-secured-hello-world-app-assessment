@@ -23,7 +23,11 @@ public enum RateLimit {
     LOGIN_USERNAME("login", HttpMethod.POST, "/api/login", Axis.USERNAME, RateLimitProperties::login),
 
     /** {@code GET /api/csrf}, per source key: burst 30, then 1 per 2 s. */
-    CSRF_SOURCE("csrf", HttpMethod.GET, "/api/csrf", Axis.SOURCE, RateLimitProperties::csrf);
+    CSRF_SOURCE("csrf", HttpMethod.GET, "/api/csrf", Axis.SOURCE, RateLimitProperties::csrf),
+
+    /** {@code PATCH /api/profile/password}, per source key: burst 10, then 1 per 6 s (ADR-008; R-RL-001). */
+    PROFILE_PASSWORD_SOURCE("profile-password", HttpMethod.PATCH, "/api/profile/password", Axis.SOURCE,
+            RateLimitProperties::profilePassword);
 
     private final String route;
     private final HttpMethod method;

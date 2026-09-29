@@ -1,0 +1,97 @@
+package sg.securedhello.password;
+
+import java.time.Clock;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+import org.jspecify.annotations.Nullable;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import sg.securedhello.credential.CredentialTokenRepository;
+import sg.securedhello.credential.CredentialTokenType;
+import sg.securedhello.security.PasswordProperties;
+import sg.securedhello.user.PasswordHistoryEntry;
+import sg.securedhello.user.PasswordHistoryRepository;
+import sg.securedhello.user.UserAccount;
+import sg.securedhello.user.UserAccountRepository;
+
+/**
+ * The single path that sets any password (ADR-005): self-service change, forced-change completion, activation, reset
+ * redemption and the bootstrap seed all call {@link #setPassword}. No call site is exempt, and ArchUnit holds it to
+ * being the only caller of {@code PasswordEncoder.encode()} and the only writer of the credential column (T-CRED-005).
+ *
+ * <p>It sets a password; it does not check one. A caller that must verify the current password first (the change
+ * endpoint, ADR-008) does so itself, and a caller that ends sessions does so through {@code SessionTerminationService}
+ * after this returns.
+ */
+@Service
+public class PasswordService {
+
+    private final PasswordPolicy policy;
+    private final PasswordEncoder encoder;
+    private final UserAccountRepository accounts;
+    private final PasswordHistoryRepository history;
+    private final CredentialTokenRepository tokens;
+    private final int historyLength;
+    private final Clock clock;
+
+    PasswordService(PasswordPolicy policy, PasswordEncoder encoder, UserAccountRepository accounts,
+            PasswordHistoryRepository history, CredentialTokenRepository tokens, PasswordProperties properties,
+            Clock clock) {
+        this.policy = policy;
+        this.encoder = encoder;
+        this.accounts = accounts;
+        this.history = history;
+        this.tokens = tokens;
+        this.historyLength = properties.historyLength();
+        this.clock = clock;
+    }
+
+    /**
+     * Sets the account's password, in the caller's transaction if there is one:
+     * <ol>
+     *   <li>normalises it to NFC and runs the policy, rules in order (ADR-005), the last being reuse of the current
+     *       password or one of the retained hashes before it;</li>
+     *   <li>encodes it with the BCrypt {@code DelegatingPasswordEncoder} (ADR-001; no pepper, ADR-004) and stores it,
+     *       which also completes any forced change (ADR-046);</li>
+     *   <li>records it in the history and trims the history to {@code history-length} (T-CRED-021);</li>
+     *   <li>invalidates the account's pending reset tokens (ADR-007).</li>
+     * </ol>
+     *
+     * @throws PasswordRejectedException if a rule refuses it; the transaction rolls back and nothing changes
+     * @throws IllegalArgumentException  if no account has {@code accountId}
+     */
+    @Transactional
+    public void setPassword(UUID accountId, String rawPassword) {
+        UserAccount account = accounts.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("No account " + accountId));
+        String password = PasswordPolicy.normalise(rawPassword);
+        List<PasswordHistoryEntry> retained = history.findByUserIdOrderByCreatedAtDesc(accountId);
+        policy.check(password, new PasswordPolicy.Account(account.getUsername(), account.getEmail()),
+                        candidate -> reuses(candidate, account.getPasswordHash(), retained))
+                .ifPresent(rule -> {
+                    throw new PasswordRejectedException(rule);
+                });
+
+        String encoded = encoder.encode(password);
+        account.replacePasswordHash(encoded);
+        history.save(new PasswordHistoryEntry(accountId, encoded, clock.instant()));
+        history.deleteAll(retained.stream().skip(historyLength - 1L).toList());
+        tokens.deletePending(accountId, CredentialTokenType.PASSWORD_RESET);
+    }
+
+    /**
+     * Whether {@code candidate} matches the current hash or one of the newest retained hashes, {@code history-length}
+     * in all. The current hash is normally the newest history row too, and is compared once; an account whose
+     * password was never set here (a fixture) still has its current one checked.
+     */
+    private boolean reuses(String candidate, @Nullable String current, List<PasswordHistoryEntry> retained) {
+        return Stream.concat(Stream.ofNullable(current),
+                        retained.stream().map(PasswordHistoryEntry::getPasswordHash).filter(hash -> !hash.equals(current)))
+                .limit(historyLength)
+                .anyMatch(hash -> encoder.matches(candidate, hash));
+    }
+}

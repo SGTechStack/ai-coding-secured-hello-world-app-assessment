@@ -66,7 +66,7 @@ $env:APP_SECURITY_HMAC_TOMBSTONE_KEY     = "BHTFVzkUqlCU8Z1m+CEmMPGnv+oZWNKtp00v
 $env:APP_SECURITY_HMAC_TOMBSTONE_VERSION = "1"
 $env:APP_SECURITY_HMAC_LOG_KEY           = "Y1l63mWeV+COTPcyKMi1tQf3dBUFFNbpONXPDeR6u58="
 $env:APP_ADMIN_USERNAME                  = "admin"
-$env:APP_ADMIN_PASSWORD                  = "dev-demo-admin-passphrase"
+$env:APP_ADMIN_PASSWORD                  = "lantern-orchard-copper-tide"
 $env:APP_ORIGINS_SPA                     = "http://localhost:5173"
 $env:APP_ORIGINS_API                     = "http://localhost:8080"
 mvn -f backend/pom.xml spring-boot:run "-Dspring-boot.run.profiles=dev"
@@ -81,11 +81,15 @@ export APP_SECURITY_HMAC_TOMBSTONE_KEY="BHTFVzkUqlCU8Z1m+CEmMPGnv+oZWNKtp00vvZX4
 export APP_SECURITY_HMAC_TOMBSTONE_VERSION="1"
 export APP_SECURITY_HMAC_LOG_KEY="Y1l63mWeV+COTPcyKMi1tQf3dBUFFNbpONXPDeR6u58="
 export APP_ADMIN_USERNAME="admin"
-export APP_ADMIN_PASSWORD="dev-demo-admin-passphrase"
+export APP_ADMIN_PASSWORD="lantern-orchard-copper-tide"
 export APP_ORIGINS_SPA="http://localhost:5173"
 export APP_ORIGINS_API="http://localhost:8080"
 mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
 ```
+
+Any replacement for `APP_ADMIN_PASSWORD` must pass the password policy that `PasswordService` runs on every password
+set: at least 15 characters, at most 72 UTF-8 bytes, not a breached or banned password, not containing the username,
+the email local part or the service name, and a zxcvbn score of 3 or more (ADR-005).
 
 Then start the SPA in a second terminal (`cd frontend; npm run dev`) and open http://localhost:5173. Check the
 backend with `curl http://localhost:8080/actuator/health`, which returns `{"status":"UP"}`.
@@ -98,7 +102,9 @@ above.
 mvn -f backend/pom.xml test-compile spring-boot:test-run "-Dspring-boot.run.main-class=sg.securedhello.e2e.E2eBackend" "-Dspring-boot.run.arguments=--server.port=8080 --app.origins.spa=http://localhost:5173 --app.origins.api=http://localhost:8080"
 ```
 
-Sign in as `e2e-chromium-hello` with password `e2e-password-correct-horse`. The fixture backend uses a fresh
+Sign in as `e2e-chromium-hello` with password `e2e-password-correct-horse`. The fixture accounts are inserted directly,
+not through `PasswordService`, so their fixed password is never checked against the policy; changing it from the
+Change password page is. The fixture backend uses a fresh
 temporary H2 file on every start.
 
 ## Browser tests (Playwright)

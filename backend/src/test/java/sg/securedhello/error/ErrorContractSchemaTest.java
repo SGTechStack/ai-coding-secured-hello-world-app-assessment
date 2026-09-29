@@ -28,6 +28,8 @@ class ErrorContractSchemaTest {
         body.put("instance", "/api/hello");
         body.put("traceId", "0123456789abcdef0123456789abcdef");
         body.put("code", code.name());
+        ErrorContract.EXTENSIONS.getOrDefault(code, Map.of())
+                .forEach((name, extension) -> body.put(name, extension.values().getFirst()));
         return body;
     }
 
@@ -39,6 +41,21 @@ class ErrorContractSchemaTest {
     @EnumSource(ErrorCode.class)
     void everyCodesEnvelopeConforms(ErrorCode code) {
         assertThat(violations(envelope(code))).isEmpty();
+    }
+
+    @Test
+    void anExtensionMemberIsRequiredOnItsCodeAndRefusedOnAnyOther() {
+        Map<String, Object> withoutRule = envelope(ErrorCode.PASSWORD_REJECTED);
+        withoutRule.remove("rule");
+        assertThat(violations(withoutRule)).isNotEmpty();
+
+        Map<String, Object> unknownRule = envelope(ErrorCode.PASSWORD_REJECTED);
+        unknownRule.put("rule", "NOT_A_RULE");
+        assertThat(violations(unknownRule)).isNotEmpty();
+
+        Map<String, Object> foreign = envelope(ErrorCode.VALIDATION_FAILED);
+        foreign.put("rule", "TOO_WEAK");
+        assertThat(violations(foreign)).isNotEmpty();
     }
 
     @Test

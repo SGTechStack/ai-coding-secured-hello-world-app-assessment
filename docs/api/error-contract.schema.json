@@ -15,6 +15,7 @@
         "detail" : {
           "const" : "Authentication is required, or the credentials were not accepted."
         },
+        "rule" : false,
         "status" : {
           "const" : 401
         },
@@ -39,6 +40,7 @@
         "detail" : {
           "const" : "The password must be changed before this request can be made."
         },
+        "rule" : false,
         "status" : {
           "const" : 403
         },
@@ -63,6 +65,7 @@
         "detail" : {
           "const" : "The CSRF token is missing, invalid or no longer current."
         },
+        "rule" : false,
         "status" : {
           "const" : 403
         },
@@ -87,6 +90,7 @@
         "detail" : {
           "const" : "The request is not permitted."
         },
+        "rule" : false,
         "status" : {
           "const" : 403
         },
@@ -111,6 +115,7 @@
         "detail" : {
           "const" : "The request was not valid."
         },
+        "rule" : false,
         "status" : {
           "const" : 400
         },
@@ -135,6 +140,9 @@
         "detail" : {
           "const" : "The password does not meet the password policy."
         },
+        "rule" : {
+          "enum" : [ "MIN_LENGTH", "MAX_BYTES", "BLOCKLISTED", "CONTEXT_TERM", "TOO_WEAK", "HISTORY_REUSE" ]
+        },
         "status" : {
           "const" : 400
         },
@@ -144,7 +152,8 @@
         "type" : {
           "const" : "tag:securedhello.sg,2026:problem:password-rejected"
         }
-      }
+      },
+      "required" : [ "rule" ]
     }
   }, {
     "if" : {
@@ -159,6 +168,7 @@
         "detail" : {
           "const" : "The token is invalid or has expired."
         },
+        "rule" : false,
         "status" : {
           "const" : 400
         },
@@ -183,6 +193,7 @@
         "detail" : {
           "const" : "A user with that username or email address already exists."
         },
+        "rule" : false,
         "status" : {
           "const" : 400
         },
@@ -207,6 +218,7 @@
         "detail" : {
           "const" : "Too many requests. Try again later."
         },
+        "rule" : false,
         "status" : {
           "const" : 429
         },
@@ -231,6 +243,7 @@
         "detail" : {
           "const" : "A current second-factor verification is required."
         },
+        "rule" : false,
         "status" : {
           "const" : 412
         },
@@ -255,6 +268,7 @@
         "detail" : {
           "const" : "The second-factor code was not accepted."
         },
+        "rule" : false,
         "status" : {
           "const" : 412
         },
@@ -279,6 +293,7 @@
         "detail" : {
           "const" : "A second factor must be enrolled before this request can be made."
         },
+        "rule" : false,
         "status" : {
           "const" : 422
         },
@@ -303,6 +318,7 @@
         "detail" : {
           "const" : "A second factor is already enrolled."
         },
+        "rule" : false,
         "status" : {
           "const" : 409
         },
@@ -327,6 +343,7 @@
         "detail" : {
           "const" : "The second factor is disabled. Contact an administrator."
         },
+        "rule" : false,
         "status" : {
           "const" : 423
         },
@@ -351,6 +368,7 @@
         "detail" : {
           "const" : "An unexpected error occurred."
         },
+        "rule" : false,
         "status" : {
           "const" : 500
         },
@@ -373,6 +391,9 @@
     },
     "instance" : {
       "type" : "string"
+    },
+    "rule" : {
+      "enum" : [ "MIN_LENGTH", "MAX_BYTES", "BLOCKLISTED", "CONTEXT_TERM", "TOO_WEAK", "HISTORY_REUSE" ]
     },
     "status" : {
       "type" : "integer"

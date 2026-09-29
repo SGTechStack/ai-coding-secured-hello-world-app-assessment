@@ -18,7 +18,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAccess;
+import com.tngtech.archunit.core.domain.JavaCall;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaFieldAccess;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.lang.ArchCondition;
@@ -34,12 +36,16 @@ import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import sg.securedhello.audit.AuditEmitter;
+import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
+import sg.securedhello.user.PasswordHistoryEntry;
+import sg.securedhello.user.UserAccount;
 
 /**
  * Every architecture rule, in one place. {@link ArchitectureTest} applies them to the code base; add a rule here and
@@ -83,6 +89,22 @@ final class ArchitectureRules {
             .that().doNotBelongToAnyOf(SourceKeyResolver.class)
             .should().accessTargetWhere(rawClientAddressRead())
             .because("the client address becomes a source key in SourceKeyResolver only (ADR-020)");
+
+    /** T-CRED-005: {@code PasswordService} is the only main-code caller of {@code PasswordEncoder.encode()} (ADR-005). */
+    static final ArchRule ONLY_PASSWORD_SERVICE_ENCODES = noClasses()
+            .that().doNotBelongToAnyOf(PasswordService.class)
+            .should().callMethodWhere(encodeCall())
+            .because("every password is set through PasswordService, which runs the policy first (ADR-005)");
+
+    /**
+     * Only {@code PasswordService} writes the credential column ({@code users.password_hash}) or a retained hash: no
+     * other class calls a {@code UserAccount} method or constructor that assigns {@code passwordHash}, or creates a
+     * {@code PasswordHistoryEntry} (ADR-005; R-STD-023).
+     */
+    static final ArchRule ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL = noClasses()
+            .that().doNotBelongToAnyOf(PasswordService.class, UserAccount.class, PasswordHistoryEntry.class)
+            .should().callCodeUnitWhere(credentialWrite())
+            .because("a password reaches the credential column only through PasswordService's policy (ADR-005)");
 
     /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
     static final ArchRule NO_REMEMBER_ME = noClasses()
@@ -171,6 +193,23 @@ final class ArchitectureRules {
                         || call.getTargetOwner().isAssignableTo(Logger.class)
                         && call.getTarget().getRawParameterTypes().stream()
                         .anyMatch(type -> type.isAssignableTo(Throwable.class)));
+    }
+
+    private static DescribedPredicate<JavaMethodCall> encodeCall() {
+        return DescribedPredicate.describe("PasswordEncoder.encode",
+                call -> call.getName().equals("encode") && call.getTargetOwner().isAssignableTo(PasswordEncoder.class));
+    }
+
+    /** A call to a {@code UserAccount} code unit that assigns {@code passwordHash}, or a history-entry constructor. */
+    private static DescribedPredicate<JavaCall<?>> credentialWrite() {
+        return DescribedPredicate.describe("a write of the credential column or a retained hash",
+                call -> call.getTargetOwner().isEquivalentTo(PasswordHistoryEntry.class)
+                        && call.getName().equals("<init>")
+                        || call.getTargetOwner().isEquivalentTo(UserAccount.class)
+                        && call.getTarget().resolveMember().stream()
+                        .flatMap(unit -> unit.getFieldAccesses().stream())
+                        .anyMatch(access -> access.getAccessType() == JavaFieldAccess.AccessType.SET
+                                && access.getTarget().getName().equals("passwordHash")));
     }
 
     private static DescribedPredicate<JavaMethodCall> rememberMeCall() {

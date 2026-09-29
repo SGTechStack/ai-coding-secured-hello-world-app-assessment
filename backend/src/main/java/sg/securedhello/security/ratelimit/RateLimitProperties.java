@@ -21,11 +21,13 @@ import org.springframework.validation.annotation.Validated;
  *
  * @param login       {@code POST /api/login}: source and username axes
  * @param csrf        {@code GET /api/csrf}: source axis
+ * @param profilePassword {@code PATCH /api/profile/password}: source axis
  * @param sessionMiss the per-source session-store miss budget, on every request (ADR-017)
  */
 @Validated
 @ConfigurationProperties("app.security.rate-limit")
-public record RateLimitProperties(@Valid Route login, @Valid Route csrf, @NotNull @Valid SessionMiss sessionMiss) {
+public record RateLimitProperties(@Valid Route login, @Valid Route csrf, @NotNull @Valid SessionMiss sessionMiss,
+        @Valid Route profilePassword) {
 
     /**
      * One route's budgets, one per axis it is throttled on; the axes it is not throttled on stay unset.

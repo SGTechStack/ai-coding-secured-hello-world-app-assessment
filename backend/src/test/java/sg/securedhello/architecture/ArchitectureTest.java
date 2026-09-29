@@ -1,5 +1,6 @@
 package sg.securedhello.architecture;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static sg.securedhello.architecture.ArchitectureRules.AUDIT_EMIT_TAKES_NO_THROWABLE;
 import static sg.securedhello.architecture.ArchitectureRules.NO_AMBIENT_TIME;
 import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_COOKIE;
@@ -10,6 +11,8 @@ import static sg.securedhello.architecture.ArchitectureRules.NO_REMEMBER_ME;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SLEEP;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SLICE_ON_PROVING_TESTS;
 import static sg.securedhello.architecture.ArchitectureRules.NO_THROWABLE_ON_AUDIT_ROWS;
+import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVICE_ENCODES;
+import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -18,6 +21,7 @@ import com.tngtech.archunit.core.importer.Location;
 
 import org.junit.jupiter.api.Test;
 
+import sg.securedhello.password.PasswordService;
 import sg.securedhello.testsupport.Proves;
 
 /** Applies {@link ArchitectureRules} to main and test code (level A). */
@@ -84,6 +88,21 @@ class ArchitectureTest {
     @Proves("T-AUD-016")
     void noAuditCodeAttachesAThrowableToALogEvent() {
         NO_THROWABLE_ON_AUDIT_ROWS.check(MAIN);
+    }
+
+    @Test
+    @Proves("T-CRED-005")
+    void passwordServiceIsTheSoleCallerOfEncode() {
+        ONLY_PASSWORD_SERVICE_ENCODES.check(MAIN);
+        // Exactly one caller, not none: the rule alone would pass vacuously if the call left main code.
+        assertThat(MAIN.get(PasswordService.class).getMethodCallsFromSelf())
+                .anyMatch(call -> call.getName().equals("encode"));
+    }
+
+    /** The ticket's credential-column rule; T-CRED-005 names only the {@code encode()} half. */
+    @Test
+    void onlyPasswordServiceWritesTheCredentialColumn() {
+        ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL.check(MAIN);
     }
 
     /** ADR-036 names no test-plan row for the cookie repository; T-CSRF-001 covers the response side. */

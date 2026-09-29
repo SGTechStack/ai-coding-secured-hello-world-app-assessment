@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -23,7 +24,11 @@ import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+
+import sg.securedhello.user.PasswordHistoryEntry;
+import sg.securedhello.user.UserAccount;
 
 /**
  * Deliberate rule violations, fed to the rules by {@code ArchitectureRulesSelfTest} so that a rule that silently
@@ -231,6 +236,30 @@ public final class ArchitectureViolations {
         void log(org.slf4j.Logger audit) {
             audit.atInfo().addKeyValue("k", "v").log();
             audit.error("failed {}", "x");
+        }
+    }
+
+    public static final class EncodesAPassword {
+        Object encode(PasswordEncoder encoder) {
+            return encoder.encode("a password set around the policy");
+        }
+    }
+
+    public static final class WritesTheCredentialColumn {
+        void write(UserAccount account) {
+            account.replacePasswordHash("{bcrypt}not-through-the-policy");
+        }
+    }
+
+    public static final class WritesARetainedHash {
+        Object write() {
+            return new PasswordHistoryEntry(UUID.randomUUID(), "{bcrypt}not-through-the-policy", Instant.EPOCH);
+        }
+    }
+
+    public static final class ReadsTheCredentialColumn {
+        Object read(UserAccount account) {
+            return account.getPasswordHash();
         }
     }
 }

@@ -37,7 +37,7 @@ public final class E2eBackend {
      * account, the new login wins). Mirrored in {@code frontend/e2e/fixtures.ts}.
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
-            .flatMap(browser -> List.of("hello", "service-worker").stream().map(test -> "e2e-" + browser + "-" + test))
+            .flatMap(browser -> List.of("hello", "service-worker", "change-password").stream().map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
 

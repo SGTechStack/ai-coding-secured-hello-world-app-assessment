@@ -32,8 +32,8 @@ class StartupRefusalTest {
 
     /**
      * The T-CFG-038 row's list, written out here rather than read from the implementation, so an omission from
-     * {@code RequiredPropertiesPostProcessor.REQUIRED} fails. The row's OTLP URL under the export profile has no
-     * profile to test yet (metrics export is off, ADR-061).
+     * {@code RequiredPropertiesPostProcessor.REQUIRED} fails. The row's OTLP URL under the export profile is
+     * {@code OtlpExportProfileTest}'s.
      */
     static final List<String> T_CFG_038_PROPERTIES = List.of("app.origins.spa", "app.origins.api",
             "app.mfa.totp.encryption.key-version", "app.security.hmac.tombstone.version", "app.mfa.totp.issuer");

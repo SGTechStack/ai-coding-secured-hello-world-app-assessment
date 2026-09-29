@@ -1,0 +1,9 @@
+# Metrics export over OTLP push (ADR-061). Activate this profile together with the posture profile, and supply the
+# collector's https URL as OTLP_METRICS_URL: with export enabled the URL is a required property, so startup stops
+# without it (T-CFG-038). Any export headers are a secret: supply them from the environment only (R-OBS-007; ADR-062).
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: true
+        url: ${OTLP_METRICS_URL}

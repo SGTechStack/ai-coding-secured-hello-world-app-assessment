@@ -1,5 +1,6 @@
 package sg.securedhello.user;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -20,6 +21,9 @@ import jakarta.persistence.UniqueConstraint;
         @UniqueConstraint(name = "ux_users_username", columnNames = "username"),
         @UniqueConstraint(name = "ux_users_email", columnNames = "email")})
 public class UserAccount {
+
+    /** How long a forced-change credential works for, from its issue (ADR-046). */
+    public static final Duration FORCED_CHANGE_GRACE = Duration.ofDays(30);
 
     /** Application-generated UUIDv4, assigned at {@code persist()} (ADR-050). */
     @Id
@@ -87,6 +91,17 @@ public class UserAccount {
         return account;
     }
 
+    /**
+     * The bootstrap administrator (ADR-047): an enabled, activated {@code ADMIN} account with no password yet. The
+     * caller issues its forced-change credential through {@code PasswordService} in the same transaction.
+     */
+    public static UserAccount administrator(String username, String email, Instant now) {
+        UserAccount account = pendingRegistration(username, email, now);
+        account.role = "ADMIN";
+        account.activatedAt = now;
+        return account;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -142,6 +157,20 @@ public class UserAccount {
         this.activatedAt = now;
     }
 
+    /** Whether the account holds a credential it must change before anything else (ADR-046). */
+    public boolean isForcePasswordChange() {
+        return forcePasswordChange;
+    }
+
+    /**
+     * Whether a forced-change credential is outstanding and was issued more than {@link #FORCED_CHANGE_GRACE} before
+     * {@code now}. A null issue time never expires (T-ADM-031).
+     */
+    public boolean forcedChangeExpiredAt(Instant now) {
+        return forcePasswordChange && credentialIssuedAt != null
+                && now.isAfter(credentialIssuedAt.plus(FORCED_CHANGE_GRACE));
+    }
+
     /** The password-lockout columns (ADR-011; ADR-012; ADR-013). */
     public PasswordLockoutState getLockoutState() {
         return new PasswordLockoutState(failedLoginAttempts, lastFailedAt, lockedUntil,
@@ -165,5 +194,16 @@ public class UserAccount {
         this.passwordHash = encoded;
         this.forcePasswordChange = false;
         this.credentialIssuedAt = null;
+    }
+
+    /**
+     * Stores an issued password's hash as a forced-change credential: the flag is set and the issue time stamped, so
+     * the lazy expiry applies (ADR-046). It writes the credential column, so only {@code PasswordService} may call it
+     * (ArchUnit).
+     */
+    public void issueCredential(String encoded, Instant issuedAt) {
+        this.passwordHash = encoded;
+        this.forcePasswordChange = true;
+        this.credentialIssuedAt = issuedAt;
     }
 }

@@ -38,7 +38,8 @@ public final class TestSecrets {
     public static final String TOMBSTONE_KEY = canaryKey(TOMBSTONE_KEY_TEXT);
     public static final String LOG_KEY = canaryKey(LOG_KEY_TEXT);
     public static final String ADMIN_USERNAME = "canary-admin";
-    public static final String ADMIN_PASSWORD = "TEST-ONLY-CANARY-admin-password-7f3a";
+    /** Passes the password policy for {@link #ADMIN_USERNAME}, so every harness context seeds the bootstrap admin. */
+    public static final String ADMIN_PASSWORD = "TEST-ONLY-CANARY-quartz-meadow-7f3a";
 
     /** Every secret value that must never appear in output: the encoded keys, their text and the admin password. */
     public static final List<String> CANARIES = List.of(TOTP_KEY, TOMBSTONE_KEY, LOG_KEY, TOTP_KEY_TEXT,

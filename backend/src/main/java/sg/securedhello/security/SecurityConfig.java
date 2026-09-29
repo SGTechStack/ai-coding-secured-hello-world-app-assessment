@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
@@ -50,7 +51,8 @@ import sg.securedhello.session.SessionLifetimeProperties;
  *
  * <p>Filter order (ADR-038): the {@link SourceRateLimitFilter}, then {@code SecurityContextHolderFilter}, then the
  * {@link AbsoluteLifetimeFilter}, then {@code CorsFilter}, the {@link RequestBodyCapFilter} and {@code CsrfFilter}, and
- * later the login filter, whose converter reads the body (T-RL-012).
+ * later the login filter, whose converter reads the body (T-RL-012). The {@link ForcedChangeFilter} runs last, just
+ * before authorization.
  *
  * <p>CSRF (ADR-036; ADR-040): a session-bound synchronizer token, read from the {@code X-CSRF-TOKEN} header only, on
  * every unsafe method, stored without ever creating a session, and never set as a cookie.
@@ -87,6 +89,8 @@ public class SecurityConfig {
                         .csrfTokenRequestHandler(csrfHandler))
                 .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow, lifetime.absolute(), clock, writer),
                         SecurityContextHolderFilter.class)
+                // A forced-change session reaches the five allowlisted routes only (ADR-046; REJ-055).
+                .addFilterBefore(new ForcedChangeFilter(writer), AuthorizationFilter.class)
                 .authorizeHttpRequests(requests -> {
                     // The /error dispatch only renders the envelope for a request that has already failed.
                     requests.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
@@ -96,8 +100,9 @@ public class SecurityConfig {
                     matrix.whitelist().forEach(route ->
                             requests.requestMatchers(route.method(), route.path()).permitAll());
                     requests.requestMatchers(ROLE_DEFINITION_PATHS).denyAll();
-                    matrix.roles().forEach((role, routes) -> routes.forEach(route ->
-                            requests.requestMatchers(route.method(), route.path()).hasRole(role)));
+                    matrix.rolesByRoute().forEach((route, roles) ->
+                            requests.requestMatchers(route.method(), route.path())
+                                    .hasAnyRole(roles.toArray(String[]::new)));
                     requests.anyRequest().denyAll();
                 })
                 // Set explicitly, so no request shape falls through to a redirect or a default 403 (T-AUTH-015).

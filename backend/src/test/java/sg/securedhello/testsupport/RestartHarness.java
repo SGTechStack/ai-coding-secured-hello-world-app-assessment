@@ -1,5 +1,6 @@
 package sg.securedhello.testsupport;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -66,13 +67,27 @@ public final class RestartHarness {
                 .initializers(new TemporaryH2FileInitializer())
                 .listeners((ApplicationListener<WebServerInitializedEvent>) event -> portOpened.set(true));
         customiser.accept(builder);
-        String[] arguments = Stream.concat(Stream.of(HARNESS_ARGUMENTS), Stream.of(args)).toArray(String[]::new);
+        // A caller's argument replaces the harness's own for the same property: a repeated option would bind as a list.
+        String[] arguments = Stream.concat(Stream.of(HARNESS_ARGUMENTS)
+                        .filter(harness -> Stream.of(args).noneMatch(arg -> arg.startsWith(harness.split("=")[0] + "="))),
+                Stream.of(args)).toArray(String[]::new);
         try (ConfigurableApplicationContext context = builder.run(arguments)) {
             whileRunning.accept(context);
             return new Boot(portOpened.get(), null);
         } catch (Throwable failure) {
             return new Boot(portOpened.get(), failure);
         }
+    }
+
+    /**
+     * An initializer, to run after {@link TemporaryH2FileInitializer}, that points the datasource at an H2 file in
+     * {@code directory} instead of a fresh one, so successive boots share a database (persistence across boots). The
+     * caller owns the directory, typically a JUnit {@code @TempDir}.
+     */
+    public static ApplicationContextInitializer<ConfigurableApplicationContext> onDatabase(Path directory) {
+        String database = directory.resolve("secured-hello").toString().replace('\\', '/');
+        return context -> context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
+                "restartDatabase", Map.of("spring.datasource.url", "jdbc:h2:file:" + database + ";LOCK_TIMEOUT=1000")));
     }
 
     /** An initializer, to run after {@link TemporaryH2FileInitializer}, that removes one test secret. */

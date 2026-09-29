@@ -1,0 +1,5 @@
+# CSRF tokens are session-bound and fetched from a bootstrap endpoint
+
+The SPA gets its CSRF token from `GET /api/csrf` and sends it in the `X-CSRF-TOKEN` header, with the token stored in the server-side Session. The common SPA pattern of a JS-readable `XSRF-TOKEN` cookie (`CookieCsrfTokenRepository`) is prohibited by App-Standards, because it weakens a stateful, session-based design. Do not "simplify" to the cookie pattern. For the same reason, logout keeps CSRF protection: logging out on an expired Session returns 401/403, and the SPA handles that by clearing its state and redirecting to login.
+
+A token is reused for the life of a Session and is not single-use per request. We read the Standard's "previously redeemed CSRF tokens are rejected on subsequent attempts" as: a token issued before a login or logout is rejected after it, because Spring issues a new token at both. That is tested. Rotating the token on every request would need a custom repository and would make parallel SPA requests race each other for the current token.

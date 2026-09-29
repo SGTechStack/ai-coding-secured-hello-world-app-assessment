@@ -50,3 +50,17 @@ Human decisions on reviewer `Human Decision Needed` findings. Apply a matching e
 - **KB finding:** None (KB unavailable). The SPA reports no client-side errors or performance data; no issue owned it.
 - **Chosen action:** Added to issue 14's scope (`.scratch/secured-hello-world/issues/14-operations-metrics-and-dependency-scan.md`). Tracked deferral for earlier issues.
 - **When to reuse:** Gate findings about SPA-side telemetry before issue 14 is done.
+
+## Password length/byte caps return `password_policy`
+
+- **Area:** Credential policy (`CredentialPolicy`), issue 03 registration; reused by Password Change, reset and Bootstrap Admin.
+- **KB finding:** None (KB unavailable). Issue 03 said the 64-character / 72-byte caps return 400 `validation`; `spec.md` (story 2, Testing Decisions, Further Notes) and ADR 0001 say `password_policy`.
+- **Chosen action:** Keep 400 `password_policy` with violations `max_length` / `max_bytes`, enforced only in the Credential policy. Issue text corrected to match the spec.
+- **When to reuse:** Any password-rule error-code question: password rules (including length and byte caps) belong to the Credential policy and return `password_policy`; `validation` is for non-password field format errors.
+
+## Non-H2 migrations: fix obvious dialect issues now, defer real-database runs
+
+- **Area:** Flyway migrations for Postgres/MySQL, issue 03 (V2 accounts).
+- **KB finding:** None (KB unavailable). Only H2 is tested; MySQL `TIMESTAMP` overflows in 2038.
+- **Chosen action:** Use `DATETIME(6)` for MySQL time columns. Don't add Testcontainers/Docker in feature issues; running migrations against real Postgres/MySQL is deferred to the issue that owns deployment (or noted in the current issue if none does).
+- **When to reuse:** Any later migration: fix clear dialect bugs in place; don't block a feature issue on real-database migration runs.

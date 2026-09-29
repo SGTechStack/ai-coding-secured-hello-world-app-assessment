@@ -9,7 +9,7 @@
 - [ ] A Flyway migration creates `users` (UUID id, lowercase unique username and email, password hash, role USER/ADMIN, enabled, `password_change_required` default false, failed-login counter, nullable `locked_until`, created-at) and `password_history`, written to run on H2, Postgres and MySQL.
 - [ ] `POST /api/register` (JSON `{username, email, password}`) returns 201 and creates an enabled Account with role USER. Any `role` in the body is ignored.
 - [ ] Usernames and emails are lowercased before storage and comparison; "Alice" and "alice" clash.
-- [ ] Input checks run before any business logic: username 3–32 `[A-Za-z0-9]`, valid email of at most 254 characters, password at most 64 characters and 72 UTF-8 bytes. Violations return 400 `validation`.
+- [ ] Input checks run before any business logic: username 3–32 `[A-Za-z0-9]` and valid email of at most 254 characters. Violations return 400 `validation`. The password caps (at most 64 characters and 72 UTF-8 bytes) are Credential policy rules, also checked before any business logic, and return 400 `password_policy` with `max_length` / `max_bytes` violations (spec story 2, Testing Decisions, Further Notes).
 - [ ] The Credential policy rejects passwords shorter than 12 characters or missing an uppercase letter, lowercase letter, digit, or special character (any printable non-letter/digit, whitespace included), and passwords in the bundled common-password list (case-insensitive). It returns 400 `password_policy` with a `violations` list naming every broken rule.
 - [ ] Passwords are hashed with BCrypt at cost 12 and recorded as the first Password History entry.
 - [ ] A clash on username or email returns 400 `user_exist` with `detail` "user exist", without saying which field clashed.

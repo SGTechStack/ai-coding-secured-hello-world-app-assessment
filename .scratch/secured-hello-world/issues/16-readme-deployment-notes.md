@@ -16,4 +16,5 @@
   - Never routing the management port publicly.
   - The production CORS allowlist, and reverse-proxy and NAT caveats for the IP Throttle.
   - The IM8 deviations accepted for this reference implementation.
+- [ ] The Postgres and MySQL Flyway migrations (`db/migration/postgresql`, `db/migration/mysql`) are run against real Postgres and MySQL databases, with Hibernate `ddl-auto=validate` passing. Until now only H2 has been tested (reviewer decision "Non-H2 migrations", issue 03).
 - [ ] Every configuration property the README names matches the property the app actually reads, and following the README from a clean checkout starts both applications in `dev`.

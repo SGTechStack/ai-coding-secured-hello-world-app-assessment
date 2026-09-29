@@ -1,9 +1,13 @@
 import { QueryClient } from '@tanstack/react-query'
 import type { RouteObject } from 'react-router'
+import { AdminGate } from '@/components/AdminGate'
 import { Layout } from '@/components/Layout'
 import { shouldRetry } from '@/lib/api/client'
 import { ActivatePage } from '@/pages/ActivatePage'
+import { AdminUserDetailPage } from '@/pages/AdminUserDetailPage'
+import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
+import { FactorChallengePage } from '@/pages/FactorChallengePage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HelloPage } from '@/pages/HelloPage'
 import { HomePage } from '@/pages/HomePage'
@@ -13,8 +17,18 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage'
 import { SignInPage } from '@/pages/SignInPage'
 
 /**
+ * The admin surface: the user list and one user, behind the admin gate. The gate is UX only; the pages render nothing
+ * the server did not return (T-FE-002).
+ */
+export const adminRoutes: RouteObject[] = [
+  { path: '/admin/users', element: <AdminUsersPage /> },
+  { path: '/admin/users/:id', element: <AdminUserDetailPage /> },
+]
+
+/**
  * Public: sign-in, register, activate, forgot and reset. Signed in: hello and change password. Administrators only:
- * `/settings/mfa`. The entry route decides between them from the self-read.
+ * `/settings/mfa`, the challenge at `/verify`, and the admin surface. The entry route decides between them from the
+ * self-read, in gate order.
  */
 export const routes: RouteObject[] = [
   {
@@ -29,6 +43,8 @@ export const routes: RouteObject[] = [
       { path: '/hello', element: <HelloPage /> },
       { path: '/change-password', element: <ChangePasswordPage /> },
       { path: '/settings/mfa', element: <MfaSettingsPage /> },
+      { path: '/verify', element: <FactorChallengePage /> },
+      { element: <AdminGate />, children: adminRoutes },
     ],
   },
 ]

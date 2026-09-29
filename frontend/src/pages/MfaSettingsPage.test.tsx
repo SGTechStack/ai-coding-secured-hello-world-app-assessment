@@ -182,3 +182,68 @@ describe('/settings/mfa', () => {
     expect(router.state.location.pathname).toBe('/hello')
   })
 })
+
+describe('/settings/mfa, after ticket 17', () => {
+  it('shows its own copy for FACTOR_ALREADY_ENROLLED at confirmation', async () => {
+    server.use(
+      http.post(ENROLMENT, () => HttpResponse.json(provisioning)),
+      http.post(CONFIRMATION, () => problemResponse('FACTOR_ALREADY_ENROLLED', '/api/mfa/totp/enrolment/confirmation')),
+    )
+    await generate()
+    await screen.findByRole('img', { name: 'QR code for your authenticator app' })
+
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('Code from the app'), '123456')
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() =>
+      expect(screen.getAllByRole('alert').some((alert) => /already set up/.test(alert.textContent ?? ''))).toBe(true),
+    )
+    expect(screen.queryByText(/could not be checked/)).not.toBeInTheDocument()
+  })
+
+  it('treats a provisioning body that is not the envelope as a failed generation, decoding nothing', async () => {
+    server.use(http.post(ENROLMENT, () => HttpResponse.json({ ...provisioning, qrPng: '%%% not base64 %%%' })))
+
+    await generate()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('The QR code could not be generated. Try again.')
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(created).toEqual([])
+  })
+
+  it('re-reads the self-read after enrolment, whose factor is now held, and offers the user list', async () => {
+    let profileReads = 0
+    server.use(
+      http.get(apiUrl('/api/profile'), () => {
+        profileReads += 1
+        return HttpResponse.json(admin)
+      }),
+      http.post(ENROLMENT, () => HttpResponse.json(provisioning)),
+      http.post(CONFIRMATION, () => new HttpResponse(null, { status: 204 })),
+    )
+    await generate()
+    await screen.findByRole('img', { name: 'QR code for your authenticator app' })
+    const readsBefore = profileReads
+
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText('Code from the app'), '123456')
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    expect(await screen.findByRole('link', { name: 'Continue to the user list' })).toHaveAttribute(
+      'href',
+      '/admin/users',
+    )
+    await waitFor(() => expect(profileReads).toBeGreaterThan(readsBefore))
+  })
+
+  it('labels the manual-entry key by its surrounding text, not by aria-labelledby on code', async () => {
+    server.use(http.post(ENROLMENT, () => HttpResponse.json(provisioning)))
+
+    await generate()
+
+    const key = await screen.findByText('JBSW Y3DP EHPK 3PXP JBSW Y3DP EHPK 3PXP')
+    expect(key.tagName).toBe('CODE')
+    expect(key).not.toHaveAttribute('aria-labelledby')
+  })
+})

@@ -54,6 +54,17 @@ describe('error contract', () => {
     expect(validate({ ...problemFixtures.ACCESS_DENIED, rule: 'USERNAME_UNAVAILABLE' })).toBe(false)
   })
 
+  it('T-AUTH-012: MISSING_FACTOR needs its factor and reason, and no other code may carry them', () => {
+    const { factor: _factor, ...withoutFactor } = problemFixtures.MISSING_FACTOR
+    const { reason: _reason, ...withoutReason } = problemFixtures.MISSING_FACTOR
+
+    expect(validate({ ...problemFixtures.MISSING_FACTOR, reason: 'EXPIRED' })).toBe(true)
+    expect(validate(withoutFactor)).toBe(false)
+    expect(validate(withoutReason)).toBe(false)
+    expect(validate({ ...problemFixtures.MISSING_FACTOR, reason: 'LOCKED' })).toBe(false)
+    expect(validate({ ...problemFixtures.INVALID_FACTOR, factor: 'TOTP' })).toBe(false)
+  })
+
   it('T-AUTH-012: a code paired with another status fails the schema', () => {
     expect(validate({ ...problemFixtures.ACCESS_DENIED, status: 401 })).toBe(false)
   })

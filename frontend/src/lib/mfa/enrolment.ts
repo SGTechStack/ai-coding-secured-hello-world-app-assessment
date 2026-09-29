@@ -1,17 +1,24 @@
+import { z } from 'zod'
 import { apiFetch, refreshCsrfToken } from '@/lib/api/client'
 
 /**
  * What `POST /api/mfa/totp/enrolment` returns, once (ADR-025): the `otpauth` URI, the same secret in Base32 for manual
- * entry, and the server-rendered QR code as a Base64 PNG. Never stored, cached or logged by the SPA.
+ * entry, and the server-rendered QR code as a Base64 PNG. Checked at runtime before anything decodes it, so a body
+ * that is not this shape is a failed generation, never a broken image or a thrown `atob`. Never stored, cached or
+ * logged by the SPA.
  */
-export interface Provisioning {
-  otpauthUri: string
-  secretBase32: string
-  qrPng: string
-}
+const provisioningSchema = z.object({
+  otpauthUri: z.string().startsWith('otpauth://totp/'),
+  secretBase32: z.string().regex(/^[A-Z2-7]+=*$/),
+  qrPng: z.base64(),
+})
 
-/** Provisions a new secret, replacing any pending one. */
-export const provisionTotp = () => apiFetch<Provisioning>('/api/mfa/totp/enrolment', { method: 'POST' })
+export type Provisioning = z.infer<typeof provisioningSchema>
+
+/** Provisions a new secret, replacing any pending one; rejects if the body is not a provisioning envelope. */
+export async function provisionTotp(): Promise<Provisioning> {
+  return provisioningSchema.parse(await apiFetch<unknown>('/api/mfa/totp/enrolment', { method: 'POST' }))
+}
 
 /**
  * Confirms enrolment with a code from the authenticator app (enrolment binding, REJ-071). The server granted the factor

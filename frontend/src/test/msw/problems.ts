@@ -27,7 +27,7 @@ export const problemFixtures: Readonly<Record<ErrorCode, Problem>> = {
   ),
   ACCESS_DENIED: fixture('ACCESS_DENIED', 403, 'Access denied', 'The request is not permitted.'),
   VALIDATION_FAILED: fixture('VALIDATION_FAILED', 400, 'Validation failed', 'The request was not valid.'),
-  // The one code with an extension member: the rule the password failed (ADR-005).
+  // An extension member: the rule the password failed (ADR-005).
   PASSWORD_REJECTED: {
     ...fixture('PASSWORD_REJECTED', 400, 'Password rejected', 'The password does not meet the password policy.'),
     rule: 'TOO_WEAK',
@@ -35,12 +35,12 @@ export const problemFixtures: Readonly<Record<ErrorCode, Problem>> = {
   RESET_TOKEN_INVALID: fixture('RESET_TOKEN_INVALID', 400, 'Token invalid', 'The token is invalid or has expired.'),
   USER_EXISTS: fixture('USER_EXISTS', 400, 'User exists', 'A user with that username or email address already exists.'),
   TOO_MANY_REQUESTS: fixture('TOO_MANY_REQUESTS', 429, 'Too many requests', 'Too many requests. Try again later.'),
-  MISSING_FACTOR: fixture(
-    'MISSING_FACTOR',
-    412,
-    'Second factor required',
-    'A current second-factor verification is required.',
-  ),
+  // The factor the admin surface requires, and why it was refused (R-MFA-001).
+  MISSING_FACTOR: {
+    ...fixture('MISSING_FACTOR', 412, 'Second factor required', 'A current second-factor verification is required.'),
+    factor: 'TOTP',
+    reason: 'MISSING',
+  },
   INVALID_FACTOR: fixture('INVALID_FACTOR', 412, 'Second factor invalid', 'The second-factor code was not accepted.'),
   FACTOR_ENROLMENT_REQUIRED: fixture(
     'FACTOR_ENROLMENT_REQUIRED',

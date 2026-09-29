@@ -67,9 +67,19 @@ export async function changePassword(currentPassword: string, newPassword: strin
 }
 
 /**
- * Where a signed-in session belongs, from the self-read, in gate order (spec, Frontend): the forced change first, so a
- * forced-change session goes straight to the change-password page; then the app. The factor gates slot in between.
+ * Where a signed-in session belongs, from the self-read, in gate order (spec, Frontend): the forced change first; then,
+ * for an administrator, enrolment, then the challenge, then the admin surface (ADR-023); a user goes to the greeting.
+ * The terminal factor state slots in before enrolment. Belief only: an envelope `code` overrides it.
  */
 export function landingFor(profile: Profile): string {
-  return profile.passwordChangeRequired ? '/change-password' : '/hello'
+  if (profile.passwordChangeRequired) {
+    return '/change-password'
+  }
+  if (profile.role !== 'ADMIN') {
+    return '/hello'
+  }
+  if (!profile.factors.enrolled) {
+    return '/settings/mfa'
+  }
+  return profile.factors.held ? '/admin/users' : '/verify'
 }

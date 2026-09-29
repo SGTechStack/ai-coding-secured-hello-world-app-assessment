@@ -25,11 +25,14 @@ import org.springframework.validation.annotation.Validated;
  * @param sessionMiss the per-source session-store miss budget, on every request (ADR-017)
  * @param register    {@code POST /api/register}: source axis
  * @param registerActivate {@code POST /api/register/activate}: source axis
+ * @param passwordResetRequest {@code POST /api/password-reset/request}: source and identifier axes
+ * @param passwordResetConfirm {@code POST /api/password-reset/confirm}: source axis
  */
 @Validated
 @ConfigurationProperties("app.security.rate-limit")
 public record RateLimitProperties(@Valid Route login, @Valid Route csrf, @NotNull @Valid SessionMiss sessionMiss,
-        @Valid Route profilePassword, @Valid Route register, @Valid Route registerActivate) {
+        @Valid Route profilePassword, @Valid Route register, @Valid Route registerActivate,
+        @Valid Route passwordResetRequest, @Valid Route passwordResetConfirm) {
 
     /**
      * One route's budgets, one per axis it is throttled on; the axes it is not throttled on stay unset.

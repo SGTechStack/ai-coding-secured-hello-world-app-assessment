@@ -49,6 +49,15 @@ public final class RestartHarness {
      * {@code args} are command-line arguments ({@code --name=value}), the way to override a property.
      */
     public static Boot boot(Consumer<SpringApplicationBuilder> customiser, String... args) {
+        return run(customiser, context -> { }, args);
+    }
+
+    /**
+     * As {@link #boot}, and runs {@code whileRunning} against the started application before closing it, for a test
+     * that must act on a real startup. A failure in {@code whileRunning} is the boot's failure.
+     */
+    public static Boot run(Consumer<SpringApplicationBuilder> customiser,
+            Consumer<ConfigurableApplicationContext> whileRunning, String... args) {
         AtomicBoolean portOpened = new AtomicBoolean();
         // Logback is one per JVM, and a dev context booted earlier in the suite enabled the dev-only link logger
         // (ADR-057). A restart is a fresh process, so it starts from the logger's default level, as production would.
@@ -58,7 +67,8 @@ public final class RestartHarness {
                 .listeners((ApplicationListener<WebServerInitializedEvent>) event -> portOpened.set(true));
         customiser.accept(builder);
         String[] arguments = Stream.concat(Stream.of(HARNESS_ARGUMENTS), Stream.of(args)).toArray(String[]::new);
-        try (ConfigurableApplicationContext ignored = builder.run(arguments)) {
+        try (ConfigurableApplicationContext context = builder.run(arguments)) {
+            whileRunning.accept(context);
             return new Boot(portOpened.get(), null);
         } catch (Throwable failure) {
             return new Boot(portOpened.get(), failure);

@@ -40,7 +40,10 @@ class RateLimitBindingTest extends CtxNondevTest {
             RateLimit.CSRF_SOURCE, new Budget(30, Duration.ofSeconds(2)),
             RateLimit.PROFILE_PASSWORD_SOURCE, new Budget(10, Duration.ofSeconds(6)),
             RateLimit.REGISTER_SOURCE, new Budget(5, Duration.ofSeconds(12)),
-            RateLimit.REGISTER_ACTIVATE_SOURCE, new Budget(10, Duration.ofSeconds(6)));
+            RateLimit.REGISTER_ACTIVATE_SOURCE, new Budget(10, Duration.ofSeconds(6)),
+            RateLimit.PASSWORD_RESET_REQUEST_SOURCE, new Budget(5, Duration.ofSeconds(12)),
+            RateLimit.PASSWORD_RESET_REQUEST_IDENTIFIER, new Budget(3, Duration.ofMinutes(20)),
+            RateLimit.PASSWORD_RESET_CONFIRM_SOURCE, new Budget(10, Duration.ofSeconds(6)));
 
     static Stream<Arguments> rows() {
         return Stream.of(RateLimit.values()).map(row -> Arguments.of(row, TABLE.get(row)));

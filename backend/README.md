@@ -101,7 +101,9 @@ backend with `curl http://localhost:8080/actuator/health`, which returns `{"stat
 
 To get an account, register at http://localhost:5173/register. No mail is sent: under `dev` the activation link is
 written at `DEBUG` to the dev-only logger `sg.securedhello.email.ResetLinkLogger` in the backend's console (ADR-057).
-Open it, set a password, then sign in. Outside `dev` that logger is refused at startup, so a link is delivered nowhere.
+Open it, set a password, then sign in. A forgotten password works the same way: request a reset at
+http://localhost:5173/forgot-password and the reset link, valid for 30 minutes, appears on the same logger. Outside
+`dev` that logger is refused at startup, so a link is delivered nowhere.
 
 Until the admin seed (ticket 16) lands there is no administrator. To demo sign-in without registering, use the fixture
 backend: it creates the accounts and needs none of the variables above.
@@ -123,7 +125,7 @@ temporary H2 file on every start.
   `mvn -f backend/pom.xml test-compile spring-boot:test-run -Dspring-boot.run.main-class=sg.securedhello.e2e.E2eBackend`.
   It is the real application under the `dev` profile on port 18010, with a fresh temporary H2 file, the test-only
   `TestSecrets`, the fixture accounts the browser tests sign in as, and a mailbox that replaces the dev link logger:
-  the registration test reads its activation link from `GET /e2e/mailbox?to=<address>`, never from a log. Nothing
+  the registration and reset tests read their links from `GET /e2e/mailbox?to=<address>`, never from a log. Nothing
   of it reaches the production build;
 - the production SPA build under `vite preview` on port 15110, built with `VITE_API_ORIGIN=http://localhost:18010`.
 

@@ -37,7 +37,7 @@ class AuditReasonCodesTest {
             // LockoutReason: row 3
             "THRESHOLD_REACHED",
             // LockoutClearReason: row 4
-            "AUTO_LIFT",
+            "AUTO_LIFT", "PASSWORD_RESET_COMPLETED",
             // PasswordDisableReason: the NIST cap's disable
             "FAILURE_CAP");
 

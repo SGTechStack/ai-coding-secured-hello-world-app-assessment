@@ -19,6 +19,9 @@ import org.jspecify.annotations.Nullable;
 public record PasswordLockoutState(int failedLoginAttempts, @Nullable Instant lastFailedAt,
         @Nullable Instant lockedUntil, int consecutiveFailuresSinceSuccess, @Nullable Instant passwordDisabledAt) {
 
+    /** No failures, no lock and no cap: what a rebinding, a reset redemption, leaves (ADR-009). */
+    public static final PasswordLockoutState CLEAR = new PasswordLockoutState(0, null, null, 0, null);
+
     /** Whether the account is locked at {@code now}: {@code locked_until} is still ahead. */
     public boolean lockedAt(Instant now) {
         return lockedUntil != null && lockedUntil.isAfter(now);

@@ -14,6 +14,7 @@ import static sg.securedhello.architecture.ArchitectureRules.NO_SLICE_ON_PROVING
 import static sg.securedhello.architecture.ArchitectureRules.NO_THROWABLE_ON_AUDIT_ROWS;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVICE_ENCODES;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL;
+import static sg.securedhello.architecture.ArchitectureRules.RESET_PATHS_AVOID_THE_AUTHENTICATION_MANAGER;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -110,6 +111,14 @@ class ArchitectureTest {
     @Test
     void onlyPasswordServiceWritesTheCredentialColumn() {
         ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL.check(MAIN);
+    }
+
+    @Test
+    @Proves("T-CRED-009")
+    void theResetPathsNeverDependOnTheAuthenticationManager() {
+        RESET_PATHS_AVOID_THE_AUTHENTICATION_MANAGER.check(MAIN);
+        // Not vacuous: the reset request and redemption live in the checked packages.
+        assertThat(MAIN.getPackage("sg.securedhello.passwordreset").getClasses()).isNotEmpty();
     }
 
     /** ADR-036 names no test-plan row for the cookie repository; T-CSRF-001 covers the response side. */

@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -119,6 +120,25 @@ final class ArchitectureRules {
             .that().doNotBelongToAnyOf(PasswordService.class, UserAccount.class, PasswordHistoryEntry.class)
             .should().callCodeUnitWhere(credentialWrite())
             .because("a password reaches the credential column only through PasswordService's policy (ADR-005)");
+
+    /** The packages the reset-request and redemption paths run through (T-CRED-009). */
+    static final String[] RESET_PATH_PACKAGES = {"sg.securedhello.passwordreset..", "sg.securedhello.credential..",
+            "sg.securedhello.password..", "sg.securedhello.email.."};
+
+    /**
+     * T-CRED-009: the reset paths never depend on the {@code AuthenticationManager}, which refuses a capped password;
+     * redemption is the rebinding that clears the cap, so it must not need what the cap blocks (ADR-009; ADR-013).
+     */
+    static final ArchRule RESET_PATHS_AVOID_THE_AUTHENTICATION_MANAGER =
+            noAuthenticationManagerIn(RESET_PATH_PACKAGES);
+
+    /** No class in {@code packageIdentifiers} depends on an {@code AuthenticationManager}. */
+    static ArchRule noAuthenticationManagerIn(String... packageIdentifiers) {
+        return noClasses()
+                .that().resideInAnyPackage(packageIdentifiers)
+                .should().dependOnClassesThat().areAssignableTo(AuthenticationManager.class)
+                .because("a reset must work while the password authenticator is disabled (ADR-009; ADR-013)");
+    }
 
     /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
     static final ArchRule NO_REMEMBER_ME = noClasses()

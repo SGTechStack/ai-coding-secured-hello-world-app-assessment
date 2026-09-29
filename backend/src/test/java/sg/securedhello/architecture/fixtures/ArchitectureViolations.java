@@ -269,4 +269,11 @@ public final class ArchitectureViolations {
             return account.getPasswordHash();
         }
     }
+
+    /** Authenticates on a reset path, where a capped account would be refused the reset that restores it. */
+    public static final class AuthenticatesOnTheResetPath {
+        Object authenticate(org.springframework.security.authentication.AuthenticationManager manager) {
+            return manager.authenticate(null);
+        }
+    }
 }

@@ -34,6 +34,8 @@ class AuthRateLimiterTest {
                 new SessionMiss(300, Duration.ofMinutes(15)),
                 new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
                 new Route(new Budget(5, Duration.ofSeconds(12)), null, null),
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
+                new Route(new Budget(5, Duration.ofSeconds(12)), null, new Budget(3, Duration.ofMinutes(20))),
                 new Route(new Budget(10, Duration.ofSeconds(6)), null, null));
         return new AuthRateLimiter(properties, ClockTimes.timeMeter(clock), ClockTimes.ticker(clock));
     }
@@ -141,6 +143,8 @@ class AuthRateLimiterTest {
                 null, new SessionMiss(300, Duration.ofMinutes(15)),
                 new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
                 new Route(new Budget(5, Duration.ofSeconds(12)), null, null),
+                new Route(new Budget(10, Duration.ofSeconds(6)), null, null),
+                new Route(new Budget(5, Duration.ofSeconds(12)), null, new Budget(3, Duration.ofMinutes(20))),
                 new Route(new Budget(10, Duration.ofSeconds(6)), null, null));
 
         assertThatIllegalStateException()

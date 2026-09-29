@@ -74,6 +74,11 @@ app:
           path: /api/register
         - method: POST
           path: /api/register/activate
+        # Password reset: request by email address, and redemption of a user- or admin-issued token (PRD Story 6).
+        - method: POST
+          path: /api/password-reset/request
+        - method: POST
+          path: /api/password-reset/confirm
       roles:
         USER:
           - method: GET
@@ -121,6 +126,17 @@ app:
           burst: 5
           refill-period: 12s
       register-activate:
+        source:
+          burst: 10
+          refill-period: 6s
+      password-reset-request:
+        source:
+          burst: 5
+          refill-period: 12s
+        identifier:
+          burst: 3
+          refill-period: 20m
+      password-reset-confirm:
         source:
           burst: 10
           refill-period: 6s

@@ -84,7 +84,8 @@ public enum AuditEvent {
 
     /**
      * Row 4: a password lock was cleared. The lift is lazy, with no scheduler, so it is observed where the lock is
-     * cleared: for now the next sign-in that finds it lifted; admin unlock and reset redemption add their reasons.
+     * cleared: the next sign-in that finds it lifted, or a reset redemption that clears it (ADR-009); admin unlock
+     * adds its reason.
      */
     LOCKOUT_CLEARED(row("user-authentication", "Account lock cleared.")
             .type("change")
@@ -137,6 +138,24 @@ public enum AuditEvent {
             .outcome(Outcome.FAILURE)
             .level(Level.WARN, Severity.MEDIUM)
             .reasons(IdentifierThrottleReason.class)
+            .build()),
+
+    /**
+     * A password reset was requested (PRD Story 6). It carries no {@code user.id}, and is written whether or not the
+     * address names an account, so the row never confirms one exists (REJ-002). Anyone can trigger it, so it is a
+     * tier-1 keyed row: one per source and keying window, with its count (ADR-019).
+     */
+    PASSWORD_RESET_REQUESTED(row("password-reset-request", "Password reset requested.")
+            .keyed(Keying.SOURCE)
+            .build()),
+
+    /**
+     * A password-reset token was redeemed and the account's password set (PRD Story 7), whether the user or an
+     * administrator issued the token. It names the account (REJ-002); only a valid token reaches it.
+     */
+    PASSWORD_RESET_COMPLETED(row("password-reset", "Password reset completed.")
+            .type("change")
+            .required(USER_ID)
             .build()),
 
     /** Row 7: a signed-in user signed out. */

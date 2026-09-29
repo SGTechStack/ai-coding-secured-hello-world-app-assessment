@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason) implements AuditContext {
 
-    /** Login success (row 1) and logout (row 7). */
+    /** Login success (row 1), logout (row 7) and a completed password reset. */
     public static AccountContext of(UUID userId) {
         return new AccountContext(userId, null);
     }
@@ -51,6 +51,11 @@ public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason
     /** CSRF refusal (row 13); {@code userId} only when the caller is signed in. */
     public static AccountContext csrfRejected(@Nullable UUID userId, CsrfReason reason) {
         return new AccountContext(userId, reason);
+    }
+
+    /** A password-reset request, which never names an account: the row must not confirm one exists (REJ-002). */
+    public static AccountContext resetRequested() {
+        return new AccountContext(null, null);
     }
 
     /** A source-axis throttle (row 5), which carries no identity. */

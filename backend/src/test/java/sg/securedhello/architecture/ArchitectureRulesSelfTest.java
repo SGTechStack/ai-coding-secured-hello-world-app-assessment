@@ -163,6 +163,14 @@ class ArchitectureRulesSelfTest {
                 PasswordHistoryEntry.class);
     }
 
+    @Test
+    void anAuthenticationManagerOnTheResetPathIsCaught() {
+        assertViolates(ArchitectureRules.noAuthenticationManagerIn("sg.securedhello.architecture.fixtures.."),
+                ArchitectureViolations.AuthenticatesOnTheResetPath.class);
+        assertPasses(ArchitectureRules.noAuthenticationManagerIn("sg.securedhello.architecture.fixtures.."),
+                ArchitectureViolations.EncodesAPassword.class);
+    }
+
     private static void assertViolates(ArchRule rule, Class<?>... classes) {
         assertThat(rule.evaluate(importClasses(classes)).hasViolation()).as("%s violates the rule", classes[0]).isTrue();
     }

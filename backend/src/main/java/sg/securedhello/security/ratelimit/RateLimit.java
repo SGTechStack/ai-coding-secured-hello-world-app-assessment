@@ -34,7 +34,22 @@ public enum RateLimit {
 
     /** {@code POST /api/register/activate}, per source key: burst 10, then 1 per 6 s (ADR-007; ADR-032). */
     REGISTER_ACTIVATE_SOURCE("register-activate", HttpMethod.POST, "/api/register/activate", Axis.SOURCE,
-            RateLimitProperties::registerActivate);
+            RateLimitProperties::registerActivate),
+
+    /** {@code POST /api/password-reset/request}, per source key: burst 5, then 1 per 12 s (PRD Story 6). */
+    PASSWORD_RESET_REQUEST_SOURCE("password-reset-request", HttpMethod.POST, "/api/password-reset/request",
+            Axis.SOURCE, RateLimitProperties::passwordResetRequest),
+
+    /**
+     * {@code POST /api/password-reset/request}, per submitted email address, canonicalised: burst 3, then 1 per 20 min
+     * (Std §5:452). It counts registered and unregistered addresses alike, so its refusal is no existence oracle.
+     */
+    PASSWORD_RESET_REQUEST_IDENTIFIER("password-reset-request", HttpMethod.POST, "/api/password-reset/request",
+            Axis.IDENTIFIER, RateLimitProperties::passwordResetRequest),
+
+    /** {@code POST /api/password-reset/confirm}, per source key: burst 10, then 1 per 6 s (ADR-007; R-STD-019). */
+    PASSWORD_RESET_CONFIRM_SOURCE("password-reset-confirm", HttpMethod.POST, "/api/password-reset/confirm",
+            Axis.SOURCE, RateLimitProperties::passwordResetConfirm);
 
     private final String route;
     private final HttpMethod method;
@@ -82,7 +97,7 @@ public enum RateLimit {
         SOURCE,
         /** The submitted username, as sent. */
         USERNAME,
-        /** The submitted identifier, username or email, as sent. */
+        /** The submitted identifier, username or email; the reset request passes its address canonicalised. */
         IDENTIFIER;
 
         /** The property segment: {@code source}, {@code username} or {@code identifier}. */

@@ -31,7 +31,8 @@ import sg.securedhello.audit.AuditEmitter;
  * but the audit file writes to, and reads the audit file as it grows. After each test, and after each class, it
  * scans everything written since the last scan and fails the test when it finds:
  * <ul>
- *   <li>a <em>canary secret</em> in any encoded form: every {@link TestSecrets#CANARIES} value, and any server
+ *   <li>a <em>canary secret</em> in any encoded form: every {@link TestSecrets#CANARIES} value, the shared login
+ *       fixture passwords ({@link Accounts#PASSWORD}, {@link Accounts#WRONG_PASSWORD}), and any server
  *       secret a test {@linkplain #register registered} (T-AUD-013);</li>
  *   <li>a degraded audit row, unless the test is annotated {@link ExpectsDegradedAuditRow}. This is what makes the
  *       emitter's fail-soft path fail hard at test time (ADR-055).</li>
@@ -60,6 +61,12 @@ public final class LogOutputGuard implements AfterEachCallback, AfterAllCallback
         System.setOut(new PrintStream(new Tee(System.out, CAPTURE), true, StandardCharsets.UTF_8));
         System.setErr(new PrintStream(new Tee(System.err, CAPTURE), true, StandardCharsets.UTF_8));
     }
+
+    /**
+     * The shared passwords the suite's login fixtures submit, right and wrong, so the login code paths most sign-in
+     * tests drive are scanned for them, success and failure alike (T-AUD-013). Test-local passwords are not listed.
+     */
+    private static final List<String> LOGIN_FIXTURE_PASSWORDS = List.of(Accounts.PASSWORD, Accounts.WRONG_PASSWORD);
 
     /**
      * Registers a server secret a test captured, such as a session id or CSRF token, so it is scanned for until the
@@ -163,6 +170,7 @@ public final class LogOutputGuard implements AfterEachCallback, AfterAllCallback
 
     private static List<String> secrets() {
         List<String> secrets = new ArrayList<>(TestSecrets.CANARIES);
+        secrets.addAll(LOGIN_FIXTURE_PASSWORDS);
         secrets.addAll(REGISTERED);
         return secrets;
     }

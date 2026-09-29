@@ -4,22 +4,27 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import java.lang.annotation.Annotation;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZonedDateTime;
+import java.time.Clock;
+import java.time.InstantSource;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.AccessTarget.CodeUnitAccessTarget;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaCall;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaConstructor;
 import com.tngtech.archunit.core.domain.JavaFieldAccess;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
@@ -45,6 +50,7 @@ import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
+import sg.securedhello.time.ClockConfig;
 import sg.securedhello.user.UserAccountRepository;
 import sg.securedhello.user.PasswordHistoryEntry;
 import sg.securedhello.user.UserAccount;
@@ -58,16 +64,15 @@ final class ArchitectureRules {
     private ArchitectureRules() {
     }
 
-    /** T-ARCH-001: main code reads time only from the injected {@code Clock} (ADR-066). */
+    /**
+     * T-ARCH-001: main code reads time only from the injected {@code Clock} (ADR-066). Every {@code java.time}
+     * {@code now(...)} or {@code Chronology.dateNow(...)} other than with a {@code Clock}, the system clock factories
+     * ({@code Clock}, {@code InstantSource}) outside {@link ClockConfig}, {@code new Date()},
+     * {@code new GregorianCalendar()}, {@code Calendar.getInstance}, {@code System.currentTimeMillis} and {@code System.nanoTime} are
+     * banned, whether called or taken as a method reference ({@code Instant::now}).
+     */
     static final ArchRule NO_AMBIENT_TIME = noClasses()
-            .should().callMethod(Instant.class, "now")
-            .orShould().callMethod(LocalDate.class, "now")
-            .orShould().callMethod(LocalDateTime.class, "now")
-            .orShould().callMethod(ZonedDateTime.class, "now")
-            .orShould().callMethod(OffsetDateTime.class, "now")
-            .orShould().callConstructor(Date.class)
-            .orShould().callMethod(System.class, "currentTimeMillis")
-            .orShould().callMethod(System.class, "nanoTime")
+            .should().accessTargetWhere(ambientTimeRead())
             .because("time comes only from the injected Clock bean (ADR-066); now(Clock) is allowed");
 
     /** T-ARCH-001: tests advance the shared clock instead of sleeping (ADR-066). */
@@ -197,6 +202,67 @@ final class ArchitectureRules {
                 .that(declare(marker))
                 .should(new BootTestSliceCondition())
                 .because("security-control tests boot the full context (ADR-065)");
+    }
+
+    /** Accesses, including method and constructor references, that read the system clock. */
+    private static DescribedPredicate<JavaAccess<?>> ambientTimeRead() {
+        return javaTimeNowWithoutAClock()
+                .or(systemClockFactoryOutsideClockConfig())
+                .or(noArgumentCalendarOrDate())
+                .or(calendarGetInstance())
+                .or(systemTimeCall());
+    }
+
+    /** {@code now()}, {@code now(ZoneId)} or {@code Chronology.dateNow(..)}: anything in java.time but a Clock read. */
+    private static DescribedPredicate<JavaAccess<?>> javaTimeNowWithoutAClock() {
+        return codeUnitAccess("a java.time now(..) without a Clock", (access, target) ->
+                (target.getName().equals("now") || target.getName().equals("dateNow"))
+                        && target.getOwner().getPackageName().startsWith("java.time")
+                        && !takesOnlyAClock(target));
+    }
+
+    private static boolean takesOnlyAClock(CodeUnitAccessTarget target) {
+        List<JavaClass> parameters = target.getRawParameterTypes();
+        return parameters.size() == 1 && parameters.get(0).isEquivalentTo(Clock.class);
+    }
+
+    /** The {@code Clock} and {@code InstantSource} factories that read the system clock; only {@link ClockConfig}. */
+    private static final Set<String> SYSTEM_CLOCK_FACTORIES = Set.of("systemUTC", "systemDefaultZone", "system",
+            "tickMillis", "tickSeconds", "tickMinutes");
+
+    private static DescribedPredicate<JavaAccess<?>> systemClockFactoryOutsideClockConfig() {
+        return codeUnitAccess("a system Clock factory outside ClockConfig", (access, target) ->
+                target.getOwner().isAssignableTo(InstantSource.class)
+                        && SYSTEM_CLOCK_FACTORIES.contains(target.getName())
+                        && !access.getOriginOwner().isEquivalentTo(ClockConfig.class));
+    }
+
+    private static DescribedPredicate<JavaAccess<?>> noArgumentCalendarOrDate() {
+        return codeUnitAccess("new Date() or a Calendar built from the system clock", (access, target) ->
+                target.getName().equals(JavaConstructor.CONSTRUCTOR_NAME)
+                        && (target.getOwner().isEquivalentTo(Date.class) && target.getRawParameterTypes().isEmpty()
+                                || target.getOwner().isAssignableTo(Calendar.class)
+                                        && target.getRawParameterTypes().stream().allMatch(type ->
+                                                type.isEquivalentTo(TimeZone.class)
+                                                        || type.isEquivalentTo(Locale.class))));
+    }
+
+    private static DescribedPredicate<JavaAccess<?>> calendarGetInstance() {
+        return codeUnitAccess("Calendar.getInstance", (access, target) ->
+                target.getName().equals("getInstance") && target.getOwner().isAssignableTo(Calendar.class));
+    }
+
+    private static DescribedPredicate<JavaAccess<?>> systemTimeCall() {
+        return codeUnitAccess("System.currentTimeMillis or System.nanoTime", (access, target) ->
+                target.getOwner().isEquivalentTo(System.class)
+                        && (target.getName().equals("currentTimeMillis") || target.getName().equals("nanoTime")));
+    }
+
+    /** A call or a method or constructor reference whose target satisfies {@code test}. */
+    private static DescribedPredicate<JavaAccess<?>> codeUnitAccess(String description,
+            BiPredicate<JavaAccess<?>, CodeUnitAccessTarget> test) {
+        return DescribedPredicate.describe(description, access ->
+                access.getTarget() instanceof CodeUnitAccessTarget target && test.test(access, target));
     }
 
     private static DescribedPredicate<JavaMethodCall> sleepCall() {

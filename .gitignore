@@ -30,5 +30,5 @@ Thumbs.db
 __pycache__/
 .claude/worktrees/
 
-# Review subagent findings (do-work)
+# Per-run review subagent findings (do-work HYBRID); the compliance report is kept.
 artifacts/review/

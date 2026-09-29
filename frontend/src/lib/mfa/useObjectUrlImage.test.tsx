@@ -54,7 +54,7 @@ describe('T-FE-003: the QR object-URL effect is symmetric', () => {
 
   afterEach(() => vi.restoreAllMocks())
 
-  it('revokes once per create across a StrictMode remount, a replacement, the error path, a re-show and unmount', () => {
+  it('T-FE-003: revokes once per create across a StrictMode remount, a replacement, the error path, a re-show and unmount', () => {
     const { rerender, unmount } = render(inStrictMode(png(1)))
     // StrictMode's mount, unmount and remount: the first URL is revoked, the second is shown.
     expect(urls.created).toHaveLength(2)
@@ -82,7 +82,7 @@ describe('T-FE-003: the QR object-URL effect is symmetric', () => {
     expect(urls.revokedWhileShown).toEqual([])
   })
 
-  it('takes the URL off a still-mounted image before revoking it', () => {
+  it('T-FE-003: takes the URL off a still-mounted image before revoking it', () => {
     function AlwaysShown({ blob }: { blob: Blob | undefined }) {
       return <img ref={useObjectUrlImage(blob)} alt="QR code" />
     }

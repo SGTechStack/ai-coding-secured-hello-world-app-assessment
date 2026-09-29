@@ -25,7 +25,7 @@ const outcomes: Outcome[] = [
 
 describe('T-FE-017: sign-out is terminal', () => {
   it.each(outcomes)(
-    'on $name: local state cleared, routed to sign-in, never retried or re-bootstrapped',
+    'T-FE-017 on $name: local state cleared, routed to sign-in, never retried or re-bootstrapped',
     async ({ respond }) => {
       let logouts = 0
       let bootstraps = 0

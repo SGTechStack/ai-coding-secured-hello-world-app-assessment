@@ -9,6 +9,10 @@ generating the implementation on your own branch.
 
 ```
 .
+├── backend/                # Spring Boot API (Java 21, Maven)
+├── frontend/               # React SPA (TypeScript, Vite)
+├── docs/
+│   └── design.md           # Design decisions, API, security controls, PRD test mapping
 ├── prd/
 │   └── assessment-prd.md   # The Product Requirements Document — your source of truth
 └── README.md               # This file
@@ -17,6 +21,42 @@ generating the implementation on your own branch.
 The [`prd/assessment-prd.md`](prd/assessment-prd.md) file contains the full
 specification: user stories, acceptance criteria, data model, security
 requirements, and testing requirements. Read it before you start.
+
+## Running the app
+
+Requirements: Java 21+ and Node.js 22.22+. No database or other services are
+needed; the dev profile uses a file-based H2 database in `backend/data/`.
+
+**Backend** on http://localhost:8080. The first start creates the `admin`
+account with the password you supply (at least 12 characters):
+
+```bash
+cd backend
+APP_ADMIN_PASSWORD='choose-a-long-passphrase' ./mvnw spring-boot:run
+```
+
+**Frontend** on http://localhost:3000. Open it as `localhost`, not `127.0.0.1`:
+the API only accepts the exact origin `http://localhost:3000`.
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Password reset emails are not sent. The reset link is written to the backend
+log, on a line starting with `[EMAIL STUB - not sent]`.
+
+**Checks**
+
+```bash
+cd backend && ./mvnw test                                       # unit + integration tests
+cd frontend && npm test && npm run lint && npm run build        # tests, lint, type-check + build
+```
+
+See [`docs/design.md`](docs/design.md) for the API, the security design, the
+decisions taken where the PRD was open, and which test covers each PRD
+testing requirement.
 
 ## The Assessment
 

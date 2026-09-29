@@ -8,6 +8,8 @@ import java.util.function.Consumer;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import sg.securedhello.admin.AdminActionGuard.Mutation;
 import sg.securedhello.admin.AuthenticableAdmins.Standing;
@@ -63,8 +65,21 @@ public class AdminActions {
             } else if (!wasEnabled) {
                 passwords.issueForcedChangeCredential(account.getId());
             }
-            audit.emit(enabled ? AuditEvent.ADMIN_USER_ENABLED : AuditEvent.ADMIN_USER_DISABLED,
-                    AdminActionContext.applied(actorId, subjectId));
+            afterCommit(() -> audit.emit(enabled ? AuditEvent.ADMIN_USER_ENABLED : AuditEvent.ADMIN_USER_DISABLED,
+                    AdminActionContext.applied(actorId, subjectId)));
+        });
+    }
+
+    /**
+     * Runs {@code row} once the transaction commits, so an applied row never records a change that rolled back
+     * (R-AUD-009). A refusal's row is written at once instead: the refusal happened, and its rollback is the point.
+     */
+    private static void afterCommit(Runnable row) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                row.run();
+            }
         });
     }
 

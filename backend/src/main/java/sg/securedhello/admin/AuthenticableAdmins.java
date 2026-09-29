@@ -92,7 +92,7 @@ public class AuthenticableAdmins implements MeterBinder {
 
     /** How many admins are authenticable now. */
     public long count() {
-        return jdbc.query(ADMINS, (rs, row) -> standing(rs, rs.getObject("factor_user_id") != null,
+        return jdbc.query(ADMINS, (rs, row) -> UserColumns.of(rs).standing(rs.getObject("factor_user_id") != null,
                         rs.getObject("factor_disabled_at") != null)).stream()
                 .filter(Standing::authenticable)
                 .count();
@@ -102,25 +102,36 @@ public class AuthenticableAdmins implements MeterBinder {
      * Locks the guard's uniform lock set in the caller's transaction and returns its standings: every admin row and
      * {@code subject}'s, {@code FOR UPDATE}, then their factor rows (ADR-048). Every guarded path takes the same set,
      * whichever tables its own statement names. Empty of {@code subject} when no account has that id.
+     *
+     * <p>It holds every admin's {@code users} row until the caller commits, so a guarded mutation briefly serialises
+     * against admin sign-in and factor verification, which lock their own row. The transaction is a few statements long;
+     * the uniform set is what ADR-048 requires, and the order is the one every path takes, so it is a wait, never a
+     * deadlock (T-MFA-007).
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<Standing> lockForChange(UUID subject) {
-        List<Standing> users = jdbc.query(LOCK_USERS, (rs, row) -> standing(rs, false, false), subject);
+        List<UserColumns> users = jdbc.query(LOCK_USERS, (rs, row) -> UserColumns.of(rs), subject);
         // Each locked factor row: its user, and whether it is under tier-2 disable.
         Map<UUID, Boolean> factors = new HashMap<>();
         jdbc.query(LOCK_FACTORS, (RowCallbackHandler) rs -> factors.put(rs.getObject("user_id", UUID.class),
                 rs.getObject("factor_disabled_at") != null), subject);
         return users.stream()
-                .map(user -> new Standing(user.id(), user.admin(), user.enabled(), user.activated(),
-                        user.passwordDisabled(), factors.containsKey(user.id()),
-                        factors.getOrDefault(user.id(), false)))
+                .map(user -> user.standing(factors.containsKey(user.id()), factors.getOrDefault(user.id(), false)))
                 .toList();
     }
 
-    private static Standing standing(ResultSet rs, boolean enrolled, boolean factorDisabled) throws SQLException {
-        return new Standing(rs.getObject("id", UUID.class), "ADMIN".equals(rs.getString("role")),
-                rs.getBoolean("enabled"), rs.getObject("activated_at") != null,
-                rs.getObject("password_disabled_at") != null, enrolled, factorDisabled);
+    /** The {@code users} half of a {@link Standing}, as both queries read it. */
+    private record UserColumns(UUID id, boolean admin, boolean enabled, boolean activated, boolean passwordDisabled) {
+
+        static UserColumns of(ResultSet rs) throws SQLException {
+            return new UserColumns(rs.getObject("id", UUID.class), "ADMIN".equals(rs.getString("role")),
+                    rs.getBoolean("enabled"), rs.getObject("activated_at") != null,
+                    rs.getObject("password_disabled_at") != null);
+        }
+
+        Standing standing(boolean enrolled, boolean factorDisabled) {
+            return new Standing(id, admin, enabled, activated, passwordDisabled, enrolled, factorDisabled);
+        }
     }
 
     @Override

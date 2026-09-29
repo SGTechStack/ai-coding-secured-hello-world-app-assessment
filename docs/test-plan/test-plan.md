@@ -28,7 +28,7 @@ Legend:
   - A: ArchUnit
   - F: Vitest
   - E: Playwright (Chromium and Firefox)
-- **Context:** `ctx-default`, `ctx-port`, `ctx-locktimeout` and `ctx-nondev` are the fixed Spring test contexts
+- **Context:** `ctx-default`, `ctx-port`, `ctx-locktimeout`, `ctx-lockhold` and `ctx-nondev` are the fixed Spring test contexts
   (ADR-065, ADR-067). `restart` is the harness that runs outside the context cache, as one or two sequential
   `SpringApplicationBuilder` runs on one file path. `runner` is the rebinding runner process. For levels that start
   no Spring context, the column reads `none` (U), `archunit`, `build`, `vitest` or `playwright`.
@@ -242,7 +242,7 @@ Legend:
 | T-MFA-004 | MFA | DB invariant: key_version range | ck_*_key_version_range on both MFA tables rejects key_version outside 0..255 (e.g. -1, 256) and accepts 0 and 255. | C | ctx-default | keyed | ADR-022; ADR-028; ADR-051; REJ-033; R-STD-039 | The `key_version BETWEEN 0 AND 255` check exists because the version is copied into a one-byte field where a larger value would truncate silently, and `ddl-auto: validate` does not see check constraints (Hibernate ORM 7.4 `AbstractSchemaValidator`; ADR-028, ADR-051). | neg |
 | T-MFA-005 | MFA | Factor authority survives JDBC session | After a factor grant, the `SPRING_SESSION_ATTRIBUTES` round trip yields a `FactorGrantedAuthority` (deserialised type asserted) with identical `getIssuedAt()`; and a session holding a plain `SimpleGrantedAuthority("FACTOR_TOTP")` is denied on the admin read and mutation rules. | C | ctx-default | keyed | ADR-021; R-MFA-012 |  | pos |
 | T-MFA-006 | MFA | Per-IP 429 carries no `factor` member | A 429 from the early per-IP filter on `POST /api/mfa/totp/verification` has no `factor` member, while the factor tier-1 429 does. | C | ctx-default | keyed | ADR-033; ADR-031 |  | neg |
-| T-MFA-007 | MFA | Tier-2 trip lock order | On the 100th cumulative factor failure the tier-2 trip locks the `users` row before the `totp_user_details` row, so under concurrent `AdminActionGuard` contention on the same admin the verification path takes no `LOCK_TIMEOUT` and no deadlock occurs. | C | ctx-locktimeout | keyed | TM-03 |  | pos |
+| T-MFA-007 | MFA | Tier-2 trip lock order | On the 100th cumulative factor failure the tier-2 trip locks the `users` row before the `totp_user_details` row, so under concurrent `AdminActionGuard` contention on the same admin the verification path takes no `LOCK_TIMEOUT` and no deadlock occurs. | C | ctx-lockhold | keyed | TM-03 |  | pos |
 | T-MFA-008 | MFA | FactorGrantedAuthority issuedAt from clock | A `FactorGrantedAuthority` built by our code has `issuedAt` equal to `clock.instant()` after the clock is advanced. | C | ctx-default | keyed | ADR-021; ADR-066; R-MFA-018 |  | pos |
 | T-MFA-009 | MFA | Admin TOTP reset removes factor rows and audits | DELETE /api/admin/users/{uuid}/totp by an ADMIN deletes the target's totp_user_details row and any pending_totp row and emits one audit row with event.action totp-remove carrying user.target.id. | C | ctx-default | keyed | IM8 ac-2; ADR-024; R-RUN-001; R-STD-037 |  | pos |
 | T-MFA-010 | MFA | Period boundary accepts previous window | Unit: with the clock exactly on a 30-second period boundary, the code for the previous counter verifies on a fresh principal. | U | none | none | MFA §5:395 |  | pos |

@@ -2,7 +2,6 @@ package sg.securedhello.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
@@ -28,7 +27,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -41,19 +39,17 @@ import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.Accounts.Account;
 import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CsrfSession;
-import sg.securedhello.testsupport.CtxDefaultTest;
+import sg.securedhello.testsupport.CtxLockHoldTest;
 import sg.securedhello.testsupport.SignedIn;
-import sg.securedhello.testsupport.TemporaryH2FileInitializer;
 import sg.securedhello.testsupport.TotpFactors;
 
 /**
  * The two-admin invariant (ADR-048; REJ-050), which counts every enrolled admin in the database. The shared contexts
- * accumulate enrolled admins from other tests, so this class owns its database: the property below starts a context
- * of its own, and its 10 s lock timeout lets the race test hold a lock while the other side waits on it. Each test
- * starts from no enrolled admin.
+ * accumulate enrolled admins from other tests, so it runs in {@code ctx-lockhold}, whose database only lock-holding
+ * tests share, and whose 10 s lock timeout lets the race test hold a lock while the other side waits on it. Each test
+ * starts from no enrolled admin: it deletes every factor row, which the other tests of that context do not rely on.
  */
-@TestPropertySource(properties = TemporaryH2FileInitializer.LOCK_TIMEOUT_PROPERTY + "=10000")
-class TwoAdminInvariantTest extends CtxDefaultTest {
+class TwoAdminInvariantTest extends CtxLockHoldTest {
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -196,12 +192,7 @@ class TwoAdminInvariantTest extends CtxDefaultTest {
         CompletableFuture<Void> second = CompletableFuture.runAsync(() -> asAdmin(() ->
                 actions.setEnabled(b, a, false)));
 
-        while (blockedSessions() == 0) {
-            if (second.isDone()) {
-                fail("the second disable finished without waiting on the first's lock set");
-            }
-            Thread.onSpinWait();
-        }
+        awaitBlocked(second);
         releaseFirst.countDown();
         first.get();
 
@@ -211,13 +202,6 @@ class TwoAdminInvariantTest extends CtxDefaultTest {
         assertThat(enabled(a)).isTrue();
         assertThat(enabled(b)).isFalse();
         assertThat(enrolledAdmins()).isEqualTo(2);
-    }
-
-    /** H2 sessions waiting on another session's lock. */
-    private int blockedSessions() {
-        Integer blocked = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SESSIONS WHERE BLOCKER_ID IS NOT NULL", Integer.class);
-        return blocked == null ? 0 : blocked;
     }
 
     /**

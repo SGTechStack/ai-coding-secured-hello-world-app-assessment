@@ -395,6 +395,22 @@ public final class ArchitectureViolations {
         }
     }
 
+    /** A controller that holds a JPA entity manager. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ControllerUsesJpa {
+        Object read(jakarta.persistence.EntityManager entities) {
+            return entities.find(UserAccount.class, UUID.randomUUID());
+        }
+    }
+
+    /** A plain {@code @Controller}, not a {@code @RestController}, that uses a JDBC client. */
+    @org.springframework.stereotype.Controller
+    public static final class PlainControllerUsesJdbcClient {
+        Object read(org.springframework.jdbc.core.simple.JdbcClient jdbc) {
+            return jdbc.sql("SELECT 1").query().listOfRows();
+        }
+    }
+
     /** A controller that goes through a service, as the admin controller does. */
     @org.springframework.web.bind.annotation.RestController
     public static final class ControllerUsesAService {

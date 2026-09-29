@@ -180,7 +180,8 @@ class ArchitectureRulesSelfTest {
 
     @ParameterizedTest
     @ValueSource(classes = {ArchitectureViolations.ControllerReachesARepository.class,
-            ArchitectureViolations.ControllerRunsSql.class})
+            ArchitectureViolations.ControllerRunsSql.class, ArchitectureViolations.ControllerUsesJpa.class,
+            ArchitectureViolations.PlainControllerUsesJdbcClient.class})
     void aControllerReachingPersistenceIsCaught(Class<?> violator) {
         assertViolates(ArchitectureRules.controllersReachNoPersistenceIn("sg.securedhello.architecture.fixtures.."),
                 violator);

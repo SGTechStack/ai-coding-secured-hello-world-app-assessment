@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -16,6 +17,8 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -134,6 +137,20 @@ class AdminEnableDisableTest extends CtxDefaultTest {
                 .andExpect(problem(ErrorCode.PASSWORD_CHANGE_REQUIRED));
     }
 
+    /** ADR-013: a re-enable is not a rebinding, so it leaves the NIST cap's password disable in place. */
+    @Test
+    void reEnablingLeavesTheFailureCapsPasswordDisableInPlace() throws Exception {
+        Account target = accounts.disabled();
+        jdbc.update("UPDATE users SET password_disabled_at = ? WHERE id = ?",
+                Timestamp.from(clock.instant()), target.id());
+        CsrfSession session = verifiedAdmin(accounts.withRole("ADMIN"));
+
+        setEnabled(session, target.id(), true).andExpect(status().isOk());
+
+        assertThat(jdbc.queryForObject("SELECT password_disabled_at IS NOT NULL FROM users WHERE id = ?",
+                Boolean.class, target.id())).isTrue();
+    }
+
     @Test
     void enablingAnAlreadyEnabledAccountIssuesNoCredential() throws Exception {
         Account target = accounts.user();
@@ -145,20 +162,19 @@ class AdminEnableDisableTest extends CtxDefaultTest {
                 .containsEntry("CREDENTIAL_ISSUED_AT", null);
     }
 
-    @Test
-    void anAdminDisablingOrEnablingThemselvesGetsAccessDeniedAndNothingChanges() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void anAdminDisablingOrEnablingThemselvesGetsAccessDeniedAndNothingChanges(boolean enabled) throws Exception {
         Account admin = accounts.withRole("ADMIN");
         CsrfSession session = verifiedAdmin(admin);
 
-        for (boolean enabled : new boolean[] {false, true}) {
-            try (AuditCapture audit = AuditCapture.start()) {
-                setEnabled(session, admin.id(), enabled).andExpect(problem(ErrorCode.ACCESS_DENIED));
-                assertThat(audit.withMessage("Administrative action refused.")).singleElement().satisfies(entry ->
-                        assertThat(entry).containsEntry("event.reason", "SELF_ACTION")
-                                .containsEntry("event.outcome", "failure")
-                                .containsEntry("user.id", admin.id().toString())
-                                .containsEntry("user.target.id", admin.id().toString()));
-            }
+        try (AuditCapture audit = AuditCapture.start()) {
+            setEnabled(session, admin.id(), enabled).andExpect(problem(ErrorCode.ACCESS_DENIED));
+            assertThat(audit.withMessage("Administrative action refused.")).singleElement().satisfies(entry ->
+                    assertThat(entry).containsEntry("event.reason", "SELF_ACTION")
+                            .containsEntry("event.outcome", "failure")
+                            .containsEntry("user.id", admin.id().toString())
+                            .containsEntry("user.target.id", admin.id().toString()));
         }
         assertThat(row(admin.id())).containsEntry("ENABLED", true).containsEntry("FORCE_PASSWORD_CHANGE", false);
         mockMvc.perform(get("/api/admin/users").cookie(session.cookie())).andExpect(status().isOk());

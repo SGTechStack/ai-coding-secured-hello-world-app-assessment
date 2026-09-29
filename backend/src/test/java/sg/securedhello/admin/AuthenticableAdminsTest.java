@@ -1,6 +1,7 @@
 package sg.securedhello.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -15,6 +16,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.IllegalTransactionStateException;
 
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.CtxDefaultTest;
@@ -82,6 +84,13 @@ class AuthenticableAdminsTest extends CtxDefaultTest {
         jdbc.update(change, admin);
 
         assertThat(admins.count()).isEqualTo(before);
+    }
+
+    /** Outside a transaction the locks would be released at once, so the lock set refuses to run there. */
+    @Test
+    void theLockSetRunsOnlyInsideTheCallersTransaction() {
+        assertThatThrownBy(() -> admins.lockForChange(UUID.randomUUID()))
+                .isInstanceOf(IllegalTransactionStateException.class);
     }
 
     @Test

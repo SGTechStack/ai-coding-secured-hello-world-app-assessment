@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
+import javax.sql.DataSource;
+
 import jakarta.servlet.http.HttpServletResponse;
 
 import com.tngtech.archunit.base.DescribedPredicate;
@@ -33,6 +35,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 
+import jakarta.persistence.EntityManager;
 import jakarta.servlet.ServletRequest;
 
 import org.slf4j.Logger;
@@ -46,8 +49,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.data.repository.Repository;
 import org.springframework.jdbc.core.JdbcOperations;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Controller;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.web.bind.annotation.RestController;
 
 import sg.securedhello.admin.AdminActions;
 import sg.securedhello.audit.AuditEmitter;
@@ -153,18 +158,22 @@ final class ArchitectureRules {
     static final ArchRule ADMIN_CONTROLLERS_REACH_NO_PERSISTENCE =
             controllersReachNoPersistenceIn("sg.securedhello.admin..");
 
-    /** No {@code @RestController} in {@code packageIdentifier} depends on a repository or on JDBC. */
+    /** The persistence entry points a controller must not hold: Spring Data, JDBC in each of its forms, and JPA. */
+    private static final List<Class<?>> PERSISTENCE_TYPES = List.of(Repository.class, JdbcOperations.class,
+            NamedParameterJdbcOperations.class, JdbcClient.class, EntityManager.class, DataSource.class);
+
+    /** No {@code @Controller} or {@code @RestController} in {@code packageIdentifier} reaches persistence. */
     static ArchRule controllersReachNoPersistenceIn(String packageIdentifier) {
         return noClasses()
-                .that().resideInAPackage(packageIdentifier).and().areAnnotatedWith(RestController.class)
-                .should().dependOnClassesThat().areAssignableTo(Repository.class)
-                .orShould().dependOnClassesThat().areAssignableTo(JdbcOperations.class)
+                .that().resideInAPackage(packageIdentifier).and().areMetaAnnotatedWith(Controller.class)
+                .should().dependOnClassesThat(DescribedPredicate.describe("a repository, JDBC or JPA type",
+                        type -> PERSISTENCE_TYPES.stream().anyMatch(type::isAssignableTo)))
                 .because("every admin mutation reaches persistence through the one guarded service method (ADR-048)");
     }
 
     /**
-     * T-ADM-014: only the guarded service method changes an account's enabled state, so no path can disable an admin
-     * without {@code AdminActionGuard} (ADR-048).
+     * T-ADM-014: only the guarded service calls the entity's enabled-state setter. It does not see a raw SQL update of
+     * {@code users.enabled}; the controller rule and review cover that (ADR-048).
      */
     static final ArchRule ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES = noClasses()
             .that().doNotBelongToAnyOf(AdminActions.class)

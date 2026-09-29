@@ -2,7 +2,6 @@ package sg.securedhello.mfa;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -19,7 +18,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -28,9 +26,8 @@ import sg.securedhello.admin.AdminActions;
 import sg.securedhello.mfa.TotpVerification.FactorDisabledException;
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.Accounts.Account;
-import sg.securedhello.testsupport.CtxDefaultTest;
+import sg.securedhello.testsupport.CtxLockHoldTest;
 import sg.securedhello.testsupport.Proves;
-import sg.securedhello.testsupport.TemporaryH2FileInitializer;
 import sg.securedhello.testsupport.TotpFactors;
 
 /**
@@ -42,12 +39,11 @@ import sg.securedhello.testsupport.TotpFactors;
  * guard needs next while waiting on what the guard holds: a deadlock, which surfaces here as a lock timeout or a
  * deadlock error instead.
  *
- * <p>It shares {@code TwoAdminInvariantTest}'s context, whose 10 s lock timeout lets the guard hold its locks for as
- * long as it takes to see the other side waiting: under {@code ctx-locktimeout}'s 50 ms, the same proof would depend on
- * how fast the release follows.
+ * <p>The guard's first half is taken here by the same {@code SELECT ... FOR UPDATE} on the subject's {@code users} row
+ * that {@code AuthenticableAdmins.lockForChange} opens with; the real guarded call then takes the whole set. It runs
+ * in {@code ctx-lockhold}, whose 10 s lock timeout lets the guard hold its lock until the other side is seen waiting.
  */
-@TestPropertySource(properties = TemporaryH2FileInitializer.LOCK_TIMEOUT_PROPERTY + "=10000")
-class FactorTripLockOrderTest extends CtxDefaultTest {
+class FactorTripLockOrderTest extends CtxLockHoldTest {
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -97,12 +93,7 @@ class FactorTripLockOrderTest extends CtxDefaultTest {
         CompletableFuture<Void> trip = CompletableFuture.runAsync(() -> inRequest(() ->
                 verification.verify(subject.id(), wrong)));
 
-        while (blockedSessions() == 0) {
-            if (trip.isDone()) {
-                fail("the verification finished without waiting on the guard's lock set");
-            }
-            Thread.onSpinWait();
-        }
+        awaitBlocked(trip);
         releaseGuard.countDown();
         guard.get();
 
@@ -110,13 +101,6 @@ class FactorTripLockOrderTest extends CtxDefaultTest {
                 .cause().isInstanceOf(FactorDisabledException.class);
         assertThat(jdbc.queryForObject("SELECT factor_disabled_at IS NOT NULL FROM totp_user_details WHERE user_id = ?",
                 Boolean.class, subject.id())).as("the trip committed").isTrue();
-    }
-
-    /** H2 sessions waiting on another session's lock. */
-    private int blockedSessions() {
-        Integer blocked = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SESSIONS WHERE BLOCKER_ID IS NOT NULL", Integer.class);
-        return blocked == null ? 0 : blocked;
     }
 
     /** Runs {@code action} inside a request, which the audit rows are scoped to, as an {@code ADMIN}. */

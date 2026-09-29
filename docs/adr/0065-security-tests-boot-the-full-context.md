@@ -38,6 +38,9 @@ control is absent, or it is a mock. In both cases the test passes without provin
   - `ctx-default`
   - `ctx-port`
   - `ctx-locktimeout`
+  - `ctx-lockhold`: a 10 s lock timeout and a database of its own, for the tests that hold a row lock until the
+    other side is seen waiting (the two-admin race and the tier-2 trip's lock order). Under `ctx-locktimeout`'s 50 ms
+    the other side could time out before the release, so the proof would depend on scheduling.
   - `ctx-nondev`
   - the restart harness and the runner, which both run outside the cache
 - An extra `@MockitoBean` or property override is a new context, and it needs a reason. A test that only wants to

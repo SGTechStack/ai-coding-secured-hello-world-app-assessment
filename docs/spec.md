@@ -774,7 +774,7 @@ rows (ADR-069).
     | F | Vitest |
     | E | Playwright, on Chromium and Firefox |
 
-  - **Contexts:** the fixed Spring test contexts are `ctx-default`, `ctx-port`, `ctx-locktimeout` and `ctx-nondev`.
+  - **Contexts:** the fixed Spring test contexts are `ctx-default`, `ctx-port`, `ctx-locktimeout`, `ctx-lockhold` and `ctx-nondev`.
     `restart` is the harness of one or two sequential boots on one H2 file, and `runner` is the runner process.
     Levels with no Spring context read `none`, `archunit`, `build`, `vitest` or `playwright`.
   - **Isolation:** `keyed`, `delta`, `own-DB`, `merged` or `none`.

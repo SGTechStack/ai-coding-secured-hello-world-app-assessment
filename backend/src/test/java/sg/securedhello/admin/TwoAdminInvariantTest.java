@@ -149,6 +149,22 @@ class TwoAdminInvariantTest extends CtxLockHoldTest {
         disable(a, invite.id()).andExpect(status().isOk());
     }
 
+    /** R-AUD-009: the applied row is written after commit, so a change that rolls back leaves no row claiming it. */
+    @Test
+    void aDisableThatRollsBackWritesNoAppliedRow() throws Exception {
+        UUID actor = enrolledAdmin().id();
+        Account target = accounts.user();
+
+        try (AuditCapture audit = AuditCapture.start()) {
+            asAdmin(() -> transactions.executeWithoutResult(status -> {
+                assertThat(actions.setEnabled(actor, target.id(), false)).isPresent();
+                status.setRollbackOnly();
+            }));
+            assertThat(audit.withMessage("Account disabled.")).isEmpty();
+        }
+        assertThat(enabled(target.id())).isTrue();
+    }
+
     @Test
     void theGaugeAndTheGuardReadTheOneDefinition() throws Exception {
         Admin a = enrolledAdmin();

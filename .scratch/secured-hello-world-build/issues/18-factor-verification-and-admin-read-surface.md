@@ -15,11 +15,11 @@
 
 **Blocked by:** 17
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A USER gets 403 on every admin route and never 412 or 422.
-- [ ] An enrolled admin without the factor gets 412 `MISSING_FACTOR`. After verification the list loads, with no hash field.
-- [ ] Replaying the same code within its step is refused.
-- [ ] The `factors` object reflects each state.
-- [ ] A Playwright test covers admin sign in → challenge → user list.
-- [ ] The TOTP window and replay logic meet 85% mutation score.
+- [x] A USER gets 403 on every admin route and never 412 or 422.
+- [x] An enrolled admin without the factor gets 412 `MISSING_FACTOR`. After verification the list loads, with no hash field.
+- [x] Replaying the same code within its step is refused.
+- [x] The `factors` object reflects each state.
+- [x] A Playwright test covers admin sign in → challenge → user list.
+- [x] The TOTP window and replay logic meet 85% mutation score.

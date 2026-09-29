@@ -2,6 +2,8 @@ package sg.securedhello.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,14 @@ class StartupRefusalTest {
 
     private static final String UNRESOLVED = "${T_CFG_038_UNRESOLVED}";
 
+    /**
+     * The T-CFG-038 row's list, written out here rather than read from the implementation, so an omission from
+     * {@code RequiredPropertiesPostProcessor.REQUIRED} fails. The row's OTLP URL under the export profile has no
+     * profile to test yet (metrics export is off, ADR-061).
+     */
+    static final List<String> T_CFG_038_PROPERTIES = List.of("app.origins.spa", "app.origins.api",
+            "app.mfa.totp.encryption.key-version", "app.security.hmac.tombstone.version", "app.mfa.totp.issuer");
+
     @Test
     void theTestSecretsBootTheApplication() {
         Boot boot = RestartHarness.boot(builder -> builder.profiles("dev"));
@@ -48,6 +58,9 @@ class StartupRefusalTest {
 
         assertThat(boot.failure()).isNotNull();
         assertThat(boot.portOpened()).isFalse();
+        // Naming the property is what tells this refusal from any other startup failure; no secret value is echoed.
+        assertNamesMissingProperty(boot.failureMessages(), property);
+        assertThat(boot.failureMessages()).doesNotContain(TestSecrets.CANARIES.toArray(String[]::new));
     }
 
     @ParameterizedTest
@@ -83,8 +96,15 @@ class StartupRefusalTest {
         assertThat(boot.failureMessages()).contains(TestSecrets.LOG_KEY_PROPERTY, TestSecrets.TOMBSTONE_KEY_PROPERTY);
     }
 
+    @Test
+    void theRequiredListIsTheTestPlanRow() {
+        assertThat(RequiredPropertiesPostProcessor.REQUIRED)
+                .as("a property added to or dropped from REQUIRED must be added to T-CFG-038 and to this test's list")
+                .containsExactlyInAnyOrderElementsOf(T_CFG_038_PROPERTIES);
+    }
+
     @ParameterizedTest
-    @FieldSource("sg.securedhello.config.RequiredPropertiesPostProcessor#REQUIRED")
+    @FieldSource("T_CFG_038_PROPERTIES")
     @Proves("T-CFG-038")
     void anUnresolvedPlaceholderInARequiredPropertyFailsRefresh(String property) {
         Boot boot = RestartHarness.boot(builder -> builder.profiles("dev"), "--" + property + "=" + UNRESOLVED);
@@ -128,5 +148,17 @@ class StartupRefusalTest {
 
         assertThat(boot.failure()).isNull();
         assertThat(boot.portOpened()).isTrue();
+    }
+
+    /**
+     * How the failure names a missing property: by itself, except where the binder reports the deepest path it could not
+     * bind, a group whose only member is the missing key.
+     */
+    private static final Map<String, String> NAMED_IN_FAILURE_AS = Map.of(TestSecrets.LOG_KEY_PROPERTY,
+            "Field error in object 'app.security.hmac' on field 'log': rejected value [null]");
+
+    private static void assertNamesMissingProperty(String messages, String property) {
+        assertThat(messages).as("the failure names %s", property)
+                .contains(NAMED_IN_FAILURE_AS.getOrDefault(property, property));
     }
 }

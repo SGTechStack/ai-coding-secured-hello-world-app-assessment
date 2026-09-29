@@ -4,7 +4,7 @@ import { INVALID_CODE, TOO_MANY_ATTEMPTS, TotpCodeForm } from '@/components/Totp
 import { Button } from '@/components/ui/button'
 import { ApiError, type ErrorCode } from '@/lib/api/errors'
 import { authorityRoute, useAuthorityFailure } from '@/lib/auth/authority'
-import { fetchProfile, PROFILE_KEY, signOut } from '@/lib/auth/session'
+import { FACTOR_DISABLED_ROUTE, fetchProfile, PROFILE_KEY, signOut } from '@/lib/auth/session'
 import { verifyTotp } from '@/lib/mfa/verification'
 
 const COPY: Partial<Record<ErrorCode, string>> = { TOO_MANY_REQUESTS: TOO_MANY_ATTEMPTS }
@@ -30,6 +30,13 @@ export function FactorChallengePage() {
   // A UX guard only: the server refuses a non-administrator whatever renders here.
   if (profile.data && profile.data.role !== 'ADMIN') {
     return <Navigate to="/hello" replace />
+  }
+  // The terminal factor state: no code can pass, so the prompt is never offered, not even while the self-read loads.
+  if (profile.data?.factors.rebindRequired) {
+    return <Navigate to={FACTOR_DISABLED_ROUTE} replace />
+  }
+  if (!profile.data) {
+    return <p className="mt-4 text-muted-foreground">Loading…</p>
   }
 
   const onCode = async (code: string) => {

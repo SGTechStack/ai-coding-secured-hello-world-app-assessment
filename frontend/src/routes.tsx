@@ -3,11 +3,13 @@ import type { RouteObject } from 'react-router'
 import { AdminGate } from '@/components/AdminGate'
 import { Layout } from '@/components/Layout'
 import { shouldRetry } from '@/lib/api/client'
+import { FACTOR_DISABLED_ROUTE } from '@/lib/auth/session'
 import { ActivatePage } from '@/pages/ActivatePage'
 import { AdminUserDetailPage } from '@/pages/AdminUserDetailPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { FactorChallengePage } from '@/pages/FactorChallengePage'
+import { FactorDisabledPage } from '@/pages/FactorDisabledPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { HelloPage } from '@/pages/HelloPage'
 import { HomePage } from '@/pages/HomePage'
@@ -27,8 +29,8 @@ export const adminRoutes: RouteObject[] = [
 
 /**
  * Public: sign-in, register, activate, forgot and reset. Signed in: hello and change password. Administrators only:
- * `/settings/mfa`, the challenge at `/verify`, and the admin surface. The entry route decides between them from the
- * self-read, in gate order.
+ * `/settings/mfa`, the challenge at `/verify`, the terminal factor state at `/factor-disabled`, and the admin surface.
+ * The entry route decides between them from the self-read, in gate order.
  */
 export const routes: RouteObject[] = [
   {
@@ -44,6 +46,7 @@ export const routes: RouteObject[] = [
       { path: '/change-password', element: <ChangePasswordPage /> },
       { path: '/settings/mfa', element: <MfaSettingsPage /> },
       { path: '/verify', element: <FactorChallengePage /> },
+      { path: FACTOR_DISABLED_ROUTE, element: <FactorDisabledPage /> },
       { element: <AdminGate />, children: adminRoutes },
     ],
   },

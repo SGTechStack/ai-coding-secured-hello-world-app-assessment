@@ -1,0 +1,23 @@
+{
+  "name": "hello-auth-e2e",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.22.2"
+  },
+  "scripts": {
+    "lifecycle:start": "node scripts/lifecycle.mjs start",
+    "lifecycle:stop": "node scripts/lifecycle.mjs stop",
+    "lifecycle:reset": "node scripts/lifecycle.mjs reset",
+    "lifecycle:status": "node scripts/lifecycle.mjs status",
+    "test": "node scripts/lifecycle.mjs run --",
+    "test:smoke": "node scripts/lifecycle.mjs run -- tests/foundation",
+    "browsers:install": "playwright install chromium && node node_modules/playwright/cli.js install chromium"
+  },
+  "devDependencies": {
+    "@playwright/mcp": "0.0.83",
+    "@playwright/test": "1.63.0",
+    "allure": "3.19.0",
+    "allure-playwright": "3.13.0"
+  }
+}

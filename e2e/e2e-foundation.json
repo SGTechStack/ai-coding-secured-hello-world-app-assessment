@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "protected_files": [
+    {
+      "path": "package.json",
+      "sha256": "10be3a0007220c43f3e9e426e910590e3828cb78f73e6153eb23974d17d3516c"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "55b521800682b21e00f21baba21cb910f5a1057121cff72498224e0f3a3bea67"
+    },
+    {
+      "path": "playwright.config.ts",
+      "sha256": "b0c04426f7a209961674cbc33c97bc60135015a0c68bb83480e84658b8a4c0ab"
+    },
+    {
+      "path": "README.md",
+      "sha256": "ad225839b8483b2ed115b8d164795aac8deecdece6598311e419b1540d88797f"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "401aef3ab69e5905e5adac468f708296dc53f928aab68892e7b484bef7fb6b0e"
+    },
+    {
+      "path": "scripts/lifecycle.mjs",
+      "sha256": "61b38ca6a75fc81711f69dc7c0abab5794117d882c68e3cd1118004118f87674"
+    },
+    {
+      "path": "scripts/global-setup.ts",
+      "sha256": "6d9405ee2618d3dfd3171dff0d78e7557b7d8b0e7ee63ab44899c87c26738bf8"
+    },
+    {
+      "path": "fixtures/lifecycle.ts",
+      "sha256": "01015461ade0ffa11e6b8dd91f1d66a7d0c7c7820d84bee9b11ce79230d8da21"
+    },
+    {
+      "path": "fixtures/test.ts",
+      "sha256": "f444d98dbd50652484da03837bb130d38c20eb746be21cd0e1ec4674b65f97f4"
+    },
+    {
+      "path": "fixtures/mailbox.ts",
+      "sha256": "a9d2432b8d17bd2bac3e7cbb76825248b36e35168e1b976e82d9fd6bcd634a53"
+    },
+    {
+      "path": "tests/foundation/smoke.spec.ts",
+      "sha256": "909785a3b2025ff4eaa8c67c759b38c97d07e8a648154b7cb61a9fffa0194bde"
+    }
+  ]
+}

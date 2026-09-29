@@ -64,3 +64,10 @@ Human decisions on reviewer `Human Decision Needed` findings. Apply a matching e
 - **KB finding:** None (KB unavailable). Only H2 is tested; MySQL `TIMESTAMP` overflows in 2038.
 - **Chosen action:** Use `DATETIME(6)` for MySQL time columns. Don't add Testcontainers/Docker in feature issues; running migrations against real Postgres/MySQL is deferred to the issue that owns deployment (or noted in the current issue if none does).
 - **When to reuse:** Any later migration: fix clear dialect bugs in place; don't block a feature issue on real-database migration runs.
+
+## Session-end audit for Sessions that expire unused
+
+- **Area:** `SessionControl` session-end auditing, issue 05 session lifetime.
+- **KB finding:** None (KB unavailable). Spring Session's JDBC cleanup silently deletes an abandoned expired Session, so no `session-end` event is written. When a later login or `endAll` removes an already-expired Session, it is recorded as `new_login` (or the caller's reason).
+- **Chosen action:** When `endOldestBeyondLimit` / `endAll` remove a Session that has already passed its idle or absolute limit, record the real reason (`idle_timeout` / `absolute_timeout`). Accept that abandoned Sessions nothing touches again get no event, and note this gap in the issue. No scheduled sweep (option B rejected; could be a separate follow-up issue).
+- **When to reuse:** Any audit-completeness question about Sessions or other records that a store expires in the background: record the true reason wherever the app touches them, and document the untouched-expiry gap instead of adding a background job.

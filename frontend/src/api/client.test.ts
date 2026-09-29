@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { csrfResponse, json, mockApi, problem } from '../test/mockApi'
-import { ApiError, api } from './client'
+import { ApiError, api, onUnauthenticated } from './client'
 
 describe('api client', () => {
   it('sends the session cookie and a CSRF header on state-changing requests', async () => {
@@ -75,6 +75,23 @@ describe('api client', () => {
     expect(conflict).toBeInstanceOf(ApiError)
     expect((conflict as ApiError).fieldErrors).toEqual({ username: 'is already taken' })
     expect((throttled as ApiError).retryAfterSeconds).toBe(120)
+  })
+
+  it('reports an ended session to listeners, but not a failed sign-in', async () => {
+    mockApi({
+      'GET /api/hello': () => problem(401, 'UNAUTHENTICATED', 'Authentication is required.'),
+      'GET /api/auth/csrf': csrfResponse,
+      'POST /api/auth/login': () => problem(401, 'INVALID_CREDENTIALS', 'Invalid username or password.'),
+    })
+    let notified = 0
+    const unsubscribe = onUnauthenticated(() => notified++)
+
+    await api.hello().catch(() => {})
+    await api.login('alice', 'wrong-password').catch(() => {})
+    unsubscribe()
+    await api.hello().catch(() => {})
+
+    expect(notified).toBe(1)
   })
 
   it('returns text responses as strings', async () => {

@@ -69,14 +69,14 @@ describe('admin users page', () => {
     expect(requests.some((r) => r.method === 'DELETE')).toBe(false)
   })
 
-  it('keeps non-admins out', async () => {
-    mockApi({
+  it('shows non-admins an access denied page without calling the admin API', async () => {
+    const requests = mockApi({
       'GET /api/me': () => json(200, { id: alice.id, username: alice.username, role: 'USER' }),
-      'GET /api/hello': () => new Response('Hello, alice', { headers: { 'Content-Type': 'text/plain' } }),
     })
 
     renderApp('/admin')
 
-    expect(await screen.findByRole('heading', { name: 'Hello, alice' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument()
+    expect(requests.some((r) => r.path.startsWith('/api/admin'))).toBe(false)
   })
 })

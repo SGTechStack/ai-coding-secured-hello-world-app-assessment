@@ -11,8 +11,6 @@ export interface AuthContextValue {
   state: AuthState
   login: (username: string, password: string) => Promise<CurrentUser>
   logout: () => Promise<void>
-  /** Call when the API answers 401: the session expired or was revoked server-side. */
-  sessionEnded: () => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

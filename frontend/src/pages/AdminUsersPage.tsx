@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api, type AdminUser, type Role, type UserPage } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { Alert } from '../components/Alert'
-import { describeError } from '../errors'
+import { describeError, endsSession } from '../errors'
 
 const PAGE_SIZE = 20
 
 export function AdminUsersPage() {
-  const { state, sessionEnded } = useAuth()
+  const { state } = useAuth()
   const currentUserId = state.status === 'authenticated' ? state.user.id : null
   const [page, setPage] = useState(0)
   const [reloadKey, setReloadKey] = useState(0)
@@ -16,18 +16,14 @@ export function AdminUsersPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
-  const handleError = useCallback(
-    (err: unknown) => {
-      if (err instanceof ApiError && err.status === 401) {
-        sessionEnded()
-      } else if (err instanceof ApiError && err.code === 'FORBIDDEN') {
-        setError('You no longer have administrator access. Sign out and back in to refresh your permissions.')
-      } else {
-        setError(describeError(err))
-      }
-    },
-    [sessionEnded],
-  )
+  const handleError = useCallback((err: unknown) => {
+    if (endsSession(err)) return
+    setError(
+      err instanceof ApiError && err.code === 'FORBIDDEN'
+        ? 'You no longer have administrator access. Sign out and back in to refresh your permissions.'
+        : describeError(err),
+    )
+  }, [])
 
   useEffect(() => {
     let ignore = false

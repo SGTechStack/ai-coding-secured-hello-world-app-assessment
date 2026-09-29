@@ -1,5 +1,10 @@
 import { ApiError } from './api/client'
 
+/** True when the API said there is no valid session; AuthProvider then sends the user to sign in. */
+export function endsSession(error: unknown): boolean {
+  return error instanceof ApiError && error.code === 'UNAUTHENTICATED'
+}
+
 /** A user-facing message for a failed call. Server messages are shown as text, never as HTML. */
 export function describeError(error: unknown): string {
   if (error instanceof ApiError) {

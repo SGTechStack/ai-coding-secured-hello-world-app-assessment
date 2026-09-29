@@ -41,6 +41,20 @@ export class ApiError extends Error {
 
 let csrfToken: CsrfToken | null = null
 
+const unauthenticatedListeners = new Set<() => void>()
+
+/**
+ * Registers a callback for any response saying the request had no valid session (expired,
+ * revoked, or signed out elsewhere), so one place reacts instead of every page.
+ * @returns a function that unregisters the callback
+ */
+export function onUnauthenticated(listener: () => void): () => void {
+  unauthenticatedListeners.add(listener)
+  return () => {
+    unauthenticatedListeners.delete(listener)
+  }
+}
+
 /** The server rotates the token on login and discards it on logout. */
 export function forgetCsrfToken(): void {
   csrfToken = null
@@ -70,7 +84,11 @@ async function send<T>(method: HttpMethod, path: string, body?: unknown, headers
   }
   const response = await fetch(`${API_BASE_URL}${path}`, init)
   if (!response.ok) {
-    throw await toApiError(response)
+    const error = await toApiError(response)
+    if (error.code === 'UNAUTHENTICATED') {
+      unauthenticatedListeners.forEach((listener) => listener())
+    }
+    throw error
   }
   if (response.status === 204) {
     return undefined as T

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ApiError, api } from '../api/client'
+import { ApiError, api, onUnauthenticated } from '../api/client'
 import { AuthContext, type AuthState } from './useAuth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -25,6 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Whichever call first hears that the session is gone (expired, revoked, signed out in another
+  // tab) ends it here; RequireAuth then redirects to sign in with a notice.
+  useEffect(
+    () =>
+      onUnauthenticated(() =>
+        setState((current) => (current.status === 'authenticated' ? { status: 'anonymous', expired: true } : current)),
+      ),
+    [],
+  )
+
   const login = useCallback(async (username: string, password: string) => {
     const user = await api.login(username, password)
     setState({ status: 'authenticated', user })
@@ -39,8 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const sessionEnded = useCallback(() => setState({ status: 'anonymous', expired: true }), [])
-
-  const value = useMemo(() => ({ state, login, logout, sessionEnded }), [state, login, logout, sessionEnded])
+  const value = useMemo(() => ({ state, login, logout }), [state, login, logout])
   return <AuthContext value={value}>{children}</AuthContext>
 }

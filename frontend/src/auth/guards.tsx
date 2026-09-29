@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import type { Role } from '../api/client'
+import { AccessDeniedPage } from '../pages/AccessDeniedPage'
 import { useAuth } from './useAuth'
 
 /** State passed to /login by redirects. */
@@ -33,7 +34,7 @@ export function RequireAuth({ role, children }: { role?: Role; children: ReactNo
     return <Navigate to="/login" replace state={redirect} />
   }
   if (role && state.user.role !== role) {
-    return <Navigate to="/" replace />
+    return <AccessDeniedPage />
   }
   return children
 }

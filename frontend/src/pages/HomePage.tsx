@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
-import { ApiError, api } from '../api/client'
-import { useAuth } from '../auth/useAuth'
+import { api } from '../api/client'
 import { Alert } from '../components/Alert'
-import { describeError } from '../errors'
+import { describeError, endsSession } from '../errors'
 
 export function HomePage() {
-  const { sessionEnded } = useAuth()
   const [greeting, setGreeting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,17 +15,12 @@ export function HomePage() {
         if (!ignore) setGreeting(text)
       })
       .catch((err: unknown) => {
-        if (ignore) return
-        if (err instanceof ApiError && err.status === 401) {
-          sessionEnded()
-        } else {
-          setError(describeError(err))
-        }
+        if (!ignore && !endsSession(err)) setError(describeError(err))
       })
     return () => {
       ignore = true
     }
-  }, [sessionEnded])
+  }, [])
 
   return (
     <section className="card">

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- Verified false positives: NVD lists these CVEs against the generic cpe:2.3:a:opentelemetry:opentelemetry with a
+         non-Java target_sw, and Dependency-Check matches that CPE to the Java jars. Each entry is scoped to the
+         opentelemetry Java artifacts (io.opentelemetry and io.opentelemetry.proto) and to its own CVE, never to the
+         whole CPE, so a real Java finding still fails the build. -->
+    <suppress>
+        <notes>CVE-2026-54285 is opentelemetry-js (the @opentelemetry/core baggage propagator, target node.js). It
+            does not apply to the Java artifacts (api, sdk, common), whose baggage code is a different codebase, or to
+            opentelemetry-proto, which holds generated message classes only.</notes>
+        <packageUrl regex="true">^pkg:maven/io.opentelemetry(.proto)?/opentelemetry-.*@.*$</packageUrl>
+        <cve>CVE-2026-54285</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2026-39882 is the OpenTelemetry-Go OTLP HTTP exporter (target go). opentelemetry-proto is generated
+            message classes only, with no HTTP exporter.</notes>
+        <packageUrl regex="true">^pkg:maven/io.opentelemetry(.proto)?/opentelemetry-.*@.*$</packageUrl>
+        <cve>CVE-2026-39882</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2026-41178 is OpenTelemetry-Go baggage Parse (target go). opentelemetry-proto is generated message
+            classes only, with no baggage parsing.</notes>
+        <packageUrl regex="true">^pkg:maven/io.opentelemetry(.proto)?/opentelemetry-.*@.*$</packageUrl>
+        <cve>CVE-2026-41178</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2026-40894 is in the OpenTelemetry .NET NuGet packages (target .net). It does not apply to a Java
+            jar of generated message classes.</notes>
+        <packageUrl regex="true">^pkg:maven/io.opentelemetry(.proto)?/opentelemetry-.*@.*$</packageUrl>
+        <cve>CVE-2026-40894</cve>
+    </suppress>
+    <suppress>
+        <notes>CVE-2026-44967 is the OpenTelemetry-cpp OTLP HTTP exporter (target c++). opentelemetry-proto is
+            generated message classes only, with no HTTP exporter.</notes>
+        <packageUrl regex="true">^pkg:maven/io.opentelemetry(.proto)?/opentelemetry-.*@.*$</packageUrl>
+        <cve>CVE-2026-44967</cve>
+    </suppress>
+</suppressions>

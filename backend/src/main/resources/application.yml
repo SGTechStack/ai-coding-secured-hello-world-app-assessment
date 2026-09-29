@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: secured-hello-world
+  datasource:
+    url: jdbc:h2:mem:authdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
+  h2:
+    console:
+      enabled: false
+
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: false   # local dev over HTTP; prod must set true (behind HTTPS)
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+  # Security thresholds (wired in later slices)
+  security:
+    lockout:
+      max-attempts: 5
+      duration-minutes: 15
+    ip-throttle:
+      max-attempts: 20
+      window-minutes: 15
+  # Initial admin seed (wired in the admin-bootstrap slice)
+  admin:
+    username: admin
+    password: change-me-please-12+
+  # Password reset token lifetime (wired in the reset slice)
+  reset:
+    token-ttl-minutes: 30
+
+logging:
+  level:
+    root: INFO

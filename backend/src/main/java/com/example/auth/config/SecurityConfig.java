@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(fixation -> fixation.changeSessionId()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/ping", "/api/csrf").permitAll()
+                .requestMatchers("/api/ping", "/api/auth/csrf", "/api/auth/register").permitAll()
                 .anyRequest().authenticated())
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);

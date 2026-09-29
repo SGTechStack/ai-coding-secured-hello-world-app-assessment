@@ -10,6 +10,9 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+  mvc:
+    problemdetails:
+      enabled: true
   session:
     store-type: jdbc
     jdbc:

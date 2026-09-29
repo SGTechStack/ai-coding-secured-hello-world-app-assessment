@@ -83,3 +83,31 @@ on your own branch.
 - Do not commit directly to `main`.
 - Do not commit to anyone else's branch.
 - Check your generated code in to your own branch and push it for review.
+
+## Running locally
+
+The app is a React frontend on port 3000 and a Spring Boot API on port 8080. Local HTTP is an accepted gap: the session cookie is `HttpOnly` and `SameSite=Lax`, and `Secure` is turned on with the `prod` profile.
+
+Backend (Java 21):
+
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+A first admin is seeded when no admin exists. The dev defaults are username `admin` and password `ChangeMe-Admin1` (`app.admin.username` / `app.admin.password`). Password reset does not send mail; the reset link is logged by the API as `event=password_reset_email`.
+
+```bash
+cd backend
+mvn test
+```

@@ -5,6 +5,12 @@ spring:
     username: sa
     password: ""
 
+server:
+  # Loopback only: the dev server is not reachable from other machines. It must also be a plain
+  # IPv4 socket (java.net.preferIPv4Stack, set for spring-boot:run in pom.xml): WSL2 forwards a
+  # port to Windows in the socket's own address family, and browsers reach localhost via 127.0.0.1.
+  address: 127.0.0.1
+
 app:
   session:
     cookie:

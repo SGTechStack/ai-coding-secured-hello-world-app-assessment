@@ -113,6 +113,11 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<!-- Local spring-boot:run only: a plain IPv4 socket, so WSL2 forwards the dev
+					     server to Windows on 127.0.0.1 (see server.address in application-dev.yml). -->
+					<jvmArguments>-Djava.net.preferIPv4Stack=true</jvmArguments>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

@@ -130,6 +130,16 @@ public class Account {
 		passwordHash = newPasswordHash;
 	}
 
+	/** An Admin permits or suspends login. Never touches {@code passwordChangeRequired} (ADR 0001). */
+	void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	/** An Admin grants or revokes the Admin role. */
+	void changeRole(Role role) {
+		this.role = role;
+	}
+
 	/** A successful login clears the failure count and any expired lock. */
 	void recordSuccessfulLogin() {
 		failedLoginAttempts = 0;

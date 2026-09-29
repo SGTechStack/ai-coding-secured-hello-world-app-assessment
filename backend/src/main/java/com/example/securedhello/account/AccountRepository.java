@@ -1,5 +1,6 @@
 package com.example.securedhello.account;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,5 +28,13 @@ interface AccountRepository extends JpaRepository<Account, UUID> {
 	/** The Account, with its row locked until the transaction ends (Password Change). */
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	Optional<Account> findForUpdateById(UUID id);
+
+	/**
+	 * Every enabled Account holding the role, locked until the transaction ends, in a fixed order
+	 * (the last-Admin rule). Two concurrent admin changes that both need this always lock the same
+	 * rows in the same order, so they queue instead of deadlocking on each other's target row.
+	 */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	List<Account> findByRoleAndEnabledTrueOrderById(Role role);
 
 }

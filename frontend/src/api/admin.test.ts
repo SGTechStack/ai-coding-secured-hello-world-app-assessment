@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fakeApi, json, problem } from '../test/fakeApi'
+import { fakeApi, json, problem, type Route } from '../test/fakeApi'
 
 let admin: typeof import('./admin')
 let client: typeof import('./client')
@@ -59,5 +59,57 @@ describe('listAccounts', () => {
 
     expect(await admin.listAccounts()).toEqual({ ok: false, reason: 'error' })
     expect(ended).toHaveBeenCalledOnce()
+  })
+})
+
+const id = accounts[1].id
+const csrfRoute: Route = () => json(200, { headerName: 'X-CSRF-TOKEN', token: 'token-1' })
+
+describe('setEnabled', () => {
+  it('sends the target and the new enabled state as JSON with the CSRF token', async () => {
+    const fetch = fakeApi({
+      'GET /csrf': csrfRoute,
+      [`PATCH /admin/users/${id}/enabled`]: () => new Response(null, { status: 200 }),
+    })
+
+    expect(await admin.setEnabled(id, false)).toEqual({ ok: true })
+    const [url, init] = fetch.mock.calls.find(([callUrl]) => String(callUrl).includes('/enabled'))!
+    expect(new URL(String(url)).pathname).toBe(`/api/admin/users/${id}/enabled`)
+    expect(init?.method).toBe('PATCH')
+    expect(new Headers(init?.headers).get('X-CSRF-TOKEN')).toBe('token-1')
+    expect(JSON.parse(String(init?.body))).toEqual({ enabled: false })
+  })
+
+  it.each([
+    [problem(403, 'self_action_forbidden'), 'self_action_forbidden'],
+    [problem(409, 'last_admin'), 'last_admin'],
+    [problem(404, 'not_found'), 'not_found'],
+    [problem(403, 'access_denied'), 'forbidden'],
+    [problem(500, 'internal_error'), 'error'],
+  ] as const)('maps a refusal (%#)', async (response, reason) => {
+    fakeApi({ 'GET /csrf': csrfRoute, [`PATCH /admin/users/${id}/enabled`]: () => response })
+
+    expect(await admin.setEnabled(id, false)).toEqual({ ok: false, reason })
+  })
+})
+
+describe('changeRole', () => {
+  it('sends the target and the new role as JSON with the CSRF token', async () => {
+    const fetch = fakeApi({
+      'GET /csrf': csrfRoute,
+      [`PATCH /admin/users/${id}/role`]: () => new Response(null, { status: 200 }),
+    })
+
+    expect(await admin.changeRole(id, 'ADMIN')).toEqual({ ok: true })
+    const [url, init] = fetch.mock.calls.find(([callUrl]) => String(callUrl).includes('/role'))!
+    expect(new URL(String(url)).pathname).toBe(`/api/admin/users/${id}/role`)
+    expect(init?.method).toBe('PATCH')
+    expect(JSON.parse(String(init?.body))).toEqual({ role: 'ADMIN' })
+  })
+
+  it('reports the last-Admin rule as a 409 refusal', async () => {
+    fakeApi({ 'GET /csrf': csrfRoute, [`PATCH /admin/users/${id}/role`]: () => problem(409, 'last_admin') })
+
+    expect(await admin.changeRole(id, 'USER')).toEqual({ ok: false, reason: 'last_admin' })
   })
 })

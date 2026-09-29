@@ -9,9 +9,9 @@
 
 **Blocked by:** 18
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The 10th failure locks, and a correct code during the lock is refused. After 20 minutes on the `Clock` it works.
-- [ ] The 100th cumulative failure disables the factor, forces a password change, and ends every session of the subject (checked by replay).
-- [ ] Verification, the self-read and the admin entry point all report `FACTOR_DISABLED`.
-- [ ] The SPA renders the terminal state, not the challenge (Vitest).
+- [x] The 10th failure locks, and a correct code during the lock is refused. After 20 minutes on the `Clock` it works.
+- [x] The 100th cumulative failure disables the factor, forces a password change, and ends every session of the subject (checked by replay).
+- [x] Verification, the self-read and the admin entry point all report `FACTOR_DISABLED`.
+- [x] The SPA renders the terminal state, not the challenge (Vitest).

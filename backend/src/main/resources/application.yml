@@ -10,7 +10,8 @@ spring:
   flyway:
     locations: classpath:db/migration/common,classpath:db/migration/{vendor}
   session:
-    timeout: 30m
+    # Idle timeout (IM8: at most 15 minutes). The SPA signs out after the same period without input.
+    timeout: 15m
     jdbc:
       # Session tables are created by Flyway (db/migration/{vendor}), not by Spring Session.
       initialize-schema: never

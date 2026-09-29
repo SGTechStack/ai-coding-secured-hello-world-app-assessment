@@ -6,7 +6,9 @@ import jakarta.servlet.http.Cookie;
 
 import org.junit.jupiter.api.Test;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import com.sgtechstack.helloauth.support.ApiClient;
@@ -20,6 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Story 2 (login) and Story 5 (protected greeting).
  */
 class LoginIntegrationTests extends IntegrationTest {
+
+	@Autowired
+	private JdbcTemplate jdbc;
 
 	@Test
 	void successfulLoginCreatesHardenedSessionAndResetsFailedAttempts() {
@@ -41,6 +46,18 @@ class LoginIntegrationTests extends IntegrationTest {
 				.contains("SameSite=Strict"));
 		assertThat(reload(user).getFailedLoginAttempts()).isZero();
 		assertThat(ApiClient.body(client.get("/api/hello"))).isEqualTo("Hello, " + user.getUsername());
+	}
+
+	@Test
+	void sessionsExpireAfterFifteenMinutesWithoutActivity() {
+		User user = createUser(Role.USER);
+		loggedIn(user);
+
+		Integer maxInactiveSeconds = this.jdbc.queryForObject(
+				"select max(MAX_INACTIVE_INTERVAL) from SPRING_SESSION where PRINCIPAL_NAME = ?", Integer.class,
+				user.getUsername());
+
+		assertThat(maxInactiveSeconds).isEqualTo(15 * 60);
 	}
 
 	@Test

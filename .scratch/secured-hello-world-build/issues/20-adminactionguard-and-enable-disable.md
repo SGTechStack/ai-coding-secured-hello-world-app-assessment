@@ -16,11 +16,11 @@
 
 **Blocked by:** 18
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Disabling yourself gets 403 `ACCESS_DENIED`.
-- [ ] With exactly two enrolled admins, disabling either gets 409 with the new code. With three, it succeeds.
-- [ ] A disabled user's live session is gone on its next request.
-- [ ] A factor older than 10 minutes gets `MISSING_FACTOR`/`EXPIRED` on the mutation, while reads still succeed.
-- [ ] The gauge reports the authenticable count from the same definition the guard uses.
-- [ ] The guard meets 85% mutation score. A concurrency test shows two racing disables can't leave fewer than two enrolled admins.
+- [x] Disabling yourself gets 403 `ACCESS_DENIED`.
+- [x] With exactly two enrolled admins, disabling either gets 409 with the new code. With three, it succeeds.
+- [x] A disabled user's live session is gone on its next request.
+- [x] A factor older than 10 minutes gets `MISSING_FACTOR`/`EXPIRED` on the mutation, while reads still succeed.
+- [x] The gauge reports the authenticable count from the same definition the guard uses.
+- [x] The guard meets 85% mutation score. A concurrency test shows two racing disables can't leave fewer than two enrolled admins.

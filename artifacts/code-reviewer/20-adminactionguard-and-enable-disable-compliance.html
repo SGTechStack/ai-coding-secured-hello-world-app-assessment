@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 20-adminactionguard-and-enable-disable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall PASS</span>
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">build WARN C0/H0/M1/L1</span>
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN C0/H0/M0/L3</span>
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN C0/H0/M0/L4</span>
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-600">semgrep SKIPPED C0/H0/M0/L0</span>
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN C0/H0/M0/L1</span>
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">react WARN C0/H0/M0/L2</span>
+<span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN C0/H0/M0/L5</span>
+<span class="ml-auto font-mono text-sm text-slate-500">t20-adminactionguard-enable-disable</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+<div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+  <div>
+    <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report (Round 2)</h2>
+    <p class="text-xs text-slate-500 mt-1">Ticket 20: AdminActionGuard and enable/disable. Diff 09eae9b..HEAD (fix commits e338d8a, ebf9d8c). Overall PASS: no Critical or High findings, must-fix = 0.</p>
+  </div>
+  <table class="w-full text-sm text-left border border-slate-100">
+    <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2">Check</th><th class="px-4 py-2">Status</th><th class="px-4 py-2">C/H/M/L</th><th class="px-4 py-2">Summary</th></tr></thead>
+    <tbody>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 font-medium">Build (build-check)</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2">0/0/1/1</td><td class="px-4 py-2 text-slate-600">Full mvn verify green (1218 unit/context tests, 6 ITs); prettier, tsc, vitest (97.28% stmts) and vite build pass. Playwright skipped as instructed.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 font-medium">Thermo-nuclear maintainability</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2">0/0/0/3</td><td class="px-4 py-2 text-slate-600">Round-1 M1/M2 fixed; fix commits add no spaghetti.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 font-medium">Code review (Standards + Spec)</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2">0/0/0/4</td><td class="px-4 py-2 text-slate-600">All round-1 Medium/High items resolved; only accepted Low decisions remain.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 font-medium">Semgrep</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-600">SKIPPED</span></td><td class="px-4 py-2">0/0/0/0</td><td class="px-4 py-2 text-slate-600">Semgrep CLI not installed; skipped (does not fail the run). Manual scan of the diff found no issues.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 font-medium">IM8 Application Controls</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2">0/0/0/1</td><td class="px-4 py-2 text-slate-600">Round-1 Medium (lm-4, rows emitted before commit) resolved. Low risk classification.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 font-medium">React review</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2">0/0/0/2</td><td class="px-4 py-2 text-slate-600">Round-1 M1 fixed, M2 accepted.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 font-medium">Spring Boot (7 skills)</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2">0/0/0/5</td><td class="px-4 py-2 text-slate-600">H1 (rows emitted before commit) and M1 (undocumented context) fixed; afterCommit semantics verified correct. spring-batch N/A.</td></tr>
+</tbody>
+  </table>
+  <div class="space-y-3 pt-3 border-t border-slate-100">
+    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+    <p class="text-sm text-slate-500">None. The only Medium is the pre-existing missing backend JaCoCo gate (not introduced by this ticket).</p>
+  </div>
+</div>
+<details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+<summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">Build (build-check)</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+<table class="w-full text-sm border-t border-slate-100"><thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead><tbody>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2"></td><td class="px-4 py-2">No JaCoCo configuration, so the 80% backend coverage gate cannot be measured (pre-existing, unchanged by this ticket).</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">50</td><td class="px-4 py-2">Fallow advisory: arbitrary grid class grid-cols-[max-content_1fr] (other fallow advisories are pre-existing).</td></tr>
+</tbody></table>
+</details>
+<details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+<summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">Thermo-nuclear maintainability</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+<table class="w-full text-sm border-t border-slate-100"><thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead><tbody>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/AdminActions.java</td><td class="px-4 py-2">60,68</td><td class="px-4 py-2">enabled is branched three times (mutation, session/credential, audit event); revisit if demote/delete do not land.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/audit/AdminActionContext.java</td><td class="px-4 py-2"></td><td class="px-4 py-2">Nullable reason plus two factories (unchanged, cosmetic).</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/AdminActions.java</td><td class="px-4 py-2">93-100</td><td class="px-4 py-2">Subject found by scanning the lock set, then findById().orElseThrow(); same invariant expressed twice.</td></tr>
+</tbody></table>
+</details>
+<details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+<summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">Code review (Standards + Spec)</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+<table class="w-full text-sm border-t border-slate-100"><thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead><tbody>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/testsupport/CtxLockHoldTest.java</td><td class="px-4 py-2">27-34</td><td class="px-4 py-2">awaitBlocked busy-spins with an INFORMATION_SCHEMA query per iteration; a short poll interval would be gentler.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">88-90</td><td class="px-4 py-2">If the self-read errors the control never appears and nothing says why; consider a retry/message on profile.isError.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/AdminActionGuard.java</td><td class="px-4 py-2"></td><td class="px-4 py-2">Check 1 also refuses self-ENABLE, beyond ADR-048 text; deliberate and documented in Javadoc but not registered as a deviation.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/audit/AuditEvent.java</td><td class="px-4 py-2"></td><td class="px-4 py-2">Javadoc row numbers 28/29/34 come from the .scratch catalogue, not docs/audit/log-inventory.md.</td></tr>
+</tbody></table>
+</details>
+<details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+<summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">Semgrep</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-600">SKIPPED</span></summary>
+<table class="w-full text-sm border-t border-slate-100"><thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead><tbody>
+<tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings (check skipped)</td></tr>
+</tbody></table>
+</details>
+<details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+<summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">IM8 Application Controls</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+<table class="w-full text-sm border-t border-slate-100"><thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead><tbody>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/admin/AdminEnableDisableTest.java</td><td class="px-4 py-2">91-97,119-122</td><td class="px-4 py-2">No test proves a rolled-back enable/disable writes no row 28/29; moving the emit back inline would still pass.</td></tr>
+</tbody></table>
+</details>
+<details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+<summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">React review</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+<table class="w-full text-sm border-t border-slate-100"><thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead><tbody>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">118-123</td><td class="px-4 py-2">Always-mounted role=status/alert paragraphs add empty flex rows with gap spacing (cosmetic).</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/e2e/fixtures.ts</td><td class="px-4 py-2">19-24</td><td class="px-4 py-2">totp() uses Date.now() at call time; a code at a 30 s boundary could be rejected (moved unchanged, not a regression).</td></tr>
+</tbody></table>
+</details>
+<details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+<summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">Spring Boot (7 skills)</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+<table class="w-full text-sm border-t border-slate-100"><thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead><tbody>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0065-security-tests-boot-the-full-context.md</td><td class="px-4 py-2">37-42</td><td class="px-4 py-2">ADR-065, docs/spec.md:777 and SharedContextTest Javadoc do not list ctx-lockhold; test-plan.md does.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/admin/TwoAdminInvariantTest.java</td><td class="px-4 py-2"></td><td class="px-4 py-2">No test proves a rolled-back guarded mutation writes no applied row (suggest rollback-only TransactionTemplate under AuditCapture).</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/testsupport/CtxLockHoldTest.java</td><td class="px-4 py-2">29-34</td><td class="px-4 py-2">Busy-spin probe (carried); Awaitility with a short poll would be lighter.</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/java/sg/securedhello/admin/FactorTripLockOrderTest.java</td><td class="px-4 py-2">319</td><td class="px-4 py-2">Hand-rolls the first half of the lock set (carried, accepted, documented at :274-276).</td></tr>
+<tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/AdminUserController.java</td><td class="px-4 py-2"></td><td class="px-4 py-2">Informational: @PutMapping has no explicit consumes (codebase convention); gauge loads rows rather than COUNT(*) by design.</td></tr>
+</tbody></table>
+</details>
+    </main>
+  </body>
+</html>

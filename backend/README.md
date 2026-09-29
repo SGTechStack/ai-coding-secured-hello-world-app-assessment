@@ -71,7 +71,8 @@ stays `UP`: signed-in users are unaffected, so the node must stay in rotation.
 ### Metrics
 
 Metrics are pushed over OTLP and are off by default. To export them, add the `otlp` profile and give the collector's
-https URL in `OTLP_METRICS_URL`, for example `--spring.profiles.active=dev,otlp`. Without the URL, startup stops
+https URL in `OTLP_METRICS_URL`, for example `--spring.profiles.active=dev,otlp`. Without the URL, or with one that is not https
+(`dev` included), startup stops
 (ADR-061).
 
 ### Shared dev demo values
@@ -205,6 +206,10 @@ Failsafe are pinned at exactly 3.6.0, so `-DskipTests` no longer skips the Fails
 | Register drift (ADR-069; T-BLD-006) | a committed rendering (`docs/register/deferral-register.md`, `docs/register/handover.md`) differs from what `docs/register/register.md` regenerates, or the table breaks the register schema | `RegisterDriftIT` |
 | Audit log inventory (R-AUD-027; T-AUD-017) | `docs/audit/log-inventory.md` differs from what `AuditEvent` generates; regenerate with `-Daudit-inventory.regenerate=true` | `AuditInventoryDriftIT` |
 | OWASP Dependency-Check (R-BLD-007; R-BLD-010) | a dependency finding at CVSS 7.0 or higher | `dependency-check-maven`, bound to `verify` |
+
+Dependency-Check reads `backend/dependency-check-suppressions.xml`, which suppresses only verified false positives: each entry
+is scoped to named artifacts and CVE ids, with a `<notes>` reason. Add an entry only after checking the CPE's real
+product and platform, never for a whole CPE.
 
 Set `NVD_API_KEY` in the environment before a release build. Without a key the NVD download is slow or refused, and
 the first download takes a long time either way.

@@ -16,6 +16,7 @@ import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
 
 import sg.securedhello.mfa.TotpFactorEntryPoint;
+import sg.securedhello.mfa.TotpProblemAdvice;
 import sg.securedhello.password.PasswordRule;
 
 import tools.jackson.databind.SerializationFeature;
@@ -59,7 +60,13 @@ public final class ErrorContract {
                     "reason", new Extension(
                             Arrays.stream(TotpFactorEntryPoint.Reason.values()).map(Enum::name).toList(), true,
                             "`MISSING` when the session does not hold the factor; `EXPIRED` when it holds one older "
-                                    + "than the rule accepts (ADR-021).")));
+                                    + "than the rule accepts (ADR-021).")),
+            ErrorCode.TOO_MANY_REQUESTS, Map.of(
+                    "factor", new Extension(List.of(TotpFactorEntryPoint.FACTOR), false,
+                            "Present only on a tier-1 factor lock, the factor that is locked; a source or identifier "
+                                    + "throttle never carries it (ADR-033)."),
+                    "reason", new Extension(List.of(TotpProblemAdvice.LOCKED), false,
+                            "`LOCKED`, only with `factor` (ADR-027).")));
 
     /** An extension member on one code: its closed set of string values, whether it is required, what it means. */
     record Extension(List<String> values, boolean required, String meaning) {

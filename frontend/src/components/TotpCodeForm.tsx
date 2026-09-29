@@ -27,13 +27,15 @@ interface TotpCodeFormProps {
   onCode: (code: string) => Promise<string | undefined>
   /** Focus the field when the form appears, as on the challenge page. */
   autoFocus?: boolean
+  /** Hold the submit button disabled, as while a factor lock lasts. */
+  disabled?: boolean
 }
 
 /**
  * A six-digit TOTP code field and its submit button, labelled, with its error linked by `aria-describedby` and
  * announced as an alert. The field is cleared on every submit, so a used code is never left to resend.
  */
-export function TotpCodeForm({ submitLabel, onCode, autoFocus = false }: TotpCodeFormProps) {
+export function TotpCodeForm({ submitLabel, onCode, autoFocus = false, disabled = false }: TotpCodeFormProps) {
   const {
     register,
     handleSubmit,
@@ -71,7 +73,7 @@ export function TotpCodeForm({ submitLabel, onCode, autoFocus = false }: TotpCod
         )}
       </div>
       <div>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={disabled || isSubmitting}>
           {submitLabel}
         </Button>
       </div>

@@ -45,7 +45,7 @@ public class RequiredPropertiesPostProcessor implements EnvironmentPostProcessor
     }
 
     /** Resolved the way Boot's OTLP metrics export auto-configuration decides it. */
-    private static boolean otlpExportEnabled(ConfigurableEnvironment environment) {
+    static boolean otlpExportEnabled(ConfigurableEnvironment environment) {
         Boolean enabled = environment.getProperty(OTLP_EXPORT_ENABLED, Boolean.class);
         return enabled != null ? enabled : environment.getProperty(DEFAULT_EXPORT_ENABLED, Boolean.class, true);
     }

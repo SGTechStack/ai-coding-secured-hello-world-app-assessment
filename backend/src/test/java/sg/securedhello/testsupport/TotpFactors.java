@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import jakarta.servlet.http.Cookie;
 
@@ -74,6 +75,17 @@ public final class TotpFactors {
     /** The code for {@code secret} at {@code counter}. */
     public static String code(byte[] secret, long counter) {
         return TotpWindow.generate(secret, counter, TotpWindow.DIGITS);
+    }
+
+    /**
+     * A code that fails for {@code secret} at the shared clock's current step: none of the three codes the ±1 window
+     * accepts, so a test that counts failures never passes by chance.
+     */
+    public String wrongCode(byte[] secret) {
+        long current = TotpWindow.counter(clock.instant());
+        List<String> live = List.of(code(secret, current - 1), code(secret, current), code(secret, current + 1));
+        return Stream.of("000000", "000001", "000002", "000003").filter(candidate -> !live.contains(candidate))
+                .findFirst().orElseThrow();
     }
 
     /** Posts {@code code} to the verification route on {@code session}. */

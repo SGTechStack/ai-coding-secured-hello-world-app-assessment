@@ -236,8 +236,12 @@
         "detail" : {
           "const" : "Too many requests. Try again later."
         },
-        "factor" : false,
-        "reason" : false,
+        "factor" : {
+          "enum" : [ "TOTP" ]
+        },
+        "reason" : {
+          "enum" : [ "LOCKED" ]
+        },
         "rule" : false,
         "status" : {
           "const" : 429
@@ -460,7 +464,7 @@
       "type" : "string"
     },
     "reason" : {
-      "enum" : [ "EXPIRED", "MISSING" ]
+      "enum" : [ "EXPIRED", "LOCKED", "MISSING" ]
     },
     "rule" : {
       "enum" : [ "BLOCKLISTED", "CONTEXT_TERM", "HISTORY_REUSE", "MAX_BYTES", "MIN_LENGTH", "TOO_WEAK", "USERNAME_UNAVAILABLE" ]

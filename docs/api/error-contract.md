@@ -47,6 +47,8 @@ Each is allowed only on the codes listed for it, with that code's values, and ab
 |---|---|---|---|---|
 | `rule` | `VALIDATION_FAILED` | no | `USERNAME_UNAVAILABLE` | Present only when the failure is a property of the submitted value the caller can act on: a taken username at registration (ADR-032). A format or length rejection carries none. |
 | `rule` | `PASSWORD_REJECTED` | yes | `MIN_LENGTH`, `MAX_BYTES`, `BLOCKLISTED`, `CONTEXT_TERM`, `TOO_WEAK`, `HISTORY_REUSE` | The first password-policy rule the password failed, in the order the rules run (ADR-005). |
+| `factor` | `TOO_MANY_REQUESTS` | no | `TOTP` | Present only on a tier-1 factor lock, the factor that is locked; a source or identifier throttle never carries it (ADR-033). |
+| `reason` | `TOO_MANY_REQUESTS` | no | `LOCKED` | `LOCKED`, only with `factor` (ADR-027). |
 | `factor` | `MISSING_FACTOR` | yes | `TOTP` | The factor the admin surface requires (R-MFA-001). |
 | `reason` | `MISSING_FACTOR` | yes | `MISSING`, `EXPIRED` | `MISSING` when the session does not hold the factor; `EXPIRED` when it holds one older than the rule accepts (ADR-021). |
 

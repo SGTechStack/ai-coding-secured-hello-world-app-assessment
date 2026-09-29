@@ -211,6 +211,10 @@
                 <version>${dependency-check-maven.version}</version>
                 <configuration>
                     <failBuildOnCVSS>${dependency-check.failBuildOnCVSS}</failBuildOnCVSS>
+                    <!-- Verified false positives, each scoped to its artifacts and CVE (README, Build gates). -->
+                    <suppressionFiles>
+                        <suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
                     <!-- OSS Index now needs an account; without one its remote errors warn instead of failing. -->
                     <ossIndexWarnOnlyOnRemoteErrors>true</ossIndexWarnOnlyOnRemoteErrors>
                     <formats>
@@ -260,6 +264,9 @@
                             <!-- the TOTP window and replay check -->
                             <param>sg.securedhello.*TotpWindow*</param>
                             <param>sg.securedhello.*TotpReplay*</param>
+                            <!-- the two-tier factor lockout: the counting and the verification that applies it -->
+                            <param>sg.securedhello.*TotpUserDetails</param>
+                            <param>sg.securedhello.*TotpVerification</param>
                             <!-- the TOTP envelope: context prefix and version-keyed key ring -->
                             <param>sg.securedhello.*TotpSecretCipher*</param>
                             <!-- emitter key validation -->

@@ -49,13 +49,21 @@ export function isProblem(value: unknown): value is Problem {
 export class ApiError extends Error {
   readonly code: ErrorCode
   readonly problem: Problem
+  /** The integer `Retry-After` in seconds, when the response carried one (every 429 does; ADR-014). */
+  readonly retryAfterSeconds: number | undefined
 
-  constructor(problem: Problem) {
+  constructor(problem: Problem, retryAfterSeconds?: number) {
     super(problem.code)
     this.name = 'ApiError'
     this.code = problem.code
     this.problem = problem
+    this.retryAfterSeconds = retryAfterSeconds
   }
+}
+
+/** A `Retry-After` header's whole seconds, or `undefined` when it is absent or not a non-negative integer. */
+export function retryAfterSeconds(header: string | null): number | undefined {
+  return header !== null && /^\d+$/.test(header) ? Number(header) : undefined
 }
 
 /**

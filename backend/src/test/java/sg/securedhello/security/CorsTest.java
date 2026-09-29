@@ -65,4 +65,11 @@ class CorsTest extends CtxDefaultTest {
         assertThat(CorsPolicy.configuration(origins).getAllowedOrigins()).containsExactly(SPA);
         assertThat(CorsPolicy.configuration(origins).getAllowedOriginPatterns()).isNull();
     }
+
+    @Test
+    void retryAfterIsTheOneResponseHeaderExposedToTheSpa() throws Exception {
+        mockMvc.perform(get("/api/csrf").header(HttpHeaders.ORIGIN, SPA))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, SPA))
+                .andExpect(header().string(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.RETRY_AFTER));
+    }
 }

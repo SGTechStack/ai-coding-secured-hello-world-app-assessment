@@ -13,10 +13,11 @@ import org.springframework.validation.annotation.Validated;
  * Rate limits.
  *
  * @param login login attempts per username
+ * @param registration registrations per client address
  */
 @Validated
 @ConfigurationProperties("app.rate-limit")
-public record RateLimitProperties(@Valid @NotNull Limit login) {
+public record RateLimitProperties(@Valid @NotNull Limit login, @Valid @NotNull Limit registration) {
 
 	/**
 	 * At most {@code capacity} attempts per {@code period} for one key.

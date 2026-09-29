@@ -16,6 +16,7 @@ import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.config.ApiProperties;
+import com.example.securedhello.config.IpThrottleProperties;
 import com.example.securedhello.config.LockoutProperties;
 import com.example.securedhello.config.RateLimitProperties;
 import com.example.securedhello.config.SessionProperties;
@@ -41,15 +42,19 @@ class ApplicationLifecycleLogger {
 
 	private final RateLimitProperties rateLimit;
 
+	private final IpThrottleProperties ipThrottle;
+
 	private final AuditLog auditLog;
 
 	ApplicationLifecycleLogger(Environment environment, ApiProperties api, SessionProperties session,
-			LockoutProperties lockout, RateLimitProperties rateLimit, AuditLog auditLog) {
+			LockoutProperties lockout, RateLimitProperties rateLimit, IpThrottleProperties ipThrottle,
+			AuditLog auditLog) {
 		this.environment = environment;
 		this.api = api;
 		this.session = session;
 		this.lockout = lockout;
 		this.rateLimit = rateLimit;
+		this.ipThrottle = ipThrottle;
 		this.auditLog = auditLog;
 	}
 
@@ -71,6 +76,11 @@ class ApplicationLifecycleLogger {
 			.addKeyValue("config.lockout.duration", lockout.duration().toString())
 			.addKeyValue("config.rate_limit.login.capacity", rateLimit.login().capacity())
 			.addKeyValue("config.rate_limit.login.period", rateLimit.login().period().toString())
+			.addKeyValue("config.rate_limit.registration.capacity", rateLimit.registration().capacity())
+			.addKeyValue("config.rate_limit.registration.period", rateLimit.registration().period().toString())
+			.addKeyValue("config.ip_throttle.threshold", ipThrottle.threshold())
+			.addKeyValue("config.ip_throttle.window", ipThrottle.window().toString())
+			.addKeyValue("config.ip_throttle.block_duration", ipThrottle.blockDuration().toString())
 			.log("Application started");
 		auditLog.record(AuditEvent.success(AuditAction.APPLICATION_STARTUP));
 	}

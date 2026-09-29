@@ -28,8 +28,8 @@ import com.example.securedhello.web.ProblemResponses;
  * {@code POST /login} and {@code POST /logout}. Login takes JSON {@code {username, password}} (JSON
  * rather than a form post, see {@code docs/agents/reviewer-decisions.md}); success starts a fresh
  * Session and returns the own Account, and every refusal is the same 401
- * {@code authentication_failed} body. Too many attempts on one username get 429 from the global
- * handler.
+ * {@code authentication_failed} body. A blocked client address (IP Throttle) or too many attempts on
+ * one username get 429 from the global handler.
  */
 @RestController
 @RequestMapping("${app.api.base-path}")
@@ -115,7 +115,7 @@ class AuthenticationController {
 	 */
 	private Account authenticate(LoginRequest body, HttpServletRequest request) {
 		try {
-			return guard.authenticate(body.username(), body.password());
+			return guard.authenticate(body.username(), body.password(), request.getRemoteAddr());
 		}
 		catch (AuthenticationFailedException | RateLimitExceededException ex) {
 			throw ex;

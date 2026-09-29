@@ -25,6 +25,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
+import com.example.securedhello.audit.SourceIpHash;
 import com.example.securedhello.credential.PasswordPolicyException;
 import com.example.securedhello.ratelimit.RateLimitExceededException;
 
@@ -44,8 +45,11 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	private final AuditLog auditLog;
 
-	GlobalExceptionHandler(AuditLog auditLog) {
+	private final SourceIpHash sourceIpHash;
+
+	GlobalExceptionHandler(AuditLog auditLog, SourceIpHash sourceIpHash) {
 		this.auditLog = auditLog;
+		this.sourceIpHash = sourceIpHash;
 	}
 
 	/** 400 {@code password_policy} listing every broken Credential policy rule. */
@@ -59,14 +63,20 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	/**
-	 * 429 {@code too_many_requests} with {@code Retry-After} for every rate limiter, audited with the
-	 * endpoint. The body uses the Standard's wording and never says which limit or key was hit.
+	 * 429 {@code too_many_requests} with {@code Retry-After} for every rate limiter and the IP
+	 * Throttle, audited with the endpoint, and with {@code source.ip_hash} (never the address) when
+	 * the limit is per client address. The body uses the Standard's wording and never says which limit
+	 * or key was hit.
 	 */
 	@ExceptionHandler(RateLimitExceededException.class)
 	ResponseEntity<ProblemDetail> handleRateLimited(RateLimitExceededException exception, HttpServletRequest request) {
-		auditLog.record(AuditEvent.failure(AuditAction.ACCESS_CONTROL, "rate_limited")
+		AuditEvent event = AuditEvent.failure(AuditAction.ACCESS_CONTROL, exception.reason())
 			.request(request)
-			.sessionHashOf(request));
+			.sessionHashOf(request);
+		if (exception.keyedByClientAddress()) {
+			event.sourceIpHash(sourceIpHash.of(request));
+		}
+		auditLog.record(event);
 		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
 			.header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
 			.body(ProblemResponses.problem(HttpStatus.TOO_MANY_REQUESTS, "too_many_requests", "too many requests"));

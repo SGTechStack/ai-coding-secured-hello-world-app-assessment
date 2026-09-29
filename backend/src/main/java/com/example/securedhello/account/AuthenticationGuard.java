@@ -11,19 +11,20 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.securedhello.config.LockoutProperties;
 import com.example.securedhello.credential.CredentialPolicy;
 import com.example.securedhello.notification.EmailService;
+import com.example.securedhello.ratelimit.IpThrottle;
 import com.example.securedhello.ratelimit.RateLimitExceededException;
 import com.example.securedhello.ratelimit.RateLimiters;
 
 /**
- * Owns the login decision, in order: per-username rate limit, credential check, Locked and Disabled
- * checks, failure counter update. Every refusal after the rate limit is the same
+ * Owns the login decision, in order: IP Throttle, per-username rate limit, credential check, Locked
+ * and Disabled checks, failure counter update. Every refusal after the rate limit is the same
  * {@link AuthenticationFailedException}. An unknown username still costs one BCrypt comparison
  * against a dummy hash, so timing does not reveal whether it exists.
  * <p>
  * Each wrong password is counted on the Account; at the lockout threshold the Account becomes Locked
  * for the lockout duration, and the Account holder is notified. Both are stored on the Account, so
- * they survive a restart. A successful login resets the count. The IP Throttle goes in front of the
- * rate limit in a later ticket.
+ * they survive a restart. A successful login resets the count. Every refused credential attempt also
+ * counts against the client address in the IP Throttle, which never touches the Account.
  */
 @Service
 class AuthenticationGuard {
@@ -40,29 +41,44 @@ class AuthenticationGuard {
 
 	private final RateLimiters rateLimiters;
 
+	private final IpThrottle ipThrottle;
+
 	AuthenticationGuard(AccountRepository accounts, CredentialPolicy credentialPolicy, LockoutProperties lockout,
-			Clock clock, EmailService emailService, RateLimiters rateLimiters) {
+			Clock clock, EmailService emailService, RateLimiters rateLimiters, IpThrottle ipThrottle) {
 		this.accounts = accounts;
 		this.credentialPolicy = credentialPolicy;
 		this.lockout = lockout;
 		this.clock = clock;
 		this.emailService = emailService;
 		this.rateLimiters = rateLimiters;
+		this.ipThrottle = ipThrottle;
 	}
 
 	/**
 	 * Commits the failure counter even though the login is refused. The Account row is locked for the
 	 * decision, so concurrent attempts on one Account are counted one after another.
+	 * @param clientAddress the direct connection address, never a forwarded one
 	 * @return the authenticated Account
-	 * @throws RateLimitExceededException when the username has had too many attempts; nothing else is
-	 *         checked or counted
+	 * @throws RateLimitExceededException when the address is blocked by the IP Throttle or the
+	 *         username has had too many attempts; nothing else is checked or counted
 	 * @throws AuthenticationFailedException for an unknown username, a wrong password, or a Locked or
 	 *         Disabled Account, without saying which
 	 */
 	@Transactional(noRollbackFor = AuthenticationFailedException.class)
-	Account authenticate(String username, String password) {
+	Account authenticate(String username, String password, String clientAddress) {
+		ipThrottle.check(clientAddress);
 		String key = username.toLowerCase(Locale.ROOT);
 		rateLimiters.login().acquire(key);
+		try {
+			return checkCredentials(key, password);
+		}
+		catch (AuthenticationFailedException ex) {
+			ipThrottle.recordFailure(clientAddress);
+			throw ex;
+		}
+	}
+
+	private Account checkCredentials(String key, String password) {
 		Optional<Account> found = accounts.findForUpdateByUsername(key);
 		if (found.isEmpty()) {
 			credentialPolicy.matchesNoAccount(password);

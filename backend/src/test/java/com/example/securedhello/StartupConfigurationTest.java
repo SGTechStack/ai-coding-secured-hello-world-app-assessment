@@ -4,11 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.server.autoconfigure.ServerProperties;
+import org.springframework.boot.web.server.autoconfigure.ServerProperties.ForwardHeadersStrategy;
 import org.springframework.context.ConfigurableApplicationContext;
 
 /** Bootstrap tests: separate application contexts with different profiles and properties. */
 class StartupConfigurationTest {
+
+	private static final String IP_HASH_KEY = "--app.ip-hash.key=synthetic-startup-test-key";
 
 	/** Runs the app with the given profile; args override every profile's properties files. */
 	private static ConfigurableApplicationContext run(String profile, String... args) {
@@ -21,14 +27,52 @@ class StartupConfigurationTest {
 
 	@Test
 	void nonDevStartupFailsWithoutCorsAllowlist() {
-		assertThatThrownBy(() -> run("prod").close())
+		assertThatThrownBy(() -> run("prod", IP_HASH_KEY).close())
 			.hasStackTraceContaining("app.cors.allowed-origins must list the frontend origins");
 	}
 
 	@Test
 	void startupFailsWhenCorsAllowlistContainsWildcard() {
-		assertThatThrownBy(() -> run("prod", "--app.cors.allowed-origins=*").close())
+		assertThatThrownBy(() -> run("prod", IP_HASH_KEY, "--app.cors.allowed-origins=*").close())
 			.hasStackTraceContaining("must be an exact origin without wildcards or paths");
+	}
+
+	@Test
+	void nonDevStartupFailsWithoutTheIpHashKey() {
+		assertThatThrownBy(() -> run("prod", "--app.cors.allowed-origins=https://app.example.invalid").close())
+			.hasStackTraceContaining("app.ip-hash.key must be injected from the secrets manager");
+	}
+
+	@Test
+	void nonDevStartupSucceedsWithTheIpHashKey() {
+		try (ConfigurableApplicationContext context = run("prod",
+				"--app.cors.allowed-origins=https://app.example.invalid", IP_HASH_KEY)) {
+			assertThat(context.isRunning()).isTrue();
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "none", "kubernetes" })
+	void forwardedHeadersAreNeverTrustedEvenOnADetectedCloudPlatform(String cloudPlatform) {
+		try (ConfigurableApplicationContext context = run("prod",
+				"--app.cors.allowed-origins=https://app.example.invalid", IP_HASH_KEY,
+				"--spring.main.cloud-platform=" + cloudPlatform)) {
+			assertThat(context.getBean(ServerProperties.class).getForwardHeadersStrategy())
+				.isEqualTo(ForwardHeadersStrategy.NONE);
+		}
+	}
+
+	@Test
+	void startupFailsWhenTheIpThrottleWindowIsNotPositive() {
+		assertThatThrownBy(() -> run("test", "--app.ip-throttle.window=0s").close())
+			.hasStackTraceContaining("app.ip-throttle");
+	}
+
+	@Test
+	void devStartupUsesAFixedLocalIpHashKey() {
+		try (ConfigurableApplicationContext context = run("dev")) {
+			assertThat(context.getEnvironment().getProperty("app.ip-hash.key")).isNotBlank();
+		}
 	}
 
 	@Test

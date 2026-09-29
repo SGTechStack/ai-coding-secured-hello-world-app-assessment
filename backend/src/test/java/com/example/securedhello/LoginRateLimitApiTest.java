@@ -41,8 +41,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * The per-username login rate limit through the HTTP API, with the Clock seam: more than 10 attempts
- * a minute against one username get 429 with {@code Retry-After}, before any credential check. All
- * test data is synthetic.
+ * a minute against one username get 429 with {@code Retry-After}, before any credential check. Each
+ * attempt comes from a different documentation-range address, so the per-address IP Throttle never
+ * engages and the limit is shown to be per username. All test data is synthetic.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -62,6 +63,8 @@ class LoginRateLimitApiTest {
 
 	@Autowired
 	MutableClock clock;
+
+	private int nextAddress;
 
 	@BeforeEach
 	void oneRegisteredAccount() throws Exception {
@@ -157,7 +160,12 @@ class LoginRateLimitApiTest {
 
 	private ResultActions login(String username, String password) throws Exception {
 		Csrf csrf = csrf();
-		return mvc.perform(post("/api/login").cookie(csrf.session())
+		String address = "192.0.2." + (1 + (nextAddress++ % 254));
+		return mvc.perform(post("/api/login").with((request) -> {
+			request.setRemoteAddr(address);
+			return request;
+		})
+			.cookie(csrf.session())
 			.header("X-CSRF-TOKEN", csrf.token())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(JSON.writeValueAsString(Map.of("username", username, "password", password))));

@@ -15,8 +15,12 @@ public class RateLimiters {
 
 	private final RateLimiter login;
 
+	private final RateLimiter registration;
+
 	RateLimiters(RateLimitProperties properties, Clock clock) {
-		this.login = new RateLimiter(properties.login().capacity(), properties.login().period(), clock);
+		this.login = new RateLimiter(properties.login().capacity(), properties.login().period(), clock, false);
+		this.registration = new RateLimiter(properties.registration().capacity(), properties.registration().period(),
+				clock, true);
 	}
 
 	/** Login attempts, keyed by lowercase username. */
@@ -24,9 +28,15 @@ public class RateLimiters {
 		return login;
 	}
 
+	/** Registrations, keyed by direct client address. */
+	public RateLimiter registration() {
+		return registration;
+	}
+
 	/** Empties every limiter. For tests only: lets each test start with full buckets. */
 	public void resetAll() {
 		login.reset();
+		registration.reset();
 	}
 
 }

@@ -26,12 +26,19 @@ public final class RateLimiter {
 
 	private final Clock clock;
 
+	private final boolean keyedByClientAddress;
+
 	private final Map<String, Instant> fullAgainAt = new ConcurrentHashMap<>();
 
-	RateLimiter(int capacity, Duration period, Clock clock) {
+	/**
+	 * @param keyedByClientAddress whether keys are client addresses, so a refusal is audited with the
+	 *        address's keyed hash
+	 */
+	RateLimiter(int capacity, Duration period, Clock clock, boolean keyedByClientAddress) {
 		this.interval = period.dividedBy(capacity);
 		this.burstTolerance = period.minus(this.interval);
 		this.clock = clock;
+		this.keyedByClientAddress = keyedByClientAddress;
 	}
 
 	/**
@@ -55,7 +62,7 @@ public final class RateLimiter {
 			return start.plus(interval);
 		});
 		if (wait[0] != null) {
-			throw new RateLimitExceededException(wait[0]);
+			throw new RateLimitExceededException(wait[0], "rate_limited", keyedByClientAddress);
 		}
 	}
 

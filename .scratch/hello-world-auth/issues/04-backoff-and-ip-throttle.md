@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] Threshold (default 3), base delay (default 1 s) and cap (default 15 min) are properties
-- [ ] Delay doubles per failure up to the cap and is stored as the Account's delay expiry
-- [ ] Correct password during the delay is refused; after the delay it succeeds and resets the counter
-- [ ] Per-IP throttle engages independently of any Account's state, held in memory
-- [ ] Forwarded-for header is honored only when the forward-headers strategy is configured for a known proxy
-- [ ] Audit line when a delay is triggered
-- [ ] Integration tests use the controllable clock and cover: growth and cap, recovery, refuse-during-delay, IP throttle independent of Account
-- [ ] SPA shows a delay message; frontend tests cover it
-- [ ] Backend and frontend verify pass
+- [x] Threshold (default 3), base delay (default 1 s) and cap (default 15 min) are properties
+- [x] Delay doubles per failure up to the cap and is stored as the Account's delay expiry
+- [x] Correct password during the delay is refused; after the delay it succeeds and resets the counter
+- [x] Per-IP throttle engages independently of any Account's state, held in memory
+- [x] Forwarded-for header is honored only when the forward-headers strategy is configured for a known proxy
+- [x] Audit line when a delay is triggered
+- [x] Integration tests use the controllable clock and cover: growth and cap, recovery, refuse-during-delay, IP throttle independent of Account
+- [x] SPA shows a delay message; frontend tests cover it
+- [x] Backend and frontend verify pass

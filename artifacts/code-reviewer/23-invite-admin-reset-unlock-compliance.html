@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 23-invite-admin-reset-unlock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Overall PASS</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">build WARN 0/0/0/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN 0/0/1/5</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">code-review PASS 0/0/0/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">semgrep WARN 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN 0/0/0/4</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/4</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">springboot PASS 0/0/0/6</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t23-invite-admin-reset-unlock</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Batch 2 (after fixes), ticket 23, base e36e003. Overall: PASS, must-fix 0. Counts are Critical / High / Medium / Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+            <tr><th class="px-4 py-2">Check</th><th class="px-4 py-2">Status</th><th class="px-4 py-2">C/H/M/L</th><th class="px-4 py-2">Summary</th></tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">build</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0/0/0/2</td><td class="px-4 py-2">mvn verify, prettier, tsc, vitest (182/182, coverage 92-98%) pass; fallow not installed, no JaCoCo gate.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">thermo-nuclear</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0/0/1/5</td><td class="px-4 py-2">Duplicated identifier-race translation (carried); minor structure nits.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">code-review</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0/0/0/2</td><td class="px-4 py-2">Standards and Spec both pass; batch-1 fixes verified.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">semgrep</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0/0/0/1</td><td class="px-4 py-2">One carried false positive in an e2e spec.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">im8</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0/0/0/4</td><td class="px-4 py-2">Low advisories carried; race hardening verified; one informational note.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">react</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0/0/0/4</td><td class="px-4 py-2">No bugs; four optional Low items carried.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">springboot</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0/0/0/6</td><td class="px-4 py-2">All seven Spring reviews clean; TOCTOU hardening correct.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-500">None. No Critical or High findings in any check. No check is SKIPPED or MISSING.</p>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">build</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend (npx fallow audit)</td><td class="px-4 py-2">-</td><td class="px-4 py-2">fallow audit unavailable offline (skipped).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">-</td><td class="px-4 py-2">No JaCoCo gate configured (pre-existing); 80% backend coverage check not enforceable.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">thermo-nuclear</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">AdminInvitations / Registration</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Duplicated identifier-race translation and InvalidIdentifierException; extract a shared helper (carried).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">CredentialTokens</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Bare boolean in issue(); consider an Issuer enum owning its delete strategy.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminActionGuard</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Mutation second constructor and selfActionAllowed flag; fold into a policy record if a third exception appears.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminActions</td><td class="px-4 py-2">-</td><td class="px-4 py-2">guarded and guardedThen are redundant.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend (role regexp)</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Role regexp USER|ADMIN duplicates role vocabulary; use a Role enum.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend AdminCredentialActions.tsx</td><td class="px-4 py-2">-</td><td class="px-4 py-2">UnlockReason cast; duplicated pending/failure scaffold in ResetControl and UnlockControl.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">code-review</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">ADR-007 amendment</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Over-long run-on line in Consequences paragraph; cosmetic.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">CredentialTokens.issue</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Boolean flag selects between two delete strategies; private, acceptable.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">semgrep</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/e2e/admin-invite.spec.ts</td><td class="px-4 py-2">34</td><td class="px-4 py-2">detect-non-literal-regexp; false positive (RegExp from Playwright baseURL config). Not blocking.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">im8</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/register/register.md</td><td class="px-4 py-2">-</td><td class="px-4 py-2">as-15/ac-6: unlock does not force password change and no register row records why (advisory).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminActions / AdminInvitations</td><td class="px-4 py-2">-</td><td class="px-4 py-2">lm-4: admin validation refusals leave no audit row.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/components/AdminCredentialActions.tsx</td><td class="px-4 py-2">119</td><td class="px-4 py-2">as-1: unchecked cast on the unlock reason; backend enum is authoritative.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminInvitations.java</td><td class="px-4 py-2">102-106</td><td class="px-4 py-2">lm-19: non-identifier integrity violation logged with driver message; confirm log masking.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-400">Info</td><td class="px-4 py-2 font-mono text-xs">CredentialTokens.java</td><td class="px-4 py-2">78-87</td><td class="px-4 py-2">I2: a raced self-service issuance can leave a self-issued token beside the admin token; not a defect, no action.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">react</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">ResetControl</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Issue button stays disabled once a token is shown; no re-issue without leaving.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminCredentialActions.tsx</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Local state not keyed by user.id (latent only).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">OneTimeToken</td><td class="px-4 py-2">-</td><td class="px-4 py-2">"Link copied." status never cleared.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminInvitePage</td><td class="px-4 py-2">-</td><td class="px-4 py-2">INVITE_COPY empty object could be inline; no "Invite another" affordance.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">springboot</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">CredentialTokens</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Self-issued and admin-issued reset tokens can briefly coexist in the hardened race; informational.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminInvitations.create</td><td class="px-4 py-2">-</td><td class="px-4 py-2">saveAndFlush justified by unique-index race.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">CredentialTokenRepository</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Read-only queries lack @Transactional(readOnly = true).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminActionRefusedAdvice</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Error mapping split between controller-local handlers and global advice.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">NotResettableException</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Maps to 400 VALIDATION_FAILED and is not final; deliberate.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminActions.unlock</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Use method reference TotpUserDetails::unlockTier1.</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

@@ -141,7 +141,7 @@ The properties a deployment must set or must think about:
 | `app.logging.directory` | `logs` | Root for `application-file`, `audit-file` and `email-file`. Point it at a volume a log-forwarding agent can read. |
 | `app.logging.audit-max-history-days` | `90` | On-disk audit history. Validated: it cannot be set below 90. |
 | `management.server.port` / `.address` | `9090` / `127.0.0.1` | **Must never be publicly routed.** |
-| `app.management.prometheus.username` / `.password` | `prometheus` / `dev` only | The scraper's HTTP Basic credential for `/actuator/prometheus`. The password comes from the secrets manager. **Unset, every scrape is refused (401)**; startup does not fail. |
+| `app.management.prometheus.username` / `.password` | `prometheus` / `dev` only | The scraper's HTTP Basic credential for `/actuator/prometheus`. The password comes from the secrets manager. **Startup fails outside `dev` when the password is unset.** |
 | `server.forward-headers-strategy` | `none` | Change only behind a proxy you trust — see [Client addresses](#6-client-addresses-reverse-proxy-and-nat). |
 | `app.api.base-path` | `/api` | Must match the SPA's build. |
 | `app.api.max-request-body-bytes` | `16384` | Bodies above this get 400 `request_too_large` before any controller runs. |
@@ -195,7 +195,7 @@ the browser throws away.
 
 ### 3. Every secret from a secrets manager
 
-Three secrets are required outside `dev`. None of them may be committed, written into a
+Four secrets are required outside `dev`. None of them may be committed, written into a
 properties file, or baked into an image. Inject them as environment variables from the
 secrets manager:
 
@@ -203,12 +203,13 @@ secrets manager:
 | --- | --- |
 | Bootstrap Admin password (and username, email) | `APP_BOOTSTRAPADMIN_PASSWORD`, `APP_BOOTSTRAPADMIN_USERNAME`, `APP_BOOTSTRAPADMIN_EMAIL` |
 | IP-hash HMAC key | `APP_IPHASH_KEY` |
+| Prometheus scrape password | `APP_MANAGEMENT_PROMETHEUS_PASSWORD` |
 | Datasource credentials | `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` |
 
-Startup fails outside `dev` when the CORS allowlist, the IP-hash key or the Bootstrap
-Admin values are missing — a missing secret stops the deployment rather than silently
-weakening it. None of these values is ever logged: the properties that hold them mask
-themselves in `toString()`.
+Startup fails outside `dev` when the CORS allowlist, the IP-hash key, the Prometheus
+scrape password or the Bootstrap Admin values are missing — a missing secret stops the
+deployment rather than silently weakening it. None of these values is ever logged: the
+properties that hold them mask themselves in `toString()`.
 
 **Rotate the IP-hash key periodically** through the secrets manager. The key only salts
 `source.ip_hash` in audit events, so rotation costs nothing but the ability to correlate
@@ -283,8 +284,8 @@ serves no Actuator endpoint.
 `prometheus` answers only to the scraper's HTTP Basic credential,
 `app.management.prometheus.username` (default `prometheus`) and
 `app.management.prometheus.password`, injected from the secrets manager. Configure the
-scrape job with `basic_auth`. With no password configured every scrape gets 401, so a
-missing secret shows up as a failing scrape target, not as open metrics. `health` stays
+scrape job with `basic_auth`. Outside `dev` startup fails when the password is unset, as
+it does for the IP-hash key, so a missing secret stops the deployment. `health` stays
 unauthenticated, because it answers with the status alone and probes carry no credential.
 
 **Never route the management port publicly.** No ingress rule, no load-balancer target,

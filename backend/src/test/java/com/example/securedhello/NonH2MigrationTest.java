@@ -57,6 +57,7 @@ class NonH2MigrationTest {
 					"--spring.datasource.password=" + database.getPassword(),
 					"--app.cors.allowed-origins=https://app.example.invalid",
 					"--app.ip-hash.key=synthetic-migration-test-key",
+					"--app.management.prometheus.password=synthetic-migration-scrape-pass",
 					"--app.bootstrap-admin.username=migrationadmin",
 					"--app.bootstrap-admin.password=Synthetic-Migration-Pass-42",
 					"--app.bootstrap-admin.email=migrationadmin@test.example.com")) {

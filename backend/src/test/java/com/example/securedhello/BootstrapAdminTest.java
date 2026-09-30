@@ -41,11 +41,12 @@ class BootstrapAdminTest {
 	private static final String EMAIL = "--app.bootstrap-admin.email=BootAdmin@test.example.com";
 
 	private static final String[] PROD = { "--app.cors.allowed-origins=https://app.example.invalid",
-			"--app.ip-hash.key=synthetic-startup-test-key" };
+			"--app.ip-hash.key=synthetic-startup-test-key",
+			"--app.management.prometheus.password=synthetic-startup-scrape-pass" };
 
 	/** Runs the app on the named in-memory database; args override every properties file. */
 	private static ConfigurableApplicationContext run(String database, String profile, String... args) {
-		List<String> all = new ArrayList<>(List.of("--server.port=0",
+		List<String> all = new ArrayList<>(List.of("--server.port=0", "--management.server.port=0",
 				"--spring.datasource.url=jdbc:h2:mem:" + database + ";DB_CLOSE_DELAY=-1"));
 		all.addAll(Arrays.asList(args));
 		return new SpringApplicationBuilder(BackendApplication.class).profiles(profile).run(all.toArray(String[]::new));

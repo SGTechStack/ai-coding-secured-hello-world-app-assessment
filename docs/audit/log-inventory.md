@@ -57,6 +57,7 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | ADMIN_USER_DELETED | `user-administration` | `deletion` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account deleted. |
 | ADMIN_ACTION_REFUSED | `user-administration` | `error` | failure | WARN | medium | yes | per event | `SELF_ACTION`, `TWO_ADMIN_INVARIANT` | `user.id`, `user.target.id` | — | Administrative action refused. |
 | ADMIN_USER_INVITED | `user-provisioning` | `creation` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account invited. |
+| ADMIN_USER_REINVITED | `user-provisioning` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Invitation re-issued. |
 | ADMIN_RESET_ISSUED | `password-reset` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Password reset token issued by an administrator. |
 | ADMIN_USER_UNLOCKED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id`, `user.target.unlock_reason` | — | Account unlocked. |
 | TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |

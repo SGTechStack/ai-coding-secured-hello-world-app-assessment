@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Code Review — 01-walking-skeleton</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">Overall: FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">build FAIL · C0 H1 M1 L4</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">thermo-nuclear FAIL · C0 H1 M3 L3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN · C0 H0 M2 L14</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">semgrep WARN · C0 H0 M0 L1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">im8 FAIL · C0 H1 M3 L0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">react WARN · C0 H0 M2 L5</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN · C0 H0 M3 L17</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">randy</span>
+    </div>
+
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h1>
+        <p class="text-sm text-slate-500 mt-1">Issue 01 — walking skeleton (<span class="font-mono">.scratch/secured-hello-world/issues/01-walking-skeleton.md</span>). Scope: new files under <span class="font-mono">backend/</span> and <span class="font-mono">frontend/</span>. Human decisions from <span class="font-mono">docs/agents/reviewer-decisions.md</span> applied.</p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks. Tracked deferrals, ADR-accepted deviations and the issue-17 OpenAPI gap are excluded from status.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Check</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Status</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">C / H / M / L</th>
+              <th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2">Summary of gaps</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 font-medium">build</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span></td><td class="px-4 py-2 font-mono text-xs">0 / 1 / 1 / 4</td><td class="px-4 py-2">Prettier check fails on 14 frontend files (no Prettier config/dependency); <span class="font-mono">fallow audit</span> fails. Type-check, tests (18 FE / 41 BE), coverage and Maven verify pass.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">thermo-nuclear</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span></td><td class="px-4 py-2 font-mono text-xs">0 / 1 / 3 / 3</td><td class="px-4 py-2">Child reported WARN, but its High finding maps to FAIL: <span class="font-mono">RequestBodyLimitFilter</span> re-implements form decoding no endpoint needs. Medium: duplicated problem wire shape, string error codes, dead env branch in Vite config.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">code-review</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 2 / 14</td><td class="px-4 py-2">All acceptance criteria met. Medium: body-limit bypass for length-less, non-TE (HTTP/2) bodies; error-code primitive obsession.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">semgrep</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 0 / 1</td><td class="px-4 py-2">One in-scope Low (probable false positive) on the error controller mapping. 16 out-of-scope tooling hits documented only.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">im8</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span></td><td class="px-4 py-2 font-mono text-xs">0 / 1 / 3 / 0</td><td class="px-4 py-2">lm-16 frontend telemetry gap has no owning issue or ADR, so it blocks. Medium: as-1, lm-4, dp-3 (frontend). Many Critical/High controls are tracked deferrals (see below).</td></tr>
+            <tr><td class="px-4 py-2 font-medium">react</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 2 / 5</td><td class="px-4 py-2">Catch-all route test does not prove the redirect; HelloPage effect does not abort its request.</td></tr>
+            <tr><td class="px-4 py-2 font-medium">springboot</td><td class="px-4 py-2"><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></td><td class="px-4 py-2 font-mono text-xs">0 / 0 / 3 / 17</td><td class="px-4 py-2">Body-limit HTTP/2 gap; non-dev profiles silently fall back to in-memory H2 (no Postgres driver); Postgres/MySQL migrations never exercised.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues (blockers)</h3>
+          <ul class="space-y-2 text-sm">
+            <li><span class="text-orange-600 font-semibold">High · build</span> — <span class="font-mono text-xs">frontend/</span> (14 files, e.g. <span class="font-mono text-xs">src/api/client.ts</span>, <span class="font-mono text-xs">vite.config.ts</span>): <span class="font-mono text-xs">prettier --check .</span> fails; no pinned Prettier dependency or <span class="font-mono text-xs">.prettierrc</span> matching the code style.</li>
+            <li><span class="text-orange-600 font-semibold">High · thermo-nuclear</span> — <span class="font-mono text-xs">backend/src/main/java/com/example/securedhello/security/RequestBodyLimitFilter.java:76-84, 99-143, 165-184</span>: re-implements form parameter decoding (plus a <span class="font-mono text-xs">validation</span> rejection path and broad catch) that no JSON-only endpoint needs; reduce the wrapper to a byte replayer.</li>
+            <li><span class="text-orange-600 font-semibold">High · im8 (lm-16 FE)</span> — <span class="font-mono text-xs">frontend/package.json:15-19</span>, <span class="font-mono text-xs">frontend/src/ErrorBoundary.tsx:13-15</span>: no client error/performance telemetry; no issue file or ADR owns it. Needs an owning issue (e.g. extend issue 14) or an ADR 0001 deviation.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- build -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">build</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2 font-mono text-xs">frontend/ (14 files)</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Prettier format check fails; no Prettier config or devDependency. Add pinned <span class="font-mono text-xs">prettier</span>, a matching <span class="font-mono text-xs">.prettierrc</span>, run <span class="font-mono text-xs">--write</span>, add a <span class="font-mono text-xs">format:check</span> script.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/vite.config.ts</td><td class="px-4 py-2">11, 30</td><td class="px-4 py-2"><span class="font-mono text-xs">fallow audit</span> complexity: <span class="font-mono text-xs">spaSecurity</span> (CRAP 132), <span class="font-mono text-xs">isBareOrigin</span> (CRAP 30); untested CSP/origin logic.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/api/client.ts; frontend/src/test/fakeApi.ts</td><td class="px-4 py-2">38; 3</td><td class="px-4 py-2">Unused exports <span class="font-mono text-xs">refreshCsrfToken</span>, <span class="font-mono text-xs">API</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/vite.config.ts</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Production build needs <span class="font-mono text-xs">VITE_SECURITY_CONTACT</span>/<span class="font-mono text-xs">VITE_API_ORIGIN</span> (intentional guard); document them for CI.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">—</td><td class="px-4 py-2">JaCoCo gate enforces LINE/BRANCH but not INSTRUCTION (96.1% today).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend (build log)</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Log noise: Flyway H2 version warning, Mockito dynamic-agent warning.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- thermo-nuclear -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">thermo-nuclear</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/com/example/securedhello/security/RequestBodyLimitFilter.java</td><td class="px-4 py-2">76-84, 99-143, 165-184</td><td class="px-4 py-2">Re-implements form parameter decoding (~70 lines, extra <span class="font-mono text-xs">validation</span> rejection, broad catch) that no endpoint needs. Delete it; wrapper should only replay bytes; header-only CSRF token resolution.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../web/ProblemResponses.java; ProblemErrorController.java</td><td class="px-4 py-2">29-48; 29, 33</td><td class="px-4 py-2">Two builders for the problem wire shape; status-to-code mapping lives in <span class="font-mono text-xs">GlobalExceptionHandler</span> instead of <span class="font-mono text-xs">ProblemResponses</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend error codes (4 files)</td><td class="px-4 py-2">—</td><td class="px-4 py-2">Stable API <span class="font-mono text-xs">code</span> values are scattered string literals; introduce an <span class="font-mono text-xs">ErrorCode</span> enum.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/vite.config.ts</td><td class="px-4 py-2">35-51</td><td class="px-4 py-2">Production-only missing-env branch is dead; plugin inlined in config — extract to a testable module.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/api/client.ts</td><td class="px-4 py-2">24-58</td><td class="px-4 py-2">Two variables model one cached token (latent race); <span class="font-mono text-xs">as</span> casts at the boundary.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/HelloPage.tsx</td><td class="px-4 py-2">11-15</td><td class="px-4 py-2">Page owns the CSRF bootstrap; <span class="font-mono text-xs">String()</span> papers over the payload type.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../BufferedChunkedBodyDeliveryTest.java</td><td class="px-4 py-2">105</td><td class="px-4 py-2">Hard-coded body limit; chunked-HTTP helpers duplicated across two test classes.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- code-review -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">code-review</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/RequestBodyLimitFilter.java</td><td class="px-4 py-2">67</td><td class="px-4 py-2">S1: body-size limit bypassed when there is no Content-Length and no Transfer-Encoding (HTTP/2). Buffer whenever length is unknown.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">SecurityConfig, RequestBodyLimitFilter, GlobalExceptionHandler</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S6: error codes are bare strings across 4 files (Primitive Obsession / Shotgun Surgery).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../web/GlobalExceptionHandler.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S2/SP7: <span class="font-mono text-xs">/error</span> dispatch maps 401/403/409/429 to vague <span class="font-mono text-xs">request_error</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/SecurityConfig.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S3: HSTS <span class="font-mono text-xs">preload</span> and CORS <span class="font-mono text-xs">maxAge</span> from the recipe are absent (optional).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/resources/application-dev.properties</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S4: <span class="font-mono text-xs">spring.jpa.show-sql=true</span> bypasses the logger (tracked deferral to issue 02).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/api/client.ts</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S5: latent race in <span class="font-mono text-xs">refreshCsrfToken</span> promise handling.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../web/ProblemResponses.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S7: <span class="font-mono text-xs">write</span> duplicates the <span class="font-mono text-xs">problem()</span> shape.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../web/ProblemErrorController.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S8: Feature Envy on <span class="font-mono text-xs">GlobalExceptionHandler</span> internals.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/api/client.ts</td><td class="px-4 py-2">—</td><td class="px-4 py-2">S9: speculative <span class="font-mono text-xs">violations?</span> field and unused <span class="font-mono text-xs">refreshCsrfToken</span> export (note only).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/</td><td class="px-4 py-2">—</td><td class="px-4 py-2">SP1: frontend tests/coverage beyond spec (scope creep, harmless).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/</td><td class="px-4 py-2">—</td><td class="px-4 py-2">SP2: extra backend hardening beyond spec (harmless).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/ErrorBoundary.tsx</td><td class="px-4 py-2">—</td><td class="px-4 py-2">SP3: ErrorBoundary not requested by any criterion.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/vite.config.ts</td><td class="px-4 py-2">—</td><td class="px-4 py-2">SP4: dev-server CSP looser than spec string; deviation undocumented.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/vite.config.ts</td><td class="px-4 py-2">—</td><td class="px-4 py-2">SP5: CSP meta/security.txt/build-failure behaviour verified by hand only.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../config/CorsProperties.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">SP6: origin regex looser than its message (no practical impact).</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- semgrep -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">semgrep</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../web/ProblemErrorController.java</td><td class="px-4 py-2">22</td><td class="px-4 py-2"><span class="font-mono text-xs">java.spring.security.unrestricted-request-mapping</span> — probable false positive (read-only error controller must accept all methods); optional justified <span class="font-mono text-xs">nosemgrep</span>.</td></tr>
+          </tbody>
+        </table>
+        <p class="px-5 py-3 text-xs text-slate-500 border-t border-slate-100">Out of scope (not counted): 16 P2 hits in tooling under <span class="font-mono">.agents/</span>, <span class="font-mono">agent/</span> and generated report HTML (defused-xml, dynamic urllib, generated Javadoc JS, missing SRI).</p>
+      </details>
+
+      <!-- im8 -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">im8</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2 font-mono text-xs">frontend/package.json; frontend/src/ErrorBoundary.tsx</td><td class="px-4 py-2">15-19; 13-15</td><td class="px-4 py-2">lm-16 (FE): no client error/performance telemetry; render and API errors are never reported. No issue file or ADR owns this — human decision needed (assign to an issue, e.g. 14, or accept in ADR 0001).</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/api/client.ts</td><td class="px-4 py-2">45, 76, 96</td><td class="px-4 py-2">as-1 (FE): API responses cast with <span class="font-mono text-xs">as</span>, no runtime validation or schema library.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/api/client.ts</td><td class="px-4 py-2">62-66</td><td class="px-4 py-2">lm-4 (FE): SPA does not send <span class="font-mono text-xs">X-Correlation-ID</span>; no issue owns it.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/vite.config.ts</td><td class="px-4 py-2">11-22, 35-43</td><td class="px-4 py-2">dp-3 (FE): production build accepts an <span class="font-mono text-xs">http:</span> API origin; no <span class="font-mono text-xs">upgrade-insecure-requests</span>.</td></tr>
+          </tbody>
+        </table>
+        <p class="px-5 py-3 text-xs text-slate-500 border-t border-slate-100">Informational (not counted): <span class="font-mono">h2</span> and <span class="font-mono">spring-boot-h2console</span> ship in the production artifact (<span class="font-mono">backend/pom.xml:22-25, 51-55</span>); console disabled and path denied.</p>
+      </details>
+
+      <!-- react -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">react</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/App.test.tsx</td><td class="px-4 py-2">64-69</td><td class="px-4 py-2">"sends unknown paths to the start page" test renders two trees; passes even if the catch-all route is deleted.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/HelloPage.tsx</td><td class="px-4 py-2">9-23</td><td class="px-4 py-2">Effect does not abort its request; a stale 401 can still trigger the global redirect. Use <span class="font-mono text-xs">AbortController</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/HelloPage.tsx</td><td class="px-4 py-2">12, 15</td><td class="px-4 py-2"><span class="font-mono text-xs">String(result.data)</span> hides a type mismatch.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/ErrorBoundary.tsx</td><td class="px-4 py-2">—</td><td class="px-4 py-2">No <span class="font-mono text-xs">componentDidCatch</span> reporting and no reset path.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/App.tsx</td><td class="px-4 py-2">11</td><td class="px-4 py-2">401 subscription may re-subscribe on every navigation.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/HelloPage.tsx</td><td class="px-4 py-2">19</td><td class="px-4 py-2"><span class="font-mono text-xs">&amp;&amp;</span> used as a statement in <span class="font-mono text-xs">.catch</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/main.tsx</td><td class="px-4 py-2">8</td><td class="px-4 py-2">Non-null assertion on the root element.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- springboot -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">springboot</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">File</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Line</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/RequestBodyLimitFilter.java</td><td class="px-4 py-2">67</td><td class="px-4 py-2">M1: length-less bodies without Transfer-Encoding (HTTP/2) skip the size limit (latent; HTTP/2 off by default).</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml; application.properties</td><td class="px-4 py-2">51-55</td><td class="px-4 py-2">M2: non-dev profiles silently fall back to in-memory H2; no Postgres driver; no owning issue.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/resources/db/migration/{postgresql,mysql}/V1__spring_session.sql</td><td class="px-4 py-2">—</td><td class="px-4 py-2">M3: Postgres/MySQL migrations never executed by any test.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/SecurityConfig.java</td><td class="px-4 py-2">50-58</td><td class="px-4 py-2">L1: no <span class="font-mono text-xs">Referrer-Policy</span> header.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../config/CorsProperties.java</td><td class="px-4 py-2">21</td><td class="px-4 py-2">L2: <span class="font-mono text-xs">http://</span> origins accepted in every profile.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/SecurityConfig.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L3: session fixation / event publishers not explicit (tracked deferral to issues 02/04/05).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/DevH2ConsoleSecurityConfig.java</td><td class="px-4 py-2">15-16</td><td class="px-4 py-2">L4: no startup guard against <span class="font-mono text-xs">dev</span> combined with non-dev profiles.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../config/*, security/*</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L5: <span class="font-mono text-xs">@Configuration</span> classes could use <span class="font-mono text-xs">proxyBeanMethods = false</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../config/ApiProperties.java</td><td class="px-4 py-2">17</td><td class="px-4 py-2">L6: <span class="font-mono text-xs">basePath</span> lacks <span class="font-mono text-xs">@NotBlank</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/SessionCookieConfig.java</td><td class="px-4 py-2">17</td><td class="px-4 py-2">L7: lone <span class="font-mono text-xs">@Value</span> property; consider validated properties record.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../web/CsrfController.java</td><td class="px-4 py-2">21</td><td class="px-4 py-2">L8: no explicit <span class="font-mono text-xs">produces</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../web/ProblemResponses.java</td><td class="px-4 py-2">36-48</td><td class="px-4 py-2">L9: filter-written problem bodies omit <span class="font-mono text-xs">instance</span>; private <span class="font-mono text-xs">JsonMapper</span>.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../security/RequestBodyLimitFilter.java</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L10: chunked multipart bodies lose their parts after buffering.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/resources/application-dev.properties</td><td class="px-4 py-2">13</td><td class="px-4 py-2">L11: <span class="font-mono text-xs">show-sql</span> writes to stdout (tracked deferral to issue 02).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">RequestBodyLimitFilter, SecurityConfig</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L12: body-size and CSRF rejections not logged (tracked deferral to issue 02).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L13: logging foundation absent (tracked deferral to issue 02).</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../ChunkedRequestBodyLimitTest.java</td><td class="px-4 py-2">108</td><td class="px-4 py-2">L14: "no ERROR logged" assertion depends on plain-text log format.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../DevProfileApiTest.java</td><td class="px-4 py-2">32</td><td class="px-4 py-2">L15: weak <span class="font-mono text-xs">isNotIn(401, 403)</span> status assertion.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../ErrorResponseApiTest.java</td><td class="px-4 py-2">146</td><td class="px-4 py-2">L16: <span class="font-mono text-xs">/error</span> tested only behind a permissive test chain.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/</td><td class="px-4 py-2">—</td><td class="px-4 py-2">L17: five distinct cached test contexts (context-cache fragmentation).</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- Deferrals -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">Tracked deferrals &amp; accepted deviations (not counted toward status)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-100 text-slate-700">Excluded</span>
+        </summary>
+        <p class="px-5 pb-3 text-xs text-slate-500">Per <span class="font-mono">docs/agents/reviewer-decisions.md</span>: controls owned by a later issue file, ADR 0001 accepted deviations, and the OpenAPI gap tracked by issue 17. Each becomes a blocker again when the gate runs for its owning issue.</p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Would-be severity</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Control / check</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Owner / acceptance</th><th class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-red-700 font-semibold">Critical</td><td class="px-4 py-2">im8 lm-15</td><td class="px-4 py-2 font-mono text-xs">issues/02-logging-foundation-and-audit-log.md:9</td><td class="px-4 py-2">No structured (ECS) logging.</td></tr>
+            <tr><td class="px-4 py-2 text-red-700 font-semibold">Critical</td><td class="px-4 py-2">im8 lm-16 (BE)</td><td class="px-4 py-2 font-mono text-xs">issues/14-operations-metrics-and-dependency-scan.md:9-12</td><td class="px-4 py-2">No Actuator / metrics.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 as-4</td><td class="px-4 py-2 font-mono text-xs">issues/06:9-12,16; issues/07:9-11</td><td class="px-4 py-2">Auth rate limiting / lockout.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 as-5, as-6</td><td class="px-4 py-2 font-mono text-xs">issues/03-registration-with-credential-policy.md:12-14</td><td class="px-4 py-2">Password policy and BCrypt hashing.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 as-11</td><td class="px-4 py-2 font-mono text-xs">issues/05-session-lifetime-rules.md:9-13; issues/04:11</td><td class="px-4 py-2">Session idle/absolute timeout, max sessions.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 as-15 / ac-6</td><td class="px-4 py-2 font-mono text-xs">issues/03:9; 10:9; 13:9,14; 08:9-10</td><td class="px-4 py-2">Forced password change / default credentials.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 lm-4 (BE)</td><td class="px-4 py-2 font-mono text-xs">issues/02-logging-foundation-and-audit-log.md:17-19</td><td class="px-4 py-2">Audit logging.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 lm-19</td><td class="px-4 py-2 font-mono text-xs">issues/02-logging-foundation-and-audit-log.md:14-16</td><td class="px-4 py-2">Log sanitisation / masking.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 pm-6</td><td class="px-4 py-2 font-mono text-xs">issues/16-readme-deployment-notes.md:9-19; issues/17-openapi-spec.md:9</td><td class="px-4 py-2">System documentation; OpenAPI spec gap tracked by issue 17.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 ac-2, ac-3, ac-4</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0001-app-standards-override-prd.md:54-55,66</td><td class="px-4 py-2">MFA, inactive accounts, access review — ADR-accepted; risk-owner sign-off is governance.</td></tr>
+            <tr><td class="px-4 py-2 text-orange-600 font-semibold">High</td><td class="px-4 py-2">im8 ac-7, ac-8, ac-12</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0001-app-standards-override-prd.md:56</td><td class="px-4 py-2">Singpass/Corppass, lifecycle automation, SSO — ADR-accepted.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium–High</td><td class="px-4 py-2">im8 as-7 / ac-1</td><td class="px-4 py-2 font-mono text-xs">issues/10:15,17; issues/04:18</td><td class="px-4 py-2">Method security and frontend role gating.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2">im8 dp-3 (BE TLS)</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0001-app-standards-override-prd.md:44</td><td class="px-4 py-2">TLS terminated at proxy — ADR-accepted.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">—</td><td class="px-4 py-2">im8 lm-18</td><td class="px-4 py-2 font-mono text-xs">docs/adr/0001-app-standards-override-prd.md:57</td><td class="px-4 py-2">WOGAA — ADR-accepted.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2">springboot L3, L11-L13; code-review S4</td><td class="px-4 py-2 font-mono text-xs">issues 02, 04, 05</td><td class="px-4 py-2">Session fixation/event publishers, <span class="font-mono text-xs">show-sql</span>, rejection logging, logging foundation (listed in check tables above as Low; noted here for traceability).</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

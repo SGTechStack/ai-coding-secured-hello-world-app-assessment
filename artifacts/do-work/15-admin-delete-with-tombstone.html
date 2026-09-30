@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin deletes an Account: tombstone in deleted_users keeps UUID/username/email/deleted-at/deleting Admin; Account, Password History and Reset Tokens go; Sessions end; the username can never be registered or bootstrapped again, the email can - do-work log</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; color: #172033; background: #f6f8fb; line-height: 1.5; }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px; }
+    header, section, .round, .event { background: #fbfdff; border: 1px solid #dbe3ef; border-radius: 8px; }
+    header { padding: 22px; margin-bottom: 16px; }
+    section { padding: 18px; margin-bottom: 16px; }
+    h1 { margin: 0 0 8px; font-size: 24px; line-height: 1.25; max-width: 860px; }
+    h2 { font-size: 17px; margin: 0; }
+    h3 { font-size: 15px; margin: 2px 0 0; }
+    h4 { font-size: 13px; margin: 18px 0 8px; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
+    .issue-ref { color: #64748b; font-size: 13px; }
+    .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .metrics { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 10px; margin-top: 16px; }
+    .metric { padding: 12px; border-radius: 8px; background: #eef4fb; border: 1px solid #dbe3ef; }
+    .metric-value { font-size: 22px; font-weight: 750; line-height: 1; }
+    .metric-label { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 6px; }
+    .pill { display: inline-flex; align-items: center; width: fit-content; max-width: 100%; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; color: #334155; font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+    .ok { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+    .warn { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .bad { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+    .info { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+    .neutral { background: #e2e8f0; color: #334155; border-color: #cbd5e1; }
+    .round { padding: 0; overflow: hidden; }
+    .round[open] { padding-bottom: 6px; }
+    .round-head { list-style: none; display: grid; grid-template-columns: 18px minmax(0, 1fr) max-content; gap: 10px; align-items: center; background: #172033; color: #f8fafc; margin: 0; padding: 12px 16px; border-radius: 0; cursor: pointer; }
+    .round:not([open]) .round-head { border-radius: 8px; }
+    .round-head::-webkit-details-marker { display: none; }
+    .round-head::before { content: "›"; color: #cbd5e1; font-size: 18px; line-height: 1; transform-origin: center; transition: transform 160ms ease-out; }
+    .round[open] .round-head::before { transform: rotate(90deg); }
+    .round-head h2 { min-width: 0; }
+    .round-head span { color: #cbd5e1; font-size: 12px; justify-self: end; white-space: nowrap; }
+    .round > .event { margin: 12px 16px 16px; }
+    .section-title { display: flex; justify-content: space-between; gap: 16px; align-items: flex-end; margin-bottom: 12px; }
+    .section-title p { margin: 4px 0 0; color: #64748b; font-size: 13px; }
+    .current-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .summary-panel { background: #ffffff; border: 1px solid #dbe3ef; border-radius: 8px; overflow: hidden; }
+    .summary-panel h3 { margin: 0; padding: 10px 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #172033; color: #f8fafc; }
+    .summary-panel > .finding, .summary-panel > .decision, .summary-panel > .empty { margin: 12px 14px 14px; }
+    .summary-section, .history { background: transparent; border: 0; padding: 0; }
+    .history { margin-bottom: 0; }
+    .round { padding: 0; margin-bottom: 16px; overflow: hidden; }
+    .event { padding: 16px; margin-top: 12px; }
+    .event-head, .finding-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .event-head strong, .finding-head strong { min-width: 0; overflow-wrap: anywhere; }
+    .phase { color: #64748b; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.06em; }
+    .event-meta, .mini-meta { color: #64748b; font-size: 12px; margin: 8px 0 10px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .finding, .decision { border: 1px solid #dbe3ef; border-radius: 8px; padding: 12px; margin-top: 10px; background: #ffffff; }
+    .decision-inline { margin-top: 12px; background: #f8fafc; border-color: #cbd5e1; color: #334155; }
+    .finding.ok, .decision.ok { background: #f0fdf4; }
+    .finding.warn, .decision.warn { background: #fffbeb; }
+    .finding.bad, .decision.bad { background: #fef2f2; }
+    .supporting-evidence { margin-top: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid #dbe3ef; background: #f8fafc; color: #334155; }
+    .supporting-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    dl { display: grid; grid-template-columns: 128px 1fr; gap: 6px 12px; margin: 10px 0 0; font-size: 13px; }
+    dt { color: #64748b; font-weight: 700; }
+    dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; color: #334155; font-weight: 700; font-size: 13px; }
+    .file-list { columns: 2; margin: 8px 0 0 20px; color: #475569; font-size: 12px; }
+    .file-list li { overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; background: #fff; }
+    th, td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; text-align: left; }
+    th { background: #eef4fb; color: #475569; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    td { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .evidence-table { display: block; overflow-x: auto; }
+    .muted { color: #94a3b8; }
+    .empty { text-align: center; padding: 16px; border: 1px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; }
+    .top-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    @media (max-width: 760px) {
+      main { padding: 16px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .event-head, .finding-head { flex-direction: column; align-items: flex-start; }
+      .round-head { grid-template-columns: 18px minmax(0, 1fr); }
+      .round-head span { grid-column: 2; justify-self: start; }
+      .current-grid { grid-template-columns: 1fr; }
+      dl { grid-template-columns: 1fr; }
+      .file-list { columns: 1; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Admin deletes an Account: tombstone in deleted_users keeps UUID/username/email/deleted-at/deleting Admin; Account, Password History and Reset Tokens go; Sessions end; the username can never be registered or bootstrapped again, the email can - do-work log</h1>
+    <div class="issue-ref">.scratch/secured-hello-world/issues/15-admin-delete-with-tombstone.md | KB lanes: unknown</div>
+    <div class="meta">
+      <span class="pill neutral">Detailed KB evidence: off</span>
+    </div>
+    <div class="metrics">
+      <div class="metric ok"><div class="metric-value">0</div><div class="metric-label">Open must-fix</div></div>
+      <div class="metric ok"><div class="metric-value">0</div><div class="metric-label">Open decisions</div></div>
+      <div class="metric warn"><div class="metric-value">1</div><div class="metric-label">Recorded decisions</div></div>
+      <div class="metric ok"><div class="metric-value">1</div><div class="metric-label">Resolved findings</div></div>
+      <div class="metric info"><div class="metric-value">0</div><div class="metric-label">KB queries</div></div>
+    </div>
+  </header>
+  <section class="summary-section">
+    <div class="section-title">
+      <div>
+        <h2>Review Summary</h2>
+        <p>Important findings with recorded decisions inline</p>
+      </div>
+    </div>
+    <div class="current-grid">
+      <div class="summary-panel">
+      <h3>Reviewer findings <span class="pill info">1 total</span></h3>
+      <article class="finding ok">
+  <div class="finding-head">
+    <strong>backend/src/main/java/com/example/securedhello/account/AccountAdministrationController.java:152 (sessionControl.endAll) with backend/src/main/java/com/example/securedhello/account/RequiredPasswordChangeFilter.java:85-88 (isRequired)</strong>
+    <span class="pill ok">Resolved</span>
+  </div>
+  <div class="mini-meta">
+    <span class="pill info">kb</span>
+    <span></span>
+  </div>
+  <dl>
+    <dt>Violation</dt><dd>KB unavailable. Reviewer finding. Criterion 2&#x27;s Session ending is a single post-commit sweep: sessionControl.endAll(id, ACCOUNT_DELETED, ...) over FindByIndexNameSessionRepository.findByPrincipalName. Spring Session JDBC indexes a Session under its principal only once the row is written at response commit -- the reasoning SessionControl.endOldestBeyondLimit already documents in its javadoc -- so a target who is mid-login at the moment the delete runs is not in that result set and keeps a live Session. Nothing re-checks Account existence afterwards: RequiredPasswordChangeFilter.isRequired already loads the Account on every request but a missing Account yields Optional.empty(), which it reads as &#x27;not required&#x27; and passes the request on (its javadoc says a Session whose Account no longer exists is &#x27;left to the endpoint&#x27;). That surviving Session keeps the authorities it was issued with until its absolute timeout, including ROLE_ADMIN if the deleted Account was an Admin, which reaches every /api/admin/** endpoint and the service&#x27;s @PreAuthorize(&quot;hasRole(&#x27;ADMIN&#x27;)&quot;). Delete differs from disable and role change here in two ways: no operator action can revoke it, because the id no longer resolves and a repeat DELETE returns 404; and GET /api/hello still answers 200 from the principal alone (GET /api/me correctly 401s through InsufficientAuthenticationException). The race is narrow and the same index timing affects ACCOUNT_DISABLED and ROLE_CHANGED, so this is a pre-existing shape that delete makes unrecoverable rather than a regression introduced here.</dd>
+    <dt>Recommendation</dt><dd></dd>
+    <dt>Decision-guided resolution</dt><dd>Decide between: (A) make RequiredPasswordChangeFilter (or a sibling filter in the same position) end a Session whose Account no longer exists, reusing the findById it already performs -- near-free, and it fixes disable/role-change timing at the same time; (B) accept and document the window in the issue&#x27;s verification note, following the recorded &#x27;Session-end audit for Sessions that expire unused&#x27; precedent of documenting an expiry gap rather than adding machinery; (C) narrow it by making OwnAccountController.hello re-check existence, which closes the leaked greeting but leaves admin authority intact. Reviewer recommendation: (A) if the team wants the Account-existence check to be a global per-request rule, otherwise (B); not a blocker for this issue&#x27;s criteria, which only ask that Sessions be ended after commit.</dd>
+  </dl>
+  <div class="decision decision-inline">
+  <div class="finding-head">
+    <strong>Human decision</strong>
+    <span class="pill neutral">recorded</span>
+  </div>
+  <dl>
+    <dt>KB finding</dt><dd>Spring Session JDBC indexes a Session under its principal only at response commit, so the post-commit endAll sweep in AccountAdministrationController.delete misses a target who is mid-login; that Session keeps its issued authorities, including ROLE_ADMIN, and unlike disable or role change no operator action can revoke it, because the deleted id no longer resolves.</dd>
+    <dt>Chosen action</dt><dd>Follow KB recommendation: option A. Hoist an Account-existence check into RequiredPasswordChangeFilter above its `allowed` matcher (the matcher runs before the existing findById, so a check below it would skip /me, /me/password, /logout, /csrf and /client-events). On a missing Account, end the Session -- invalidate, clear the cookie, audit session-end with the existing AccountAdministrationController.ACCOUNT_DELETED reason -- and refuse with the 401 the entry point already writes; do not merely refuse and leave the stored Session alive until its absolute timeout. Correct the filter javadoc line that says such a Session is left to the endpoint. Rejected: documenting the window per the issue-05 expiry-gap precedent, a hello-only re-check, a duplicate sibling filter, and moving the check into SessionControl.enforceLifetime (better chain position, but inverts the account -&gt; security package direction and needs a port already rejected once as more surface).</dd>
+    <dt>Reuse when</dt><dd>Treat &#x27;the Account still exists&#x27; as the degenerate case of the rule RequiredPasswordChangeFilter already enforces -- read Account state fresh per request so no Session outlives it -- and revoke rather than re-refuse. When a filter has a bypass matcher, decide deliberately whether a new check goes above or below it; a check that must hold for every request goes above. Distinguish an accepted audit gap from live authority no operator can revoke: the second earns machinery even when the acceptance criteria do not ask for it.</dd>
+  </dl>
+</div>
+  <div class="supporting-evidence">
+  <div class="supporting-head">
+    <strong>Supporting KB comparison</strong>
+    <span class="pill neutral">Compliant</span>
+  </div>
+  <dl>
+    <dt>Concern</dt><dd>RequiredPasswordChangeFilter.doFilterInternal existence check above the allowed matcher; SessionControl.endCurrent</dd>
+    <dt>KB query</dt><dd></dd>
+    <dt>KB evidence</dt><dd></dd>
+    <dt>Comparison</dt><dd>Compliant: the decision is implemented as written. One findById is hoisted above the allowed matcher and the Optional reused for the flag check, so a request still costs one lookup; a missing Account calls SessionControl.endCurrent(ACCOUNT_DELETED, ...) -- which deliberately bypasses the principal-name index that the un-indexed Session is missing by definition -- and then throws InsufficientAuthenticationException, which the chain&#x27;s existing authenticationEntryPoint turns into the same 401 any unauthenticated request gets (the filter is registered addFilterAfter(AuthorizationFilter.class), downstream of ExceptionTranslationFilter, so the throw is translated rather than escaping). The false &#x27;left to the endpoint&#x27; javadoc line went with the isRequired method it described. Reviewer verified both halves non-vacuously by mutation: moving the check below the allowed matcher fails exactly aSessionWhoseAccountIsGoneIsRefusedAndEndedOnAPathTheAllowedMatcherLetsThrough and nothing else; deleting the endCurrent call fails both new tests, so the revoke-rather-than-re-refuse half is pinned and not merely the refusal. The lookup stays behind the authentication == null / AccountIdentified guard, so an anonymous flood on the permitAll paths still performs zero queries. Targeted runs green: AdminAccountDeleteApiTest 10/10, AccountAdministrationServiceConcurrencyTest 2/2, BootstrapAdminTest 12/12, LoggingApiTest 9/9, RequiredPasswordChangeApiTest 14/14, SessionLifetimeApiTest 12/12, LoginApiTest 21/21, PasswordChangeApiTest 25/25, AdminAccountListApiTest 15/15; frontend 63/63 and tsc clean.</dd>
+  </dl>
+</div>
+</article>
+      </div>
+    </div>
+  </section>
+  <section class="history">
+    <div class="section-title">
+      <div>
+        <h2>Run History</h2>
+        <p>Chronological implementer and reviewer passes.</p>
+      </div>
+    </div>
+  <details class="round">
+<summary class="round-head"><h2>Round 1</h2><span>1 finding</span></summary>
+<article class="event reviewer">
+  <div class="event-head">
+    <div>
+      <span class="phase">Initial</span>
+      <h3>Reviewer</h3>
+    </div>
+    <span class="pill ok">completed</span>
+  </div>
+  <div class="event-meta">KB lanes: none | 1 findings | 1 decisions | 0 KB queries</div>
+  <details>
+    <summary>Reviewer findings (1)</summary>
+    <article class="finding ok">
+  <div class="finding-head">
+    <strong>backend/src/main/java/com/example/securedhello/account/AccountAdministrationController.java:152 (sessionControl.endAll) with backend/src/main/java/com/example/securedhello/account/RequiredPasswordChangeFilter.java:85-88 (isRequired)</strong>
+    <span class="pill ok">Resolved</span>
+  </div>
+  <div class="mini-meta">
+    <span class="pill info">kb</span>
+    <span></span>
+  </div>
+  <dl>
+    <dt>Violation</dt><dd>KB unavailable. Reviewer finding. Criterion 2&#x27;s Session ending is a single post-commit sweep: sessionControl.endAll(id, ACCOUNT_DELETED, ...) over FindByIndexNameSessionRepository.findByPrincipalName. Spring Session JDBC indexes a Session under its principal only once the row is written at response commit -- the reasoning SessionControl.endOldestBeyondLimit already documents in its javadoc -- so a target who is mid-login at the moment the delete runs is not in that result set and keeps a live Session. Nothing re-checks Account existence afterwards: RequiredPasswordChangeFilter.isRequired already loads the Account on every request but a missing Account yields Optional.empty(), which it reads as &#x27;not required&#x27; and passes the request on (its javadoc says a Session whose Account no longer exists is &#x27;left to the endpoint&#x27;). That surviving Session keeps the authorities it was issued with until its absolute timeout, including ROLE_ADMIN if the deleted Account was an Admin, which reaches every /api/admin/** endpoint and the service&#x27;s @PreAuthorize(&quot;hasRole(&#x27;ADMIN&#x27;)&quot;). Delete differs from disable and role change here in two ways: no operator action can revoke it, because the id no longer resolves and a repeat DELETE returns 404; and GET /api/hello still answers 200 from the principal alone (GET /api/me correctly 401s through InsufficientAuthenticationException). The race is narrow and the same index timing affects ACCOUNT_DISABLED and ROLE_CHANGED, so this is a pre-existing shape that delete makes unrecoverable rather than a regression introduced here.</dd>
+    <dt>Recommendation</dt><dd></dd>
+    <dt>Decision-guided resolution</dt><dd>Decide between: (A) make RequiredPasswordChangeFilter (or a sibling filter in the same position) end a Session whose Account no longer exists, reusing the findById it already performs -- near-free, and it fixes disable/role-change timing at the same time; (B) accept and document the window in the issue&#x27;s verification note, following the recorded &#x27;Session-end audit for Sessions that expire unused&#x27; precedent of documenting an expiry gap rather than adding machinery; (C) narrow it by making OwnAccountController.hello re-check existence, which closes the leaked greeting but leaves admin authority intact. Reviewer recommendation: (A) if the team wants the Account-existence check to be a global per-request rule, otherwise (B); not a blocker for this issue&#x27;s criteria, which only ask that Sessions be ended after commit.</dd>
+  </dl>
+  <div class="decision decision-inline">
+  <div class="finding-head">
+    <strong>Human decision</strong>
+    <span class="pill neutral">recorded</span>
+  </div>
+  <dl>
+    <dt>KB finding</dt><dd>Spring Session JDBC indexes a Session under its principal only at response commit, so the post-commit endAll sweep in AccountAdministrationController.delete misses a target who is mid-login; that Session keeps its issued authorities, including ROLE_ADMIN, and unlike disable or role change no operator action can revoke it, because the deleted id no longer resolves.</dd>
+    <dt>Chosen action</dt><dd>Follow KB recommendation: option A. Hoist an Account-existence check into RequiredPasswordChangeFilter above its `allowed` matcher (the matcher runs before the existing findById, so a check below it would skip /me, /me/password, /logout, /csrf and /client-events). On a missing Account, end the Session -- invalidate, clear the cookie, audit session-end with the existing AccountAdministrationController.ACCOUNT_DELETED reason -- and refuse with the 401 the entry point already writes; do not merely refuse and leave the stored Session alive until its absolute timeout. Correct the filter javadoc line that says such a Session is left to the endpoint. Rejected: documenting the window per the issue-05 expiry-gap precedent, a hello-only re-check, a duplicate sibling filter, and moving the check into SessionControl.enforceLifetime (better chain position, but inverts the account -&gt; security package direction and needs a port already rejected once as more surface).</dd>
+    <dt>Reuse when</dt><dd>Treat &#x27;the Account still exists&#x27; as the degenerate case of the rule RequiredPasswordChangeFilter already enforces -- read Account state fresh per request so no Session outlives it -- and revoke rather than re-refuse. When a filter has a bypass matcher, decide deliberately whether a new check goes above or below it; a check that must hold for every request goes above. Distinguish an accepted audit gap from live authority no operator can revoke: the second earns machinery even when the acceptance criteria do not ask for it.</dd>
+  </dl>
+</div>
+  
+</article>
+  </details>
+  <details><summary>Changed files (17)</summary><ul class="file-list"><li>backend/src/main/resources/db/migration/h2/V4__deleted_users.sql</li><li>backend/src/main/resources/db/migration/postgresql/V4__deleted_users.sql</li><li>backend/src/main/resources/db/migration/mysql/V4__deleted_users.sql</li><li>backend/src/main/java/com/example/securedhello/account/DeletedAccount.java</li><li>backend/src/main/java/com/example/securedhello/account/DeletedAccountRepository.java</li><li>backend/src/main/java/com/example/securedhello/account/AccountAdministrationService.java</li><li>backend/src/main/java/com/example/securedhello/account/AccountAdministrationController.java</li><li>backend/src/main/java/com/example/securedhello/account/RegistrationService.java</li><li>backend/src/main/java/com/example/securedhello/account/BootstrapAdminInitializer.java</li><li>backend/src/main/java/com/example/securedhello/account/PasswordHistoryRepository.java</li><li>backend/src/main/java/com/example/securedhello/account/PasswordResetTokenRepository.java</li><li>backend/src/test/java/com/example/securedhello/AdminAccountDeleteApiTest.java</li><li>backend/src/test/java/com/example/securedhello/BootstrapAdminTest.java</li><li>frontend/src/api/admin.ts</li><li>frontend/src/api/admin.test.ts</li><li>frontend/src/pages/AdminUsersPage.tsx</li><li>frontend/src/pages/AdminUsersPage.test.tsx</li></ul></details>
+  
+</article>
+</details>
+<details class="round">
+<summary class="round-head"><h2>Round 2</h2><span>0 findings</span></summary>
+<article class="event reviewer">
+  <div class="event-head">
+    <div>
+      <span class="phase">Update 1</span>
+      <h3>Reviewer</h3>
+    </div>
+    <span class="pill ok">completed</span>
+  </div>
+  <div class="event-meta">KB lanes: none | 0 findings | 0 decisions | 0 KB queries</div>
+  <details>
+    <summary>Reviewer findings (0)</summary>
+    <p class="muted empty">No reviewer findings.</p>
+  </details>
+  <details><summary>Changed files (9)</summary><ul class="file-list"><li>backend/src/main/java/com/example/securedhello/security/SessionControl.java</li><li>backend/src/main/java/com/example/securedhello/account/RequiredPasswordChangeFilter.java</li><li>backend/src/main/java/com/example/securedhello/account/AccountAdministrationController.java</li><li>backend/src/test/java/com/example/securedhello/AdminAccountDeleteApiTest.java</li><li>backend/src/test/java/com/example/securedhello/account/AccountAdministrationServiceConcurrencyTest.java</li><li>backend/src/test/java/com/example/securedhello/BootstrapAdminTest.java</li><li>backend/src/test/java/com/example/securedhello/LoggingApiTest.java</li><li>frontend/src/pages/AdminUsersPage.tsx</li><li>frontend/src/pages/AdminUsersPage.test.tsx</li></ul></details>
+  
+</article>
+</details>
+  </section>
+</main>
+</body>
+</html>

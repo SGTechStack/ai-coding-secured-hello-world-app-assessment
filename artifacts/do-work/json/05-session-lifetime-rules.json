@@ -1,0 +1,83 @@
+{
+  "issue": {
+    "reference": ".scratch/secured-hello-world/issues/05-session-lifetime-rules.md",
+    "slug": "session-lifetime-rules",
+    "goal": "Idle 15m / absolute 8h Session timeouts, failed login ends carried Session, end-all-Sessions for an Account, session-end audit, restart survival"
+  },
+  "detailed_kb_evidence": false,
+  "implementer": {
+    "updates": []
+  },
+  "reviewer": {
+    "updates": [
+      {
+        "round": 1,
+        "kb_lanes": [],
+        "status": "completed",
+        "changed_files": [
+          "backend/src/main/java/com/example/securedhello/security/SessionControl.java",
+          "backend/src/main/java/com/example/securedhello/security/SessionLifetimeFilter.java",
+          "backend/src/main/java/com/example/securedhello/security/SecurityConfig.java",
+          "backend/src/main/java/com/example/securedhello/account/AuthenticationController.java",
+          "backend/src/main/java/com/example/securedhello/config/SessionProperties.java",
+          "backend/src/main/java/com/example/securedhello/audit/AuditEvent.java",
+          "backend/src/main/java/com/example/securedhello/logging/ApplicationLifecycleLogger.java",
+          "backend/src/main/resources/application.properties",
+          "backend/src/test/java/com/example/securedhello/SessionLifetimeApiTest.java",
+          "backend/src/test/java/com/example/securedhello/SessionRestartTest.java",
+          "backend/src/test/java/com/example/securedhello/support/MutableClock.java",
+          "backend/src/test/java/com/example/securedhello/AuditLogTest.java"
+        ],
+        "kb_queries": 0,
+        "findings": [
+          {
+            "evidence_id": "visitor-session-8h",
+            "location": "backend/src/main/resources/application.properties:53 (spring.session.timeout)",
+            "violation": "KB unavailable. spring.session.timeout=${app.session.absolute-timeout} applies to every Spring Session, including Visitor (CSRF-only) Sessions that any unauthenticated GET /api/csrf creates. Their rows now live 8h instead of the previous 30m default: 16x more unauthenticated rows an anonymous caller can pile up in spring_session before any rate limit exists.",
+            "proposed": "Leave spring.session.timeout at a short default (for example the idle timeout) and in SessionControl.start() call session.setMaxInactiveInterval(properties.absoluteTimeout()) so only authenticated Sessions keep their row for the absolute limit (JDBC stores MAX_INACTIVE_INTERVAL per row). Add a test that a Visitor Session's max inactive interval stays short and an authenticated one is the absolute timeout.",
+            "status": "Resolved"
+          },
+          {
+            "evidence_id": "endall-untested",
+            "location": "backend/src/main/java/com/example/securedhello/security/SessionControl.java:277 (endAll)",
+            "violation": "KB unavailable. endAll is a public API claimed as covering acceptance criterion 3, but no test exercises it. Its two branches (the request's own Session via end(), other Sessions via deleteById) and its per-Session audit loop are not shared with endOldestBeyondLimit, so later issues 08/09/11-15 would inherit untested behaviour.",
+            "proposed": "Add a @SpringBootTest that logs in over MockMvc, then calls the SessionControl bean's endAll(accountId, reason, request, response) with (a) a request carrying that Session and (b) a request without it; assert /api/me returns 401 afterwards and one session-end event per ended Session with the given reason and user.id.",
+            "status": "Resolved"
+          },
+          {
+            "evidence_id": "silent-expiry-no-audit",
+            "location": "backend/src/main/java/com/example/securedhello/security/SessionControl.java (enforceLifetime) and application.properties (spring.session.timeout)",
+            "violation": "KB unavailable. Acceptance criterion 4 says each Session that expires emits session-end. A Session is audited only when it is presented again after its limit or ended by a new login. A Session that is abandoned is deleted silently by Spring Session JDBC cleanup (JDBC fires no expiry events), with no session-end event. Also, an abandoned Session later removed by a new login is audited as new_login although it had already passed its idle limit.",
+            "proposed": "Human decision: accept presentation-time auditing (document it in the issue), or add a scheduled sweep that audits and deletes authenticated Sessions past their limits before Spring Session cleanup, or at least compute the real reason (idle/absolute) when endOldestBeyondLimit/endAll remove an already-expired Session.",
+            "status": "Resolved"
+          }
+        ],
+        "decisions": [
+          {
+            "evidence_id": "silent-expiry-no-audit",
+            "area": "backend session-end auditing",
+            "kb_finding": "Abandoned expired Sessions are deleted by Spring Session JDBC cleanup with no session-end event; already-expired Sessions removed by a later login are recorded as new_login.",
+            "chosen_action": "Do not follow KB recommendation: no KB available; chose option C + A. endOldestBeyondLimit and endAll record idle_timeout/absolute_timeout when the removed Session had already expired; the remaining gap for untouched abandoned Sessions is accepted and noted in the issue. No scheduled sweep.",
+            "reuse": "Audit-completeness questions for records a store expires in the background: record the true reason wherever the app touches them and document the untouched-expiry gap."
+          }
+        ],
+        "comparisons": []
+      },
+      {
+        "round": 2,
+        "kb_lanes": [],
+        "status": "completed",
+        "changed_files": [
+          "backend/src/main/java/com/example/securedhello/security/SessionControl.java",
+          "backend/src/main/resources/application.properties",
+          "backend/src/test/java/com/example/securedhello/SessionLifetimeApiTest.java",
+          ".scratch/secured-hello-world/issues/05-session-lifetime-rules.md"
+        ],
+        "kb_queries": 0,
+        "findings": [],
+        "decisions": [],
+        "comparisons": []
+      }
+    ]
+  }
+}

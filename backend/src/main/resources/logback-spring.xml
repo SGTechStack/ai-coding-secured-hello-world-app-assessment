@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Every stream is ECS JSON (never mixed with text), written by EcsLogFormatter:
+- CONSOLE and APPLICATION_FILE carry the application log.
+- AUDIT_FILE carries only the "audit" logger (additivity off), kept for at least 90 days.
+- EMAIL_FILE carries only the "email" logger (additivity off): the EmailService stub's mailbox.
+File locations and audit history come from app.logging.* (validated by LoggingProperties).
+-->
+<configuration>
+	<include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+	<springProperty name="APPLICATION_LOG_FILE" source="app.logging.application-file" defaultValue="logs/application.log"/>
+	<springProperty name="AUDIT_LOG_FILE" source="app.logging.audit-file" defaultValue="logs/audit.log"/>
+	<springProperty name="APPLICATION_MAX_FILE_SIZE" source="app.logging.application-max-file-size" defaultValue="10MB"/>
+	<springProperty name="EMAIL_LOG_FILE" source="app.logging.email-file" defaultValue="logs/email.log"/>
+	<springProperty name="AUDIT_MAX_HISTORY" source="app.logging.audit-max-history-days" defaultValue="90"/>
+	<property name="ECS_FORMAT" value="com.example.securedhello.logging.EcsLogFormatter"/>
+
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+			<format>${ECS_FORMAT}</format>
+			<charset>UTF-8</charset>
+		</encoder>
+	</appender>
+
+	<appender name="APPLICATION_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${APPLICATION_LOG_FILE}</file>
+		<encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+			<format>${ECS_FORMAT}</format>
+			<charset>UTF-8</charset>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${APPLICATION_LOG_FILE}.%d{yyyy-MM-dd, Asia/Singapore}.%i.gz</fileNamePattern>
+			<maxFileSize>${APPLICATION_MAX_FILE_SIZE}</maxFileSize>
+			<maxHistory>7</maxHistory>
+			<totalSizeCap>1GB</totalSizeCap>
+		</rollingPolicy>
+	</appender>
+
+	<appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${AUDIT_LOG_FILE}</file>
+		<encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+			<format>${ECS_FORMAT}</format>
+			<charset>UTF-8</charset>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${AUDIT_LOG_FILE}.%d{yyyy-MM-dd, Asia/Singapore}.gz</fileNamePattern>
+			<maxHistory>${AUDIT_MAX_HISTORY}</maxHistory>
+		</rollingPolicy>
+	</appender>
+
+	<appender name="EMAIL_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${EMAIL_LOG_FILE}</file>
+		<encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+			<format>${ECS_FORMAT}</format>
+			<charset>UTF-8</charset>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${EMAIL_LOG_FILE}.%d{yyyy-MM-dd, Asia/Singapore}.gz</fileNamePattern>
+			<maxHistory>7</maxHistory>
+		</rollingPolicy>
+	</appender>
+
+	<logger name="audit" level="INFO" additivity="false">
+		<appender-ref ref="AUDIT_FILE"/>
+	</logger>
+
+	<logger name="email" level="INFO" additivity="false">
+		<appender-ref ref="EMAIL_FILE"/>
+	</logger>
+
+	<root level="INFO">
+		<appender-ref ref="CONSOLE"/>
+		<appender-ref ref="APPLICATION_FILE"/>
+	</root>
+</configuration>

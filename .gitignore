@@ -1,0 +1,16 @@
+# Agent tooling (local skill installations)
+.claude/
+.agents/
+agent/
+skills-lock.json
+
+# Shared
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+.env
+.env.*
+!.env.example
+!frontend/.env.development

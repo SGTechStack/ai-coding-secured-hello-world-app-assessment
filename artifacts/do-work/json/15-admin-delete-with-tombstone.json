@@ -1,0 +1,85 @@
+{
+  "issue": {
+    "reference": ".scratch/secured-hello-world/issues/15-admin-delete-with-tombstone.md",
+    "slug": "admin-delete-with-tombstone",
+    "goal": "Admin deletes an Account: tombstone in deleted_users keeps UUID/username/email/deleted-at/deleting Admin; Account, Password History and Reset Tokens go; Sessions end; the username can never be registered or bootstrapped again, the email can"
+  },
+  "detailed_kb_evidence": false,
+  "implementer": {
+    "updates": []
+  },
+  "reviewer": {
+    "updates": [
+      {
+        "round": 1,
+        "kb_lanes": [],
+        "status": "completed",
+        "kb_queries": 0,
+        "changed_files": [
+          "backend/src/main/resources/db/migration/h2/V4__deleted_users.sql",
+          "backend/src/main/resources/db/migration/postgresql/V4__deleted_users.sql",
+          "backend/src/main/resources/db/migration/mysql/V4__deleted_users.sql",
+          "backend/src/main/java/com/example/securedhello/account/DeletedAccount.java",
+          "backend/src/main/java/com/example/securedhello/account/DeletedAccountRepository.java",
+          "backend/src/main/java/com/example/securedhello/account/AccountAdministrationService.java",
+          "backend/src/main/java/com/example/securedhello/account/AccountAdministrationController.java",
+          "backend/src/main/java/com/example/securedhello/account/RegistrationService.java",
+          "backend/src/main/java/com/example/securedhello/account/BootstrapAdminInitializer.java",
+          "backend/src/main/java/com/example/securedhello/account/PasswordHistoryRepository.java",
+          "backend/src/main/java/com/example/securedhello/account/PasswordResetTokenRepository.java",
+          "backend/src/test/java/com/example/securedhello/AdminAccountDeleteApiTest.java",
+          "backend/src/test/java/com/example/securedhello/BootstrapAdminTest.java",
+          "frontend/src/api/admin.ts",
+          "frontend/src/api/admin.test.ts",
+          "frontend/src/pages/AdminUsersPage.tsx",
+          "frontend/src/pages/AdminUsersPage.test.tsx"
+        ],
+        "findings": [
+          {
+            "evidence_id": "session-survives-deleted-account",
+            "location": "backend/src/main/java/com/example/securedhello/account/AccountAdministrationController.java:152 (sessionControl.endAll) with backend/src/main/java/com/example/securedhello/account/RequiredPasswordChangeFilter.java:85-88 (isRequired)",
+            "violation": "KB unavailable. Reviewer finding. Criterion 2's Session ending is a single post-commit sweep: sessionControl.endAll(id, ACCOUNT_DELETED, ...) over FindByIndexNameSessionRepository.findByPrincipalName. Spring Session JDBC indexes a Session under its principal only once the row is written at response commit -- the reasoning SessionControl.endOldestBeyondLimit already documents in its javadoc -- so a target who is mid-login at the moment the delete runs is not in that result set and keeps a live Session. Nothing re-checks Account existence afterwards: RequiredPasswordChangeFilter.isRequired already loads the Account on every request but a missing Account yields Optional.empty(), which it reads as 'not required' and passes the request on (its javadoc says a Session whose Account no longer exists is 'left to the endpoint'). That surviving Session keeps the authorities it was issued with until its absolute timeout, including ROLE_ADMIN if the deleted Account was an Admin, which reaches every /api/admin/** endpoint and the service's @PreAuthorize(\"hasRole('ADMIN')\"). Delete differs from disable and role change here in two ways: no operator action can revoke it, because the id no longer resolves and a repeat DELETE returns 404; and GET /api/hello still answers 200 from the principal alone (GET /api/me correctly 401s through InsufficientAuthenticationException). The race is narrow and the same index timing affects ACCOUNT_DISABLED and ROLE_CHANGED, so this is a pre-existing shape that delete makes unrecoverable rather than a regression introduced here.",
+            "proposed": "Decide between: (A) make RequiredPasswordChangeFilter (or a sibling filter in the same position) end a Session whose Account no longer exists, reusing the findById it already performs -- near-free, and it fixes disable/role-change timing at the same time; (B) accept and document the window in the issue's verification note, following the recorded 'Session-end audit for Sessions that expire unused' precedent of documenting an expiry gap rather than adding machinery; (C) narrow it by making OwnAccountController.hello re-check existence, which closes the leaked greeting but leaves admin authority intact. Reviewer recommendation: (A) if the team wants the Account-existence check to be a global per-request rule, otherwise (B); not a blocker for this issue's criteria, which only ask that Sessions be ended after commit.",
+            "status": "Resolved"
+          }
+        ],
+        "decisions": [
+          {
+            "evidence_id": "session-survives-deleted-account",
+            "area": "backend",
+            "kb_finding": "Spring Session JDBC indexes a Session under its principal only at response commit, so the post-commit endAll sweep in AccountAdministrationController.delete misses a target who is mid-login; that Session keeps its issued authorities, including ROLE_ADMIN, and unlike disable or role change no operator action can revoke it, because the deleted id no longer resolves.",
+            "chosen_action": "Follow KB recommendation: option A. Hoist an Account-existence check into RequiredPasswordChangeFilter above its `allowed` matcher (the matcher runs before the existing findById, so a check below it would skip /me, /me/password, /logout, /csrf and /client-events). On a missing Account, end the Session -- invalidate, clear the cookie, audit session-end with the existing AccountAdministrationController.ACCOUNT_DELETED reason -- and refuse with the 401 the entry point already writes; do not merely refuse and leave the stored Session alive until its absolute timeout. Correct the filter javadoc line that says such a Session is left to the endpoint. Rejected: documenting the window per the issue-05 expiry-gap precedent, a hello-only re-check, a duplicate sibling filter, and moving the check into SessionControl.enforceLifetime (better chain position, but inverts the account -> security package direction and needs a port already rejected once as more surface).",
+            "reuse": "Treat 'the Account still exists' as the degenerate case of the rule RequiredPasswordChangeFilter already enforces -- read Account state fresh per request so no Session outlives it -- and revoke rather than re-refuse. When a filter has a bypass matcher, decide deliberately whether a new check goes above or below it; a check that must hold for every request goes above. Distinguish an accepted audit gap from live authority no operator can revoke: the second earns machinery even when the acceptance criteria do not ask for it."
+          }
+        ],
+        "comparisons": []
+      },
+      {
+        "round": 2,
+        "kb_lanes": [],
+        "status": "completed",
+        "kb_queries": 0,
+        "changed_files": [
+          "backend/src/main/java/com/example/securedhello/security/SessionControl.java",
+          "backend/src/main/java/com/example/securedhello/account/RequiredPasswordChangeFilter.java",
+          "backend/src/main/java/com/example/securedhello/account/AccountAdministrationController.java",
+          "backend/src/test/java/com/example/securedhello/AdminAccountDeleteApiTest.java",
+          "backend/src/test/java/com/example/securedhello/account/AccountAdministrationServiceConcurrencyTest.java",
+          "backend/src/test/java/com/example/securedhello/BootstrapAdminTest.java",
+          "backend/src/test/java/com/example/securedhello/LoggingApiTest.java",
+          "frontend/src/pages/AdminUsersPage.tsx",
+          "frontend/src/pages/AdminUsersPage.test.tsx"
+        ],
+        "findings": [],
+        "decisions": [],
+        "comparisons": [
+          {
+            "evidence_id": "session-survives-deleted-account",
+            "concern": "RequiredPasswordChangeFilter.doFilterInternal existence check above the allowed matcher; SessionControl.endCurrent",
+            "result": "Compliant: the decision is implemented as written. One findById is hoisted above the allowed matcher and the Optional reused for the flag check, so a request still costs one lookup; a missing Account calls SessionControl.endCurrent(ACCOUNT_DELETED, ...) -- which deliberately bypasses the principal-name index that the un-indexed Session is missing by definition -- and then throws InsufficientAuthenticationException, which the chain's existing authenticationEntryPoint turns into the same 401 any unauthenticated request gets (the filter is registered addFilterAfter(AuthorizationFilter.class), downstream of ExceptionTranslationFilter, so the throw is translated rather than escaping). The false 'left to the endpoint' javadoc line went with the isRequired method it described. Reviewer verified both halves non-vacuously by mutation: moving the check below the allowed matcher fails exactly aSessionWhoseAccountIsGoneIsRefusedAndEndedOnAPathTheAllowedMatcherLetsThrough and nothing else; deleting the endCurrent call fails both new tests, so the revoke-rather-than-re-refuse half is pinned and not merely the refusal. The lookup stays behind the authentication == null / AccountIdentified guard, so an anonymous flood on the permitAll paths still performs zero queries. Targeted runs green: AdminAccountDeleteApiTest 10/10, AccountAdministrationServiceConcurrencyTest 2/2, BootstrapAdminTest 12/12, LoggingApiTest 9/9, RequiredPasswordChangeApiTest 14/14, SessionLifetimeApiTest 12/12, LoginApiTest 21/21, PasswordChangeApiTest 25/25, AdminAccountListApiTest 15/15; frontend 63/63 and tsc clean."
+          }
+        ]
+      }
+    ]
+  }
+}

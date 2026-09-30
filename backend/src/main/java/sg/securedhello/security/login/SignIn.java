@@ -3,8 +3,10 @@ package sg.securedhello.security.login;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -248,7 +250,9 @@ public final class SignIn {
 
     /**
      * Concurrent-session control, one per sign-in, that writes row 10 for each session it displaces, at displacement
-     * (T-AUD-015). The sessions it is handed are all the signing-in account's, so each row names that account.
+     * (T-AUD-015). The framework picks which sessions to expire; each is handed to it as a {@link Displaced}, whose
+     * expiry is the displacement and writes the row. The sessions are all the signing-in account's, so each row names
+     * that account.
      */
     static final class EvictionAuditingControl extends ConcurrentSessionControlAuthenticationStrategy {
 
@@ -264,10 +268,29 @@ public final class SignIn {
         @Override
         protected void allowableSessionsExceeded(List<SessionInformation> sessions, int allowableSessions,
                 SessionRegistry registry) {
-            List<SessionInformation> live = sessions.stream().filter(session -> !session.isExpired()).toList();
-            super.allowableSessionsExceeded(sessions, allowableSessions, registry);
-            live.stream().filter(SessionInformation::isExpired).forEach(displaced ->
-                    audit.emit(AuditEvent.SESSION_EVICTED, AccountContext.sessionEvicted(account)));
+            super.allowableSessionsExceeded(sessions.stream().map(Displaced::new)
+                    .collect(Collectors.toCollection(ArrayList::new)), allowableSessions, registry);
+        }
+
+        /** A session of the account the control may expire; expiring a live one displaces it and writes row 10. */
+        private final class Displaced extends SessionInformation {
+
+            private final SessionInformation session;
+
+            Displaced(SessionInformation session) {
+                super(session.getPrincipal(), session.getSessionId(), session.getLastRequest());
+                this.session = session;
+            }
+
+            @Override
+            public void expireNow() {
+                boolean live = !session.isExpired();
+                session.expireNow();
+                super.expireNow();
+                if (live) {
+                    audit.emit(AuditEvent.SESSION_EVICTED, AccountContext.sessionEvicted(account));
+                }
+            }
         }
     }
 

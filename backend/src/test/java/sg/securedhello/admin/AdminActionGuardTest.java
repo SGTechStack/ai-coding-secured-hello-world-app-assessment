@@ -64,6 +64,15 @@ class AdminActionGuardTest {
         assertThat(AdminActionGuard.decide(Mutation.DISABLE, ACTOR, others.get(0), lockSet)).isEmpty();
     }
 
+    /** ADR-049: at exactly two enrolled admins a factor reset of the other passes; only check 1 applies to it. */
+    @Test
+    void atExactlyTwoEnrolledAdminsResettingTheOthersFactorIsAllowed() {
+        List<UUID> others = new ArrayList<>();
+        List<Standing> lockSet = enrolledAdmins(1, others);
+
+        assertThat(AdminActionGuard.decide(Mutation.FACTOR_RESET, ACTOR, others.get(0), lockSet)).isEmpty();
+    }
+
     @Test
     void enablingIsNeverRefusedByTheCount() {
         UUID subject = UUID.randomUUID();

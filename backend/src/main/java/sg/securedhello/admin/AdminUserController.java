@@ -7,10 +7,12 @@ import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -49,6 +51,16 @@ public class AdminUserController {
     public AdminUserView setEnabled(@AuthenticationPrincipal SignedInUser admin, @PathVariable UUID id,
             @Valid @RequestBody EnabledRequest body) {
         return actions.setEnabled(admin.id(), id, body.enabled()).orElseThrow(AdminUserController::notFound);
+    }
+
+    /**
+     * {@code DELETE /api/admin/users/{uuid}/totp}: with a factor from the last 10 minutes, resets another account's
+     * TOTP factor through the guarded {@link AdminActions}; 204 with no body (ADR-049).
+     */
+    @DeleteMapping("/api/admin/users/{id}/totp")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetFactor(@AuthenticationPrincipal SignedInUser admin, @PathVariable UUID id) {
+        actions.resetFactor(admin.id(), id).orElseThrow(AdminUserController::notFound);
     }
 
     private static ResponseStatusException notFound() {

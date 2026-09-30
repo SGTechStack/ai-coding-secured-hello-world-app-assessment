@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 
 import jakarta.servlet.http.Cookie;
 
+import org.apache.commons.codec.binary.Base32;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -43,6 +44,9 @@ public final class TotpFactors {
 
     /** The verification route. */
     public static final String VERIFICATION = "/api/mfa/totp/verification";
+
+    /** The provisioning route; confirmation is under it. */
+    public static final String ENROLMENT = "/api/mfa/totp/enrolment";
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -121,5 +125,23 @@ public final class TotpFactors {
         Cookie rotated = result.getResponse().getCookie("SESSION");
         assertThat(rotated).as("rotated session cookie").isNotNull();
         return SignedIn.refreshed(mockMvc, rotated);
+    }
+
+    /**
+     * Enrols {@code session}'s account through the real routes, provisioning then confirming, as an administrator with
+     * no factor does it unaided, and returns the secret. The session keeps its id.
+     */
+    public byte[] enrolThroughRoutes(MockMvc mockMvc, CsrfSession session) throws Exception {
+        MvcResult provisioned = mockMvc.perform(post(ENROLMENT).with(session.inHeader())).andReturn();
+        assertThat(provisioned.getResponse().getStatus()).as("provisioning").isEqualTo(200);
+        String secretBase32 = JSON.readTree(provisioned.getResponse().getContentAsString()).get("secretBase32")
+                .asString();
+        LogOutputGuard.register(secretBase32);
+        byte[] secret = new Base32().decode(secretBase32);
+        String body = JSON.writeValueAsString(Map.of("code", code(secret)));
+        MvcResult confirmed = mockMvc.perform(post(ENROLMENT + "/confirmation").with(session.inHeader())
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
+        assertThat(confirmed.getResponse().getStatus()).as("confirmation").isEqualTo(204);
+        return secret;
     }
 }

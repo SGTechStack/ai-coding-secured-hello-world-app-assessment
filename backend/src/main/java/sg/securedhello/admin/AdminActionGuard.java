@@ -30,7 +30,12 @@ final class AdminActionGuard {
     /** An admin mutation, and whether it can remove an admin from the invariant's count. */
     enum Mutation {
         ENABLE(false),
-        DISABLE(true);
+        DISABLE(true),
+        /**
+         * Exempt from check 2 (ADR-049): the subject restores the count alone, by signing in and re-enrolling, so a
+         * second admin able to act independently survives it.
+         */
+        FACTOR_RESET(false);
 
         private final boolean removesAnAdmin;
 

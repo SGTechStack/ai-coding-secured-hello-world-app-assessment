@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static sg.securedhello.architecture.ArchitectureRules.ADMIN_CONTROLLERS_REACH_NO_PERSISTENCE;
 import static sg.securedhello.architecture.ArchitectureRules.AUDIT_EMIT_TAKES_NO_THROWABLE;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES;
+import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS;
 import static sg.securedhello.architecture.ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION;
 import static sg.securedhello.architecture.ArchitectureRules.NO_AMBIENT_TIME;
 import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_COOKIE;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import sg.securedhello.admin.AdminActions;
 import sg.securedhello.admin.AdminUserController;
+import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.testsupport.Proves;
 
@@ -117,10 +119,13 @@ class ArchitectureTest {
     void adminControllersReachPersistenceOnlyThroughTheGuardedService() {
         ADMIN_CONTROLLERS_REACH_NO_PERSISTENCE.check(MAIN);
         ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES.check(MAIN);
+        ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS.check(MAIN);
         // Not vacuous: the admin controller is checked, and the guarded service does make the call.
         assertThat(MAIN.get(AdminUserController.class).isAnnotatedWith(RestController.class)).isTrue();
         assertThat(MAIN.get(AdminActions.class).getMethodCallsFromSelf())
-                .anyMatch(call -> call.getName().equals("setEnabled"));
+                .anyMatch(call -> call.getName().equals("setEnabled"))
+                .anyMatch(call -> call.getName().equals("remove")
+                        && call.getTargetOwner().isEquivalentTo(TotpFactorRemoval.class));
     }
 
     /** The ticket's credential-column rule; T-CRED-005 names only the {@code encode()} half. */

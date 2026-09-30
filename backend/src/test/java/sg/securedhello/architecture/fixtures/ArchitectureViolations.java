@@ -39,6 +39,7 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
+import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.user.PasswordHistoryEntry;
 import sg.securedhello.user.UserAccount;
 
@@ -423,6 +424,13 @@ public final class ArchitectureViolations {
     public static final class DisablesAroundTheGuard {
         void disable(UserAccount account) {
             account.setEnabled(false);
+        }
+    }
+
+    /** Removes a TOTP factor from outside the guarded service. */
+    public static final class ResetsAFactorAroundTheGuard {
+        void reset(TotpFactorRemoval removal) {
+            removal.remove(UUID.randomUUID());
         }
     }
 }

@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
@@ -56,6 +57,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import sg.securedhello.admin.AdminActions;
 import sg.securedhello.audit.AuditEmitter;
+import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
@@ -179,6 +181,12 @@ final class ArchitectureRules {
             .that().doNotBelongToAnyOf(AdminActions.class)
             .should().callMethod(UserAccount.class, "setEnabled", boolean.class)
             .because("an enable or disable runs under AdminActionGuard's lock set and checks (ADR-048)");
+
+    /** T-ADM-014: only the guarded service removes a TOTP factor, so a factor reset runs under the guard (ADR-049). */
+    static final ArchRule ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS = noClasses()
+            .that().doNotBelongToAnyOf(AdminActions.class)
+            .should().callMethod(TotpFactorRemoval.class, "remove", UUID.class)
+            .because("a factor reset runs under AdminActionGuard's lock set and actor-not-subject check (ADR-049)");
 
     /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
     static final ArchRule NO_REMEMBER_ME = noClasses()

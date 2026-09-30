@@ -47,6 +47,7 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | TOTP_VERIFICATION_FAILED | `totp-verify` | `user` | failure | WARN | medium | yes | per event | — | `user.id` | — | TOTP verification failed. |
 | TOTP_FACTOR_LOCKED | `totp-verify` | `error` | failure | WARN | high | yes | per event | — | `user.id` | — | TOTP factor locked. |
 | TOTP_FACTOR_DISABLED | `totp-verify` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP factor disabled. |
+| TOTP_REMOVED | `totp-remove` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | TOTP factor reset. |
 | ADMIN_USERS_LISTED | `admin-user-list` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.count` | — | Administrator listed users. |
 | ADMIN_USER_VIEWED | `admin-user-read` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Administrator read a user. |
 | ADMIN_USER_ENABLED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account enabled. |

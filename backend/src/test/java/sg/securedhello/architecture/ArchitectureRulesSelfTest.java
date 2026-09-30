@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import sg.securedhello.admin.AdminActions;
 import sg.securedhello.architecture.fixtures.ArchitectureViolations;
 import sg.securedhello.architecture.fixtures.PlaceholderProves;
+import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.time.ClockConfig;
@@ -199,6 +200,14 @@ class ArchitectureRulesSelfTest {
                 ArchitectureViolations.DisablesAroundTheGuard.class, UserAccount.class);
         assertPasses(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES, AdminActions.class,
                 UserAccount.class);
+    }
+
+    @Test
+    void aFactorResetOutsideTheGuardedServiceIsCaught() {
+        assertViolates(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS,
+                ArchitectureViolations.ResetsAFactorAroundTheGuard.class, TotpFactorRemoval.class);
+        assertPasses(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS, AdminActions.class,
+                TotpFactorRemoval.class);
     }
 
     @Test

@@ -28,8 +28,8 @@ import sg.securedhello.testsupport.TotpFactors;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * An admin disable ends the subject's live sessions after commit (ADR-037; ADR-039): the subject's raw cookie, replayed
- * against the real JDBC session store over a real port, is refused and its row is gone (level P).
+ * An admin disable or factor reset ends the subject's live sessions after commit (ADR-037; ADR-039): the subject's
+ * raw cookie, replayed against the real JDBC session store over a real port, is refused and its row is gone (level P).
  */
 class AdminDisableSessionsPortTest extends CtxPortTest {
 
@@ -103,6 +103,33 @@ class AdminDisableSessionsPortTest extends CtxPortTest {
 
         assertThat(new SessionRows(jdbc).exists(SessionRows.idOf(captured))).as("the session row is gone").isFalse();
         EntityExchangeResult<String> replay = send(HttpMethod.GET, "/api/hello", new Session(captured, null), null);
+        ProblemAssertions.assertProblem(replay.getStatus().value(),
+                replay.getResponseHeaders().getFirst(HttpHeaders.CONTENT_TYPE), replay.getResponseBody(),
+                replay.getResponseHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE), ErrorCode.AUTHENTICATION_FAILED);
+    }
+
+    @Test
+    @Proves("T-SES-018")
+    void aFactorResetAdminsReplayedCookieIsRefusedAndItsRowIsGone() throws Exception {
+        Accounts accounts = new Accounts(jdbc, passwordEncoder);
+        TotpFactors factors = new TotpFactors(jdbc, cipher, clock);
+        Account target = accounts.withRole("ADMIN");
+        factors.enrol(target);
+        Account admin = accounts.withRole("ADMIN");
+        byte[] secret = factors.enrol(admin);
+        String captured = signIn(target).cookie();
+        assertThat(send(HttpMethod.GET, "/api/profile", new Session(captured, null), null).getStatus().value())
+                .as("the target's session is live").isEqualTo(200);
+
+        EntityExchangeResult<String> verified = send(HttpMethod.POST, TotpFactors.VERIFICATION, signIn(admin),
+                JSON.writeValueAsString(Map.of("code", factors.code(secret))));
+        assertThat(verified.getStatus().value()).isEqualTo(204);
+        EntityExchangeResult<String> reset = send(HttpMethod.DELETE, "/api/admin/users/" + target.id() + "/totp",
+                withToken(cookieValue(verified)), null);
+        assertThat(reset.getStatus().value()).isEqualTo(204);
+
+        assertThat(new SessionRows(jdbc).exists(SessionRows.idOf(captured))).as("the session row is gone").isFalse();
+        EntityExchangeResult<String> replay = send(HttpMethod.GET, "/api/profile", new Session(captured, null), null);
         ProblemAssertions.assertProblem(replay.getStatus().value(),
                 replay.getResponseHeaders().getFirst(HttpHeaders.CONTENT_TYPE), replay.getResponseBody(),
                 replay.getResponseHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE), ErrorCode.AUTHENTICATION_FAILED);

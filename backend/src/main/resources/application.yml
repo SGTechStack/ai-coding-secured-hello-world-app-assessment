@@ -110,6 +110,9 @@ app:
           # Enable or disable, through AdminActionGuard (ADR-048). A mutation: the factor must be under 10 minutes old.
           - method: PUT
             path: /api/admin/users/{id}/enabled
+          # Factor reset, guarded but exempt from the two-admin count (ADR-049). A mutation: factor under 10 minutes.
+          - method: DELETE
+            path: /api/admin/users/{id}/totp
     # A signed-in session ends this long after its AUTH_INSTANT, whatever its traffic (REJ-012; ADR-038).
     session:
       absolute: 8h

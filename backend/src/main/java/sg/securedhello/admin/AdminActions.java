@@ -16,6 +16,7 @@ import sg.securedhello.admin.AuthenticableAdmins.Standing;
 import sg.securedhello.audit.AdminActionContext;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.audit.AuditEvent;
+import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.session.SessionTerminationService;
 import sg.securedhello.user.UserAccount;
@@ -36,14 +37,16 @@ public class AdminActions {
     private final PasswordService passwords;
     private final SessionTerminationService sessions;
     private final AuditEmitter audit;
+    private final TotpFactorRemoval factorRemoval;
 
     AdminActions(AuthenticableAdmins admins, UserAccountRepository accounts, PasswordService passwords,
-            SessionTerminationService sessions, AuditEmitter audit) {
+            SessionTerminationService sessions, AuditEmitter audit, TotpFactorRemoval factorRemoval) {
         this.admins = admins;
         this.accounts = accounts;
         this.passwords = passwords;
         this.sessions = sessions;
         this.audit = audit;
+        this.factorRemoval = factorRemoval;
     }
 
     /**
@@ -67,6 +70,25 @@ public class AdminActions {
             }
             afterCommit(() -> audit.emit(enabled ? AuditEvent.ADMIN_USER_ENABLED : AuditEvent.ADMIN_USER_DISABLED,
                     AdminActionContext.applied(actorId, subjectId)));
+        });
+    }
+
+    /**
+     * Resets {@code subjectId}'s TOTP factor for {@code actorId} (ADR-024; ADR-049): deletes its confirmed and pending
+     * rows, which clears a tier-2 disable too, and ends its sessions after commit (ADR-037). The subject re-enrols at
+     * their next sign-in. Check 1 applies; the two-admin count does not, since the subject restores it alone. An
+     * account with no factor loses nothing but the reset is still audited.
+     *
+     * @return the account, or empty if no account has {@code subjectId}
+     * @throws AdminActionRefusedException if the guard refuses it; nothing changes
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public Optional<AdminUserView> resetFactor(UUID actorId, UUID subjectId) {
+        return guarded(Mutation.FACTOR_RESET, actorId, subjectId, account -> {
+            factorRemoval.remove(subjectId);
+            sessions.endAll(account.getUsername());
+            afterCommit(() -> audit.emit(AuditEvent.TOTP_REMOVED, AdminActionContext.applied(actorId, subjectId)));
         });
     }
 

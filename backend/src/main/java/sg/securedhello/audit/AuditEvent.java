@@ -255,6 +255,16 @@ public enum AuditEvent {
             .required(USER_ID)
             .build()),
 
+    /**
+     * Row 33: an administrator reset another account's TOTP factor, deleting its confirmed and pending rows and, after
+     * commit, its sessions (ADR-049). With the admin password reset's row, the detector of one admin taking another
+     * over (R-ADM-009).
+     */
+    TOTP_REMOVED(row("totp-remove", "TOTP factor reset.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
     /** An administrator read the user list; the row carries how many accounts it returned (PRD Story 8). */
     ADMIN_USERS_LISTED(row("admin-user-list", "Administrator listed users.")
             .type("access")

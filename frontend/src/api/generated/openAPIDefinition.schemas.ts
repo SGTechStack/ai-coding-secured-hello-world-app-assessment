@@ -21,7 +21,17 @@ export interface SignInRequest {
 }
 
 export interface SignInResponse {
-  username?: string;
+  username: string;
+  mustChangePassword: boolean;
+}
+
+export interface ChangePasswordRequest {
+  /**
+   * @minLength 12
+   * @maxLength 72
+   */
+  newPassword: string;
+  confirmPassword: string;
 }
 
 export interface UserProfileResponse {

@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useForm } from '@tanstack/react-form';
 import { Alert, AlertDescription } from '@components/ui/alert';
@@ -10,11 +12,20 @@ import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
 import { revalidateBlurError } from '@lib/form';
 import { signInSchema } from './auth.schema';
 import { FieldErrors } from './field-errors';
+import { currentUserQueryOptions } from '@features/user/user.queries';
 import { signInErrorMessage, useSignIn } from './auth.queries';
 
 export function SignInPage() {
   const navigate = useNavigate();
   const { signIn, error, isPending } = useSignIn();
+
+  // The form shows at once; this probe runs alongside it. Someone already signed in has no use
+  // for the form, and the probe also makes the backend hand out the CSRF cookie that the sign-in
+  // request must echo back, so submitting waits for it.
+  const { data: currentUser, isPending: isProbing } = useQuery({ ...currentUserQueryOptions(), retry: false });
+  useEffect(() => {
+    if (currentUser) void navigate({ to: '/' });
+  }, [currentUser, navigate]);
 
   const form = useForm({
     defaultValues: { username: '', password: '' },
@@ -98,7 +109,7 @@ export function SignInPage() {
               )}
             </form.Field>
 
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || isProbing}>
               Sign in
             </Button>
           </form>

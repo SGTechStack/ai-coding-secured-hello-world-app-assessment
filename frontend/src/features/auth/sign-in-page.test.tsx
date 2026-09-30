@@ -28,6 +28,7 @@ function renderPage() {
 
 async function fillAndSubmit({ username, password }: { username: string; password: string }) {
   const user = userEvent.setup();
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled());
   if (username) await user.type(screen.getByLabelText('Username'), username);
   if (password) await user.type(screen.getByLabelText('Password'), password);
   await user.click(screen.getByRole('button', { name: 'Sign in' }));
@@ -37,7 +38,10 @@ describe('SignInPage', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     mockNavigate.mockReset();
-    vi.stubGlobal('fetch', fetchMock);
+    // The sign-in page probes /api/v1/me for an existing session; a visitor has none.
+    vi.stubGlobal('fetch', (input: string, init?: RequestInit) =>
+      input === '/api/v1/me' ? Promise.resolve(new Response(null, { status: 401 })) : fetchMock(input, init),
+    );
     // jsdom sits at "/"; pretend that is the sign-in page so a 401 does not trigger a redirect.
     vi.stubEnv('VITE_LOGIN_URL', window.location.pathname);
   });
@@ -149,5 +153,14 @@ describe('SignInPage', () => {
     await user.type(screen.getByLabelText('Password'), 'secret');
 
     await waitFor(() => expect(screen.queryByText('Enter your password')).not.toBeInTheDocument());
+  });
+
+  it('sends someone who is already signed in to the app', async () => {
+    vi.stubGlobal('fetch', () =>
+      Promise.resolve(jsonResponse({ status: 200, body: { username: 'ada', displayName: 'Ada', roles: [] } })),
+    );
+    renderPage();
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/' }));
   });
 });

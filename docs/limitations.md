@@ -140,6 +140,6 @@ For the avoidance of a false impression — the per-slice list (list A) is green
 | # | Gate | Status |
 |---|---|---|
 | 5 | `im8-review` clean | **not run** |
-| 6 | `dependency-check-maven`, no CVSS ≥ 7 | **not run** — see above |
+| 6 | `dependency-check-maven`, no CVSS ≥ 7 | **not run** — see above. A keyless substitute scan was run instead and **found 4 findings at CVSS ≥ 7**: see [`dependency-vuln-scan.md`](dependency-vuln-scan.md) |
 | 7 | `browser-test` against the PRD's twelve stories, including the three-step first boot | **not run** — the flow was verified over HTTP against the running dev profile, which is not the same thing as a browser |
 | 8 | All ArchUnit rows green | **green** — six tests in `ArchitectureRulesTest` |

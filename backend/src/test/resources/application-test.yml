@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:test-${random.uuid};DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  session:
+    store-type: jdbc
+    jdbc:
+      initialize-schema: always
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+  admin:
+    username: testadmin
+    password: TestAdminPassw0rd!123
+  security:
+    cookie-secure: false
+    password-min-length: 12
+    lockout:
+      max-attempts: 5
+      lockout-minutes: 15
+    ip-throttle:
+      max-failures: 20
+      window-minutes: 15
+    session:
+      idle-timeout-minutes: 30
+      absolute-timeout-minutes: 480
+  reset-token:
+    expiry-minutes: 30

@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: secured-hello-world
+  profiles:
+    active: dev
+  session:
+    store-type: jdbc
+    timeout: 30m
+    jdbc:
+      initialize-schema: always
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  cors:
+    allowed-origins: http://localhost:3000
+  admin:
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:}
+  security:
+    password-min-length: 12
+    lockout:
+      max-attempts: 5
+      lockout-minutes: 15
+    ip-throttle:
+      max-failures: 20
+      window-minutes: 15
+    session:
+      idle-timeout-minutes: 30
+      absolute-timeout-minutes: 480
+  reset-token:
+    expiry-minutes: 30
+
+logging:
+  level:
+    root: INFO
+    AUDIT: INFO
+    com.assessment.securedhelloworld.service.EmailService: INFO

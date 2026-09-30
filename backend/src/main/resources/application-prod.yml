@@ -1,0 +1,10 @@
+# Production profile. Deploying this behind anything other than HTTPS is out of policy
+# (IM8 dp-3 / waiver register A5 in spec.md): the Secure cookie attribute below requires it.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+app:
+  security:
+    cookie-secure: true

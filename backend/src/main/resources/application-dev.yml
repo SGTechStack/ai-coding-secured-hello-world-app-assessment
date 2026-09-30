@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/secured-hello-world;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+
+app:
+  security:
+    cookie-secure: false
+
+logging:
+  level:
+    # dev-only: the EmailService stub logs the raw reset link at DEBUG so a developer can
+    # click through it without real SMTP. Never enabled in prod (waiver register A3/A5 in spec.md).
+    com.assessment.securedhelloworld.service.EmailService: DEBUG

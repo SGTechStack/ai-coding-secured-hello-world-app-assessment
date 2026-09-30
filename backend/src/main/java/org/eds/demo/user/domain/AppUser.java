@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -115,6 +116,35 @@ public class AppUser extends BaseAuditableEntity {
   public void recordSuccessfulSignIn() {
     this.failedLoginAttempts = 0;
     this.lockedUntil = null;
+  }
+
+  /** True while a backoff delay from earlier failures is still running at {@code now}. */
+  public boolean isSignInDelayed(Instant now) {
+    return lockedUntil != null && now.isBefore(lockedUntil);
+  }
+
+  /**
+   * Counts a failed sign-in. From the {@code threshold}th consecutive failure on, sets a delay of
+   * {@code baseDelay} doubled once per failure past the threshold, capped at {@code maxDelay}.
+   *
+   * @return the delay now in force, or {@link Duration#ZERO} while under the threshold
+   */
+  public Duration recordFailedSignIn(
+      Instant now, int threshold, Duration baseDelay, Duration maxDelay) {
+    failedLoginAttempts++;
+    if (failedLoginAttempts < threshold) {
+      return Duration.ZERO;
+    }
+    var delay = baseDelay;
+    for (int doublings = failedLoginAttempts - threshold; doublings > 0; doublings--) {
+      if (delay.compareTo(maxDelay) >= 0) {
+        break;
+      }
+      delay = delay.multipliedBy(2);
+    }
+    delay = delay.compareTo(maxDelay) > 0 ? maxDelay : delay;
+    lockedUntil = now.plus(delay);
+    return delay;
   }
 
   public void updateEmail(String email) {

@@ -1,7 +1,10 @@
 package org.eds.demo.auth.application;
 
+import java.time.Clock;
+import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eds.demo.user.domain.AppUser;
 import org.eds.demo.user.infrastructure.AppUserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -10,7 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Checks a username and password against the stored Account hash. Every failure surfaces as the
@@ -30,18 +33,33 @@ public class SignInService {
   private static final String EVENT_SUCCESS = "sign_in_success";
 
   private static final String EVENT_FAILURE = "sign_in_failure";
+  private static final String EVENT_DELAY = "sign_in_delay";
+  private static final String DELAY_KEY = "delay";
 
   private static final String REASON_BLANK_CREDENTIALS = "blank_credentials";
   private static final String REASON_ACCOUNT_DISABLED = "account_disabled";
+  private static final String REASON_DELAYED = "delayed";
   private static final String REASON_BAD_CREDENTIALS = "bad_credentials";
 
   private final AuthenticationManager authenticationManager;
   private final AppUserRepository appUserRepository;
+  private final SignInThrottleProperties throttle;
+  private final Clock clock;
+  private final TransactionTemplate transactions;
 
-  @Transactional
+  /**
+   * Deliberately not {@code @Transactional}: a refusal is an exception, and one thrown through the
+   * user-details lookup's transaction would mark an outer one rollback-only and discard the failure
+   * counters. Each state change runs in its own short transaction instead.
+   */
   public Authentication signIn(String username, String password) {
     if (username == null || username.isBlank() || password == null || password.isEmpty()) {
       throw refused(username, REASON_BLANK_CREDENTIALS);
+    }
+    var account = appUserRepository.findByUsername(username);
+    if (account.filter(found -> found.isSignInDelayed(clock.instant())).isPresent()) {
+      // The password is not even checked, so a correct one cannot end the delay early.
+      throw refused(username, REASON_DELAYED);
     }
     Authentication authentication;
     try {
@@ -51,16 +69,40 @@ public class SignInService {
     } catch (DisabledException e) {
       throw refused(username, REASON_ACCOUNT_DISABLED);
     } catch (AuthenticationException e) {
+      account.ifPresent(found -> inTransaction(found, this::recordFailure));
       throw refused(username, REASON_BAD_CREDENTIALS);
     }
-    appUserRepository
-        .findByUsername(username)
-        .ifPresent(account -> account.recordSuccessfulSignIn());
+    account.ifPresent(found -> inTransaction(found, AppUser::recordSuccessfulSignIn));
     log.atInfo()
         .addKeyValue(EVENT_KEY, EVENT_SUCCESS)
         .addKeyValue(USERNAME_KEY, username)
         .log("Sign-in succeeded: username={}", username);
     return authentication;
+  }
+
+  private void inTransaction(AppUser found, Consumer<AppUser> change) {
+    transactions.executeWithoutResult(
+        status -> appUserRepository.findByUsername(found.getUsername()).ifPresent(change));
+  }
+
+  private void recordFailure(AppUser account) {
+    var delay =
+        account.recordFailedSignIn(
+            clock.instant(),
+            throttle.backoffThreshold(),
+            throttle.baseDelay(),
+            throttle.maxDelay());
+    if (!delay.isZero()) {
+      log.atWarn()
+          .addKeyValue(EVENT_KEY, EVENT_DELAY)
+          .addKeyValue(USERNAME_KEY, account.getUsername())
+          .addKeyValue(DELAY_KEY, delay.toString())
+          .log(
+              "Sign-in delay applied: username={}, delay={}, failedAttempts={}",
+              account.getUsername(),
+              delay,
+              account.getFailedLoginAttempts());
+    }
   }
 
   private BadCredentialsException refused(String username, String reason) {

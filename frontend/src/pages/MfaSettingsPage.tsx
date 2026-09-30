@@ -15,6 +15,8 @@ const COPY: Partial<Record<ErrorCode, string>> = {
   FACTOR_ALREADY_ENROLLED: ALREADY_ENROLLED,
   TOO_MANY_REQUESTS: TOO_MANY_ATTEMPTS,
 }
+const STATUS_UNKNOWN =
+  'Your two-factor status could not be checked, so setup is unavailable. Reload the page to try again.'
 const GENERIC_PROVISIONING = 'The QR code could not be generated. Try again.'
 const GENERIC_CONFIRMATION = 'The code could not be checked. Try again.'
 
@@ -40,6 +42,12 @@ export function MfaSettingsPage() {
   if (profile.data && profile.data.role !== 'ADMIN') {
     return <Navigate to="/hello" replace />
   }
+
+  // Enrolment state comes from the self-read. Until it has been read, or when it could not be, the state is unknown
+  // and Generate stays disabled: an unknown state is never taken for "not enrolled" (FE-STD §5:239). An existing key
+  // disables it too: replacing a factor is another administrator's reset, never a regeneration here (FE-STD §5:240).
+  const keyExists = profile.data?.factors.enrolled === true
+  const stateUnknown = profile.data === undefined
 
   const onGenerate = async () => {
     clearFailure()
@@ -93,10 +101,12 @@ export function MfaSettingsPage() {
             6-digit code the app shows.
           </p>
           <div>
-            <Button type="button" onClick={onGenerate} disabled={generating}>
+            <Button type="button" onClick={onGenerate} disabled={generating || stateUnknown || keyExists}>
               {provisioning ? 'Generate a new QR code' : 'Generate QR code'}
             </Button>
           </div>
+          {keyExists && <p className="text-sm">{ALREADY_ENROLLED}</p>}
+          {profile.isError && <p className="text-sm">{STATUS_UNKNOWN}</p>}
         </>
       )}
       {provisioning && <ProvisionedSecret provisioning={provisioning} onCode={onCode} />}

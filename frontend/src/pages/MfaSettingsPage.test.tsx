@@ -50,7 +50,10 @@ afterEach(() => vi.restoreAllMocks())
 
 async function generate() {
   renderApp('/settings/mfa')
-  await userEvent.setup().click(await screen.findByRole('button', { name: 'Generate QR code' }))
+  const button = await screen.findByRole('button', { name: 'Generate QR code' })
+  // Disabled until the self-read says the factor is not enrolled (T-FE-015).
+  await waitFor(() => expect(button).toBeEnabled())
+  await userEvent.setup().click(button)
 }
 
 describe('/settings/mfa', () => {
@@ -140,6 +143,71 @@ describe('/settings/mfa', () => {
 
     expect(await screen.findByText('Enter the 6-digit code from your authenticator app.')).toBeInTheDocument()
     expect(confirmations).toBe(0)
+  })
+
+  it('T-FE-015: when the status probe fails the enrolment state is unknown and Generate stays disabled', async () => {
+    let provisioned = 0
+    server.use(
+      http.get(apiUrl('/api/profile'), () => problemResponse('INTERNAL_ERROR', '/api/profile')),
+      http.post(ENROLMENT, () => {
+        provisioned += 1
+        return HttpResponse.json(provisioning)
+      }),
+    )
+
+    renderApp('/settings/mfa')
+
+    expect(await screen.findByText(/two-factor status could not be checked/)).toBeInTheDocument()
+    const button = screen.getByRole('button', { name: 'Generate QR code' })
+    expect(button).toBeDisabled()
+    await userEvent.setup().click(button)
+    expect(provisioned).toBe(0)
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('T-FE-015: while the status probe is in flight Generate is disabled, not offered as for an unenrolled admin', async () => {
+    let answer: (() => void) | undefined
+    server.use(
+      http.get(
+        apiUrl('/api/profile'),
+        () =>
+          new Promise<Response>((resolve) => {
+            answer = () => resolve(HttpResponse.json(admin))
+          }),
+      ),
+    )
+
+    renderApp('/settings/mfa')
+
+    const button = await screen.findByRole('button', { name: 'Generate QR code' })
+    expect(button).toBeDisabled()
+    await waitFor(() => expect(answer).toBeDefined())
+    answer!()
+    await waitFor(() => expect(button).toBeEnabled())
+  })
+
+  it('T-FE-026: with a key already enrolled Generate is disabled and nothing offers to regenerate it', async () => {
+    let provisioned = 0
+    server.use(
+      http.get(apiUrl('/api/profile'), () =>
+        HttpResponse.json({ ...admin, factors: { ...admin.factors, enrolled: true } }),
+      ),
+      http.post(ENROLMENT, () => {
+        provisioned += 1
+        return HttpResponse.json(provisioning)
+      }),
+    )
+
+    renderApp('/settings/mfa')
+
+    expect(await screen.findByText(/already set up for your account/)).toBeInTheDocument()
+    const button = screen.getByRole('button', { name: 'Generate QR code' })
+    expect(button).toBeDisabled()
+    await userEvent.setup().click(button)
+    expect(provisioned).toBe(0)
+    expect(screen.queryByText(/regenerate/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /new QR code/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/old (code|authenticator|TOTP)|stop working|no longer work/i)).not.toBeInTheDocument()
   })
 
   it('T-FE-016: FACTOR_ALREADY_ENROLLED on provisioning gets its own copy, not the generic failure', async () => {

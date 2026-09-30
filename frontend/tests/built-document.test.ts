@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { build, loadEnv, resolveConfig } from 'vite'
@@ -36,6 +36,14 @@ describe('built index.html (vite build, mode production)', () => {
   it('REJ-053: the Referrer-Policy meta tag is the first element in <head>', () => {
     const head = html.slice(html.search(/<head>/i) + '<head>'.length)
     expect(head.trimStart()).toMatch(/^<meta name="referrer" content="no-referrer"\s*\/?>/)
+  })
+
+  it('T-BLD-005: the emitted static bundle holds no .git or .svn', () => {
+    const entries = readdirSync(outDir, { recursive: true, encoding: 'utf8' })
+    expect(entries).toContain('index.html')
+    expect(entries.filter((entry) => entry.split(/[\\/]/).some((part) => part === '.git' || part === '.svn'))).toEqual(
+      [],
+    )
   })
 
   it('T-BLD-002: the built index.html has no inline script', () => {

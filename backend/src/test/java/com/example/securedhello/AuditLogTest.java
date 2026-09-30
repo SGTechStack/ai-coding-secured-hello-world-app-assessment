@@ -19,6 +19,7 @@ import org.springframework.mock.web.MockHttpSession;
 import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
+import com.example.securedhello.audit.SourceIpHash;
 import com.example.securedhello.support.LogCapture;
 
 import ch.qos.logback.classic.Logger;
@@ -98,7 +99,7 @@ class AuditLogTest {
 			auditLog.record(AuditEvent.failure(AuditAction.USER_AUTHENTICATION, "authentication_failed")
 				.passwordAuthentication()
 				.sessionHash(session.getId())
-				.sourceIpHash("5f2b9a")
+				.sourceIpHash(new SourceIpHash.Keyed("5f2b9a", "0123456789abcdef"))
 				.request(request));
 			auditLog.record(AuditEvent.systemFailure(AuditAction.USER_AUTHENTICATION, "database_unavailable"));
 			auditLog.record(AuditEvent.success(AuditAction.PASSWORD_RESET).eventType("change"));
@@ -126,6 +127,7 @@ class AuditLogTest {
 			assertThat(field(failedLogin, "authentication.method")).isEqualTo("password");
 			assertThat(field(failedLogin, "session.hash")).matches("[0-9a-f]{64}");
 			assertThat(field(failedLogin, "source.ip_hash")).isEqualTo("5f2b9a");
+			assertThat(field(failedLogin, "source.ip_hash_key_id")).isEqualTo("0123456789abcdef");
 			assertThat(node(failedLogin, "user.id")).isNull();
 
 			JsonNode systemFailure = events.get(2);

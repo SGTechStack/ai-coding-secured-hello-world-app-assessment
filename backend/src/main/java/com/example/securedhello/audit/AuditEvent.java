@@ -121,9 +121,14 @@ public final class AuditEvent {
 		return this;
 	}
 
-	/** {@code source.ip_hash}: an already keyed hash of the client address, never the address itself. */
-	public AuditEvent sourceIpHash(String sourceIpHash) {
-		fields.put("source.ip_hash", sourceIpHash);
+	/**
+	 * {@code source.ip_hash}: an already keyed hash of the client address, never the address itself,
+	 * and {@code source.ip_hash_key_id}, the id of the key that made it, so hashes either side of a key
+	 * rotation are never mistaken for different addresses or the same one.
+	 */
+	public AuditEvent sourceIpHash(SourceIpHash.Keyed sourceIpHash) {
+		fields.put("source.ip_hash", sourceIpHash.value());
+		fields.put("source.ip_hash_key_id", sourceIpHash.keyId());
 		return this;
 	}
 

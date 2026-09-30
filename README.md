@@ -211,8 +211,13 @@ themselves in `toString()`.
 **Rotate the IP-hash key periodically** through the secrets manager. The key only salts
 `source.ip_hash` in audit events, so rotation costs nothing but the ability to correlate
 one address's events across the rotation point; hashes either side of it will not match.
-Rotate on a schedule and keep a note of when, so an investigator reading old audit
-records knows why the hashes change.
+Every hash is versioned: it travels with `source.ip_hash_key_id`, a 16-hex-character
+fingerprint derived from the key itself (the start of the key's HMAC of a fixed label), so
+the id changes on its own when the key does and there is no second setting to keep in step.
+An investigator reading old audit records sees exactly where each rotation falls, and which
+key to use when hashing a suspect address; keep superseded keys in the secrets manager's
+version history for as long as the audit log they produced is retained. The fingerprint
+reveals nothing about the key or any address.
 
 ### 4. The Bootstrap Admin
 

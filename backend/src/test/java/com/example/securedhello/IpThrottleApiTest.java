@@ -39,6 +39,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import com.example.securedhello.audit.SourceIpHash;
 import com.example.securedhello.support.LogCapture;
 import com.example.securedhello.support.MutableClock;
 import com.example.securedhello.support.RecordingEmailService;
@@ -170,6 +171,8 @@ class IpThrottleApiTest {
 			assertThat(field(event, "event.outcome")).isEqualTo("failure");
 			assertThat(field(event, "event.reason")).isEqualTo("ip_throttled");
 			assertThat(field(event, "source.ip_hash")).isEqualTo(hmacSha256(ATTACKER));
+			// ck-2: which key produced the hash, so hashes either side of a key rotation are told apart.
+			assertThat(field(event, "source.ip_hash_key_id")).isEqualTo(hmacSha256(SourceIpHash.KEY_ID_INPUT).substring(0, 16));
 			assertThat(field(event, "url.path")).isEqualTo("/api/login");
 			assertThat(node(event, "user.id")).isNull();
 			assertThat(field(event, "trace.id")).isNotBlank();

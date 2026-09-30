@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -106,6 +107,94 @@ class SecurityCriticalIT extends AbstractIntegrationTest {
           .as("%s must reject a request with no CSRF token", path)
           .isEqualTo(HttpStatus.FORBIDDEN);
     }
+  }
+
+  @Test
+  @DisplayName("admin mutations are CSRF-protected too: PATCH and DELETE without a token are 403")
+  void adminMutationsAreCsrfProtected() {
+    // prd:119 names "admin mutations" explicitly, and they are PATCH and DELETE -- so the
+    // POST-only test above leaves the whole administrator surface unproven. A 403 here rather than
+    // a 401 or a 404 is the point: the caller is authenticated and the target exists, and only the
+    // missing token stands between the request and a state change.
+    ApiClient admin = adminSession();
+    admin.post(
+        "/users",
+        "{\"username\":\"csrftarget\",\"email\":\"csrftarget@example.com\","
+            + "\"password\":\"lantern quiet field\",\"role\":\"USER\"}");
+    String id = userRepository.findByUsername("csrftarget").orElseThrow().getId().toString();
+
+    assertThat(admin.patchWithoutCsrf("/users/" + id + "/status", "{\"enabled\":false}").getStatusCode())
+        .as("PATCH status without a CSRF token")
+        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(admin.patchWithoutCsrf("/users/" + id + "/role", "{\"role\":\"USER\"}").getStatusCode())
+        .as("PATCH role without a CSRF token")
+        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(admin.patchWithoutCsrf("/users/" + id + "/unlock", null).getStatusCode())
+        .as("PATCH unlock without a CSRF token")
+        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThat(admin.deleteWithoutCsrf("/users/" + id).getStatusCode())
+        .as("DELETE without a CSRF token")
+        .isEqualTo(HttpStatus.FORBIDDEN);
+
+    // And none of them took effect -- a 403 that still mutated would be the worst outcome.
+    assertThat(userRepository.findByUsername("csrftarget")).isPresent();
+    assertThat(userRepository.findByUsername("csrftarget").orElseThrow().isEnabled()).isTrue();
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // prd:120 -- CORS
+  // ---------------------------------------------------------------------------------------
+
+  @Test
+  @DisplayName("an allowlisted origin is echoed back with credentials permitted")
+  void allowlistedOriginIsAccepted() {
+    // prd:120 requires an explicit allow-list AND Access-Control-Allow-Credentials: true, the latter
+    // because the session cookie has to travel. `true` with a WILDCARD origin would be a credential
+    // leak, which is why setAllowedOrigins (not ...Patterns) is used -- it cannot express a wildcard.
+    ResponseEntity<String> response =
+        api.exchangeWithHeaders(
+            HttpMethod.GET, "/csrf", java.util.Map.of("Origin", "http://localhost:3000"));
+
+    assertThat(response.getHeaders().getFirst("Access-Control-Allow-Origin"))
+        .isEqualTo("http://localhost:3000");
+    assertThat(response.getHeaders().getFirst("Access-Control-Allow-Credentials")).isEqualTo("true");
+    // Never a wildcard, whatever else changes.
+    assertThat(response.getHeaders().getFirst("Access-Control-Allow-Origin")).isNotEqualTo("*");
+  }
+
+  @Test
+  @DisplayName("a non-allowlisted origin is rejected and never echoed")
+  void nonAllowlistedOriginIsRejected() {
+    ResponseEntity<String> response =
+        api.exchangeWithHeaders(
+            HttpMethod.GET, "/csrf", java.util.Map.of("Origin", "http://evil.example.com"));
+
+    // The security-relevant fact is the ABSENCE of the header: a browser enforces CORS on the
+    // response, so an un-echoed origin is what actually blocks the read. Asserting the status alone
+    // would pass against a server that returned 403 while still echoing the origin.
+    assertThat(response.getHeaders().getFirst("Access-Control-Allow-Origin")).isNull();
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+  }
+
+  @Test
+  @DisplayName("a preflight for an administrator mutation is answered for an allowlisted origin")
+  void preflightSucceedsForAnAllowlistedOrigin() {
+    // The PATCH rows of the matrix are unreachable from a browser without this, and the preflight is
+    // answered by CorsFilter ahead of authorization -- so it must succeed while anonymous.
+    ResponseEntity<String> response =
+        api.exchangeWithHeaders(
+            HttpMethod.OPTIONS,
+            "/users/00000000-0000-0000-0000-000000000000/status",
+            java.util.Map.of(
+                "Origin", "http://localhost:3000",
+                "Access-Control-Request-Method", "PATCH",
+                "Access-Control-Request-Headers", "content-type,x-csrf-token"));
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getHeaders().getFirst("Access-Control-Allow-Origin"))
+        .isEqualTo("http://localhost:3000");
+    assertThat(response.getHeaders().getFirst("Access-Control-Allow-Credentials")).isEqualTo("true");
+    assertThat(response.getHeaders().getFirst("Access-Control-Allow-Methods")).contains("PATCH");
   }
 
   @Test

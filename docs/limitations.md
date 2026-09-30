@@ -1,5 +1,11 @@
 # Documented limitations
 
+> A separate pass over the PRD's non-functional requirements
+> (`prd/assessment-prd.md:112-123`) is recorded in
+> [`prd-conformance.md`](prd-conformance.md). Read that for what is verified; this file is what is
+> **not**.
+
+
 Story 1.24's last acceptance criterion: these are **recorded rather than tested**, because a test would
 have to assert the limitation is still there — which pins the wrong thing and would fail the day someone
 fixed it.

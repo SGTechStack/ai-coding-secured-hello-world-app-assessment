@@ -7,12 +7,17 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.assessment.auth.audit.AuditLogger;
+import com.assessment.auth.audit.AuditReason;
 import com.assessment.auth.support.AbstractIntegrationTest;
 import com.assessment.auth.support.ApiClient;
 import com.assessment.auth.user.Role;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -143,6 +148,89 @@ class AuditSchemaAndBootstrapIT extends AbstractIntegrationTest {
     assertThat(fields.get("error.category")).isEqualTo("authentication");
     assertThat(fields.get("error.follow_up_action")).isNotBlank();
     assertThat(fields.get("target_user_id")).isNotBlank();
+  }
+
+  @Test
+  @DisplayName("every account-lifecycle event names both the actor and the target, by id")
+  void accountLifecycleEventsCarryActorAndTarget() {
+    // prd:122 requires audit lines for "role change/enable/disable/delete (actor + target)" and this
+    // was the gap: none of those events had an assertion of any kind. Emission is nearly free to
+    // check, and an unasserted event is an event that can quietly stop firing -- the audit trail is
+    // the only record that an administrator did any of this, so a silent regression here is
+    // unrecoverable after the fact.
+    //
+    // Actor and target are checked SEPARATELY, because conflating them is the specific failure that
+    // stops an audit trail answering "who did this": both fields are UUIDs and a mix-up type-checks.
+    ApiClient admin = adminSession();
+    UUID actorId = userRepository.findByUsername(ADMIN_USERNAME).orElseThrow().getId();
+
+    admin.fetchCsrf();
+    assertThat(
+            admin
+                .post(
+                    "/users",
+                    "{\"username\":\"lifecycle\",\"email\":\"lifecycle@example.com\","
+                        + "\"password\":\"lantern quiet field\",\"role\":\"USER\"}")
+                .getStatusCode())
+        .isEqualTo(HttpStatus.CREATED);
+    UUID targetId = userRepository.findByUsername("lifecycle").orElseThrow().getId();
+
+    admin.fetchCsrf();
+    admin.patch("/users/" + targetId + "/status", "{\"enabled\":false}");
+    admin.fetchCsrf();
+    admin.patch("/users/" + targetId + "/status", "{\"enabled\":true}");
+    admin.fetchCsrf();
+    admin.patch("/users/" + targetId + "/role", "{\"role\":\"USER_MANAGER\"}");
+    admin.fetchCsrf();
+    admin.patch("/users/" + targetId + "/unlock", null);
+    admin.fetchCsrf();
+    admin.patch("/users/" + targetId + "/resetPassword", null);
+    admin.fetchCsrf();
+    admin.delete("/users/" + targetId);
+
+    for (String reason :
+        List.of(
+            "ACCOUNT_CREATED_BY_ADMIN",
+            "ACCOUNT_DISABLED",
+            "ACCOUNT_ENABLED",
+            "ACCOUNT_ROLE_CHANGED",
+            "ACCOUNT_UNLOCKED",
+            "PASSWORD_RESET_ISSUED_BY_ADMIN",
+            "ACCOUNT_DELETED")) {
+      Map<String, String> fields =
+          fieldsOf(
+              auditEvent(reason)
+                  .orElseThrow(() -> new AssertionError("no audit event emitted for " + reason)));
+      assertThat(fields.get("user.id")).as("actor on %s", reason).isEqualTo(actorId.toString());
+      assertThat(fields.get("target_user_id"))
+          .as("target on %s", reason)
+          .isEqualTo(targetId.toString());
+      // The tombstone deliberately keeps the same id, so target_user_id stays resolvable after the
+      // account row is gone -- which is the whole reason a delete event can name a target at all.
+      assertThat(fields.get("event.reason")).isEqualTo(reason);
+    }
+
+    assertThat(deletedUserRepository.findById(targetId)).isPresent();
+  }
+
+  @Test
+  @DisplayName("event.reason never takes a value outside the closed vocabulary")
+  void everyReasonIsInTheEnum() {
+    // The vocabulary is closed by contract (spec.md S11). A free-text reason would make the audit
+    // trail unqueryable one careless string at a time, and nothing but this test closes it.
+    ApiClient admin = adminSession();
+    admin.get("/currentUser");
+    new ApiClient(port).login("nobody-at-all", "wrong wrong wrong");
+
+    Set<String> permitted =
+        Arrays.stream(AuditReason.values()).map(Enum::name).collect(Collectors.toSet());
+
+    assertThat(auditAppender.list).isNotEmpty();
+    for (ILoggingEvent event : auditAppender.list) {
+      assertThat(fieldsOf(event).get("event.reason"))
+          .as("reason on %s", event.getMessage())
+          .isIn(permitted);
+    }
   }
 
   @Test
@@ -288,7 +376,11 @@ class AuditSchemaAndBootstrapIT extends AbstractIntegrationTest {
     // resetAdmin() restores the flag, so this asserts the shape the seed produces.
     assertThat(managers.getFirst().isRequirePasswordChange()).isTrue();
     // Hashed like any other account, with its first history row written.
-    assertThat(managers.getFirst().getPasswordHash()).startsWith("$2");
+    // The COST FACTOR, not just the algorithm prefix. `startsWith("$2")` passes at BCrypt's default
+    // strength of 10 as readily as at the configured 12, so it proves the algorithm and nothing about
+    // the work factor -- and the work factor is the entire security property here. Every other
+    // account's hash is produced by the same encoder bean, so pinning it once pins it everywhere.
+    assertThat(managers.getFirst().getPasswordHash()).startsWith("$2a$12$");
     assertThat(passwordHistoryRepository.findByUserIdOrderByCreatedAtDesc(managers.getFirst().getId()))
         .isNotEmpty();
   }

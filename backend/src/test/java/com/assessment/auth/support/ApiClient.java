@@ -98,6 +98,30 @@ public class ApiClient {
     return send(HttpMethod.DELETE, baseUrl + path, null, true);
   }
 
+  /**
+   * PATCH and DELETE with no {@code X-CSRF-TOKEN}.
+   *
+   * <p>Separate from {@link #postWithoutCsrf} because the administrator mutations the PRD names
+   * explicitly ({@code prd:119}, "admin mutations") are PATCH and DELETE, not POST — so a
+   * POST-only test leaves the entire administrator surface unproven.
+   */
+  public ResponseEntity<String> patchWithoutCsrf(String path, String jsonBody) {
+    return send(HttpMethod.PATCH, baseUrl + path, jsonBody, false);
+  }
+
+  public ResponseEntity<String> deleteWithoutCsrf(String path) {
+    return send(HttpMethod.DELETE, baseUrl + path, null, false);
+  }
+
+  /**
+   * A request carrying extra headers — for the CORS assertions, which are entirely about headers the
+   * ordinary verbs do not send.
+   */
+  public ResponseEntity<String> exchangeWithHeaders(
+      HttpMethod method, String path, Map<String, String> extraHeaders) {
+    return send(method, baseUrl + path, null, true, extraHeaders);
+  }
+
   // ---------------------------------------------------------------- auth flows
 
   /**
@@ -144,6 +168,15 @@ public class ApiClient {
 
   private ResponseEntity<String> send(
       HttpMethod method, String url, String jsonBody, boolean withCsrf) {
+    return send(method, url, jsonBody, withCsrf, Map.of());
+  }
+
+  private ResponseEntity<String> send(
+      HttpMethod method,
+      String url,
+      String jsonBody,
+      boolean withCsrf,
+      Map<String, String> extraHeaders) {
 
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(List.of(MediaType.APPLICATION_JSON, MediaType.APPLICATION_PROBLEM_JSON));
@@ -156,6 +189,7 @@ public class ApiClient {
     if (withCsrf && csrfToken != null && method != HttpMethod.GET) {
       headers.add(csrfHeaderName, csrfToken);
     }
+    extraHeaders.forEach(headers::add);
 
     ResponseEntity<String> response =
         rest.exchange(url, method, new HttpEntity<>(jsonBody, headers), String.class);

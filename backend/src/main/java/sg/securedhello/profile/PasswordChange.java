@@ -58,6 +58,8 @@ public class PasswordChange {
             log.warn("Password change refused: the current password did not match (user.id={})", accountId);
             throw new CurrentPasswordMismatchException();
         }
+        // The row lock every trusted-device write takes (ADR-075): the change revokes the account's devices.
+        accounts.findForUpdateById(accountId);
         passwords.setPassword(accountId, newPassword);
         sessions.endAllExcept(account.getUsername(), actingSessionId);
     }

@@ -4,7 +4,7 @@ Two OpenAPI groups, one per channel (see `OpenApiGroupConfiguration`). Regenerat
 
 | Group      | Paths           | Spec                     | Client project (`orval.config.ts`) |
 | ---------- | --------------- | ------------------------ | ---------------------------------- |
-| `frontend` | `/api/**`       | `docs/openapi.json`       | `demo` → `src/api/generated/`       |
+| `frontend` | `/api/**`, `/login` | `docs/openapi.json`       | `demo` → `src/api/generated/`       |
 | `admin`    | `/admin/api/**` | `docs/openapi-admin.json` | `admin` → `src/api/generated-admin/` |
 
 Admin operations stay out of the public spec and client: `/admin/api/**` is outside `/api/**`, and the admin chain admits only `Role.ADMIN`.

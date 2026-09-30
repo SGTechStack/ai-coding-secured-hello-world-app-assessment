@@ -117,6 +117,10 @@ cd backend
 The API starts on **http://localhost:8080** (local profile).  
 Swagger UI is available at `/swagger-ui.html` when the `unsafe-openapi` profile is active.
 
+To sign in locally, seed the initial admin: set `app.admin.password` in the git-ignored
+`backend/config/application-local.properties` (or export `APP_ADMIN_PASSWORD`) before the first
+start. The username defaults to `admin`. There are no other built-in local users.
+
 The local DB is file-based (`backend/data/testdb.mv.db`) so it persists across restarts, including
 devtools restarts on recompile — `./mvnw clean` wipes it for a fresh schema.
 

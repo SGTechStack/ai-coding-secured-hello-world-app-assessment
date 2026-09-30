@@ -10,4 +10,7 @@ interface PasswordHistoryRepository extends JpaRepository<PasswordHistoryEntry, 
 	/** An Account's Password History, newest (the current password) first. */
 	List<PasswordHistoryEntry> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
+	/** Removes an Account's whole Password History, when the Account itself is deleted. */
+	void deleteByUserId(UUID userId);
+
 }

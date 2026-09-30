@@ -257,6 +257,76 @@ describe('admin users screen', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('no longer exists')
   })
 
+  it('asks for confirmation before deleting, and does not call the API until it is given', async () => {
+    const target = accounts[1]
+    let deleted = false
+    const fetch = renderApp(adminAccount, '/admin/users', undefined, {
+      [`DELETE /admin/users/${target.id}`]: () => {
+        deleted = true
+        return new Response(null, { status: 204 })
+      },
+    })
+    const rows = await screen.findAllByRole('row')
+
+    fireEvent.click(within(rows[2]).getByRole('button', { name: 'Delete' }))
+
+    const confirmation = within(rows[2]).getByRole('group', { name: 'Confirm deleting <b>testuser123</b>' })
+    expect(confirmation).toHaveTextContent('can never be registered again')
+    expect(confirmation).toHaveAttribute('aria-live', 'polite')
+    // Focus must not fall to the document when the Delete button it replaced unmounts.
+    expect(within(rows[2]).getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    expect(deleted).toBe(false)
+    fireEvent.click(within(rows[2]).getByRole('button', { name: 'Cancel' }))
+    expect(within(rows[2]).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(deleted).toBe(false)
+    expect(requestedPaths(fetch)).not.toContain(`/api/admin/users/${target.id}`)
+  })
+
+  it('deletes the Account once confirmed and reloads the list without it', async () => {
+    const target = accounts[1]
+    let deleted = false
+    const listRoute: Route = () => json(200, deleted ? [accounts[0]] : accounts)
+    renderApp(adminAccount, '/admin/users', listRoute, {
+      [`DELETE /admin/users/${target.id}`]: () => {
+        deleted = true
+        return new Response(null, { status: 204 })
+      },
+    })
+    const rows = await screen.findAllByRole('row')
+
+    fireEvent.click(within(rows[2]).getByRole('button', { name: 'Delete' }))
+    fireEvent.click(within(rows[2]).getByRole('button', { name: 'Confirm delete' }))
+
+    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(2))
+    expect(screen.queryByText('<b>testuser123</b>')).not.toBeInTheDocument()
+  })
+
+  it('shows a clear message when an Admin confirms deleting their own Account', async () => {
+    const target = accounts[0]
+    renderApp(adminAccount, '/admin/users', undefined, {
+      [`DELETE /admin/users/${target.id}`]: () => problem(403, 'self_action_forbidden'),
+    })
+    const rows = await screen.findAllByRole('row')
+
+    fireEvent.click(within(rows[1]).getByRole('button', { name: 'Delete' }))
+    fireEvent.click(within(rows[1]).getByRole('button', { name: 'Confirm delete' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('cannot perform this action on their own Account')
+  })
+
+  it('shows a clear message when deleting would leave no enabled Admin', async () => {
+    const target = accounts[0]
+    renderApp(adminAccount, '/admin/users', undefined, {
+      [`DELETE /admin/users/${target.id}`]: () => problem(409, 'last_admin'),
+    })
+    const rows = await screen.findAllByRole('row')
+
+    fireEvent.click(within(rows[1]).getByRole('button', { name: 'Delete' }))
+    fireEvent.click(within(rows[1]).getByRole('button', { name: 'Confirm delete' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('leave no enabled Admin')
+  })
+
   it('shows a clear message when the server refuses a self-action', async () => {
     const target = accounts[0]
     renderApp(adminAccount, '/admin/users', undefined, {

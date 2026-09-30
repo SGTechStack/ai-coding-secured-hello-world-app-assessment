@@ -24,8 +24,9 @@ import org.springframework.test.context.ActiveProfiles;
 /**
  * The last-Admin rule under real concurrency (spec "Account administration service": "checked
  * under a pessimistic row lock in the same transaction, so two concurrent demotions can't both
- * succeed"). Two Admins each try to demote the other, at the same moment, when they are the only
- * two enabled Admins; exactly one must succeed.
+ * succeed"). Two Admins each try to remove the other, at the same moment, when they are the only
+ * two enabled Admins; exactly one must succeed. Once by demotion, once by deletion: deletion takes
+ * the same lock set through the same helper, and a lost delete must leave the Account intact.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -48,6 +49,7 @@ class AccountAdministrationServiceConcurrencyTest {
 	void twoEnabledAdmins() {
 		jdbc.update("DELETE FROM password_reset_tokens");
 		jdbc.update("DELETE FROM password_history");
+		jdbc.update("DELETE FROM deleted_users");
 		jdbc.update("DELETE FROM users");
 		adminA = enabledAdmin("concurrentadmina");
 		adminB = enabledAdmin("concurrentadminb");
@@ -83,6 +85,33 @@ class AccountAdministrationServiceConcurrencyTest {
 		}
 	}
 
+	@Test
+	void exactlyOneOfTwoConcurrentDeletionsOfTheLastTwoAdminsSucceeds() throws Exception {
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch go = new CountDownLatch(1);
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			Future<Outcome> aDeletesB = pool.submit(delete(adminA, adminB, ready, go));
+			Future<Outcome> bDeletesA = pool.submit(delete(adminB, adminA, ready, go));
+			assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+			go.countDown();
+
+			Outcome aDeletedB = aDeletesB.get(10, TimeUnit.SECONDS);
+			Outcome bDeletedA = bDeletesA.get(10, TimeUnit.SECONDS);
+
+			assertThat(List.of(aDeletedB, bDeletedA)).containsExactlyInAnyOrder(Outcome.SUCCEEDED, Outcome.REJECTED);
+			UUID survivingAdmin = (aDeletedB == Outcome.SUCCEEDED) ? adminA : adminB;
+			// A plain read (no lock, no transaction needed here) of the DB state both transactions left.
+			assertThat(jdbc.queryForList("SELECT id FROM users", String.class))
+				.containsExactly(survivingAdmin.toString());
+			// The loser's transaction rolled back, so it left no half-deletion: one tombstone, not two.
+			assertThat(jdbc.queryForList("SELECT id FROM deleted_users", String.class)).hasSize(1);
+		}
+		finally {
+			pool.shutdownNow();
+		}
+	}
+
 	/** Demotes {@code targetId} as {@code actingAdminId}, once both racing calls are ready to start. */
 	private Callable<Outcome> demote(UUID actingAdminId, UUID targetId, CountDownLatch ready, CountDownLatch go) {
 		return () -> {
@@ -91,6 +120,25 @@ class AccountAdministrationServiceConcurrencyTest {
 				ready.countDown();
 				go.await();
 				administration.changeRole(actingAdminId, targetId, Role.USER);
+				return Outcome.SUCCEEDED;
+			}
+			catch (LastAdminException ex) {
+				return Outcome.REJECTED;
+			}
+			finally {
+				SecurityContextHolder.clearContext();
+			}
+		};
+	}
+
+	/** Deletes {@code targetId} as {@code actingAdminId}, once both racing calls are ready to start. */
+	private Callable<Outcome> delete(UUID actingAdminId, UUID targetId, CountDownLatch ready, CountDownLatch go) {
+		return () -> {
+			authenticateAs(actingAdminId);
+			try {
+				ready.countDown();
+				go.await();
+				administration.delete(actingAdminId, targetId);
 				return Outcome.SUCCEEDED;
 			}
 			catch (LastAdminException ex) {

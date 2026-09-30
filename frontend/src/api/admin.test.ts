@@ -146,6 +146,34 @@ describe('requirePasswordChange', () => {
   })
 })
 
+describe('deleteAccount', () => {
+  it('sends a DELETE for the target with the CSRF token and no body', async () => {
+    const fetch = fakeApi({
+      'GET /csrf': csrfRoute,
+      [`DELETE /admin/users/${id}`]: () => new Response(null, { status: 204 }),
+    })
+
+    expect(await admin.deleteAccount(id)).toEqual({ ok: true })
+    const [url, init] = fetch.mock.calls.find(([callUrl]) => String(callUrl).endsWith(`/admin/users/${id}`))!
+    expect(new URL(String(url)).pathname).toBe(`/api/admin/users/${id}`)
+    expect(init?.method).toBe('DELETE')
+    expect(new Headers(init?.headers).get('X-CSRF-TOKEN')).toBe('token-1')
+    expect(init?.body).toBeUndefined()
+  })
+
+  it.each([
+    [problem(403, 'self_action_forbidden'), 'self_action_forbidden'],
+    [problem(409, 'last_admin'), 'last_admin'],
+    [problem(404, 'not_found'), 'not_found'],
+    [problem(403, 'access_denied'), 'forbidden'],
+    [problem(500, 'internal_error'), 'error'],
+  ] as const)('maps a refusal (%#)', async (response, reason) => {
+    fakeApi({ 'GET /csrf': csrfRoute, [`DELETE /admin/users/${id}`]: () => response })
+
+    expect(await admin.deleteAccount(id)).toEqual({ ok: false, reason })
+  })
+})
+
 describe('changeRole', () => {
   it('sends the target and the new role as JSON with the CSRF token', async () => {
     const fetch = fakeApi({

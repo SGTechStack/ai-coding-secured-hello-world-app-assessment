@@ -66,6 +66,7 @@ class LoginApiTest {
 	void emptyAccountsAndSessions() {
 		jdbc.update("DELETE FROM password_reset_tokens");
 		jdbc.update("DELETE FROM password_history");
+		jdbc.update("DELETE FROM deleted_users");
 		jdbc.update("DELETE FROM users");
 		jdbc.update("DELETE FROM spring_session");
 	}
@@ -364,6 +365,7 @@ class LoginApiTest {
 		Cookie session = loggedIn("testuser123");
 		jdbc.update("DELETE FROM password_reset_tokens");
 		jdbc.update("DELETE FROM password_history");
+		jdbc.update("DELETE FROM deleted_users");
 		jdbc.update("DELETE FROM users");
 
 		mvc.perform(get("/api/me").cookie(session))

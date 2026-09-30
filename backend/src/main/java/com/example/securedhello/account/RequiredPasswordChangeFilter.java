@@ -2,6 +2,7 @@ package com.example.securedhello.account;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -21,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.config.ApiProperties;
 import com.example.securedhello.logging.AccountIdentified;
+import com.example.securedhello.security.SessionControl;
 import com.example.securedhello.web.ProblemResponses;
 
 /**
@@ -32,9 +35,17 @@ import com.example.securedhello.web.ProblemResponses;
  * <p>
  * Placed after authentication and authorization in the API filter chain, so an unauthenticated or
  * unauthorized request still gets its usual 401 or 403 and this refusal never reveals that an
- * endpoint exists. The flag is read from the Account on each request rather than from the Session,
- * so clearing it takes effect at once and a Session started before it was set cannot outlive it.
- * Every refusal is audited at WARN as {@code password-change-enforcement}.
+ * endpoint exists. The flag is read from the Account on each request rather than from the Session, so
+ * clearing it takes effect at once and a Session started before it was set cannot outlive it. Every
+ * refusal is audited at WARN as {@code password-change-enforcement}.
+ * <p>
+ * This is also the one place in the chain where "the Account still exists" is checked, the degenerate
+ * case of the same rule: the Account is read fresh per request, so no Session outlives the Account it
+ * belongs to. An admin delete can only sweep the Sessions the store has indexed under the Account at
+ * that moment, so a Session issued mid-delete would otherwise keep the authorities it was granted —
+ * including {@code ROLE_ADMIN} — with no id left for an operator to revoke. The existence check
+ * therefore runs <em>above</em> the allowed matcher below, unlike the flag check, and it ends the
+ * Session rather than only refusing the request.
  */
 @Component
 public class RequiredPasswordChangeFilter extends OncePerRequestFilter {
@@ -44,12 +55,16 @@ public class RequiredPasswordChangeFilter extends OncePerRequestFilter {
 
 	private final AccountRepository accounts;
 
+	private final SessionControl sessionControl;
+
 	private final AuditLog auditLog;
 
 	private final RequestMatcher allowed;
 
-	RequiredPasswordChangeFilter(AccountRepository accounts, AuditLog auditLog, ApiProperties api) {
+	RequiredPasswordChangeFilter(AccountRepository accounts, SessionControl sessionControl, AuditLog auditLog,
+			ApiProperties api) {
 		this.accounts = accounts;
+		this.sessionControl = sessionControl;
 		this.auditLog = auditLog;
 		this.allowed = new OrRequestMatcher(List.of(
 				PathPatternRequestMatcher.pathPattern(HttpMethod.GET, api.path("/me")),
@@ -67,23 +82,26 @@ public class RequiredPasswordChangeFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication == null || !(authentication.getPrincipal() instanceof AccountIdentified account)
-				|| this.allowed.matches(request)) {
+		if (authentication == null || !(authentication.getPrincipal() instanceof AccountIdentified account)) {
 			chain.doFilter(request, response);
 			return;
 		}
-		if (!isRequired(account)) {
+		Optional<Account> current = this.accounts.findById(account.accountId());
+		if (current.isEmpty()) {
+			// Above the allowed matcher on purpose: a deleted Account must not keep acting on the four
+			// paths a Required Password Change still permits either. Revoking, not just refusing: the
+			// deleting Admin's own sweep could not reach this Session, and nothing else ever will.
+			this.sessionControl.endCurrent(AccountAdministrationController.ACCOUNT_DELETED, request, response);
+			// Translated by the chain's entry point into the same 401 any unauthenticated request gets.
+			throw new InsufficientAuthenticationException("Account no longer exists");
+		}
+		if (this.allowed.matches(request) || !current.get().isPasswordChangeRequired()) {
 			chain.doFilter(request, response);
 			return;
 		}
 		this.auditLog.record(PasswordChangeEnforcement.refused(account.accountId()).request(request));
 		ProblemResponses.write(response, HttpStatus.FORBIDDEN, CODE,
 				"The password must be changed before anything else.");
-	}
-
-	/** A Session whose Account no longer exists is left to the endpoint, which treats it as logged out. */
-	private boolean isRequired(AccountIdentified account) {
-		return this.accounts.findById(account.accountId()).filter(Account::isPasswordChangeRequired).isPresent();
 	}
 
 }

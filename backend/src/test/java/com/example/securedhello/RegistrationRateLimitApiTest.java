@@ -67,6 +67,7 @@ class RegistrationRateLimitApiTest {
 	void emptyAccounts() {
 		jdbc.update("DELETE FROM password_reset_tokens");
 		jdbc.update("DELETE FROM password_history");
+		jdbc.update("DELETE FROM deleted_users");
 		jdbc.update("DELETE FROM users");
 		jdbc.update("DELETE FROM spring_session");
 	}

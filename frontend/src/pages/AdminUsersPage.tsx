@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import {
   changeRole,
+  deleteAccount,
   listAccounts,
   requirePasswordChange,
   setEnabled,
@@ -17,15 +18,16 @@ const GENERIC_ERROR = 'Something went wrong. Please try again later.'
 
 const ACTION_ERROR_MESSAGES: Record<Extract<AdminActionResult, { ok: false }>['reason'], string> = {
   self_action_forbidden: 'An Admin cannot perform this action on their own Account.',
-  last_admin: 'This change would leave no enabled Admin.',
+  last_admin: 'That would leave no enabled Admin.',
   not_found: 'That Account no longer exists.',
   forbidden: 'You are not allowed to manage Accounts.',
   error: GENERIC_ERROR,
 }
 
 /**
- * The admin Account list, with enable/disable, role, unlock and require-password-change actions. Server
- * data is rendered as text only.
+ * The admin Account list, with enable/disable, role, unlock, require-password-change and delete
+ * actions. Server data is rendered as text only. Delete is the one action nothing can undo, so it asks
+ * for confirmation in the row first.
  */
 export function AdminUsersPage() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -75,6 +77,7 @@ export function AdminUsersPage() {
           onChangeRole={(id, role) => runAction(id, () => changeRole(id, role))}
           onUnlock={(id) => runAction(id, () => unlock(id))}
           onRequirePasswordChange={(id) => runAction(id, () => requirePasswordChange(id))}
+          onDelete={(id) => runAction(id, () => deleteAccount(id))}
         />
       )}
       <p>
@@ -91,6 +94,7 @@ function AccountTable({
   onChangeRole,
   onUnlock,
   onRequirePasswordChange,
+  onDelete,
 }: {
   accounts: AdminAccount[]
   busyId: string | null
@@ -98,6 +102,7 @@ function AccountTable({
   onChangeRole: (id: string, role: 'USER' | 'ADMIN') => void
   onUnlock: (id: string) => void
   onRequirePasswordChange: (id: string) => void
+  onDelete: (id: string) => void
 }) {
   return (
     <div className="table-scroll">
@@ -144,7 +149,12 @@ function AccountTable({
                   {/* Ends the Account's Sessions too, so a suspected attacker is logged out at once. */}
                   <button type="button" disabled={busy} onClick={() => onRequirePasswordChange(account.id)}>
                     Require password change
-                  </button>
+                  </button>{' '}
+                  <ConfirmedDeleteButton
+                    username={account.username}
+                    disabled={busy}
+                    onConfirm={() => onDelete(account.id)}
+                  />
                 </td>
               </tr>
             )
@@ -152,5 +162,56 @@ function AccountTable({
         </tbody>
       </table>
     </div>
+  )
+}
+
+/**
+ * Delete, behind an in-row confirmation: deleting an Account cannot be undone and its username can
+ * never be registered again, so the first click only asks and the second one deletes.
+ *
+ * Asking replaces the Delete button, which would otherwise drop focus to the document, so focus moves
+ * to Cancel — the safe choice of the two, and one that cannot be triggered by the held key that
+ * activated Delete. `aria-live` announces the warning itself, which focusing a button does not.
+ */
+function ConfirmedDeleteButton({
+  username,
+  disabled,
+  onConfirm,
+}: {
+  username: string
+  disabled: boolean
+  onConfirm: () => void
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (confirming) cancelRef.current?.focus()
+  }, [confirming])
+
+  if (!confirming) {
+    return (
+      <button type="button" disabled={disabled} onClick={() => setConfirming(true)}>
+        Delete
+      </button>
+    )
+  }
+  return (
+    <span role="group" aria-label={`Confirm deleting ${username}`} aria-live="polite">
+      Delete for good? The username can never be registered again.{' '}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          setConfirming(false)
+          onConfirm()
+        }}
+      >
+        Confirm delete
+      </button>{' '}
+      <button type="button" ref={cancelRef} disabled={disabled} onClick={() => setConfirming(false)}>
+        Cancel
+      </button>
+    </span>
   )
 }

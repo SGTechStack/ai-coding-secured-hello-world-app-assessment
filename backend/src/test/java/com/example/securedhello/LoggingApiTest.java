@@ -22,6 +22,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.Order;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.ActiveProfiles;
@@ -54,6 +55,9 @@ class LoggingApiTest {
 
 	@Autowired
 	MockMvc mvc;
+
+	@Autowired
+	JdbcTemplate jdbc;
 
 	@Test
 	void everyRequestLineIsEcsJsonWithServiceTraceAndCorrelationFields() throws Exception {
@@ -148,15 +152,29 @@ class LoggingApiTest {
 	@Test
 	void authenticatedRequestLinesCarryTheAccountUuid() throws Exception {
 		UUID accountId = UUID.fromString("00000000-0000-0000-0000-000000000123");
+		// The Account has to exist for the request to be served at all: no Session outlives its Account,
+		// so RequiredPasswordChangeFilter refuses one whose Account is gone. Its stored username is the
+		// fixture's own, not the principal's, both because another class may already hold that username
+		// in this shared database and because the assertion below is about what the *principal* leaks.
+		// Removed again afterwards, since this class shares its database and resets nothing.
+		jdbc.update("DELETE FROM users WHERE id = ?", accountId);
+		jdbc.update("INSERT INTO users (id, username, email, password_hash, role, enabled, created_at) "
+				+ "VALUES (?, 'loggingfixture', 'loggingfixture@test.example.com', 'synthetic-hash', 'USER', TRUE, "
+				+ "CURRENT_TIMESTAMP)", accountId);
 		LogCapture capture = LogCapture.start();
+		try {
+			mvc.perform(get("/api/hello")
+				.with(authentication(new AccountPrincipal(accountId, "testuser123", Role.USER).toAuthentication())))
+				.andExpect(status().isOk());
 
-		mvc.perform(get("/api/hello")
-			.with(authentication(new AccountPrincipal(accountId, "testuser123", Role.USER).toAuthentication())))
-			.andExpect(status().isOk());
-
-		List<JsonNode> lines = requestLines(capture.application(), "/api/hello");
-		assertThat(lines).last().satisfies((end) -> assertThat(field(end, "user.id")).isEqualTo(accountId.toString()));
-		assertThat(String.join("\n", capture.applicationText())).doesNotContain("testuser123");
+			List<JsonNode> lines = requestLines(capture.application(), "/api/hello");
+			assertThat(lines).last()
+				.satisfies((end) -> assertThat(field(end, "user.id")).isEqualTo(accountId.toString()));
+			assertThat(String.join("\n", capture.applicationText())).doesNotContain("testuser123");
+		}
+		finally {
+			jdbc.update("DELETE FROM users WHERE id = ?", accountId);
+		}
 	}
 
 	@Test

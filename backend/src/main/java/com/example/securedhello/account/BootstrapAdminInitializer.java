@@ -31,7 +31,8 @@ import com.example.securedhello.credential.PasswordPolicyException;
  * exists, so production can never run on a known default. In {@code dev}, missing values fall back
  * to {@code admin} / {@code password} / {@code admin@localhost} with a WARN, and the fallback
  * password skips the policy. Startup also fails when the username or email already belongs to an
- * Account, so the wrong person is never promoted.
+ * Account, or when a Deleted Account's tombstone holds the username, so the wrong person is never
+ * promoted and a deleted username is never revived (ADR 0001).
  */
 @Component
 class BootstrapAdminInitializer implements ApplicationRunner {
@@ -57,6 +58,8 @@ class BootstrapAdminInitializer implements ApplicationRunner {
 
 	private final AccountRepository accounts;
 
+	private final DeletedAccountRepository deletedAccounts;
+
 	private final PasswordHistoryRepository passwordHistory;
 
 	private final AuditLog auditLog;
@@ -64,12 +67,13 @@ class BootstrapAdminInitializer implements ApplicationRunner {
 	private final Clock clock;
 
 	BootstrapAdminInitializer(BootstrapAdminProperties properties, Environment environment,
-			CredentialPolicy credentialPolicy, AccountRepository accounts, PasswordHistoryRepository passwordHistory,
-			AuditLog auditLog, Clock clock) {
+			CredentialPolicy credentialPolicy, AccountRepository accounts, DeletedAccountRepository deletedAccounts,
+			PasswordHistoryRepository passwordHistory, AuditLog auditLog, Clock clock) {
 		this.properties = properties;
 		this.environment = environment;
 		this.credentialPolicy = credentialPolicy;
 		this.accounts = accounts;
+		this.deletedAccounts = deletedAccounts;
 		this.passwordHistory = passwordHistory;
 		this.auditLog = auditLog;
 		this.clock = clock;
@@ -96,6 +100,10 @@ class BootstrapAdminInitializer implements ApplicationRunner {
 		String normalisedEmail = email.toLowerCase(Locale.ROOT);
 		if (accounts.existsByUsername(normalisedUsername)) {
 			throw new IllegalStateException(PREFIX + "username already belongs to an Account; configure another one");
+		}
+		if (deletedAccounts.existsByUsername(normalisedUsername)) {
+			throw new IllegalStateException(
+					PREFIX + "username belongs to a Deleted Account and can never be used again; configure another one");
 		}
 		if (accounts.existsByEmail(normalisedEmail)) {
 			throw new IllegalStateException(PREFIX + "email already belongs to an Account; configure another one");

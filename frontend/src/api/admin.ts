@@ -22,8 +22,8 @@ export async function listAccounts(): Promise<AccountListResult> {
 }
 
 /**
- * The refusals an Admin can hit on an enable/disable or role-change action, on top of the generic
- * ones. `not_found` covers an Account another Admin already deleted from under this screen.
+ * The refusals an Admin can hit on any per-Account action, on top of the generic ones. `not_found`
+ * covers an Account another Admin already deleted from under this screen.
  */
 export type AdminActionResult =
   { ok: true } | { ok: false; reason: 'self_action_forbidden' | 'last_admin' | 'not_found' | 'forbidden' | 'error' }
@@ -61,6 +61,15 @@ export async function unlock(id: string): Promise<AdminActionResult> {
  */
 export async function requirePasswordChange(id: string): Promise<AdminActionResult> {
   return toActionResult(await apiRequest(`/admin/users/${id}/require-password-change`, { method: 'POST' }))
+}
+
+/**
+ * Deletes an Account for good. The server keeps a tombstone, so the username can never be registered
+ * again (its email can), removes the Account's Password History and Reset Tokens, and ends its
+ * Sessions. Ask the Admin to confirm before calling this: nothing can undo it.
+ */
+export async function deleteAccount(id: string): Promise<AdminActionResult> {
+  return toActionResult(await apiRequest(`/admin/users/${id}`, { method: 'DELETE' }))
 }
 
 function toActionResult(result: ApiResult<unknown>): AdminActionResult {

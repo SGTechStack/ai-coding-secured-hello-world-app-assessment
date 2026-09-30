@@ -125,6 +125,20 @@ public class SessionControl {
 	}
 
 	/**
+	 * Ends the authenticated Session the request carries, if any, because a per-request check found it
+	 * can no longer be trusted at all — its Account has been deleted. Unlike {@link #endAll}, it does
+	 * not go through Spring Session's principal-name index, so it also revokes a Session that the store
+	 * has not indexed under its Account yet, which is exactly the Session an admin delete cannot reach.
+	 * @param reason the {@code event.reason} of the {@code session-end} event
+	 */
+	public void endCurrent(String reason, HttpServletRequest request, HttpServletResponse response) {
+		Authentication authentication = accountAuthentication();
+		if (authentication != null) {
+			endBySystem(authentication, reason, request, response);
+		}
+	}
+
+	/**
 	 * Applies the idle and absolute timeouts to the request's authenticated Session. An expired
 	 * Session is ended before the request goes further, so the request continues as a Visitor's;
 	 * a live one has its last use recorded.

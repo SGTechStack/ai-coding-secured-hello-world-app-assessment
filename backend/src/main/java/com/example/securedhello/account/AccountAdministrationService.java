@@ -20,10 +20,20 @@ class AccountAdministrationService {
 
 	private final AccountRepository accounts;
 
+	private final DeletedAccountRepository deletedAccounts;
+
+	private final PasswordResetTokenRepository resetTokens;
+
+	private final PasswordHistoryRepository passwordHistory;
+
 	private final Clock clock;
 
-	AccountAdministrationService(AccountRepository accounts, Clock clock) {
+	AccountAdministrationService(AccountRepository accounts, DeletedAccountRepository deletedAccounts,
+			PasswordResetTokenRepository resetTokens, PasswordHistoryRepository passwordHistory, Clock clock) {
 		this.accounts = accounts;
+		this.deletedAccounts = deletedAccounts;
+		this.resetTokens = resetTokens;
+		this.passwordHistory = passwordHistory;
 		this.clock = clock;
 	}
 
@@ -109,6 +119,34 @@ class AccountAdministrationService {
 	AccountRequiredPasswordChange requirePasswordChange(UUID targetId) {
 		Account target = accounts.findForUpdateById(targetId).orElseThrow(AccountNotFoundException::new);
 		return new AccountRequiredPasswordChange(target.requirePasswordChange());
+	}
+
+	/**
+	 * Deletes an Account. In one transaction it writes the Account's tombstone, removes its Reset
+	 * Tokens and Password History, and removes the Account itself; the tombstone is then the only
+	 * record of it, and keeps its UUID, username, email, deletion time and the deleting Admin
+	 * indefinitely (ADR 0001). Because the tombstone holds the username for good, that username can
+	 * never be registered or bootstrapped again; the email can be reused. Ending the target's Sessions
+	 * and auditing the deletion are the caller's job, once this has committed.
+	 * @throws AccountNotFoundException when {@code targetId} is not an Account
+	 * @throws SelfActionForbiddenException when the acting Admin targets their own Account
+	 * @throws LastAdminException when the deletion would leave zero enabled Admins
+	 */
+	@PreAuthorize("hasRole('ADMIN')")
+	@Transactional
+	void delete(UUID actingAdminId, UUID targetId) {
+		guardSelfAction(actingAdminId, targetId);
+		LockedTarget locked = lockTarget(targetId);
+		Account target = locked.account();
+		// A deleted Account is neither enabled nor an Admin afterwards, because it is gone.
+		guardLastAdmin(locked, false, target.getRole());
+		deletedAccounts.save(new DeletedAccount(target, actingAdminId, clock.instant()));
+		resetTokens.deleteByUserId(targetId);
+		passwordHistory.deleteByUserId(targetId);
+		// Both tables hold a foreign key to the Account, so their rows are written away before it is.
+		accounts.flush();
+		accounts.delete(target);
+		accounts.flush();
 	}
 
 	private static void guardSelfAction(UUID actingAdminId, UUID targetId) {

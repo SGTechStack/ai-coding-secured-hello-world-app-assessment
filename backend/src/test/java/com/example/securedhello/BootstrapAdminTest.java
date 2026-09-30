@@ -5,10 +5,13 @@ import static com.example.securedhello.support.LogCapture.hasField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -181,6 +184,33 @@ class BootstrapAdminTest {
 				"--app.bootstrap-admin.email=another@test.example.com")
 			.close())
 			.hasStackTraceContaining("app.bootstrap-admin.username already belongs to an Account");
+	}
+
+	/**
+	 * A tombstoned username can never be used again, not even by the Bootstrap Admin (ADR 0001), so an
+	 * operator who deleted the admin Account must configure a different username rather than have the
+	 * app silently revive the deleted one.
+	 */
+	@Test
+	void startupFailsWhenTheConfiguredUsernameBelongsToADeletedAccount() {
+		String database = database();
+		try (ConfigurableApplicationContext context = run(database, "test", USERNAME, PASSWORD, EMAIL)) {
+			deleteWithTombstone(context.getBean(JdbcTemplate.class));
+		}
+
+		assertThatThrownBy(() -> run(database, "test", USERNAME, PASSWORD, EMAIL).close())
+			.hasStackTraceContaining("app.bootstrap-admin.username belongs to a Deleted Account");
+	}
+
+	/** What {@code DELETE /api/admin/users/{id}} leaves behind: no Account, no history, one tombstone. */
+	private static void deleteWithTombstone(JdbcTemplate jdbc) {
+		Map<String, Object> account = jdbc.queryForList("SELECT id, username, email FROM users").get(0);
+		jdbc.update("INSERT INTO deleted_users (id, username, email, deleted_at, deleted_by) VALUES (?, ?, ?, ?, ?)",
+				account.get("id"), account.get("username"), account.get("email"), Timestamp.from(Instant.now()),
+				// Some other Admin did the deleting; never the deleted Account itself, which cannot.
+				UUID.randomUUID());
+		jdbc.update("DELETE FROM password_history");
+		jdbc.update("DELETE FROM users");
 	}
 
 	@Test

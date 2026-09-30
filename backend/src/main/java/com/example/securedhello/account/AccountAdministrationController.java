@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -33,10 +34,11 @@ import com.example.securedhello.web.ProblemResponses;
  * Disabling an Account or changing its role ends every Session of the target Account at once, so
  * the change takes effect immediately; re-enabling does not end Sessions or clear the
  * required-password-change flag (ADR 0001). Unlocking clears the lock and failure counter without
- * touching Sessions. The self-action guard and the last-Admin rule are enforced by the service; a
- * rejected attempt is audited here at WARN as {@code user-administration}. Requiring a password change
- * also ends the target's Sessions and is audited as {@code password-change-enforcement} instead, since
- * it changes what the target may do rather than its administrative state.
+ * touching Sessions. Deleting an Account leaves a tombstone and ends its Sessions too. The
+ * self-action guard and the last-Admin rule are enforced by the service; a rejected attempt is
+ * audited here at WARN as {@code user-administration}. Requiring a password change also ends the
+ * target's Sessions and is audited as {@code password-change-enforcement} instead, since it
+ * changes what the target may do rather than its administrative state.
  */
 @RestController
 @RequestMapping("${app.api.base-path}/admin/users")
@@ -47,6 +49,8 @@ class AccountAdministrationController {
 	static final String ROLE_CHANGED = "role_changed";
 
 	static final String PASSWORD_CHANGE_REQUIRED = "password_change_required";
+
+	static final String ACCOUNT_DELETED = "account_deleted";
 
 	private final AccountAdministrationService administration;
 
@@ -132,6 +136,25 @@ class AccountAdministrationController {
 		sessionControl.endAll(id, PASSWORD_CHANGE_REQUIRED, request, response);
 		auditLog.record(PasswordChangeEnforcement.set(principal.accountId(), id, change.before()).request(request));
 		return ResponseEntity.ok().build();
+	}
+
+	/**
+	 * Deletes an Account. The service writes its tombstone and removes the Account with its Reset Tokens
+	 * and Password History in one transaction; its Sessions are then ended, so the holder is logged out
+	 * at once. The tombstone keeps the username for good, so it can never be registered again, while the
+	 * email can be reused (ADR 0001).
+	 */
+	@DeleteMapping("/{id}")
+	ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal principal,
+			HttpServletRequest request, HttpServletResponse response) {
+		administration.delete(principal.accountId(), id);
+		sessionControl.endAll(id, ACCOUNT_DELETED, request, response);
+		auditLog.record(AuditEvent.success(AuditAction.USER_ADMINISTRATION)
+			.userId(principal.accountId())
+			.targetUserId(id)
+			.change("deleted", false, true)
+			.request(request));
+		return ResponseEntity.noContent().build();
 	}
 
 	@ExceptionHandler(AccountNotFoundException.class)

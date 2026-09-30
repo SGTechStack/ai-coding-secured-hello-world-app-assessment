@@ -19,14 +19,17 @@ class RegistrationService {
 
 	private final AccountRepository accounts;
 
+	private final DeletedAccountRepository deletedAccounts;
+
 	private final PasswordHistoryRepository passwordHistory;
 
 	private final Clock clock;
 
 	RegistrationService(CredentialPolicy credentialPolicy, AccountRepository accounts,
-			PasswordHistoryRepository passwordHistory, Clock clock) {
+			DeletedAccountRepository deletedAccounts, PasswordHistoryRepository passwordHistory, Clock clock) {
 		this.credentialPolicy = credentialPolicy;
 		this.accounts = accounts;
+		this.deletedAccounts = deletedAccounts;
 		this.passwordHistory = passwordHistory;
 		this.clock = clock;
 	}
@@ -36,14 +39,18 @@ class RegistrationService {
 	 * @return the new Account's UUID
 	 * @throws com.example.securedhello.credential.PasswordPolicyException when the password breaks
 	 *         the Credential policy
-	 * @throws UserExistException when the username or email is taken, compared case-insensitively
+	 * @throws UserExistException when the username or email is taken, compared case-insensitively, or
+	 *         when a Deleted Account's tombstone holds the username, which no Account may take again
+	 *         (ADR 0001); its email, by contrast, is free to reuse
 	 */
 	@Transactional
 	UUID register(String username, String email, String password) {
 		credentialPolicy.check(password);
 		String normalisedUsername = username.toLowerCase(Locale.ROOT);
 		String normalisedEmail = email.toLowerCase(Locale.ROOT);
-		if (accounts.existsByUsernameOrEmail(normalisedUsername, normalisedEmail)) {
+		// One combined check, so the response never says which of the three matched.
+		if (accounts.existsByUsernameOrEmail(normalisedUsername, normalisedEmail)
+				|| deletedAccounts.existsByUsername(normalisedUsername)) {
 			throw new UserExistException();
 		}
 		Instant now = clock.instant();

@@ -1,0 +1,34 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git commit:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+
+      "Bash(./mvnw:*)",
+      "Bash(mvnw.cmd:*)",
+      "Bash(mvn:*)",
+      "Bash(java:*)",
+      "Bash(jar tf:*)",
+      "Bash(grep:*)",
+
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(vite:*)",
+      "Bash(tsr:*)",
+      "Bash(tsc:*)",
+      "Bash(vitest:*)",
+      "Bash(eslint:*)",
+      "Bash(prettier:*)"
+    ]
+  }
+}

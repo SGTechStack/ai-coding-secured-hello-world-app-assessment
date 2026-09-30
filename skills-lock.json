@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "fallow": {
+      "source": "fallow-rs/fallow",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/fallow/SKILL.md",
+      "computedHash": "e029b6df4546a11724c34e107787722212f4a1b9f6103e0c1a52b6d9ad84aa93"
+    }
+  }
+}

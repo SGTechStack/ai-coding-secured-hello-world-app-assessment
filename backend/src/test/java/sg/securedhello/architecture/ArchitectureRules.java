@@ -6,8 +6,11 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import java.lang.annotation.Annotation;
 import java.time.Clock;
 import java.time.InstantSource;
+import java.util.ArrayDeque;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Deque;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Base64;
 import java.util.Locale;
@@ -29,6 +32,7 @@ import com.tngtech.archunit.core.domain.AccessTarget.CodeUnitAccessTarget;
 import com.tngtech.archunit.core.domain.JavaAccess;
 import com.tngtech.archunit.core.domain.JavaCall;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaCodeUnit;
 import com.tngtech.archunit.core.domain.JavaConstructor;
 import com.tngtech.archunit.core.domain.JavaFieldAccess;
 import com.tngtech.archunit.core.domain.JavaGenericArrayType;
@@ -40,6 +44,7 @@ import com.tngtech.archunit.core.domain.JavaTypeVariable;
 import com.tngtech.archunit.core.domain.JavaWildcardType;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.CompositeArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 
@@ -68,9 +73,11 @@ import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.mfa.TotpUserDetails;
 import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
+import sg.securedhello.security.device.TrustedDevices;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.time.ClockConfig;
+import sg.securedhello.user.TrustedDeviceRepository;
 import sg.securedhello.user.UserAccountRepository;
 import sg.securedhello.user.PasswordHistoryEntry;
 import sg.securedhello.user.PasswordLockoutState;
@@ -121,16 +128,36 @@ final class ArchitectureRules {
 
     /**
      * ADR-001: no lockout or limiter branch runs before authentication on whether the account exists. What runs ahead
-     * of the provider (the limiter, the login converter) and the pre-authentication checks, which get the account
-     * the provider loaded, never look an account up themselves (T-RL-017).
+     * of the provider (the limiter, the source key and its details, the login converter) and the pre-authentication
+     * checks, which get the account the provider loaded, never look an account up themselves (T-RL-017), not even
+     * through the device cookie: they read a device only through {@code TrustedDevices}' cookie-only claim, which
+     * itself never reaches the account table (ADR-075).
      */
-    static final ArchRule NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION = noClasses()
-            .that().resideInAPackage("sg.securedhello.security.ratelimit..")
+    static final ArchRule NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION = CompositeArchRule.of(noClasses()
+            .that().resideInAnyPackage("sg.securedhello.security.ratelimit..", "sg.securedhello.security.source..")
             .or().haveSimpleName("JsonCredentialsConverter")
             .or().haveSimpleName("PreAuthenticationChecks")
             .should().dependOnClassesThat().areAssignableTo(UserAccountRepository.class)
+            .orShould().dependOnClassesThat().areAssignableTo(TrustedDeviceRepository.class)
+            .orShould().accessTargetWhere(trustedDevicesBeyondTheClaim())
             .because("an account lookup ahead of the provider would put an existence branch before its timing "
-                    + "mitigation (ADR-001; R-AUTH-004)");
+                    + "mitigation (ADR-001; R-AUTH-004)")
+            .allowEmptyShould(true))
+            .and(methods()
+                    .that().areDeclaredInClassesThat().haveSimpleName("TrustedDevices")
+                    .and().haveName("claim")
+                    .should(new ArchCondition<>("never reach the account repository, directly or through its class") {
+                        @Override
+                        public void check(JavaMethod method, ConditionEvents events) {
+                            reachableWithinItsClass(method).stream()
+                                    .flatMap(unit -> unit.getAccessesFromSelf().stream())
+                                    .filter(access -> access.getTargetOwner().isAssignableTo(UserAccountRepository.class))
+                                    .forEach(access -> events.add(SimpleConditionEvent.violated(method,
+                                            method.getFullName() + " reaches " + access.getDescription())));
+                        }
+                    })
+                    .because("the claim runs ahead of the provider and reads the cookie alone (ADR-001; ADR-075)")
+                    .allowEmptyShould(true));
 
     /** T-CRED-005: {@code PasswordService} is the only main-code caller of {@code PasswordEncoder.encode()} (ADR-005). */
     static final ArchRule ONLY_PASSWORD_SERVICE_ENCODES = noClasses()
@@ -432,6 +459,29 @@ final class ArchitectureRules {
             BiPredicate<JavaAccess<?>, CodeUnitAccessTarget> test) {
         return DescribedPredicate.describe(description, access ->
                 access.getTarget() instanceof CodeUnitAccessTarget target && test.test(access, target));
+    }
+
+    /** A call or reference to a {@code TrustedDevices} code unit other than the cookie-only claim and cookie name. */
+    private static DescribedPredicate<JavaAccess<?>> trustedDevicesBeyondTheClaim() {
+        return codeUnitAccess("a TrustedDevices member other than claim or cookieName", (access, target) ->
+                target.getOwner().isEquivalentTo(TrustedDevices.class)
+                        && !Set.of("claim", "cookieName").contains(target.getName()));
+    }
+
+    /** {@code method} and every code unit of its own class it calls, transitively (a private helper, a lambda). */
+    private static Set<JavaCodeUnit> reachableWithinItsClass(JavaCodeUnit method) {
+        Set<JavaCodeUnit> reached = new LinkedHashSet<>();
+        Deque<JavaCodeUnit> pending = new ArrayDeque<>(List.of(method));
+        while (!pending.isEmpty()) {
+            JavaCodeUnit unit = pending.pop();
+            if (reached.add(unit)) {
+                unit.getCallsFromSelf().stream()
+                        .filter(call -> call.getTargetOwner().equals(method.getOwner()))
+                        .flatMap(call -> call.getTarget().resolveMember().stream())
+                        .forEach(pending::push);
+            }
+        }
+        return reached;
     }
 
     private static DescribedPredicate<JavaMethodCall> sleepCall() {

@@ -349,6 +349,35 @@ public final class ArchitectureViolations {
         }
     }
 
+    /** Named like the pre-authentication checks, and reaches the account through the device service's issuing path. */
+    public static final class PreAuthenticationChecks {
+        void trust(sg.securedhello.security.device.TrustedDevices devices, HttpServletRequest request,
+                HttpServletResponse response) {
+            devices.trust(UUID.randomUUID(), request, response);
+        }
+    }
+
+    public static final class ReadsTheDeviceTable {
+
+        /** Named like the login converter, and reads the device table itself instead of the cookie-only claim. */
+        public static final class JsonCredentialsConverter {
+            Object read(sg.securedhello.user.TrustedDeviceRepository devices, UUID userId) {
+                return devices.findByUserIdOrderByCreatedAtDesc(userId);
+            }
+        }
+    }
+
+    /** Named like the device service, and its claim looks the account up through a helper, inside a lambda. */
+    public static final class TrustedDevices {
+        Object claim(sg.securedhello.user.UserAccountRepository accounts, UUID userId) {
+            return java.util.Optional.of(userId).map(id -> owner(accounts, id));
+        }
+
+        private Object owner(sg.securedhello.user.UserAccountRepository accounts, UUID userId) {
+            return accounts.findById(userId);
+        }
+    }
+
     public static final class EncodesAPassword {
         Object encode(PasswordEncoder encoder) {
             return encoder.encode("a password set around the policy");

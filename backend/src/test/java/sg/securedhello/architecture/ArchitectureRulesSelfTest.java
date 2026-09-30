@@ -15,6 +15,7 @@ import sg.securedhello.architecture.fixtures.ArchitectureViolations;
 import sg.securedhello.architecture.fixtures.PlaceholderProves;
 import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
+import sg.securedhello.security.device.TrustedDevices;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.time.ClockConfig;
 import sg.securedhello.user.PasswordHistoryEntry;
@@ -152,6 +153,29 @@ class ArchitectureRulesSelfTest {
     void anAccountLookupAheadOfTheProviderIsCaught() {
         assertViolates(ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION,
                 ArchitectureViolations.JsonCredentialsConverter.class);
+    }
+
+    @Test
+    void anAccountLookupThroughTheDeviceServiceIsCaught() {
+        assertViolates(ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION,
+                ArchitectureViolations.PreAuthenticationChecks.class);
+    }
+
+    @Test
+    void aDeviceTableReadAheadOfTheProviderIsCaught() {
+        assertViolates(ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION,
+                ArchitectureViolations.ReadsTheDeviceTable.JsonCredentialsConverter.class);
+    }
+
+    @Test
+    void aClaimThatReachesTheAccountIsCaught() {
+        assertViolates(ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION,
+                ArchitectureViolations.TrustedDevices.class);
+    }
+
+    @Test
+    void theDeviceServiceMayLockTheAccountWhenIssuing() {
+        assertPasses(ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION, TrustedDevices.class);
     }
 
     @Test

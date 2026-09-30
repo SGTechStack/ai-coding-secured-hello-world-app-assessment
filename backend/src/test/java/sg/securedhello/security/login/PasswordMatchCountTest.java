@@ -8,6 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.UUID;
+
+import jakarta.servlet.http.Cookie;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +25,7 @@ import sg.securedhello.security.ratelimit.RateLimitProperties;
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxBudgetTest;
+import sg.securedhello.testsupport.DeviceCookies;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SignedIn;
 
@@ -33,7 +37,8 @@ import sg.securedhello.testsupport.SignedIn;
  * <p>It runs on {@link CtxBudgetTest}: counting calls needs the encoder bean wrapped in a spy, which a shared
  * context must not have, and the limiter cases need {@code application.yml}'s budgets. A limiter refusal, the
  * lockout-cardinality axis's included, costs no {@code matches()} at all. A locked or capped account costs one, like
- * every other account: the pre-authentication checks refuse it, and the provider still compares the password.
+ * every other account, in every lockout lane (ADR-075): the lane's lock or the pre-authentication checks refuse it,
+ * and the provider still compares the password.
  */
 class PasswordMatchCountTest extends CtxBudgetTest {
 
@@ -92,6 +97,71 @@ class PasswordMatchCountTest extends CtxBudgetTest {
         assertThat(matchesCalls(capped.username(), Accounts.PASSWORD)).as("capped, right password").isEqualTo(1);
         assertThat(matchesCalls(capped.username(), Accounts.WRONG_PASSWORD)).as("capped, wrong password")
                 .isEqualTo(1);
+    }
+
+    /**
+     * The {@code matches()} calls of one sign-in presenting {@code device}, after checking it took the branch meant:
+     * {@code 200} only where the lane lets the right password in.
+     */
+    private long matchesCalls(Cookie device, String username, String password, int expectedStatus) throws Exception {
+        clearInvocations(passwordEncoder);
+        int status = DeviceCookies.login(mockMvc, nextSource(), device, username, password).getResponse().getStatus();
+        assertThat(status).as("status").isEqualTo(expectedStatus);
+        return matchesCalls();
+    }
+
+    private void lock(String table, UUID id) {
+        jdbc.update("UPDATE " + table + " SET locked_until = ? WHERE id = ?",
+                Timestamp.from(clock.instant().plus(Duration.ofHours(1))), id);
+    }
+
+    /**
+     * Every lane branch of ADR-075 costs one {@code matches()}, as every other sign-in does: the untrusted lane's
+     * lock, a trusted device past it, a device's own lock, a cookie that does not trust (tampered, another user's) and
+     * the cap on a trusted device.
+     */
+    @Test
+    @Proves("T-AUTH-003")
+    void matchesRunsOncePerLoginOnEveryLockoutLane() throws Exception {
+        Accounts.Account owner = accounts.user();
+        Cookie trusted = DeviceCookies.earn(mockMvc, nextSource(), owner);
+        lock("users", owner.id());
+        assertThat(matchesCalls(null, owner.username(), owner.password(), 401))
+                .as("untrusted lane locked, right password").isEqualTo(1);
+        assertThat(matchesCalls(null, owner.username(), Accounts.WRONG_PASSWORD, 401))
+                .as("untrusted lane locked, wrong password").isEqualTo(1);
+        assertThat(matchesCalls(trusted, owner.username(), Accounts.WRONG_PASSWORD, 401))
+                .as("trusted device past an untrusted lock, wrong password").isEqualTo(1);
+        assertThat(matchesCalls(trusted, owner.username(), owner.password(), 200))
+                .as("trusted device past an untrusted lock, right password").isEqualTo(1);
+
+        String value = trusted.getValue();
+        char flipped = value.charAt(value.length() - 2) == 'A' ? 'B' : 'A';
+        Cookie tampered = new Cookie(DeviceCookies.NAME, value.substring(0, value.length() - 2) + flipped
+                + value.charAt(value.length() - 1));
+        assertThat(matchesCalls(tampered, owner.username(), owner.password(), 401))
+                .as("tampered cookie, untrusted lane locked").isEqualTo(1);
+        Accounts.Account other = accounts.user();
+        lock("users", other.id());
+        assertThat(matchesCalls(trusted, other.username(), other.password(), 401))
+                .as("another user's cookie, untrusted lane locked").isEqualTo(1);
+
+        Accounts.Account deviceLocked = accounts.user();
+        Cookie laptop = DeviceCookies.earn(mockMvc, nextSource(), deviceLocked);
+        lock("trusted_devices", DeviceCookies.idOf(laptop));
+        assertThat(matchesCalls(laptop, deviceLocked.username(), deviceLocked.password(), 401))
+                .as("device lane locked, right password").isEqualTo(1);
+        assertThat(matchesCalls(laptop, deviceLocked.username(), Accounts.WRONG_PASSWORD, 401))
+                .as("device lane locked, wrong password").isEqualTo(1);
+
+        Accounts.Account capped = accounts.user();
+        Cookie capDevice = DeviceCookies.earn(mockMvc, nextSource(), capped);
+        jdbc.update("UPDATE users SET password_disabled_at = ? WHERE id = ?", Timestamp.from(clock.instant()),
+                capped.id());
+        assertThat(matchesCalls(capDevice, capped.username(), capped.password(), 401))
+                .as("capped, trusted device, right password").isEqualTo(1);
+        assertThat(matchesCalls(capDevice, capped.username(), Accounts.WRONG_PASSWORD, 401))
+                .as("capped, trusted device, wrong password").isEqualTo(1);
     }
 
     @Test

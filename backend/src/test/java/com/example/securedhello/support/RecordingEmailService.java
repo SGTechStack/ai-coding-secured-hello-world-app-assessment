@@ -40,26 +40,47 @@ public final class RecordingEmailService implements EmailService {
 	 * strictly before this email is recorded, deterministically rather than by a timing guess. */
 	private final AtomicReference<CountDownLatch> gate = new AtomicReference<>();
 
+	/** Set by {@link #failDeliveries()}: every email then throws instead of being recorded. */
+	private volatile boolean failing;
+
 	@Override
 	public void notifyAccountLocked(String to) {
+		failIfArmed();
 		sent.add(new Sent("account-locked", to));
 	}
 
 	@Override
 	public void notifyPasswordChanged(String to) {
+		failIfArmed();
 		sent.add(new Sent("password-changed", to));
 	}
 
 	@Override
 	public void sendPasswordResetLink(String to, String resetLink) {
 		awaitGate();
+		failIfArmed();
 		sent.add(new Sent("password-reset-link", to));
 		resetLinks.add(resetLink);
 	}
 
 	@Override
 	public void notifyPasswordResetCompleted(String to) {
+		failIfArmed();
 		sent.add(new Sent("password-reset-completed", to));
+	}
+
+	/**
+	 * Makes every later email fail with a synthetic delivery exception, until {@link #clear()}: lets a
+	 * test prove that a failed notification never changes the outcome of the request that caused it.
+	 */
+	public void failDeliveries() {
+		failing = true;
+	}
+
+	private void failIfArmed() {
+		if (failing) {
+			throw new IllegalStateException("synthetic email delivery failure");
+		}
 	}
 
 	public List<Sent> sent() {
@@ -155,6 +176,7 @@ public final class RecordingEmailService implements EmailService {
 	public void clear() {
 		sent.clear();
 		resetLinks.clear();
+		failing = false;
 		releaseResetLink();
 	}
 

@@ -21,6 +21,7 @@ import com.jayway.jsonpath.JsonPath;
 
 import jakarta.servlet.http.Cookie;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -98,6 +99,11 @@ class PasswordChangeApiTest {
 			.content(JSON.writeValueAsString(Map.of("username", "testuser123", "email", EMAIL, "password", PASSWORD))))
 			.andExpect(status().isCreated());
 		accountId = jdbc.queryForObject("SELECT id FROM users", UUID.class).toString();
+		email.clear();
+	}
+
+	@AfterEach
+	void deliveriesWorkAgain() {
 		email.clear();
 	}
 
@@ -187,6 +193,44 @@ class PasswordChangeApiTest {
 		changeSuccessfully(PASSWORD, SECOND);
 
 		assertThat(email.sent()).containsExactly(new RecordingEmailService.Sent("password-changed", EMAIL));
+	}
+
+	/** Notification is fire-and-forget: a committed change answers 200 even when its email fails. */
+	@Test
+	void aChangeWhoseEmailCannotBeSentStillSucceeds() throws Exception {
+		Cookie session = loggedIn(PASSWORD);
+		email.failDeliveries();
+		LogCapture capture = LogCapture.start();
+
+		change(session, PASSWORD, SECOND).andExpect(status().isOk());
+
+		me(session).andExpect(status().isUnauthorized());
+		assertThat(capture.application(hasField("error.code", "notification_failed"))).singleElement()
+			.satisfies((event) -> assertThat(field(event, "log.level")).isEqualTo("ERROR"));
+		login(SECOND).andExpect(status().isOk());
+	}
+
+	/** A lock email that cannot be sent leaves the locking attempt's 400 and its audit events unchanged. */
+	@Test
+	void aLockEmailThatCannotBeSentStillAnswersCurrentPasswordInvalidAndAuditsTheLock() throws Exception {
+		Cookie session = loggedIn(PASSWORD);
+		for (int attempt = 1; attempt <= 4; attempt++) {
+			change(session, WRONG, SECOND).andExpect(status().isBadRequest());
+		}
+		email.failDeliveries();
+		LogCapture capture = LogCapture.start();
+
+		change(session, WRONG, SECOND).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("current_password_invalid"));
+
+		assertThat(capture.awaitAudit(hasField("event.action", "access-control"))).singleElement()
+			.satisfies((event) -> {
+				assertThat(field(event, "event.reason")).isEqualTo("account_locked");
+				assertThat(field(event, "user.id")).isEqualTo(accountId);
+			});
+		assertThat(capture.audit(hasField("event.action", "password-reset"))).singleElement()
+			.satisfies((event) -> assertThat(field(event, "event.reason")).isEqualTo("current_password_invalid"));
+		login(PASSWORD).andExpect(status().isUnauthorized());
 	}
 
 	@Test

@@ -16,6 +16,7 @@ import com.jayway.jsonpath.JsonPath;
 
 import jakarta.servlet.http.Cookie;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,6 +83,11 @@ class LockoutApiTest {
 					Map.of("username", "testuser123", "email", "testuser123@test.example.com", "password", PASSWORD))))
 			.andExpect(status().isCreated());
 		accountId = jdbc.queryForObject("SELECT id FROM users", UUID.class).toString();
+		email.clear();
+	}
+
+	@AfterEach
+	void deliveriesWorkAgain() {
 		email.clear();
 	}
 
@@ -181,6 +187,33 @@ class LockoutApiTest {
 		});
 		assertThat(String.join("\n", capture.auditText())).doesNotContain("testuser123");
 		assertThat(String.join("\n", capture.applicationText())).doesNotContain("testuser123");
+	}
+
+	/**
+	 * Notification is fire-and-forget: a lock email that cannot be sent must not turn the locking
+	 * attempt into a 500 (an account-existence oracle) or cost its audit events.
+	 */
+	@Test
+	void aLockEmailThatCannotBeSentStillAnswersTheIdentical401AndAuditsTheLock() throws Exception {
+		String wrongPasswordBody = null;
+		for (int attempt = 1; attempt <= 4; attempt++) {
+			wrongPasswordBody = body(login(WRONG_PASSWORD).andExpect(status().isUnauthorized()));
+		}
+		email.failDeliveries();
+		LogCapture capture = LogCapture.start();
+
+		String lockingBody = body(login(WRONG_PASSWORD).andExpect(status().isUnauthorized()));
+
+		assertThat(lockingBody).isEqualTo(wrongPasswordBody);
+		assertThat(capture.awaitAudit(hasField("event.action", "access-control"))).singleElement()
+			.satisfies((event) -> {
+				assertThat(field(event, "event.reason")).isEqualTo("account_locked");
+				assertThat(field(event, "user.id")).isEqualTo(accountId);
+			});
+		assertThat(capture.audit(hasField("event.reason", "authentication_system_failure"))).isEmpty();
+		assertThat(capture.application(hasField("error.code", "notification_failed"))).singleElement()
+			.satisfies((event) -> assertThat(field(event, "log.level")).isEqualTo("ERROR"));
+		login(PASSWORD).andExpect(status().isUnauthorized());
 	}
 
 	private void lockTheAccount() throws Exception {

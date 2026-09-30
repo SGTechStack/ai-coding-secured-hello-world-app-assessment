@@ -5,6 +5,8 @@ import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -17,6 +19,7 @@ import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.notification.EmailService;
 import com.example.securedhello.security.SessionControl;
+import com.example.securedhello.web.ErrorCategory;
 
 /**
  * The one owner of what follows a committed Account change. Runs after the publishing transaction
@@ -36,9 +39,16 @@ import com.example.securedhello.security.SessionControl;
  * {@code afterCommit} the failure reaches the caller, which answers 5xx. The committed change is
  * still audited when its Sessions could not be ended, and its holder is then not notified. An event
  * published with no transaction is refused, because there would be no commit to wait for.
+ * <p>
+ * Delivery is fire-and-forget (spec, Notifications): a notification failure is logged at ERROR
+ * ({@code notification_failed}), never propagated. Otherwise a lock email that failed would turn the
+ * locking attempt's generic refusal into a 500, an account-existence oracle that also loses the
+ * refusal's audit events, and a committed change would be reported as a failure.
  */
 @Component
 class AccountEventListener {
+
+	private static final Logger log = LoggerFactory.getLogger(AccountEventListener.class);
 
 	/** The {@code event.reason} of each {@code session-end} that an Account change causes. */
 	static final String ACCOUNT_DISABLED = "account_disabled";
@@ -111,22 +121,22 @@ class AccountEventListener {
 				endAllThenAudit(changed.accountId(), PASSWORD_CHANGE, request, response,
 						AuditEvent.success(AuditAction.PASSWORD_RESET).eventType(CHANGE).userId(changed.accountId()),
 						changed.requirementCleared() ? PasswordChangeEnforcement.cleared(changed.accountId()) : null);
-				emailService.notifyPasswordChanged(changed.email());
+				notifySafely(() -> emailService.notifyPasswordChanged(changed.email()));
 			}
 			case AccountEvent.PasswordResetCompleted completed -> {
 				endAllThenAudit(completed.accountId(), PASSWORD_RESET, request, response,
 						AuditEvent.success(AuditAction.PASSWORD_RESET).userId(completed.accountId()),
 						completed.requirementCleared() ? PasswordChangeEnforcement.cleared(completed.accountId())
 								: null);
-				emailService.notifyPasswordResetCompleted(completed.email());
+				notifySafely(() -> emailService.notifyPasswordResetCompleted(completed.email()));
 			}
 			case AccountEvent.PasswordResetIssued issued -> {
 				auditLog.record(AuditEvent.success(AuditAction.PASSWORD_RESET)
 					.userId(issued.accountId())
 					.request(issued.httpMethod(), issued.urlPath()));
-				emailService.sendPasswordResetLink(issued.email(), issued.resetLink());
+				notifySafely(() -> emailService.sendPasswordResetLink(issued.email(), issued.resetLink()));
 			}
-			case AccountEvent.Locked locked -> emailService.notifyAccountLocked(locked.email());
+			case AccountEvent.Locked locked -> notifySafely(() -> emailService.notifyAccountLocked(locked.email()));
 		}
 	}
 
@@ -159,6 +169,25 @@ class AccountEventListener {
 					audit(event, request);
 				}
 			}
+		}
+	}
+
+	/**
+	 * Sends one notification, logging a failure the same way the global handler logs an unexpected
+	 * exception, and never rethrowing it: the change it reports has already committed and been audited.
+	 */
+	private static void notifySafely(Runnable notification) {
+		try {
+			notification.run();
+		}
+		catch (RuntimeException ex) {
+			ErrorCategory category = ErrorCategory.of(ex);
+			log.atError()
+				.setCause(ex)
+				.addKeyValue("error_code", "notification_failed")
+				.addKeyValue("error_category", category.value())
+				.addKeyValue("error_follow_up_action", category.followUpAction())
+				.log("Unexpected exception while sending a notification");
 		}
 	}
 

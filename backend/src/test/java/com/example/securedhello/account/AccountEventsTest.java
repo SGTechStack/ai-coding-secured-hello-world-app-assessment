@@ -4,6 +4,7 @@ import static com.example.securedhello.support.LogCapture.field;
 import static com.example.securedhello.support.LogCapture.hasField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -102,6 +103,7 @@ class AccountEventsTest {
 
 	@AfterEach
 	void cleanUp() {
+		email.clear();
 		SecurityContextHolder.clearContext();
 		RequestContextHolder.resetRequestAttributes();
 		for (UUID id : new UUID[] { admin, target }) {
@@ -202,6 +204,44 @@ class AccountEventsTest {
 		assertThat(status).isEqualTo(500);
 		JsonNode change = capture.awaitAudit(hasField("target.user.id", target.toString())).get(0);
 		assertThat(field(change, "event.action")).isEqualTo("user-administration");
+	}
+
+	/**
+	 * A committed Password Change or reset whose Sessions could not be ended is still audited, and its
+	 * holder is not told the password changed while the old Sessions are still live.
+	 */
+	@Test
+	void aPasswordChangeWhoseSessionsCannotBeEndedIsAuditedButNotMailed() {
+		aPasswordEventWhoseSessionsCannotBeEndedIsAuditedButNotMailed(
+				new AccountEvent.PasswordChanged(target, targetEmail, false), "change");
+	}
+
+	@Test
+	void aPasswordResetWhoseSessionsCannotBeEndedIsAuditedButNotMailed() {
+		aPasswordEventWhoseSessionsCannotBeEndedIsAuditedButNotMailed(
+				new AccountEvent.PasswordResetCompleted(target, targetEmail, false), null);
+	}
+
+	private void aPasswordEventWhoseSessionsCannotBeEndedIsAuditedButNotMailed(AccountEvent event,
+			String expectedType) {
+		doThrow(new IllegalStateException("synthetic session store failure")).when(sessionControl)
+			.endAll(eq(target), anyString());
+		LogCapture capture = LogCapture.start();
+
+		assertThatThrownBy(() -> transactions.executeWithoutResult((status) -> events.publishEvent(event)))
+			.hasMessageContaining("synthetic session store failure");
+
+		assertThat(email.sent()).isEmpty();
+		JsonNode audited = capture
+			.awaitAudit(hasField("event.action", "password-reset").and(hasField("user.id", target.toString())))
+			.get(0);
+		assertThat(field(audited, "event.outcome")).isEqualTo("success");
+		if (expectedType != null) {
+			assertThat(field(audited, "event.type")).contains(expectedType);
+		}
+		else {
+			assertThat(field(audited, "event.type")).isNull();
+		}
 	}
 
 	@Test

@@ -70,6 +70,14 @@ public class Registration {
     /** How long a registration holds its username, and a pending registration lives: its activation token's life. */
     static final Duration PENDING_PERIOD = CredentialTokenType.ACTIVATION.lifetime();
 
+    /**
+     * The unique index a new address's pending registration is inserted into (V2). A concurrent registration of the
+     * same new address that inserted first wins it; the loser changes nothing and answers the email axis's uniform
+     * 202, as if it had run after the winner, whose link is the one the address receives. Anything else would make the
+     * race an email-axis oracle (ADR-032).
+     */
+    private static final Set<String> UNIQUE_EMAIL_INDEX = Set.of(UniqueIdentifierIndexes.USERS_EMAIL);
+
     /** The unique indexes a registration inserts a username into (V2; V8). */
     private static final Set<String> UNIQUE_USERNAME_INDEXES = Set.of(UniqueIdentifierIndexes.USERNAME_HOLDS_USERNAME,
             UniqueIdentifierIndexes.USERS_USERNAME);
@@ -117,6 +125,9 @@ public class Registration {
         try {
             link = transactions.execute(status -> reserve(username, canonicalEmail, now));
         } catch (DataIntegrityViolationException e) {
+            if (UniqueIdentifierIndexes.violated(e, UNIQUE_EMAIL_INDEX)) {
+                return;
+            }
             throw usernameRace(e);
         }
         link.ifPresent(email::send);

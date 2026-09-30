@@ -1,13 +1,17 @@
 package sg.securedhello.registration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.sql.Timestamp;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -100,6 +104,68 @@ class RegistrationLapseRaceTest extends CtxLockHoldTest {
             release.countDown();
             pool.shutdownNow();
         }
+    }
+
+    /**
+     * Two registrations of one new address under different usernames: the loser finds no account for the address, and
+     * the winner's pending registration commits before the loser inserts its own, which hits the address's unique
+     * index. It answers the email axis's uniform 202, as if it had run after the winner, never a 500 that would tell
+     * it apart (ADR-032; T-CRED-027).
+     *
+     * <p>To land the winner between the loser's lookup and its insert, the test parks the loser on its first write, the
+     * hold on its username, behind an uncommitted hold of the same name; commits the winner; then rolls the parked hold
+     * back, so the loser's hold goes in and its account insert meets the winner's.
+     */
+    @Test
+    @Proves("T-CRED-027")
+    void aRegistrationThatLosesTheRaceForANewAddressGetsTheUniform202NotA500() throws Exception {
+        String address = Registrations.emailFor(Registrations.freshUsername());
+        String loserName = Registrations.freshUsername();
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        CountDownLatch parked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            Future<?> parking = pool.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(
+                    status -> {
+                        jdbc.update("INSERT INTO username_holds (id, username, email, expires_at) VALUES (?, ?, ?, ?)",
+                                UUID.randomUUID(), loserName, address,
+                                Timestamp.from(clock.instant().plus(Registration.PENDING_PERIOD)));
+                        parked.countDown();
+                        await(release);
+                        status.setRollbackOnly();
+                    }));
+            parked.await();
+            Future<MvcResult> loser = pool.submit(() -> registrations.register(loserName, address).andReturn());
+            awaitExecuting("INSERT INTO USERNAME_HOLDS", loser);
+            new TransactionTemplate(transactionManager).executeWithoutResult(
+                    status -> insertPending(UUID.randomUUID(), Registrations.freshUsername(), address));
+            release.countDown();
+            parking.get();
+
+            assertThat(loser.get().getResponse().getStatus()).isEqualTo(202);
+            assertThat(loser.get().getResponse().getContentAsString()).isEmpty();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE email = ?", Integer.class, address))
+                    .isOne();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE username = ?", Integer.class, loserName))
+                    .isZero();
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+        }
+    }
+
+    /** Returns once some H2 session is executing a statement starting {@code prefix}; fails if {@code waiter} ends. */
+    private void awaitExecuting(String prefix, Future<?> waiter) {
+        while (jdbc.queryForObject("SELECT COUNT(*) FROM INFORMATION_SCHEMA.SESSIONS"
+                + " WHERE UPPER(EXECUTING_STATEMENT) LIKE ?", Integer.class, prefix + "%") == 0) {
+            assertThat(waiter).as("finished without reaching " + prefix).isNotDone();
+            Thread.onSpinWait();
+        }
+    }
+
+    private void insertPending(UUID id, String username, String email) {
+        jdbc.update("INSERT INTO users (id, username, email, role, enabled, created_at) VALUES (?, ?, ?, 'USER', TRUE, ?)",
+                id, username, email, Timestamp.from(clock.instant()));
     }
 
     private static void await(CountDownLatch latch) {

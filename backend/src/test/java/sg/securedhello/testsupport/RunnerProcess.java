@@ -3,14 +3,19 @@ package sg.securedhello.testsupport;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -104,6 +109,7 @@ public final class RunnerProcess {
             }
             started.process().destroy();
             started.process().waitFor(TIMEOUT.toSeconds(), TimeUnit.SECONDS);
+            awaitDatabaseReleased();
             return new Result(started.process().exitValue(), started.stdout(), started.stderr());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -111,6 +117,27 @@ public final class RunnerProcess {
         } finally {
             started.process().destroyForcibly();
         }
+    }
+
+    /**
+     * Waits until the stopped process's lock on the database file is gone: Windows releases a killed process's file
+     * lock a moment after the process has exited.
+     */
+    private void awaitDatabaseReleased() throws InterruptedException {
+        Path file = Path.of(database + ".mv.db");
+        long deadline = System.nanoTime() + TIMEOUT.toNanos();
+        while (System.nanoTime() < deadline) {
+            try (FileChannel channel = FileChannel.open(file, StandardOpenOption.WRITE);
+                    FileLock lock = channel.tryLock()) {
+                if (lock != null) {
+                    return;
+                }
+            } catch (IOException | OverlappingFileLockException stillHeld) {
+                // Held by the exiting process; try again shortly.
+            }
+            new CountDownLatch(1).await(200, TimeUnit.MILLISECONDS);
+        }
+        throw new AssertionError("the database file stayed locked after the process exited");
     }
 
     private record Started(Process process, Path out, Path err) {

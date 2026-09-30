@@ -25,6 +25,7 @@ const account = (n: number, username: string): AdminUser => ({
   email: `${username}@example.test`,
   role: 'USER',
   enabled: true,
+  activated: true,
   createdAt: '2026-09-02T09:30:00Z',
 })
 const bob = account(2, 'bob')

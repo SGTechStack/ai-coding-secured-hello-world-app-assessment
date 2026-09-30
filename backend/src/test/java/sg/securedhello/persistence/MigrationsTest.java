@@ -26,7 +26,7 @@ class MigrationsTest extends CtxDefaultTest {
     JdbcTemplate jdbc;
 
     @Test
-    void aFreshFileMigratesV1ToV8InSpecOrder() {
+    void aFreshFileMigratesV1ToV9InSpecOrder() {
         MigrationInfo[] applied = flyway.info().applied();
 
         assertThat(applied).extracting(MigrationInfo::getState).containsOnly(MigrationState.SUCCESS);
@@ -38,7 +38,8 @@ class MigrationsTest extends CtxDefaultTest {
                 "V5__totp.sql",
                 "V6__deleted_users.sql",
                 "V7__spring_session.sql",
-                "V8__username_holds.sql");
+                "V8__username_holds.sql",
+                "V9__admin_issued_tokens.sql");
         assertThat(flyway.info().pending()).isEmpty();
     }
 
@@ -69,6 +70,6 @@ class MigrationsTest extends CtxDefaultTest {
     void flywayRefusesToClean() {
         assertThat(flyway.getConfiguration().isCleanDisabled()).isTrue();
         assertThatExceptionOfType(FlywayException.class).isThrownBy(flyway::clean);
-        assertThat(flyway.info().applied()).hasSize(8);
+        assertThat(flyway.info().applied()).hasSize(9);
     }
 }

@@ -2,12 +2,13 @@ import { z } from 'zod'
 import { apiFetch } from '@/lib/api/client'
 
 /** One account as the admin surface shows it (PRD Story 8). Never a hash, token or factor field. */
-const adminUserSchema = z.object({
+export const adminUserSchema = z.object({
   id: z.uuid(),
   username: z.string(),
   email: z.string(),
   role: z.enum(['USER', 'ADMIN']),
   enabled: z.boolean(),
+  activated: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
 })
 

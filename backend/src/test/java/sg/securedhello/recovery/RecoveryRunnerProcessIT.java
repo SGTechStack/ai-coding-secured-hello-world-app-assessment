@@ -122,6 +122,10 @@ class RecoveryRunnerProcessIT {
         RunnerProcess.Result applied = runner.run(OPERATOR_PASSWORD + "\n", apply);
         assertThat(applied.exitCode()).as(applied.stderr()).isZero();
         assertThat(applied.stdout()).contains("Recovery runner: applied.");
+        // The web-only startup beans are absent: no seeding, and no reconciliation sweep beside the previewed change.
+        for (RunnerProcess.Result run : List.of(dryRun, applied)) {
+            assertThat(run.stdout()).doesNotContain("Administrator bootstrap", "\"session-reconciliation\"");
+        }
         assertThat(sessionsOf(database, ADMIN)).as("the rebound account's sessions ended").isZero();
 
         // T-AUD-027: the password crosses no stream, and no other secret does either.
@@ -162,8 +166,8 @@ class RecoveryRunnerProcessIT {
                         "--server.port=0", "--scope=password", "--username=" + ADMIN, "--operator=ops.jane",
                         "--non-interactive");
 
-        // The application started as itself; the runner never ran.
-        assertThat(started.stdout()).doesNotContain("Recovery runner");
+        // The application started as itself, with its startup sweep; the runner never ran.
+        assertThat(started.stdout()).doesNotContain("Recovery runner").contains("\"session-reconciliation\"");
         assertThat(passwordHash(sharedDatabase)).isEqualTo(before);
     }
 
@@ -197,6 +201,16 @@ class RecoveryRunnerProcessIT {
     }
 
     @Test
+    void aWebApplicationTypeFromTheEnvironmentIsRefused() {
+        RunnerProcess.Result refused = runner(sharedDatabase).env("SPRING_MAIN_WEBAPPLICATIONTYPE", "servlet")
+                .run("", args("--scope=password", "--username=" + ADMIN));
+
+        assertThat(refused.exitCode()).isEqualTo(RecoveryLauncher.NOT_STARTED);
+        assertThat(refused.stderr()).contains("never starts a web server");
+        assertThat(refused.stdout()).doesNotContain("Tomcat started");
+    }
+
+    @Test
     @Proves("T-RUN-005")
     void aWrongDatabasePathIsRefusedAndCreatesNoFile() {
         Path missing = directory.resolve("nowhere").resolve("secured-hello");
@@ -217,7 +231,8 @@ class RecoveryRunnerProcessIT {
         RunnerProcess.Result refused = runner(database).run("", args("--scope=password", "--username=" + ADMIN));
 
         assertThat(refused.exitCode()).isEqualTo(RecoveryLauncher.NOT_STARTED);
-        assertThat(refused.stderr()).contains("schema is at version 5 and this jar's is 8", "never migrates");
+        assertThat(refused.stderr()).containsPattern("schema is at version 5 and this jar's is [0-9]+\\.")
+                .contains("never migrates").doesNotContain("this jar's is 5.");
         assertThat(Flyway.configure().dataSource(RunnerProcess.url(database), "", "").load().info().current()
                 .getVersion().getVersion()).isEqualTo("5");
     }

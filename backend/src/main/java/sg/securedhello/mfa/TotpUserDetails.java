@@ -152,6 +152,16 @@ public class TotpUserDetails {
         return Failure.COUNTED;
     }
 
+    /**
+     * An admin unlock (REJ-072): clears tier 1, its counter, anchor and lock, and never tier 2, whose cumulative count
+     * and disable only rebinding clears (ADR-027). Only {@code AdminActions} calls it, under its lock set (ArchUnit).
+     */
+    public void unlockTier1() {
+        failedAttempts = 0;
+        lastFailedAt = null;
+        lockedUntil = null;
+    }
+
     /** Whether tier 2 has disabled the factor, so only rebinding restores it (ADR-027). */
     boolean isDisabled() {
         return factorDisabledAt != null;

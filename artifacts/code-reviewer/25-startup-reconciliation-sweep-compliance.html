@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 25-startup-reconciliation-sweep</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall WARN</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">build WARN 0/0/0/3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN 0/0/3/5</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/0/3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">semgrep PASS 0/0/0/0</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN 0/0/0/3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN 0/0/2/6</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">t25-startup-reconciliation-sweep</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 25, startup session reconciliation sweep (ADR-039). Overall WARN: no Critical or High findings, must-fix = 0. Counts are Critical / High / Medium / Low.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+            <tr><th class="px-4 py-2">Check</th><th class="px-4 py-2">Status</th><th class="px-4 py-2">C/H/M/L</th><th class="px-4 py-2">Summary</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2">build</td><td class="px-4 py-2 text-amber-600">WARN</td><td class="px-4 py-2">0/0/0/3</td><td class="px-4 py-2">BUILD SUCCESS: 1272 unit tests and 6 ITs pass. JaCoCo is not configured (pre-existing), so no coverage gate.</td></tr>
+            <tr><td class="px-4 py-2">react</td><td class="px-4 py-2 text-emerald-700">PASS</td><td class="px-4 py-2">0/0/0/0</td><td class="px-4 py-2">N/A, no frontend files changed.</td></tr>
+            <tr><td class="px-4 py-2">thermo-nuclear</td><td class="px-4 py-2 text-amber-600">WARN</td><td class="px-4 py-2">0/0/3/5</td><td class="px-4 py-2">SQL and row mapping inside the termination seam, untyped Map rows, service returns an audit DTO.</td></tr>
+            <tr><td class="px-4 py-2">code-review</td><td class="px-4 py-2 text-amber-600">WARN</td><td class="px-4 py-2">0/0/0/3</td><td class="px-4 py-2">Spec fully met. Three Low standards smells. Artifact self-reported PASS; Low-only maps to WARN.</td></tr>
+            <tr><td class="px-4 py-2">semgrep</td><td class="px-4 py-2 text-emerald-700">PASS</td><td class="px-4 py-2">0/0/0/0</td><td class="px-4 py-2">165 rules over 9 Java files, 0 findings.</td></tr>
+            <tr><td class="px-4 py-2">im8</td><td class="px-4 py-2 text-amber-600">WARN</td><td class="px-4 py-2">0/0/0/3</td><td class="px-4 py-2">Applicable controls pass. Three Low advisories (restart-only repair, counts-only audit, timestamp type). Artifact self-reported PASS.</td></tr>
+            <tr><td class="px-4 py-2">springboot</td><td class="px-4 py-2 text-amber-600">WARN</td><td class="px-4 py-2">0/0/2/6</td><td class="px-4 py-2">Fail-closed startup untested, and an unexpected timestamp type silently disables the LOCKED trigger.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">No Critical or High findings. Highest-severity items (Medium), recommended before merge though not blocking:</p>
+          <ul class="list-disc pl-6 text-sm space-y-1">
+            <li>Fail-closed startup on sweep failure has no test (<span class="font-mono text-xs">SessionTerminationService.java, ReconciliationAtStartup.java</span>; springboot M-1).</li>
+            <li>Untyped <span class="font-mono text-xs">Map&lt;String,Object&gt;</span> rows: <span class="font-mono text-xs">instant()</span> returns null for a non-OffsetDateTime, so the LOCKED trigger fails open silently (springboot M-2, thermo M2, code-review Low, im8 L3).</li>
+            <li>Sweep logic bloats <span class="font-mono text-xs">SessionTerminationService</span>; consider a dedicated <span class="font-mono text-xs">SessionReconciler</span> (thermo M1, code-review Low).</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">build</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/pom.xml</td><td class="px-4 py-2">-</td><td class="px-4 py-2">JaCoCo not configured; the 80% coverage gate does not exist. Pre-existing, not from ticket 25.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">artifacts/review/verify.log</td><td class="px-4 py-2">-</td><td class="px-4 py-2">failsafe:verify skipped in offline Maven; the 6 ITs still passed. Dependency-check skipped by request.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">changed files</td><td class="px-4 py-2">-</td><td class="px-4 py-2">CRLF/LF line-ending warnings. Cosmetic.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">react</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings (N/A: no frontend files changed)</td></tr></tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">thermo-nuclear</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Seam now holds JdbcTemplate, Clock, AuditEmitter, a 12-line SQL constant and row mapping (1 to 4 dependencies). Extract a SessionReconciler.</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Map&lt;String,Object&gt; rows with upper-case keys, String cast and instanceof timestamp check. Use a RowMapper with getObject(..., OffsetDateTime.class).</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java, audit/SessionReconciliationContext.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">reconcile() returns an audit DTO and stringly-typed "TRIGGER=n" counts. Return a typed result and format in writeTo.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/ReconciliationTrigger.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Enum-plus-switch dispatch heavier than an if-chain on Standing.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">SessionTerminationService.java, ReconciliationTrigger.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">SQL WHERE and Java holds() both encode the trigger predicate; can drift.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/ReconciliationTrigger.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Standing has two inverted-meaning booleans (exists, enabled); a sealed Missing/Present shape would state the invariant.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">delete(String, @Nullable String): reconcile always passes null; two-mode helper.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Per-principal deletes are sequential. Acceptable at startup.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">code-review</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Possible Divergent Change: gained JdbcTemplate and raw SQL on top of its session-repository role.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">reconcile()</td><td class="px-4 py-2">Map rows read by upper-case keys, depending on H2 label casing. Use a RowMapper returning Standing.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">AFFECTED_PRINCIPALS</td><td class="px-4 py-2">Unbounded startup load: every principal with a historic locked_until, one findByPrincipalName each.</td></tr>
+          </tbody>
+        </table>
+        <p class="px-4 py-3 text-xs text-slate-500 border-t border-slate-100">Spec axis: all three acceptance criteria met, 0 findings, no scope creep.</p>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">semgrep</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody><tr><td colspan="4" class="px-4 py-3 text-slate-400 text-center">No findings (Semgrep 1.178.0, p/security-audit + p/default, 9 Java files)</td></tr></tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">im8</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L1 (as-11): repair only at restart; a lost session kill stays live until next boot. Accepted by ADR-039; confirm ops awareness.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">audit/SessionReconciliationContext.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L2 (lm-4): audit row is counts-only, no affected account ids. Confirm sufficient for forensics.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">instant()</td><td class="px-4 py-2">L3 (as-11): LOCKED fails open silently if locked_until maps to a type other than OffsetDateTime.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">springboot</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><tr><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">session/ReconciliationAtStartup.java, SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">M-1: fail-closed startup claim has no test. Add a restart-harness case asserting boot.failure() != null and !boot.portOpened().</td></tr>
+            <tr><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">instant()</td><td class="px-4 py-2">M-2: untyped Map row; unexpected timestamp type silently disables the LOCKED trigger. Use a RowMapper or throw on unexpected type.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/ReconciliationTrigger.java</td><td class="px-4 py-2">LOCKED</td><td class="px-4 py-2">L-1: in-force-lock rule duplicated with user.PasswordLockoutState; delegate.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L-2: session package reads users and totp_user_details schemas directly; note or move the query.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">AFFECTED_PRINCIPALS</td><td class="px-4 py-2">L-3: no EXPIRY_TIME filter, so expired-but-uncleaned sessions inflate ended_count.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">session/SessionTerminationService.java</td><td class="px-4 py-2">reconcile()</td><td class="px-4 py-2">L-4: no audit or log of partial work when the sweep fails midway.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">docs/audit/log-inventory.md</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L-5: session-reconciliation row precedes the process startup row; document the ordering.</td></tr>
+            <tr><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">SessionReconciliationTest.java, SessionReconciliationRestartTest.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L-6: "soft delete" mislabel, missing per-trigger =0 assertion on second run, long test method, raw DELETE instead of the Tombstones path.</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

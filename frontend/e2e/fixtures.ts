@@ -13,6 +13,7 @@ export type FixtureTest =
   | 'golden-path'
   | 'disable-admin'
   | 'disable-user'
+  | 'invite-admin'
   | 'step-up-admin'
   | 'step-up-user'
   | 'role-admin'

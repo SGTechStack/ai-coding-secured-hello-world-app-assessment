@@ -294,7 +294,7 @@ denied (ADR-043). Each unsafe method requires the CSRF header (ADR-036).
 | `POST /api/mfa/totp/verification` | `ROLE_ADMIN`, password held | Grants or renews the factor. The code travels in the JSON body. | ADR-021; REJ-070 |
 | `GET /api/admin/users` | admin, factor of any age | The user list, with no hash. Carries `user.target.count` in its audit row. | PRD Story 8 |
 | `GET /api/admin/users/{uuid}` | admin, factor of any age | One user. | |
-| `POST /api/admin/users` | admin, factor within 10 min | Invite: creates a pending account and returns the activation token once. | ADR-006 |
+| `POST /api/admin/users` | admin, factor within 10 min | Invite: creates a pending account and returns the activation token once. The same identifiers of a pending invite re-issue it. | ADR-006; ADR-007 |
 | `PUT /api/admin/users/{uuid}/enabled` | admin, factor within 10 min | Enable or disable. Guarded, and ends sessions on disable. Re-enable issues a forced-change credential. | PRD Story 9; ADR-046 |
 | `PUT /api/admin/users/{uuid}/role` | admin, factor within 10 min | Role change. Guarded, and ends sessions. | PRD Story 10 |
 | `DELETE /api/admin/users/{uuid}` | admin, factor within 10 min | Delete plus a tombstone, in one transaction. Guarded, and ends sessions. | PRD Story 11; ADR-044 |

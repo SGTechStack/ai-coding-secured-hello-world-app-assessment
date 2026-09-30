@@ -46,6 +46,10 @@ mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
 At startup the log shows one `Key loaded` line per key, with its property, version and an 8-hex-character
 fingerprint. The key itself is never logged. Compare fingerprints to confirm which key is live.
 
+Before the port opens, startup also ends the stored sessions of every account that is disabled, deleted, locked,
+password-capped or under a tier-2 factor disable, and writes one `session-reconciliation` audit row with the counts
+(ADR-039). A lost session kill is repaired by restarting the app.
+
 The tests need none of these variables. The test harness supplies test-only canary values (`TestSecrets`).
 
 ### Rate limits while developing
@@ -175,7 +179,9 @@ application first**. While it runs the H2 file is locked, and the runner refuses
 
    `--scope` is `password`, `totp` or `both`, never implied. `totp` deletes the factor so the admin enrols again.
    `--batch=<file>` (one username per line, at most 500) instead of `--username` invalidates passwords and mints
-   nothing: each account then recovers through a password reset.
+   nothing: each account then recovers through a password reset, which an enrolled administrator issues in-app
+   (**Issue password reset link** on the user's page) once the application is back. Invalidating also cancels the
+   account's pending reset tokens, the administrator's included, as setting a password does.
 3. Compare the printed database path, schema version and file time with the deployed database, then apply with the
    digest and a reason. A stale or wrong digest is refused, so the same command never fires twice:
 

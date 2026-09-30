@@ -10,10 +10,10 @@
 
 **Blocked by:** 12, 15, 19, 20
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Inviting a taken or tombstoned identifier gets `USER_EXISTS`. A fresh invite's token activates the account.
-- [ ] An admin-issued reset token redeems through confirm. Issuing it doesn't unlock a locked account.
-- [ ] Unlock clears the password lock and the tier-1 lock, leaves tier 2 intact, and refuses self-unlock.
-- [ ] The unlock audit row carries `user.target.unlock_reason`.
-- [ ] Every token response has `no-store`, and the canary scan finds no token in the logs.
+- [x] Inviting a taken or tombstoned identifier gets `USER_EXISTS`. A fresh invite's token activates the account.
+- [x] An admin-issued reset token redeems through confirm. Issuing it doesn't unlock a locked account.
+- [x] Unlock clears the password lock and the tier-1 lock, leaves tier 2 intact, and refuses self-unlock.
+- [x] The unlock audit row carries `user.target.unlock_reason`.
+- [x] Every token response has `no-store`, and the canary scan finds no token in the logs.

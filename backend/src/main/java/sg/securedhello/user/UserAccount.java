@@ -92,6 +92,28 @@ public class UserAccount {
     }
 
     /**
+     * An administrator's invite (ADR-006): a pending registration with the role the administrator chose. What makes it
+     * an invite rather than a self-registration is its admin-issued activation token, not its role.
+     */
+    public static UserAccount invitation(String username, String email, String role, Instant now) {
+        UserAccount account = pendingRegistration(username, email, now);
+        account.role = role;
+        return account;
+    }
+
+    /**
+     * An administrator's re-invite of this pending invite (ADR-007 amendment): it takes the role the administrator now
+     * chose. The account has never held a password or a session, so no authority changes hands; the caller has checked
+     * that it is an invite, and mints its new token in the same transaction.
+     */
+    public void reinvite(String newRole) {
+        if (!isPending()) {
+            throw new IllegalStateException("Only a pending invite is re-invited");
+        }
+        this.role = newRole;
+    }
+
+    /**
      * The bootstrap administrator (ADR-047): an enabled, activated {@code ADMIN} account with no password yet. The
      * caller issues its forced-change credential through {@code PasswordService} in the same transaction.
      */

@@ -27,6 +27,14 @@ public record PasswordLockoutState(int failedLoginAttempts, @Nullable Instant la
         return lockedUntil != null && lockedUntil.isAfter(now);
     }
 
+    /**
+     * What an admin unlock leaves (REJ-072): the windowed counter, its anchor and the lock cleared. The cap counter and
+     * a cap's disable stay, since only a rebinding clears them (ADR-013).
+     */
+    public PasswordLockoutState unlocked() {
+        return new PasswordLockoutState(0, null, null, consecutiveFailuresSinceSuccess, passwordDisabledAt);
+    }
+
     /** Whether the NIST cap has disabled the password authenticator. */
     public boolean passwordDisabled() {
         return passwordDisabledAt != null;

@@ -8,16 +8,12 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationInfo;
 import org.flywaydb.core.api.MigrationInfoService;
 import org.flywaydb.core.api.MigrationVersion;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.web.context.WebApplicationContext;
-
-import sg.securedhello.admin.AdminBootstrap;
 
 /**
  * The runner's preconditions, applied to the application's own context before it refreshes (ADR-072; REJ-089). The
@@ -28,7 +24,8 @@ import sg.securedhello.admin.AdminBootstrap;
  *       no database file is created (T-RUN-005);</li>
  *   <li>Flyway never migrates: a database whose schema is not exactly this jar's is refused, naming both versions,
  *       before Hibernate validates anything (T-RUN-006);</li>
- *   <li>the bootstrap seeder is not a bean at all, so it cannot seed (T-RUN-007).</li>
+ *   <li>the context is never a web application, so the web-only startup beans, the bootstrap seeder and the
+ *       session reconciliation sweep, are not beans at all: it neither seeds (T-RUN-007) nor sweeps.</li>
  * </ul>
  */
 final class RunnerMode implements ApplicationContextInitializer<ConfigurableApplicationContext> {
@@ -56,7 +53,6 @@ final class RunnerMode implements ApplicationContextInitializer<ConfigurableAppl
                 Map.of(DATASOURCE_URL, ifExists(url))));
         GenericApplicationContext generic = (GenericApplicationContext) context;
         generic.registerBean(FlywayMigrationStrategy.class, () -> RunnerMode::refuseUnlessCurrent);
-        generic.addBeanFactoryPostProcessor(RunnerMode::excludeSeeder);
     }
 
     /** {@code url} opening only an existing database: any {@code IFEXISTS} it had is replaced. */
@@ -90,12 +86,5 @@ final class RunnerMode implements ApplicationContextInitializer<ConfigurableAppl
                 .max(Comparable::compareTo)
                 .map(MigrationVersion::getVersion)
                 .orElse("none");
-    }
-
-    /** Removes the bootstrap seeder's bean definition, after component scanning has registered it. */
-    private static void excludeSeeder(ConfigurableListableBeanFactory beanFactory) {
-        for (String name : beanFactory.getBeanNamesForType(AdminBootstrap.class, true, false)) {
-            ((BeanDefinitionRegistry) beanFactory).removeBeanDefinition(name);
-        }
     }
 }

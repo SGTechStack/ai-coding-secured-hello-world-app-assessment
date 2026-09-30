@@ -110,6 +110,13 @@ app:
           # Enable or disable, through AdminActionGuard (ADR-048). A mutation: the factor must be under 10 minutes old.
           - method: PUT
             path: /api/admin/users/{id}/enabled
+          # Admin credential issuance and unlock (ADR-006; REJ-072). Mutations: the factor must be under 10 minutes old.
+          - method: POST
+            path: /api/admin/users
+          - method: POST
+            path: /api/admin/users/{id}/password-reset
+          - method: POST
+            path: /api/admin/users/{id}/unlock
           # Role change and delete (with its tombstone), through AdminActionGuard (ADR-048; ADR-044). Mutations.
           - method: PUT
             path: /api/admin/users/{id}/role

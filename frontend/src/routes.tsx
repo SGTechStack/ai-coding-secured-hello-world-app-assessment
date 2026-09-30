@@ -5,6 +5,7 @@ import { Layout } from '@/components/Layout'
 import { shouldRetry } from '@/lib/api/client'
 import { FACTOR_DISABLED_ROUTE } from '@/lib/auth/session'
 import { ActivatePage } from '@/pages/ActivatePage'
+import { AdminInvitePage } from '@/pages/AdminInvitePage'
 import { AdminUserDetailPage } from '@/pages/AdminUserDetailPage'
 import { AdminUsersPage } from '@/pages/AdminUsersPage'
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
@@ -25,6 +26,7 @@ import { SignInPage } from '@/pages/SignInPage'
 export const adminRoutes: RouteObject[] = [
   { path: '/admin/users', element: <AdminUsersPage /> },
   { path: '/admin/users/:id', element: <AdminUserDetailPage /> },
+  { path: '/admin/users/invite', element: <AdminInvitePage /> },
 ]
 
 /**

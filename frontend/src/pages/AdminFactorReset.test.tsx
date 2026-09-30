@@ -23,6 +23,7 @@ const account = (id: string, username: string, role: AdminUser['role']): AdminUs
   email: `${username}@example.test`,
   role,
   enabled: true,
+  activated: true,
   createdAt: '2026-09-02T09:30:00Z',
 })
 

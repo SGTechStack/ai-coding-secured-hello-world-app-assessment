@@ -28,15 +28,73 @@ public class CredentialTokens {
 
     /**
      * Issues a {@code type} token for {@code userId}, in the caller's transaction, cancelling the account's earlier
-     * unredeemed tokens of that type first.
+     * unredeemed self-issued tokens of that type first. An administrator's pending token is never cancelled here.
      *
      * @return the plaintext token, to deliver once and never store
      */
     @Transactional
     public String mint(UUID userId, CredentialTokenType type) {
-        tokens.deletePending(userId, type);
+        return issue(userId, type, false);
+    }
+
+    /**
+     * Issues a {@code type} token for {@code userId} on an administrator's behalf, exactly as {@link #mint} does, but
+     * marked admin-issued: an invite's activation token or an admin reset (ADR-006). A self-service request never
+     * replaces a pending one ({@link #adminIssuedPending}), and a pending account holding one is an invite, which a
+     * self-registration never replaces ({@link #selfRegistered}).
+     *
+     * @return the plaintext token, to return to the administrator once and never store
+     */
+    @Transactional
+    public String issueForAdmin(UUID userId, CredentialTokenType type) {
+        return issue(userId, type, true);
+    }
+
+    /**
+     * Whether an administrator's {@code type} token for {@code userId} is still pending: unused and unexpired. While
+     * one is, a self-service reset request leaves it in place and mints nothing (ADR-007 amendment).
+     */
+    public boolean adminIssuedPending(UUID userId, CredentialTokenType type) {
+        return tokens.existsAdminIssuedPending(userId, type, now());
+    }
+
+    /**
+     * Whether {@code userId} holds a self-issued activation token, used, expired or pending: its pending registration
+     * came from self-registration. An invite holds an admin-issued one instead. An account with neither, such as a
+     * disabled one whose tokens were cancelled, is not treated as self-registered, so nothing replaces it.
+     */
+    public boolean selfRegistered(UUID userId) {
+        return tokens.existsByUserIdAndTypeAndAdminIssued(userId, CredentialTokenType.ACTIVATION, false);
+    }
+
+    /**
+     * Whether an administrator invited {@code userId}: it holds an admin-issued activation token, used, expired or
+     * pending. The marker, never the role, is what makes a pending account an invite (ADR-007 amendment).
+     */
+    public boolean invited(UUID userId) {
+        return tokens.existsByUserIdAndTypeAndAdminIssued(userId, CredentialTokenType.ACTIVATION, true);
+    }
+
+    /**
+     * Cancels every pending token of {@code userId}, of both types: what an admin disable does (ADR-007). A self-issued
+     * token is deleted; an administrator's is expired in place, so its row still marks the account an invite.
+     */
+    @Transactional
+    public void cancelAll(UUID userId) {
+        for (CredentialTokenType type : CredentialTokenType.values()) {
+            tokens.deletePendingSelfIssued(userId, type);
+        }
+        tokens.expireAdminIssuedPending(userId, now());
+    }
+
+    private String issue(UUID userId, CredentialTokenType type, boolean adminIssued) {
+        if (adminIssued) {
+            tokens.deletePending(userId, type);
+        } else {
+            tokens.deletePendingSelfIssued(userId, type);
+        }
         String token = CredentialTokenHash.generate(random);
-        tokens.save(new CredentialToken(userId, type, CredentialTokenHash.hash(type, token), now()));
+        tokens.save(new CredentialToken(userId, type, CredentialTokenHash.hash(type, token), now(), adminIssued));
         return token;
     }
 

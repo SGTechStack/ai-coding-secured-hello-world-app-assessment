@@ -28,7 +28,9 @@ test('an administrator disables a user, whose open session ends at its next requ
   await page.getByRole('link', { name: target, exact: true }).click()
 
   await page.getByRole('button', { name: 'Disable account' }).click()
-  await expect(page.getByRole('status')).toHaveText('Account disabled. The user has been signed out.')
+  await expect(page.getByRole('status').filter({ hasText: 'Account disabled.' })).toHaveText(
+    'Account disabled. The user has been signed out.',
+  )
   await expect(page.getByText('Disabled', { exact: true })).toBeVisible()
 
   // The disable ended the target's session after commit: its next request is refused, and it is sent to sign in.

@@ -57,6 +57,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
 import sg.securedhello.admin.AdminActions;
 import sg.securedhello.audit.AuditEmitter;
+import sg.securedhello.mfa.TotpUserDetails;
 import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
@@ -64,6 +65,7 @@ import sg.securedhello.testsupport.Proves;
 import sg.securedhello.time.ClockConfig;
 import sg.securedhello.user.UserAccountRepository;
 import sg.securedhello.user.PasswordHistoryEntry;
+import sg.securedhello.user.PasswordLockoutState;
 import sg.securedhello.user.Tombstones;
 import sg.securedhello.user.UserAccount;
 
@@ -217,6 +219,16 @@ final class ArchitectureRules {
             .should().callMethod(System.class, "console")
             .because("the runner's mode is the explicit --non-interactive flag, never System.console() nullness"
                     + " (ADR-073; JDK-8308591)");
+
+    /**
+     * Only the guarded service unlocks: clears a factor's tier-1 lock or takes an account's unlocked lockout state
+     * (REJ-072). Anything else would be an unaudited unlock path around the closed reason enum (REJ-028; R-LCK-010).
+     */
+    static final ArchRule ONLY_THE_GUARDED_SERVICE_UNLOCKS = noClasses()
+            .that().doNotBelongToAnyOf(AdminActions.class)
+            .should().callMethod(TotpUserDetails.class, "unlockTier1")
+            .orShould().callMethod(PasswordLockoutState.class, "unlocked")
+            .because("an unlock runs under AdminActionGuard's checks and writes its reason to the audit row (REJ-028)");
 
     /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
     static final ArchRule NO_REMEMBER_ME = noClasses()

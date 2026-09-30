@@ -23,6 +23,7 @@ const alice: AdminUser = {
   email: 'alice@example.test',
   role: 'ADMIN',
   enabled: true,
+  activated: true,
   createdAt: '2026-09-01T08:00:00Z',
 }
 
@@ -32,6 +33,7 @@ const bob: AdminUser = {
   email: 'bob@example.test',
   role: 'ADMIN',
   enabled: true,
+  activated: true,
   createdAt: '2026-09-02T09:30:00Z',
 }
 
@@ -41,6 +43,7 @@ const carol: AdminUser = {
   email: 'carol@example.test',
   role: 'USER',
   enabled: true,
+  activated: true,
   createdAt: '2026-09-03T10:00:00Z',
 }
 

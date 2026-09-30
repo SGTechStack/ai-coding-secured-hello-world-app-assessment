@@ -57,8 +57,13 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | ADMIN_USER_DEMOTED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account role changed to user. |
 | ADMIN_USER_DELETED | `user-administration` | `deletion` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account deleted. |
 | ADMIN_ACTION_REFUSED | `user-administration` | `error` | failure | WARN | medium | yes | per event | `SELF_ACTION`, `TWO_ADMIN_INVARIANT` | `user.id`, `user.target.id` | — | Administrative action refused. |
+| ADMIN_USER_INVITED | `user-provisioning` | `creation` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account invited. |
+| ADMIN_USER_REINVITED | `user-provisioning` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Invitation re-issued. |
+| ADMIN_RESET_ISSUED | `password-reset` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Password reset token issued by an administrator. |
+| ADMIN_USER_UNLOCKED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id`, `user.target.unlock_reason` | — | Account unlocked. |
 | TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
+| SESSIONS_RECONCILED | `session-reconciliation` | `end` | success | INFO | low | no | per event | — | `session.ended_count`, `labels.reconciled_accounts` | — | Sessions reconciled at startup. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
 | SHED_EPISODE_CLEARED | `access-control` | `change` | success | INFO | low | no | per event | — | — | — | Anonymous-session shedding cleared. |
 | RECOVERY_PLANNED | `user-administration` | `info` | success | WARN | medium | no | per event | — | `host.name`, `user.target.count`, `labels.operator_claimed_id`, `labels.working_directory`, `labels.runner_scope`, `labels.runner_digest`, `labels.database_path`, `labels.database_schema_version`, `labels.database_modified`, `labels.enrolled_admins_before` | `user.target.id`, `process.real_user.name` | Recovery runner dry run. |

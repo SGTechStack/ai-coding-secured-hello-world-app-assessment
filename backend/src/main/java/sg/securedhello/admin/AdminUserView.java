@@ -14,12 +14,14 @@ import sg.securedhello.user.UserAccount;
  * @param email     the email address
  * @param role      {@code USER} or {@code ADMIN}
  * @param enabled   whether an administrator has left the account enabled
+ * @param activated whether the account has set its first password; a pending registration or invite has not
  * @param createdAt when the account was created
  */
-public record AdminUserView(UUID id, String username, String email, String role, boolean enabled, Instant createdAt) {
+public record AdminUserView(UUID id, String username, String email, String role, boolean enabled, boolean activated,
+        Instant createdAt) {
 
     static AdminUserView of(UserAccount account) {
         return new AdminUserView(account.getId(), account.getUsername(), account.getEmail(), account.getRole(),
-                account.isEnabled(), account.getCreatedAt());
+                account.isEnabled(), !account.isPending(), account.getCreatedAt());
     }
 }

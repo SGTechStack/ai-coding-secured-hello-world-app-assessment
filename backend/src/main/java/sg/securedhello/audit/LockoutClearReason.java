@@ -1,7 +1,7 @@
 package sg.securedhello.audit;
 
-/** Why a password lock was cleared (row 4). Admin unlock adds its reason when it lands; an admin unlock's own reason
- * goes in {@code user.target.unlock_reason} (REJ-028). */
+/** Why a password lock was cleared (row 4). An admin unlock writes row 32 instead, with its own reason in
+ * {@code user.target.unlock_reason} (REJ-028). */
 public enum LockoutClearReason implements AuditReason {
 
     /** The lock's time ran out; written by the next sign-in that finds it lifted (ADR-011). */

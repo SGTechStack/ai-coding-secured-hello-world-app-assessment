@@ -9,13 +9,16 @@ import static sg.securedhello.audit.AuditKey.HOST_NAME;
 import static sg.securedhello.audit.AuditKey.IPV6_PREFIX_LENGTH;
 import static sg.securedhello.audit.AuditKey.KEY_FINGERPRINTS;
 import static sg.securedhello.audit.AuditKey.PROCESS_REAL_USER;
+import static sg.securedhello.audit.AuditKey.RECONCILED_ACCOUNTS;
 import static sg.securedhello.audit.AuditKey.RUNNER_REASON;
+import static sg.securedhello.audit.AuditKey.SESSIONS_ENDED_COUNT;
 import static sg.securedhello.audit.AuditKey.SOURCE_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.TRUNCATED_ROWS;
 import static sg.securedhello.audit.AuditKey.USER_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.USER_ID;
 import static sg.securedhello.audit.AuditKey.USER_TARGET_COUNT;
 import static sg.securedhello.audit.AuditKey.USER_TARGET_ID;
+import static sg.securedhello.audit.AuditKey.USER_TARGET_UNLOCK_REASON;
 import static sg.securedhello.audit.AuditRowDefinition.row;
 
 import org.slf4j.event.Level;
@@ -89,8 +92,8 @@ public enum AuditEvent {
 
     /**
      * Row 4: a password lock was cleared. The lift is lazy, with no scheduler, so it is observed where the lock is
-     * cleared: the next sign-in that finds it lifted, or a reset redemption that clears it (ADR-009); admin unlock
-     * adds its reason.
+     * cleared: the next sign-in that finds it lifted, or a reset redemption that clears it (ADR-009). An admin unlock
+     * writes row 32 instead, which names the administrator and carries their reason.
      */
     LOCKOUT_CLEARED(row("user-authentication", "Account lock cleared.")
             .type("change")
@@ -333,6 +336,44 @@ public enum AuditEvent {
             .build()),
 
     /**
+     * Row 27: an administrator invited an account, a pending registration whose activation token was returned to them
+     * once (ADR-006). The row never carries the token.
+     */
+    ADMIN_USER_INVITED(row("user-provisioning", "Account invited.")
+            .type("creation")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 27, re-issued: an administrator invited an account that was already their pending invite, so its outstanding
+     * activation token was cancelled and a new one returned once (ADR-007 amendment). The message tells it apart from
+     * a first invite (R-STD-004). The row never carries the token.
+     */
+    ADMIN_USER_REINVITED(row("user-provisioning", "Invitation re-issued.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 18, admin issuance: an administrator was returned a password-reset token for an account, whose sessions end
+     * after commit (ADR-006; ADR-037). It clears no lock (REJ-016). The row never carries the token. It is the detector
+     * of one admin taking over another (R-ADM-009).
+     */
+    ADMIN_RESET_ISSUED(row("password-reset", "Password reset token issued by an administrator.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 32: an administrator unlocked an account, clearing its password lockout and its tier-1 factor lock, never
+     * tier 2 (REJ-072), for a closed reason in {@code user.target.unlock_reason} (REJ-028).
+     */
+    ADMIN_USER_UNLOCKED(row("user-administration", "Account unlocked.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID, USER_TARGET_UNLOCK_REASON)
+            .build()),
+
+    /**
      * Row 42: a TOTP envelope's context prefix did not match the row it was read from, so ciphertext was moved between
      * users or replayed across key versions. A data-integrity alarm, not a decrypt error (ADR-028; R-MFA-020).
      */
@@ -348,6 +389,19 @@ public enum AuditEvent {
             .type("start")
             .scope(Scope.PROCESS)
             .required(HOST_NAME, HOST_IP, ACTIVE_PROFILES, IPV6_PREFIX_LENGTH, KEY_FINGERPRINTS, AUDIT_LOGGERS)
+            .build()),
+
+    /**
+     * The startup reconciliation sweep ran, before traffic was served: how many sessions it ended, and for how many
+     * accounts under each durable-state trigger (ADR-039; R-SES-012). Written on every start, zeros included. A
+     * non-zero count means a session kill was lost between a commit and its dispatch; it also counts an expired
+     * session the cleanup job had not yet removed. Written during refresh, before the port opens, so it precedes the
+     * startup row (row 43).
+     */
+    SESSIONS_RECONCILED(row("session-reconciliation", "Sessions reconciled at startup.")
+            .type("end")
+            .scope(Scope.PROCESS)
+            .required(SESSIONS_ENDED_COUNT, RECONCILED_ACCOUNTS)
             .build()),
 
     /**

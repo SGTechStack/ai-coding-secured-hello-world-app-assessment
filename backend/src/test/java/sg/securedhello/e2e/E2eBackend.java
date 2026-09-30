@@ -49,7 +49,7 @@ public final class E2eBackend {
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
             .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
                     "golden-path", "disable-admin", "disable-user", "step-up-admin", "step-up-user",
-                    "role-admin", "role-user", "factor-reset-admin", "factor-reset-target").stream()
+                    "role-admin", "role-user", "factor-reset-admin", "factor-reset-target", "invite-admin").stream()
                     .map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
@@ -111,14 +111,16 @@ public final class E2eBackend {
                         + " WHERE username LIKE 'e2e-%-forced-change'");
                 // The golden-path accounts: administrators past the forced change, not yet enrolled.
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-golden-path'");
-                // The enrolled administrators (disable, step-up, role, and both factor-reset accounts): a known secret,
-                // so the specs can answer the challenge.
+                // The enrolled administrators (disable, step-up, role, invite, and both factor-reset accounts): a known
+                // secret, so the specs can answer the challenge.
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-disable-admin'"
                         + " OR username LIKE 'e2e-%-step-up-admin'"
+                        + " OR username LIKE 'e2e-%-invite-admin'"
                         + " OR username LIKE 'e2e-%-role-admin'"
                         + " OR username LIKE 'e2e-%-factor-reset-%'");
                 jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-disable-admin'"
                         + " OR username LIKE 'e2e-%-step-up-admin'"
+                        + " OR username LIKE 'e2e-%-invite-admin'"
                         + " OR username LIKE 'e2e-%-role-admin'"
                         + " OR username LIKE 'e2e-%-factor-reset-%'", UUID.class)
                         .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"

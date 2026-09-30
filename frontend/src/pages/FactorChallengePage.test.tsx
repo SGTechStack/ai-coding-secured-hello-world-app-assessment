@@ -26,6 +26,7 @@ const users: AdminUser[] = [
     email: 'alice@example.test',
     role: 'ADMIN',
     enabled: true,
+    activated: true,
     createdAt: '2026-09-01T08:00:00Z',
   },
 ]

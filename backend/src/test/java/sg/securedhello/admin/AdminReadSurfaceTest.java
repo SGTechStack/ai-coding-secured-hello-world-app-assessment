@@ -119,8 +119,9 @@ class AdminReadSurfaceTest extends CtxDefaultTest {
             assertThat(entry.get("enabled").asBoolean()).isEqualTo(stored.get("ENABLED"));
             assertThat(Instant.parse(entry.get("createdAt").asString()))
                     .isEqualTo(((OffsetDateTime) stored.get("CREATED_AT")).toInstant());
+            // activated: whether the account has set its first password, so the SPA offers a reset only where it redeems.
             assertThat(entry.propertyNames()).containsExactlyInAnyOrder("id", "username", "email", "role",
-                    "enabled", "createdAt");
+                    "enabled", "activated", "createdAt");
         }
         assertThat(entryFor(users, disabled.id()).get("enabled").asBoolean()).isFalse();
         assertNoSecret(body, admin);

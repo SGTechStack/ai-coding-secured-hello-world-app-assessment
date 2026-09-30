@@ -5,11 +5,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
-import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -22,6 +20,7 @@ import sg.securedhello.email.EmailService;
 import sg.securedhello.email.LinkEmail;
 import sg.securedhello.user.Identifiers;
 import sg.securedhello.user.Tombstones;
+import sg.securedhello.user.UniqueIdentifierIndexes;
 import sg.securedhello.user.UserAccount;
 import sg.securedhello.user.UserAccountRepository;
 
@@ -56,8 +55,8 @@ public class Registration {
     static final Duration PENDING_PERIOD = CredentialTokenType.ACTIVATION.lifetime();
 
     /** The unique indexes a registration inserts a username into (V2; V8). */
-    private static final List<String> UNIQUE_USERNAME_INDEXES = List.of("UX_USERNAME_HOLDS_USERNAME",
-            "UX_USERS_USERNAME");
+    private static final Set<String> UNIQUE_USERNAME_INDEXES = Set.of(UniqueIdentifierIndexes.USERNAME_HOLDS_USERNAME,
+            UniqueIdentifierIndexes.USERS_USERNAME);
 
     private final UserAccountRepository accounts;
     private final UsernameHoldRepository holds;
@@ -106,9 +105,7 @@ public class Registration {
      * index: it is the same 400 as a username found taken. Any other integrity failure stays a failure.
      */
     private static RuntimeException usernameRace(DataIntegrityViolationException e) {
-        String cause = String.valueOf(NestedExceptionUtils.getMostSpecificCause(e).getMessage())
-                .toUpperCase(Locale.ROOT);
-        return UNIQUE_USERNAME_INDEXES.stream().anyMatch(cause::contains) ? new UsernameUnavailableException() : e;
+        return UniqueIdentifierIndexes.violated(e, UNIQUE_USERNAME_INDEXES) ? new UsernameUnavailableException() : e;
     }
 
     private Optional<LinkEmail> reserve(String username, String canonicalEmail) {
@@ -167,11 +164,13 @@ public class Registration {
     }
 
     /**
-     * A pending registration a repeated self-registration may replace. An administrator's pending invite is not one:
-     * its token was handed to the administrator, and replacing it would let a stranger rename an invited account.
+     * A pending registration a repeated self-registration may replace: one whose activation token was self-issued. An
+     * administrator's pending invite is not one, whatever its role: its token carries the explicit admin-issued marker,
+     * and replacing it would let a stranger rename the invited account and cancel the token the administrator handed
+     * on (ADR-007 amendment).
      */
-    private static boolean isSelfRegisteredPending(UserAccount account) {
-        return account.isPending() && "USER".equals(account.getRole());
+    private boolean isSelfRegisteredPending(UserAccount account) {
+        return account.isPending() && tokens.selfRegistered(account.getId());
     }
 
     /** The username or the email address is not acceptable as submitted: 400 {@code VALIDATION_FAILED}. */

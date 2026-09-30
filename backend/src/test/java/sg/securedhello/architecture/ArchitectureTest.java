@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static sg.securedhello.architecture.ArchitectureRules.ADMIN_CONTROLLERS_REACH_NO_PERSISTENCE;
 import static sg.securedhello.architecture.ArchitectureRules.AUDIT_EMIT_TAKES_NO_THROWABLE;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES;
+import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SERVICE_UNLOCKS;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SERVICE_CHANGES_ROLES_OR_DELETES;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS;
 import static sg.securedhello.architecture.ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION;
@@ -166,5 +167,13 @@ class ArchitectureTest {
     @Test
     void testsNeverUseTheCsrfPostProcessor() {
         NO_CSRF_TEST_POST_PROCESSOR.check(TESTS);
+    }
+
+    @Test
+    void onlyTheGuardedServiceUnlocks() {
+        ONLY_THE_GUARDED_SERVICE_UNLOCKS.check(MAIN);
+        // Not vacuous: the guarded service does make both calls.
+        assertThat(MAIN.get(AdminActions.class).getMethodCallsFromSelf().stream().map(call -> call.getName()))
+                .contains("unlocked", "unlockTier1");
     }
 }

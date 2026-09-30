@@ -41,9 +41,11 @@ work here, and trying it adds a pool-exhaustion failure under attack.
   Spring Session's existing cleanup schedule as well would close that gap without a new scheduler, if that scheduler
   can host it. That has not been verified.
 - **What the sweep can see.** It can only reconcile triggers that leave durable state: the authenticator cap (a set
-  `password_disabled_at`), admin disable, deletion (a session whose principal no longer exists), and a lock still in
-  force. A role change, a credential change or a factor reset leaves nothing to reconcile against. If the process
-  dies between commit and dispatch on one of those, the old session lives until idle or absolute expiry.
+  `password_disabled_at`), admin disable, deletion (a session whose principal no longer exists), a lock still in
+  force, and a factor under tier-2 disable (a set `factor_disabled_at`, ADR-027). It writes one audit row with its
+  counts on every start. A role change, a credential change or a factor reset leaves nothing to reconcile against.
+  If the process dies between commit and dispatch on one of those, the old session lives until idle or absolute
+  expiry.
 - ASVS 5.0 **2.3.3 (L2)** asks that a business-logic operation either succeeds entirely or rolls back. The session
   half of these operations cannot, so the sweep is the recovery path instead. This is an L2 item against the L1
   target, and the register grades it.
@@ -51,8 +53,8 @@ work here, and trying it adds a pool-exhaustion failure under attack.
 - The rule is short enough to follow without knowing what `REQUIRES_NEW` is, which is the point of stating it as a
   rule.
 - Tests: T-SES-022 (the sweep ends the sessions of a capped account whose kill was never dispatched, and a second
-  run changes nothing). The other durable-state triggers need sweep cases of the same shape. T-SES-021 covers
-  after-commit dispatch for the cap.
+  run changes nothing) and T-SES-036 (the same shape for admin disable, deletion and a lock in force). T-SES-021
+  covers after-commit dispatch for the cap.
 
 ## Sources
 

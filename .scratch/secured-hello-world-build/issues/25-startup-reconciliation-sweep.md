@@ -4,8 +4,8 @@
 
 **Blocked by:** 12, 19, 22
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] In the restart harness, a session left alive after each trigger (disable, delete, in-force lock, cap, tier-2 disable) is gone after the second boot (T-SES-022; T-SES-036).
-- [ ] Sessions of unaffected users survive the sweep.
-- [ ] The sweep emits an audit row with its counts.
+- [x] In the restart harness, a session left alive after each trigger (disable, delete, in-force lock, cap, tier-2 disable) is gone after the second boot (T-SES-022; T-SES-036).
+- [x] Sessions of unaffected users survive the sweep.
+- [x] The sweep emits an audit row with its counts.

@@ -7,6 +7,8 @@ import static sg.securedhello.audit.AuditKey.HOST_IP;
 import static sg.securedhello.audit.AuditKey.HOST_NAME;
 import static sg.securedhello.audit.AuditKey.IPV6_PREFIX_LENGTH;
 import static sg.securedhello.audit.AuditKey.KEY_FINGERPRINTS;
+import static sg.securedhello.audit.AuditKey.RECONCILED_ACCOUNTS;
+import static sg.securedhello.audit.AuditKey.SESSIONS_ENDED_COUNT;
 import static sg.securedhello.audit.AuditKey.SOURCE_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.TRUNCATED_ROWS;
 import static sg.securedhello.audit.AuditKey.USER_DISTINCT_COUNT;
@@ -384,6 +386,19 @@ public enum AuditEvent {
             .type("start")
             .scope(Scope.PROCESS)
             .required(HOST_NAME, HOST_IP, ACTIVE_PROFILES, IPV6_PREFIX_LENGTH, KEY_FINGERPRINTS, AUDIT_LOGGERS)
+            .build()),
+
+    /**
+     * The startup reconciliation sweep ran, before traffic was served: how many sessions it ended, and for how many
+     * accounts under each durable-state trigger (ADR-039; R-SES-012). Written on every start, zeros included. A
+     * non-zero count means a session kill was lost between a commit and its dispatch; it also counts an expired
+     * session the cleanup job had not yet removed. Written during refresh, before the port opens, so it precedes the
+     * startup row (row 43).
+     */
+    SESSIONS_RECONCILED(row("session-reconciliation", "Sessions reconciled at startup.")
+            .type("end")
+            .scope(Scope.PROCESS)
+            .required(SESSIONS_ENDED_COUNT, RECONCILED_ACCOUNTS)
             .build()),
 
     /**

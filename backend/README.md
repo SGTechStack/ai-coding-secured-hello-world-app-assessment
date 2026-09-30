@@ -46,6 +46,10 @@ mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev
 At startup the log shows one `Key loaded` line per key, with its property, version and an 8-hex-character
 fingerprint. The key itself is never logged. Compare fingerprints to confirm which key is live.
 
+Before the port opens, startup also ends the stored sessions of every account that is disabled, deleted, locked,
+password-capped or under a tier-2 factor disable, and writes one `session-reconciliation` audit row with the counts
+(ADR-039). A lost session kill is repaired by restarting the app.
+
 The tests need none of these variables. The test harness supplies test-only canary values (`TestSecrets`).
 
 ### Rate limits while developing

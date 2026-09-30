@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import sg.securedhello.testsupport.Accounts;
@@ -30,6 +32,9 @@ class SessionTerminationServiceTest extends CtxDefaultTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private FindByIndexNameSessionRepository<? extends Session> repository;
 
     private SessionRows rows;
     private Account account;
@@ -67,8 +72,20 @@ class SessionTerminationServiceTest extends CtxDefaultTest {
     }
 
     @Test
-    void theKeptSessionSurvives() {
+    void theKeptSessionSurvivesAndTheOthersEnd() {
+        String other = anotherSession(repository, account.username());
+
         sessions.endAllExcept(account.username(), sessionId);
+
         assertThat(rows.exists(sessionId)).isTrue();
+        assertThat(rows.exists(other)).isFalse();
+    }
+
+    private static <S extends Session> String anotherSession(FindByIndexNameSessionRepository<S> repository,
+            String username) {
+        S session = repository.createSession();
+        session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, username);
+        repository.save(session);
+        return session.getId();
     }
 }

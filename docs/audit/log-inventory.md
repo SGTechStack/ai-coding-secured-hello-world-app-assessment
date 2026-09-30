@@ -61,6 +61,7 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | ADMIN_USER_UNLOCKED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id`, `user.target.unlock_reason` | — | Account unlocked. |
 | TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
+| SESSIONS_RECONCILED | `session-reconciliation` | `end` | success | INFO | low | no | per event | — | `session.ended_count`, `labels.reconciled_accounts` | — | Sessions reconciled at startup. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
 | SHED_EPISODE_CLEARED | `access-control` | `change` | success | INFO | low | no | per event | — | — | — | Anonymous-session shedding cleared. |
 | APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | per event | — | — | — | Application stopping. |

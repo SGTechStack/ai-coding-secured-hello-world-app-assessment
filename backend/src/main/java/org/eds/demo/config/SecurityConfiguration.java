@@ -8,6 +8,7 @@ import org.eds.demo.common.AppErrorController;
 import org.eds.demo.common.WebSpaController;
 import org.eds.demo.common.WebSpaCsrfTokenRequestHandler;
 import org.eds.demo.user.application.AppUserDetailsService;
+import org.eds.demo.user.application.PasswordChangeService;
 import org.eds.demo.user.domain.Role;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
@@ -23,6 +24,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
@@ -137,8 +139,14 @@ class SecurityConfiguration {
   @Bean
   @Order(SecurityFilterChainOrder.API)
   SecurityFilterChain apiSecurityFilterChain(
-      HttpSecurity http, Optional<ApiChainCustomizer> customizer) throws Exception {
-    var chain = withApiExceptionHandling(withSpaCsrf(http.securityMatcher("/api/**")));
+      HttpSecurity http,
+      Optional<ApiChainCustomizer> customizer,
+      PasswordChangeService passwordChangeService)
+      throws Exception {
+    var chain =
+        withPasswordChangeRequired(
+            withApiExceptionHandling(withSpaCsrf(http.securityMatcher("/api/**"))),
+            passwordChangeService);
     if (customizer.isPresent()) {
       customizer.get().customize(chain);
     }
@@ -153,8 +161,14 @@ class SecurityConfiguration {
   @Bean
   @Order(SecurityFilterChainOrder.ADMIN_API)
   SecurityFilterChain adminApiSecurityFilterChain(
-      HttpSecurity http, Optional<ApiChainCustomizer> customizer) throws Exception {
-    var chain = withApiExceptionHandling(withSpaCsrf(http.securityMatcher(ADMIN_API_PATTERN)));
+      HttpSecurity http,
+      Optional<ApiChainCustomizer> customizer,
+      PasswordChangeService passwordChangeService)
+      throws Exception {
+    var chain =
+        withPasswordChangeRequired(
+            withApiExceptionHandling(withSpaCsrf(http.securityMatcher(ADMIN_API_PATTERN))),
+            passwordChangeService);
     if (customizer.isPresent()) {
       customizer.get().customize(chain);
     }
@@ -176,12 +190,15 @@ class SecurityConfiguration {
   SecurityFilterChain applicationSecurityFilterChain(
       HttpSecurity http,
       Optional<ApplicationChainCustomizer> customizer,
-      Optional<OidcLoginCustomizer> oidcLoginCustomizer)
+      Optional<OidcLoginCustomizer> oidcLoginCustomizer,
+      PasswordChangeService passwordChangeService)
       throws Exception {
     var chain =
-        withContentSecurityPolicy(
-            withSignInAndSignOut(withSpaCsrf(http)),
-            appProperties.security().csp().policyDirectives());
+        withPasswordChangeRequired(
+            withContentSecurityPolicy(
+                withSignInAndSignOut(withSpaCsrf(http)),
+                appProperties.security().csp().policyDirectives()),
+            passwordChangeService);
     if (customizer.isPresent()) {
       customizer.get().customize(chain);
     }
@@ -199,6 +216,15 @@ class SecurityConfiguration {
                     .anyRequest()
                     .authenticated())
         .build();
+  }
+
+  /**
+   * Refuses everything but change-password and sign-out while a Temporary Password is unchanged.
+   */
+  static HttpSecurity withPasswordChangeRequired(
+      HttpSecurity http, PasswordChangeService passwordChangeService) {
+    return http.addFilterBefore(
+        new PasswordChangeRequiredFilter(passwordChangeService), AuthorizationFilter.class);
   }
 
   static HttpSecurity withSpaCsrf(HttpSecurity http) throws Exception {

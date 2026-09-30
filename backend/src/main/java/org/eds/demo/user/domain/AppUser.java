@@ -119,6 +119,20 @@ public class AppUser extends BaseAuditableEntity {
     this.tempPasswordExpiresAt = expiresAt;
   }
 
+  /** Stores the holder's own new password hash and ends the Temporary Password state. */
+  public void changePassword(String passwordHash) {
+    this.passwordHash = passwordHash;
+    this.mustChangePassword = false;
+    this.tempPasswordExpiresAt = null;
+  }
+
+  /** True when an unchanged Temporary Password has passed its expiry at {@code now}. */
+  public boolean isTemporaryPasswordExpired(Instant now) {
+    return mustChangePassword
+        && tempPasswordExpiresAt != null
+        && !now.isBefore(tempPasswordExpiresAt);
+  }
+
   /** A correct sign-in clears the failed-attempt counter and any backoff. */
   public void recordSuccessfulSignIn() {
     this.failedLoginAttempts = 0;

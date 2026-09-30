@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.eds.demo.auth.application.SignInService;
 import org.eds.demo.auth.application.SignInThrottledException;
+import org.eds.demo.user.application.PasswordChangeService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -46,6 +47,7 @@ public class SignInController {
       new HttpSessionSecurityContextRepository();
 
   private final SignInService signInService;
+  private final PasswordChangeService passwordChangeService;
 
   @PostMapping(SIGN_IN_PATH)
   public SignInResponse signIn(
@@ -59,7 +61,10 @@ public class SignInController {
     context.setAuthentication(authentication);
     SecurityContextHolder.setContext(context);
     securityContextRepository.saveContext(context, httpRequest, httpResponse);
-    return SignInResponse.builder().username(authentication.getName()).build();
+    return SignInResponse.builder()
+        .username(authentication.getName())
+        .mustChangePassword(passwordChangeService.isChangeRequired(authentication.getName()))
+        .build();
   }
 
   /**

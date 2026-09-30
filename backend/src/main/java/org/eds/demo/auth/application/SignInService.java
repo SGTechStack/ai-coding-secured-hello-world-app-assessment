@@ -41,6 +41,7 @@ public class SignInService {
   private static final String REASON_BLANK_CREDENTIALS = "blank_credentials";
   private static final String REASON_ACCOUNT_DISABLED = "account_disabled";
   private static final String REASON_DELAYED = "delayed";
+  private static final String REASON_TEMP_PASSWORD_EXPIRED = "temporary_password_expired";
   private static final String REASON_BAD_CREDENTIALS = "bad_credentials";
 
   private final AuthenticationManager authenticationManager;
@@ -85,6 +86,9 @@ public class SignInService {
     if (account.filter(found -> found.isSignInDelayed(clock.instant())).isPresent()) {
       // The password is not even checked, so a correct one cannot end the delay early.
       throw refused(username, REASON_DELAYED);
+    }
+    if (account.filter(found -> found.isTemporaryPasswordExpired(clock.instant())).isPresent()) {
+      throw refused(username, REASON_TEMP_PASSWORD_EXPIRED);
     }
     Authentication authentication;
     try {

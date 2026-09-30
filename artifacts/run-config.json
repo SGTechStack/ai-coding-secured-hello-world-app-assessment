@@ -1,0 +1,28 @@
+{
+  "role": "dev",
+  "project_name": "Secured Login App",
+  "model": "claude-sonnet-4-6",
+  "prompt_version": "1",
+  "project_type": "web_fullstack",
+  "stories_path": "C:/Users/TaniaKoh/Downloads/code/ai-coding-secured-hello-world-app-assessment/.scratch/secured-login-app/handoff/secured-login-app.stories.yaml",
+  "mode": "fresh",
+  "known_constraints": [
+    "ArchUnit rule: no System.out or printStackTrace anywhere in backend code (spec.md S12)",
+    "ArchUnit rule: only com.assessment.auth.audit may write to the audit logger (spec.md S12)",
+    "ArchUnit rule: no @Async and no @Scheduled anywhere in backend code (spec.md S12)",
+    "ArchUnit rule: no manual HTTP clients (spec.md S12)",
+    "ArchUnit rule: no response.sendError (spec.md S12)",
+    "Every integration test re-runs on Testcontainers PostgreSQL at mvn verify; Docker must be available to the build (spec.md S12)",
+    "Security-critical tests use full-HTTP TestRestTemplate, not MockMvc, so Set-Cookie attributes, the CSRF round-trip and getRemoteAddr() are real (spec.md S12)",
+    "Backend is pinned to Java 21, Spring Boot 4.0.x, Spring Security 7.0.x, Maven with a committed wrapper (spec.md S1)",
+    "Frontend is pinned to Vite, React 19, TypeScript, react-router v7 and axios (axios specifically, for the global 401/403 interceptor) (spec.md S1)",
+    "One repo with sibling backend/ and frontend/; feature-first packages under com.assessment.auth, audit/ the single logging owner (spec.md S1)",
+    "Secrets come from environment variables with no committed defaults; a missing APP_ADMIN_PASSWORD fails startup (spec.md S1)",
+    "First boot is three steps: log in, change password, log in again; a password change invalidates all sessions including the caller's (spec.md S9)",
+    "Unverified assumption to test first: a Secure session cookie round-trips over http://localhost; secure: true is set in every profile (spec.md S13)"
+  ],
+  "team_size": 1,
+  "max_concurrent_mappers": 20,
+  "max_batch_attempts": 3,
+  "monorepo": true
+}

@@ -7,12 +7,13 @@ The ASVS 16.1.1 (L2) log inventory of the audit stream: every row the applicatio
 
 ## Destinations
 
-Every audit row goes to both destinations (ADR-056; R-AUD-037).
+Every audit row goes to both destinations (ADR-056; R-AUD-037); a recovery-runner run adds a third.
 
 | Destination | Format | Retention | Who can read |
 |---|---|---|---|
 | Dedicated audit file `<app.audit.directory>/audit.ndjson` (default `logs/`), `audit` logger only | ECS NDJSON, one event per line | Rolled daily; 90 archives kept; no total-size cap (REJ-045). Retention past the host is the platform's (R-AUD-011; R-AUD-022). | Operating-system accounts that can read the log directory. The application neither access-controls nor tamper-proofs the file (R-AUD-012). |
 | Standard output, with every other log line | ECS NDJSON, one event per line | None in the application; whatever collects stdout (R-AUD-013). | Anyone who can read the process's console, journal or container log (R-AUD-012). |
+| The recovery runner's standard output: its terminal, or the journal or job log it is launched under (R-AUD-034) | The runner's audit rows, as above, and its plain-text operator lines: the digest, account UUIDs, database path, schema version and file time. Never a password (ADR-073; T-AUD-027). The runner's rows also reach the audit file once its checks pass (ADR-072). | Whatever captures the runner's launch. | Anyone who can read the operator's terminal or the job log; the deployer records who (R-AUD-034). |
 
 ## Fields
 
@@ -66,6 +67,10 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
 | SHED_EPISODE_CLEARED | `access-control` | `change` | success | INFO | low | no | per event | — | — | — | Anonymous-session shedding cleared. |
 | PENDING_REGISTRATION_LAPSED | `user-provisioning` | `deletion` | success | INFO | low | yes | per event | — | `user.id` | — | Lapsed pending registration deleted. |
+| RECOVERY_PLANNED | `user-administration` | `info` | success | WARN | medium | no | per event | — | `host.name`, `user.target.count`, `labels.operator_claimed_id`, `labels.working_directory`, `labels.runner_scope`, `labels.runner_digest`, `labels.database_path`, `labels.database_schema_version`, `labels.database_modified`, `labels.enrolled_admins_before` | `user.target.id`, `process.real_user.name` | Recovery runner dry run. |
+| RECOVERY_STARTED | `user-administration` | `change` | unknown | WARN | high | no | per event | — | `host.name`, `user.target.count`, `labels.operator_claimed_id`, `labels.working_directory`, `labels.runner_scope`, `labels.runner_digest`, `labels.runner_reason`, `labels.database_path`, `labels.database_schema_version`, `labels.database_modified`, `labels.enrolled_admins_before` | `user.target.id`, `process.real_user.name` | Recovery runner apply started. |
+| RECOVERY_COMPLETED | `user-administration` | `change` | success | WARN | critical | no | per event | — | `host.name`, `user.target.count`, `labels.operator_claimed_id`, `labels.working_directory`, `labels.runner_scope`, `labels.runner_digest`, `labels.runner_reason`, `labels.database_path`, `labels.database_schema_version`, `labels.database_modified`, `labels.enrolled_admins_before`, `labels.enrolled_admins_after` | `user.target.id`, `process.real_user.name` | Recovery runner apply completed. |
+| RECOVERY_FAILED | `user-administration` | `change` | failure | ERROR | high | no | per event | — | `host.name`, `user.target.count`, `labels.operator_claimed_id`, `labels.working_directory`, `labels.runner_scope`, `labels.runner_digest`, `labels.runner_reason`, `labels.database_path`, `labels.database_schema_version`, `labels.database_modified`, `labels.enrolled_admins_before`, `labels.enrolled_admins_after` | `user.target.id`, `process.real_user.name` | Recovery runner apply failed. |
 | APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | per event | — | — | — | Application stopping. |
 
 ## Keyed rows and truncation

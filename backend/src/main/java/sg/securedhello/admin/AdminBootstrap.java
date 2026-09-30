@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,10 +36,14 @@ import sg.securedhello.user.UserAccountRepository;
  *       through {@link PasswordService#issueForcedChangeCredential}: {@code force_password_change} set and
  *       {@code credential_issued_at} stamped, so it expires 30 days after issue if unused (ADR-046).</li>
  * </ul>
- * The seed has no mailbox: its address is {@code <username>@}{@value #SEED_EMAIL_DOMAIN}, a reserved,
+ * Web only: the offline recovery runner, which starts the same context with no web server, never seeds (ADR-072;
+ * REJ-089; T-RUN-007).
+ *
+ * <p>The seed has no mailbox: its address is {@code <username>@}{@value #SEED_EMAIL_DOMAIN}, a reserved,
  * never-deliverable domain (RFC 2606), which only fills the mandatory, unique {@code email} column.
  */
 @Component
+@ConditionalOnWebApplication
 public class AdminBootstrap implements ApplicationRunner {
 
     /** The domain of the seeded administrator's placeholder address. */

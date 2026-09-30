@@ -43,6 +43,34 @@ public enum AuditKey {
     EVENTS_UNTRACKED_COUNT("events.untracked_count"),
     /** On a truncation row: which rows had occurrences beyond the cap, by event name. */
     TRUNCATED_ROWS("labels.truncated_rows"),
+    /**
+     * On a recovery-runner row: the operator's {@code --operator} value, in clear, format-checked and never resolved
+     * against accounts (R-AUD-033). An unverified claim; the host's sudo or ssh trail is the attribution (R-OPS-007).
+     */
+    OPERATOR_CLAIMED_ID("labels.operator_claimed_id"),
+    /**
+     * On a recovery-runner row: the OS user {@code ProcessHandle} reports for the runner process. Omitted when it
+     * reports none; {@code user.name} is never a fallback (T-RUN-001; T-RUN-002).
+     */
+    PROCESS_REAL_USER("process.real_user.name"),
+    /** On a recovery-runner row: the runner's working directory, in clear (R-RUN-010). */
+    WORKING_DIRECTORY("labels.working_directory"),
+    /** On a recovery-runner row: {@code password}, {@code totp} or {@code both} (ADR-072). */
+    RUNNER_SCOPE("labels.runner_scope"),
+    /** On a recovery-runner row: the plan/apply digest over the account state, which is not a secret (ADR-074). */
+    RUNNER_DIGEST("labels.runner_digest"),
+    /** On a recovery-runner apply row: the operator's mandatory {@code --reason} (ADR-074). */
+    RUNNER_REASON("labels.runner_reason"),
+    /** On a recovery-runner row: the resolved absolute database path (ADR-074; R-RUN-008). */
+    DATABASE_PATH("labels.database_path"),
+    /** On a recovery-runner row: the database's schema version (ADR-074; R-RUN-008). */
+    DATABASE_SCHEMA_VERSION("labels.database_schema_version"),
+    /** On a recovery-runner row: the database file's modification time (ADR-074; R-RUN-008). */
+    DATABASE_MODIFIED("labels.database_modified"),
+    /** On a recovery-runner row: the enrolled admins before the run, the guard's count (ADR-072; ADR-048). */
+    ENROLLED_ADMINS_BEFORE("labels.enrolled_admins_before"),
+    /** On a recovery-runner outcome row: the enrolled admins after the run; zero is the alert (ADR-072). */
+    ENROLLED_ADMINS_AFTER("labels.enrolled_admins_after"),
     /** Why an administrator unlocked an account: a closed {@link UnlockReason} (a custom field, REJ-028; R-AUD-002). */
     USER_TARGET_UNLOCK_REASON("user.target.unlock_reason");
 

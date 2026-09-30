@@ -276,6 +276,9 @@
                             <!-- The startup reconciliation sweep: its triggers and the sweep (ADR-039). -->
                             <param>sg.securedhello.*Reconciliation*</param>
                             <param>sg.securedhello.*SessionTerminationService*</param>
+                            <!-- The recovery runner's digest and command line (ADR-073; ADR-074). -->
+                            <param>sg.securedhello.*RecoveryPlan*</param>
+                            <param>sg.securedhello.*RecoveryInvocation*</param>
                         </targetClasses>
                         <!-- Until those classes exist there is nothing to mutate; that alone must not fail. -->
                         <failWhenNoMutations>false</failWhenNoMutations>

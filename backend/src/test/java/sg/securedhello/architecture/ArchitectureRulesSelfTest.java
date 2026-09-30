@@ -222,6 +222,12 @@ class ArchitectureRulesSelfTest {
     }
 
     @Test
+    void aConsoleReadOutsideTheOperatorPasswordIsCaught() {
+        assertViolates(ArchitectureRules.ONLY_THE_OPERATOR_PASSWORD_READS_THE_CONSOLE,
+                ArchitectureViolations.DetectsATerminal.class);
+    }
+
+    @Test
     void anAuthenticationManagerOnTheResetPathIsCaught() {
         assertViolates(ArchitectureRules.noAuthenticationManagerIn("sg.securedhello.architecture.fixtures.."),
                 ArchitectureViolations.AuthenticatesOnTheResetPath.class);

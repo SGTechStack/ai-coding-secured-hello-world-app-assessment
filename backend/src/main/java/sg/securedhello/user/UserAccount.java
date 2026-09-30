@@ -257,4 +257,15 @@ public class UserAccount {
         this.forcePasswordChange = true;
         this.credentialIssuedAt = issuedAt;
     }
+
+    /**
+     * Clears the credential column, so no password signs in until one is set again, and with it any forced change:
+     * the recovery runner's batch invalidation (ADR-073). It writes the credential column, so only
+     * {@code PasswordService} may call it (ArchUnit).
+     */
+    public void revokeCredential() {
+        this.passwordHash = null;
+        this.forcePasswordChange = false;
+        this.credentialIssuedAt = null;
+    }
 }

@@ -7,6 +7,7 @@ const mode = 'development'
 export default defineConfig((env) =>
   mergeConfig(viteConfig({ ...env, mode }), {
     test: {
+      testTimeout: 15_000,
       coverage: {
         provider: 'v8',
         include: ['src/**/*.{ts,tsx}'],

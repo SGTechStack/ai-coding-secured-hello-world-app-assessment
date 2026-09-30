@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "User Stories File",
+  "description": "Structured user stories input for the Dependency Orchestrator.",
+  "type": "object",
+  "required": ["stories"],
+  "additionalProperties": false,
+  "properties": {
+    "groups": {
+      "type": "array",
+      "description": "Business value groups that stories belong to. If omitted, all stories are placed in a single default group.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Machine-friendly identifier (snake_case). Referenced by stories."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable group name (e.g., 'Patient Intake', 'Checkout Flow')."
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Scheduling priority. Lower number = higher priority. Groups with the same number are parallelized. Default: 1."
+          }
+        }
+      }
+    },
+    "releases": {
+      "type": "array",
+      "description": "Sequential release definitions. If omitted, all stories are treated as a single release.",
+      "items": {
+        "type": "object",
+        "required": ["number"],
+        "additionalProperties": false,
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Release sequence number (1, 2, 3...). Release N must complete before release N+1 starts."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional label (e.g., 'MVP', 'Phase 2')."
+          }
+        }
+      }
+    },
+    "stories": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The user stories.",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "acceptance_criteria"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Unique story identifier (e.g., '1.1', 'US-001', 'AFW-101')."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Story title or 'As a...' statement."
+          },
+          "acceptance_criteria": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 },
+            "description": "Acceptance criteria. Copied verbatim into reports and GitHub issues."
+          },
+          "group": {
+            "type": "string",
+            "description": "Group ID this story belongs to. Must match a group.id if groups are defined. If omitted, uses 'default'."
+          },
+          "release": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Release number this story belongs to. Must match a releases[].number if releases are defined. Default: 1."
+          }
+        }
+      }
+    }
+  }
+}

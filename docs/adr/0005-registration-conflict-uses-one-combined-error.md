@@ -1,0 +1,3 @@
+# Registration conflicts return one combined error
+
+The standard requires registration to respond identically whether or not an account exists. Fully meeting that would mean an email-verification flow, which is out of scope because nothing sends real email. The PRD asks for a "clear validation error" instead. We return a single `400 user exist` (the standard's own error code) for a clash on either username or email, without saying which field clashed, and rate-limit registration per IP to slow bulk probing. One leak remains: an attacker can still tell whether a registration succeeded or failed. We accept that deliberately; it goes away if email verification is added.

@@ -1,0 +1,401 @@
+{
+  "version": 1,
+  "skills": {
+    "arch-tests-gen": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/arch-tests-gen/SKILL.md",
+      "computedHash": "42bb88c83bf48f1a8f0d8b1ec82ad04afb5706f939438c8f985822d86c5503fa"
+    },
+    "arch-tests-gen-feature": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/arch-tests-gen-feature/SKILL.md",
+      "computedHash": "41da354918e8152e7b80b1cc905107b80c51b2d238121472081712d11ef60944"
+    },
+    "arch-tests-plan": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/arch-tests-plan/SKILL.md",
+      "computedHash": "89cf291fe341161594740600cc4c17018471be7500bd90fb591655c9bc7defaf"
+    },
+    "ask-matt": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/ask-matt/SKILL.md",
+      "computedHash": "e5404aef8525ca0c8fc76692567a38dfdd5d0cc1a9f8d47c02c18f29f60d92a6"
+    },
+    "ask-workflow": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/ask-workflow/SKILL.md",
+      "computedHash": "51a057589a1642946872dd33bc1f404ce1967e27e2b187431992769a9ad267f8"
+    },
+    "backwards-mapping": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/backwards-mapping/SKILL.md",
+      "computedHash": "5095323d70bbd038ed3ba694453e5b337664fc9a4e8ced8787208ae0686ec814"
+    },
+    "browser-test": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/browser-test/SKILL.md",
+      "computedHash": "19595493e19a570a18dd160ca4b3932f6f4b0bc80d33bb7eb416aa9c6e188c20"
+    },
+    "build-check": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/build-check/SKILL.md",
+      "computedHash": "c2ed0cfd3af6847f6db19ee41ab9823c6b6411c667e6d0ea57cbcdf9edd6a251"
+    },
+    "code-minimum": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/code-minimum/SKILL.md",
+      "computedHash": "92c442d27ed885d2ebc10624d3ca9713ef7d1a8450a6e1d301536454237f810f"
+    },
+    "code-review": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/code-review/SKILL.md",
+      "computedHash": "b4f17857c85ca60af1df7d0b623dd03c2a48419f6123e714f3d9748ca744a1bf"
+    },
+    "code-reviewer": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/code-reviewer/SKILL.md",
+      "computedHash": "12efce7cf5d3c54a815df6eb5e070090e65c138687eb5261b583e77e2d6b36fb"
+    },
+    "codebase-design": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/codebase-design/SKILL.md",
+      "computedHash": "caea3cb8a8281ff829fd1a2b985044e77601b62f301adf43f689ccfc74c15f6f"
+    },
+    "convert-stories": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/convert-stories/SKILL.md",
+      "computedHash": "c0fb44daf1572985148498ac8a0db6ab53bdfcca0b87f4ff51f6816433a6256b"
+    },
+    "dependency-orchestrator": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/dependency-orchestrator/SKILL.md",
+      "computedHash": "c4fa34949ffaefdfd76b2aeb4940f11cd3292a739ae75d8919a9782b4dc2a6da"
+    },
+    "dependency-vuln-scan": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/dependency-vuln-scan/SKILL.md",
+      "computedHash": "9fe0902805cd2fd494ebffd7ce5b56a32474b3d787d578d5437c89e7d35803e4"
+    },
+    "diagnosing-bugs": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/diagnosing-bugs/SKILL.md",
+      "computedHash": "dcaaa3eb81195329f65f27574d9a67dc776160dd2e4d7798d1afb1e4a5f3695a"
+    },
+    "do-work": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/do-work/SKILL.md",
+      "computedHash": "8c2fa40162d4da11af0fff8472d24c4a56e02c4f7437bb980920714ca02d145f"
+    },
+    "domain-modeling": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/domain-modeling/SKILL.md",
+      "computedHash": "336547f3ff285e822fc70b69b170dc58bceef9c8ed5fad18de0046287d6be837"
+    },
+    "e2e": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/e2e/SKILL.md",
+      "computedHash": "163d106c6c38f86402c73a15578b91fe71908f0bd4111ec23d28b547dd9e18fe"
+    },
+    "fry-me": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/fry-me/SKILL.md",
+      "computedHash": "5dded27afefc55a9a9ca21c5b73db5b4ef546ad7a4f83eb4048c6a5bfddc5012"
+    },
+    "gen-code-docs": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/gen-code-docs/SKILL.md",
+      "computedHash": "882cb1a518f8ca13aa209b04c7f6eefc325cca1e11ab0af78c4801d390a2ebef"
+    },
+    "git-commit-skill": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/git-commit-skill/SKILL.md",
+      "computedHash": "4d11c45da6173db8e0921fcb3dd6236995d4914d1373eea14410c0b406237df2"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "computedHash": "5e0c683385eafd83f106ac6c9d67dfbbfe5aa4b3fe65aad114eb1055a99c818f"
+    },
+    "grill-with-docs": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/grill-with-docs/SKILL.md",
+      "computedHash": "a610223c9796f755b603f15ec114849a4b38b9ba3006acfa9bdf3cc56dd44dad"
+    },
+    "grilling": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grilling/SKILL.md",
+      "computedHash": "4fa026e5979770347b3357ff5139e1e41d21c3a9f7335e9cd2811cb5b8d32f2f"
+    },
+    "handoff": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/handoff/SKILL.md",
+      "computedHash": "9ea2a5de5ca2d717f913356de982fdc4fe27d28a300c16598cd43a4865491008"
+    },
+    "im8-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/im8-review/SKILL.md",
+      "computedHash": "829fa1e0ffe1afde4a2b77ccafc8e406ff87f3f601c153f0cd380ad4272bd589"
+    },
+    "implement": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/implement/SKILL.md",
+      "computedHash": "130cac2d72bfde8cd526bf3b754211e2fe00e84bc4d9f9c56f749b9541a3afad"
+    },
+    "improve-codebase-architecture": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "computedHash": "016f12709bff30a27419e8add978a9be70f5ca1fb6738b3be6793038e0aba631"
+    },
+    "issue-verification": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/issue-verification/SKILL.md",
+      "computedHash": "50931c889d16d99f1cfe646bd7cb339d48c2823809cff0f3f4da2ffda3b37b85"
+    },
+    "mutation-testing": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/mutation-testing/SKILL.md",
+      "computedHash": "dbd6526491df1d15d9a112a3871c8ff90203d8fde3cfde12c7edd14489cf2382"
+    },
+    "owasp-threat-modeling": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/owasp-threat-modeling/SKILL.md",
+      "computedHash": "6d52180c9bbb92d439a8e369651d899b7a48731345b6f14386df163fe557ab2a"
+    },
+    "policies": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/policies/SKILL.md",
+      "computedHash": "beb8fcab01a7a30e710c3249b95336c6abcdec824b431d96de2ac1fd669afc73"
+    },
+    "pragmatic-reviewer": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/pragmatic-reviewer/SKILL.md",
+      "computedHash": "77bc3072c5fd18ad712360a4c7e9cf3678c3d172a672e1e8d7337a2fd83c2a39"
+    },
+    "pre-prod-check": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/pre-prod-check/SKILL.md",
+      "computedHash": "c372c5c293cf5eb3064771e978131b73b6df3608df132c93e4e58c0737b5feab"
+    },
+    "prototype": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/prototype/SKILL.md",
+      "computedHash": "62979fe039ef64407b258f8824db41b9185f788638747df803032df4153c2aae"
+    },
+    "query-kb": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/query-kb/SKILL.md",
+      "computedHash": "e97693936f8b0fe78f865bfc414338dd1a0fc900644972f507a7af2a0bfce283"
+    },
+    "react-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/react-review/SKILL.md",
+      "computedHash": "c35ff9d4ab6e11d7fb4e05a1e731fbbe6d1e2c5ca3b53725a60d2e75f6b3857b"
+    },
+    "reconcile-stories": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/reconcile-stories/SKILL.md",
+      "computedHash": "534697c09bf73dc6ff64cff3e18f1d14b28f4bf605dd235d4f80a90ee114761f"
+    },
+    "research": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/research/SKILL.md",
+      "computedHash": "2c8b768d5f0309eaea9f92ef740101e813645b39aef88fb82733a52eae23dc0b"
+    },
+    "resolving-merge-conflicts": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/resolving-merge-conflicts/SKILL.md",
+      "computedHash": "436698459190d8e9f03dc32ada08401b56e352fb6a19bf71a2227fad8b80d98f"
+    },
+    "semgrep": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/semgrep/SKILL.md",
+      "computedHash": "0cdce59e86e9225011f1c7da1c87f6a3bf89942b5a64e00b1f99e17c6f877ddd"
+    },
+    "setup-matt-pocock-skills": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
+      "computedHash": "a45163cba56f72f5f224c46557c047d51547147a29e383e5a769ec39eecd1188"
+    },
+    "setup-token-logging": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/setup-token-logging/SKILL.md",
+      "computedHash": "361a8b93858196f415112b5895cad872a79725ef3d1e57348ead2dad37053fb4"
+    },
+    "spec-compliance": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spec-compliance/SKILL.md",
+      "computedHash": "532be9624cd66116f482ce713c61715d3c08260eab4b2d147560bcd8f05fca2f"
+    },
+    "spec-standards-check": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spec-standards-check/SKILL.md",
+      "computedHash": "31240c35a9063f09a7c15032b94491aa12fffbdfe9ddc96e6d320e48689decb0"
+    },
+    "spring-batch-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spring-batch-review/SKILL.md",
+      "computedHash": "5ef6abbafffa17dc5d1a741372a985cf7c589171d651ecb45af7c2b35ae249b1"
+    },
+    "spring-core-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spring-core-review/SKILL.md",
+      "computedHash": "42d3ebe8438a63d6e21f19f682c5d438dd3393b5410256f32f5f49dff5d4cb6b"
+    },
+    "spring-data-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spring-data-review/SKILL.md",
+      "computedHash": "49908f2fe25e3bddfd38b40fc1b664aafe6e105d02bcce565e6a4d26d0fa3a11"
+    },
+    "spring-logging-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spring-logging-review/SKILL.md",
+      "computedHash": "835ae94295a71a29b2e660ffb044cc4fa8f1a2481a07170eae7f1b7ac874a6fe"
+    },
+    "spring-security-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spring-security-review/SKILL.md",
+      "computedHash": "dd170a1ff40419265bb40d8a96b675f42fe7369bf6097f34b547623c400c9e34"
+    },
+    "spring-test-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spring-test-review/SKILL.md",
+      "computedHash": "10f2d109e80e7cda9d6e6f08947143c3db01b2d5f8540edb4d9e31b9b009422e"
+    },
+    "spring-web-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/spring-web-review/SKILL.md",
+      "computedHash": "d95562ea7fdb8a7c55d6ff045244ababcaaca43206210b6f664000ef68a208df"
+    },
+    "stories-to-issues": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/stories-to-issues/SKILL.md",
+      "computedHash": "ff90e8a9b21e5c02e69a2218bbc58cd182388741c4fba2056a341db88a2f980a"
+    },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/tdd/SKILL.md",
+      "computedHash": "c1ed8cd854c64d4d226097255d3fa662dae4a758a1462fadd63cc10e413d88d7"
+    },
+    "teach": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/teach/SKILL.md",
+      "computedHash": "d5f74fa9a34961cf4df339019f7cd1ebf84163cf8b789829be26342e5ceba5a1"
+    },
+    "tech-arch-doc": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/tech-arch-doc/SKILL.md",
+      "computedHash": "939fa308bb6012153421310de92b87f90d68b5ec333ea4503d03be17301f35df"
+    },
+    "thermo-nuclear-review": {
+      "source": "SGTechStack/ai-coding-workflow-d2",
+      "sourceType": "github",
+      "skillPath": "skills/thermo-nuclear-review/SKILL.md",
+      "computedHash": "b366dfd8d5ff8a5ca21c03fe353e38d50666c941abed950a3972981c39b8e43d"
+    },
+    "to-questionnaire": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/to-questionnaire/SKILL.md",
+      "computedHash": "e2cb00bfeb4243f1384bf7e106185ccb69fd7d45ff6a3b04bec4102f505aba31"
+    },
+    "to-spec": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/to-spec/SKILL.md",
+      "computedHash": "0ee8caf20fc7df94db53e76f42588fb01eee88c6f8dc97e7a3a0565be8978e74"
+    },
+    "to-tickets": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/to-tickets/SKILL.md",
+      "computedHash": "4aba8639f46b55ede011866f83e9e87ae10482b72c14848389e5801eba0b37bf"
+    },
+    "triage": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/triage/SKILL.md",
+      "computedHash": "363ca4f1b97ca5227d41d3973178ab301d7c498ba41b466dfe30b6163f6d72b5"
+    },
+    "wait-what": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/wait-what/SKILL.md",
+      "computedHash": "179a857fabd08c894e8e5b30baa7488147760ee1d58696ebd24bd4f6ead21699"
+    },
+    "wayfinder": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/wayfinder/SKILL.md",
+      "computedHash": "f53b17850d8d4d68e8b861cfc7de69580335851d7fe7bc3acdf37505f46c9940"
+    },
+    "wizard": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/wizard/SKILL.md",
+      "computedHash": "6b98bd36db34eb5584d937b745e6e68a317afa0807a426fe8717ab196242ae70"
+    },
+    "writing-for-agents": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/writing-for-agents/SKILL.md",
+      "computedHash": "831e996c177c6c5233eb3bb472a33edee2b3ce1ee5a6d7e8b696c1c3fb4eda3d"
+    }
+  }
+}

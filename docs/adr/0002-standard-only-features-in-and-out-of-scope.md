@@ -1,0 +1,5 @@
+# Which standard-only features are built
+
+The User Access Control standard requires features the PRD never mentions. We build the cheap, security-critical ones: 15-minute idle and 8-hour absolute session timeouts, at most 1 concurrent session per user, session state persisted to the database, a dedicated CSRF-token endpoint, security response headers, `Clear-Site-Data` on logout, constant-time login for unknown usernames, 400 for malformed or oversized input, 429 with `Retry-After`, a self-read `GET /api/me` endpoint, an admin unlock endpoint, and account-owner notifications through the stub `EmailService`.
+
+We deliberately **do not** build: forced password change on first login or after re-enable (with its grace period), password history, self-service password change, the scheduled account-cleanup jobs (disabling inactive accounts, revoking roles), role definitions and an authorization matrix loaded from config, or batch password reset. Together these would roughly double the app and no PRD story depends on them. They are known deviations from the standard, not oversights.

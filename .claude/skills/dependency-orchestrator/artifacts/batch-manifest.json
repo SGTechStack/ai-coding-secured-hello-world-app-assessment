@@ -1,0 +1,197 @@
+{
+  "batches": [
+    {
+      "file": "batch-1.json",
+      "release": 1,
+      "count": 20,
+      "content_hash": "574748316e2e27fb2327f3d7944478a5",
+      "output": "cache/574748316e2e27fb2327f3d7944478a5.json",
+      "story_ids": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5",
+        "1.6",
+        "2.1",
+        "2.2",
+        "2.3",
+        "2.4",
+        "2.5",
+        "2.6",
+        "2.7",
+        "2.8",
+        "2.9",
+        "2.10",
+        "2.11",
+        "2.12",
+        "3.1",
+        "4.1"
+      ]
+    },
+    {
+      "file": "batch-2.json",
+      "release": 1,
+      "count": 18,
+      "content_hash": "69a309346c007715aa4641f74aada4e5",
+      "output": "cache/69a309346c007715aa4641f74aada4e5.json",
+      "story_ids": [
+        "4.2",
+        "4.3",
+        "4.4",
+        "4.5",
+        "4.6",
+        "5.1",
+        "5.2",
+        "5.3",
+        "5.4",
+        "5.5",
+        "5.6",
+        "5.7",
+        "5.8",
+        "5.9",
+        "5.10",
+        "6.1",
+        "7.1",
+        "7.2"
+      ]
+    },
+    {
+      "file": "batch-3.json",
+      "release": 1,
+      "count": 2,
+      "content_hash": "44b33412533b5214e0fa4951045cbe7a",
+      "output": "cache/44b33412533b5214e0fa4951045cbe7a.json",
+      "story_ids": [
+        "8.1",
+        "8.2"
+      ]
+    },
+    {
+      "file": "batch-4.json",
+      "release": 2,
+      "count": 11,
+      "content_hash": "4574218018ae003b5a838fc8e1a26618",
+      "output": "cache/4574218018ae003b5a838fc8e1a26618.json",
+      "story_ids": [
+        "8.3",
+        "8.4",
+        "8.5",
+        "8.6",
+        "8.7",
+        "8.8",
+        "8.9",
+        "8.10",
+        "9.1",
+        "9.2",
+        "9.3"
+      ]
+    },
+    {
+      "file": "batch-5.json",
+      "release": 2,
+      "count": 10,
+      "content_hash": "e41b48ac381e999d8129bafbe9c7f213",
+      "output": "cache/e41b48ac381e999d8129bafbe9c7f213.json",
+      "story_ids": [
+        "9.4",
+        "9.5",
+        "9.6",
+        "9.7",
+        "9.8",
+        "10.1",
+        "10.2",
+        "10.3",
+        "10.4",
+        "10.5"
+      ]
+    },
+    {
+      "file": "batch-6.json",
+      "release": 2,
+      "count": 11,
+      "content_hash": "21f7cddaae8a944d1fc31a9f28bf2270",
+      "output": "cache/21f7cddaae8a944d1fc31a9f28bf2270.json",
+      "story_ids": [
+        "10.6",
+        "11.1",
+        "12.1",
+        "13.1",
+        "13.2",
+        "13.3",
+        "13.4",
+        "13.5",
+        "13.6",
+        "13.7",
+        "13.8"
+      ]
+    },
+    {
+      "file": "batch-7.json",
+      "release": 2,
+      "count": 8,
+      "content_hash": "5ed9b20239f8da53ffcab1690dbf394c",
+      "output": "cache/5ed9b20239f8da53ffcab1690dbf394c.json",
+      "story_ids": [
+        "13.9",
+        "13.10",
+        "14.1",
+        "14.2",
+        "14.3",
+        "14.4",
+        "14.5",
+        "14.6"
+      ]
+    },
+    {
+      "file": "batch-8.json",
+      "release": 3,
+      "count": 20,
+      "content_hash": "00f2a5abe46c0501b2de487515d50682",
+      "output": "cache/00f2a5abe46c0501b2de487515d50682.json",
+      "story_ids": [
+        "14.7",
+        "14.8",
+        "14.9",
+        "14.10",
+        "14.11",
+        "14.12",
+        "14.13",
+        "14.14",
+        "14.15",
+        "14.16",
+        "15.1",
+        "15.2",
+        "15.3",
+        "16.1",
+        "16.2",
+        "17.1",
+        "18.1",
+        "18.2",
+        "18.3",
+        "18.4"
+      ]
+    },
+    {
+      "file": "batch-9.json",
+      "release": 3,
+      "count": 11,
+      "content_hash": "a1603353c37df5830ef180344c5c809f",
+      "output": "cache/a1603353c37df5830ef180344c5c809f.json",
+      "story_ids": [
+        "18.5",
+        "18.6",
+        "18.7",
+        "19.1",
+        "19.2",
+        "19.3",
+        "20.1",
+        "20.2",
+        "20.3",
+        "21.1",
+        "22.1"
+      ]
+    }
+  ],
+  "total_stories": 111
+}

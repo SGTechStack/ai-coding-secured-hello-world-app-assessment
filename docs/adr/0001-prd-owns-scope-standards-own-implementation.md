@@ -1,0 +1,3 @@
+# PRD owns scope; App Standards own implementation
+
+The PRD (`prd/assessment-prd.md`) and the Standalone User Access Control standard (`App-Standards/Appfw-User-Standards/User_Standalone/`) conflict in several places. We decided that the PRD defines *what* is built, and the App Standards define *how* it is built wherever the PRD is silent or only gives an "e.g." value (for example, lockout lasts 20 minutes per the standard, not the PRD's "e.g. 15 min"). Where the two genuinely conflict, each case is decided individually and recorded here or in a later ADR, so that nobody later "fixes" a deliberate deviation in either direction. The PRD itself is never edited.

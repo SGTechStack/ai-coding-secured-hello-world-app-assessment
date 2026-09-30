@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — main</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <!-- Sticky Summary Bar -->
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">Overall Status: FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">thermo-nuclear: FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">code-review: FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">semgrep: FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">im8: FAIL</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react: PASS</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">springboot: FAIL</span>
+      <span class="font-mono text-sm text-slate-500 ml-auto">Branch: main</span>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      
+      <!-- Header Section -->
+      <div class="border-b border-slate-200 pb-5">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">Consolidated Code Review & Compliance Report</h1>
+        <p class="mt-2 text-sm text-slate-500">Automated and static analysis summary for the current repository branch.</p>
+      </div>
+
+      <!-- Summary Section -->
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Executive Summary</h2>
+          <p class="text-xs text-slate-500 mt-1">Overall compliance evaluation status across all active checks.</p>
+        </div>
+        
+        <!-- Summary Table -->
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-100">
+              <th class="px-4 py-2">Check Name</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Critical</th>
+              <th class="px-4 py-2">High</th>
+              <th class="px-4 py-2">Medium</th>
+              <th class="px-4 py-2">Low</th>
+              <th class="px-4 py-2">Summary of Gaps / Focus Areas</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-4 py-3 font-semibold text-slate-700">springboot</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800">FAIL</span></td>
+              <td class="px-4 py-3 font-semibold text-red-700">7</td>
+              <td class="px-4 py-3 text-orange-600">2</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-600 text-xs">ClassCastException in @AuthenticationPrincipal, missing guards on event handlers, direct entity exposure in request body, eager fetching.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-semibold text-slate-700">im8</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800">FAIL</span></td>
+              <td class="px-4 py-3 font-semibold text-red-700">10</td>
+              <td class="px-4 py-3 text-orange-600">0</td>
+              <td class="px-4 py-3 text-slate-500">8</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-600 text-xs">Missing rate limiting config, lack of CSP headers, default 30-min Tomcat session timeout, malware scanning disabled in prod, missing MFA, no dormancy detection, no SSO.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-semibold text-slate-700">thermo-nuclear</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800">FAIL</span></td>
+              <td class="px-4 py-3 font-semibold text-red-700">1</td>
+              <td class="px-4 py-3 text-orange-600">2</td>
+              <td class="px-4 py-3 text-slate-500">2</td>
+              <td class="px-4 py-3 text-slate-500">5</td>
+              <td class="px-4 py-3 text-slate-600 text-xs">Concurrency/thread-safety leaks in handlers, Spring AOP transaction proxy bypass, REST access guard bypass on subclass repositories.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-semibold text-slate-700">code-review</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800">FAIL</span></td>
+              <td class="px-4 py-3 font-semibold text-red-700">1</td>
+              <td class="px-4 py-3 text-orange-600">1</td>
+              <td class="px-4 py-3 text-slate-500">2</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-600 text-xs">Non-deterministic data seeding causing flaky tests, Lombok @Data entity exposure recursion risk.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-semibold text-slate-700">semgrep</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800">FAIL</span></td>
+              <td class="px-4 py-3 font-semibold text-red-700">2</td>
+              <td class="px-4 py-3 text-orange-600">0</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-600 text-xs">Unrestricted RequestMapping("/error") HTTP methods, missing SRI attribute on Tailwind CDN script.</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3 font-semibold text-slate-700">react</td>
+              <td class="px-4 py-3"><span class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">PASS</span></td>
+              <td class="px-4 py-3 font-semibold text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-500">0</td>
+              <td class="px-4 py-3 text-slate-600 text-xs">No React/frontend source files present in codebase (N/A).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- High-Priority Findings -->
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues Required to Fix First</h3>
+          <ul class="space-y-2 text-sm text-slate-700 list-disc list-inside">
+            <li><strong class="text-red-700">Critical Concurrency / Thread-Safety Leak:</strong> Singleton components <a class="text-blue-600 hover:underline font-mono text-xs" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/repository/handlers/UserPostingRepositoryHandler.java">UserPostingRepositoryHandler.java</a> and <a class="text-blue-600 hover:underline font-mono text-xs" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/repository/handlers/ClinicalAddendumRepositoryHandler.java">ClinicalAddendumRepositoryHandler.java</a> store request-specific entities in private instance fields, allowing state to bleed across concurrent user requests.</li>
+            <li><strong class="text-red-700">Critical Runtime ClassCastException:</strong> Parameter casting error in <a class="text-blue-600 hover:underline font-mono text-xs" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/controller/OrderController.java">OrderController.java</a> on `@AuthenticationPrincipal Authentication` parameter will crash file uploads at runtime.</li>
+            <li><strong class="text-orange-600">High Silent AOP Failures:</strong> `@Transactional` annotations on private methods (<a class="text-blue-600 hover:underline font-mono text-xs" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/config/audit/EDSMedicalDemoAuditorAware.java">EDSMedicalDemoAuditorAware.java</a>) or manually instantiated command classes (<a class="text-blue-600 hover:underline font-mono text-xs" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/service/commands/vitalrecords/CreateDraftVitalRecordCommand.java">CreateDraftVitalRecordCommand.java</a>) are silently ignored by Spring.</li>
+            <li><strong class="text-orange-600">High REST Access Guard Bypass on Subclass Repositories:</strong> `MedicationOrderRepository`, `ProcedureOrderRepository`, and `InvestigationOrderRepository` are auto-exported via Spring Data REST but lack event handlers, bypassing security rules in `OrderRepositoryHandler`.</li>
+            <li><strong class="text-red-700">Critical Semgrep CSRF Security Defect:</strong> `@RequestMapping("/error")` declared without method constraints in <a class="text-blue-600 hover:underline font-mono text-xs" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/config/CustomErrorController.java">CustomErrorController.java</a>, allowing state-changing HTTP verbs to bypass CSRF validation.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Card: Spring Boot Review (FAIL) -->
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium text-lg">springboot — Spring Boot Standards Review</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-100">
+          <table class="w-full text-sm text-left mt-3">
+            <thead>
+              <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+                <th class="px-4 py-2">Severity</th>
+                <th class="px-4 py-2">File</th>
+                <th class="px-4 py-2">Line</th>
+                <th class="px-4 py-2">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/controller/OrderController.java">OrderController.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">63-64</td>
+                <td class="px-4 py-3">ClassCastException in @AuthenticationPrincipal: parameter authentication is declared as Authentication instead of principal type (EDSUserDetails), causing a runtime cast error.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/repository/handlers/PatientRepositoryHandler.java">PatientRepositoryHandler.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">33-36</td>
+                <td class="px-4 py-3">Missing security guards on event handlers: @HandleBeforeSave has no @PreAuthorize guard, bypassing role verification.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/repository/handlers/VitalRecordRepositoryHandler.java">VitalRecordRepositoryHandler.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">25-30</td>
+                <td class="px-4 py-3">Missing security guards on event handlers: @HandleBeforeCreate has no @PreAuthorize guard, bypassing role verification.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/controller/VitalRecordController.java">VitalRecordController.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">29</td>
+                <td class="px-4 py-3">JPA Entity Exposure: controller accepts database entities (VitalRecord) directly in request body, violating DTO isolation and introducing mass-assignment risks.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/service/commands/vitalrecords/UpdateDraftVitalRecordCommand.java">UpdateDraftVitalRecordCommand.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">32-35</td>
+                <td class="px-4 py-3">Null-Pointer Dereferencing in Constructor: nested fields are dereferenced without checks, causing generic HTTP 500 errors instead of client-friendly HTTP 400.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/model/records/VisitRecord.java">VisitRecord.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">42-52</td>
+                <td class="px-4 py-3">Eager Fetching N+1 Queries: associations are defaulted to FetchType.EAGER, causing N+1 query cascades on database lookups.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/model/records/VisitRecord.java">VisitRecord.java</a> / <a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/model/Patient.java">Patient.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">20 / 17</td>
+                <td class="px-4 py-3">Lombok @Data Abuse: using @Data on JPA entities without excluding lazy relationships from equals/hashCode causes recursion and StackOverflowErrors.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/repository/PatientRepository.java">PatientRepository.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">23-27</td>
+                <td class="px-4 py-3">Index-Bypassing Query: using concat on database columns in Querydsl bindings forces slow full-table scans.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-orange-600 font-semibold">High</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/config/audit/EDSMedicalDemoAuditorAware.java">EDSMedicalDemoAuditorAware.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">33</td>
+                <td class="px-4 py-3">Silent AOP Failures: @Transactional is placed on private method findUser, causing Spring to silently ignore transaction boundaries.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-orange-600 font-semibold">High</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/service/commands/vitalrecords/CreateDraftVitalRecordCommand.java">CreateDraftVitalRecordCommand.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">80</td>
+                <td class="px-4 py-3">Silent AOP Failures: @Transactional is placed on a manually instantiated command class, so Spring fails to proxy it.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-orange-600 font-semibold">High</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/test/java/eds/medicaldemo/userstory/CucumberSpringContextConfig.java">CucumberSpringContextConfig.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">14</td>
+                <td class="px-4 py-3">Overuse of Context Cache Eviction: using @DirtiesContext excessively leads to massive test execution overhead.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- Card: IM8 Technical Controls (FAIL) -->
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium text-lg">im8 — IM8 Application Technical Controls Compliance</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-100">
+          <table class="w-full text-sm text-left mt-3">
+            <thead>
+              <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+                <th class="px-4 py-2">Severity</th>
+                <th class="px-4 py-2">Control ID</th>
+                <th class="px-4 py-2">Status</th>
+                <th class="px-4 py-2">Description / Findings</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">as-4</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Rate-Limiting: No login/authentication rate limiting is configured at the application level.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">as-9</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Content Security Policy: No CSP headers or configurations found (fails web security baseline).</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">as-11</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Session Management: Session timeout is not configured (defaults to 30 mins, violating the mandated max 15 mins).</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">as-12</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Malware Scanning: SFS malware scanning is disabled in production settings (scanRequired: false) and pre-upload validations are absent.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">ac-2</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">MFA: Multi-Factor Authentication (MFA) is not implemented for local user credentials.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">ac-3</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Inactive Accounts: No dormancy detection/account disabling logic or SCIM endpoints are configured.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">ac-4</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Access Review: No automated access review or privilege revocation logic configured in codebase.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">ac-8 / ac-12</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Lifecycle / SSO: No standards-based push provisioning (SCIM) or SSO OIDC/SAML2 client configuration is present.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs">pm-6</td>
+                <td class="px-4 py-3 text-red-600 font-semibold">FAIL</td>
+                <td class="px-4 py-3">Documentation: Lacks detailed system architecture docs, data flow diagrams, and OpenAPI specs.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs">as-1</td>
+                <td class="px-4 py-3 text-amber-600">WARN</td>
+                <td class="px-4 py-3">Input Validation: Validation is missing at controller entry points (validation exists only on service layer commands).</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs">as-5 / as-6 / as-15</td>
+                <td class="px-4 py-3 text-amber-600">WARN</td>
+                <td class="px-4 py-3">Passwords / Change: Delegated blindly to starter package with no customized overrides or policies.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs">as-8 / dp-3</td>
+                <td class="px-4 py-3 text-amber-600">WARN</td>
+                <td class="px-4 py-3">Secrets Management / Transit: SSL keystore password is hardcoded in application.yml; no secrets manager integrated.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs">as-13</td>
+                <td class="px-4 py-3 text-amber-600">WARN</td>
+                <td class="px-4 py-3">Actuator Exposure: /actuator/** endpoints are whitelisted in url-guard-paths.yml, exposing internal paths.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- Card: Thermo-Nuclear Quality Review (FAIL) -->
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium text-lg">thermo-nuclear — Thermo-Nuclear Code Quality Review</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-100">
+          <table class="w-full text-sm text-left mt-3">
+            <thead>
+              <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+                <th class="px-4 py-2">Severity</th>
+                <th class="px-4 py-2">File</th>
+                <th class="px-4 py-2">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/repository/handlers/UserPostingRepositoryHandler.java">UserPostingRepositoryHandler.java</a> / <a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/repository/handlers/ClinicalAddendumRepositoryHandler.java">ClinicalAddendumRepositoryHandler.java</a></td>
+                <td class="px-4 py-3">Thread-safety leak in singleton handlers: request-scoped entities are stored in private instance fields, leading to state bleed/corruption across concurrent requests.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-orange-600 font-semibold">High</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/config/audit/EDSMedicalDemoAuditorAware.java">EDSMedicalDemoAuditorAware.java</a></td>
+                <td class="px-4 py-3">Proxy bypass for Transactional: internal private method findUser is annotated with @Transactional, which Spring Security/AOP silently ignores.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-orange-600 font-semibold">High</td>
+                <td class="px-4 py-3 font-mono text-xs">Repository packages</td>
+                <td class="px-4 py-3">REST Access Guard Bypass: MedicationOrderRepository, ProcedureOrderRepository, and InvestigationOrderRepository are auto-exported but lack event handlers, bypassing security rules in OrderRepositoryHandler.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs">Command packages</td>
+                <td class="px-4 py-3">Inconsistent Persistence Strategy: some commands use repository.save() while others rely implicitly on active transactions to persist changes in-memory.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs">Repository packages</td>
+                <td class="px-4 py-3">Implicit Spring Data REST Auto-Exposure: all repository classes are auto-exposed to the web. Failure to declare block event handlers on new entities results in security gaps.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-slate-500">Low</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/service/commands/letters/ExportLetterReportCommand.java">ExportLetterReportCommand.java</a></td>
+                <td class="px-4 py-3">Letter download restrictions logical bug: rejects exports for ISSUED letters (only VOIDED letters should be restricted).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- Card: Code Review (FAIL) -->
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium text-lg">code-review — Standards and Smell Baseline (HEAD vs HEAD~5)</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-100">
+          <table class="w-full text-sm text-left mt-3">
+            <thead>
+              <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+                <th class="px-4 py-2">Severity</th>
+                <th class="px-4 py-2">File</th>
+                <th class="px-4 py-2">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/controller/OrderController.java">OrderController.java</a></td>
+                <td class="px-4 py-3">ClassCastException: @AuthenticationPrincipal Authentication cast error in uploadFile method.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/seeder/SamplePatientData.java">SamplePatientData.java</a> / <a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/seeder/SampleVisitRecordData.java">SampleVisitRecordData.java</a></td>
+                <td class="px-4 py-3">Non-Deterministic Data Seeding: Standard HashMap usage combined with randomly generated UUID keys results in non-deterministic test data order, making test sets flaky.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/model/Patient.java">Patient.java</a></td>
+                <td class="px-4 py-3">JPA Lombok Entity Exposure: Patient entity uses @Data without excluding visitRecords relationship, risking StackOverflowError on serialization/equals calls.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- Card: Semgrep Scan (FAIL) -->
+      <details open class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium text-lg">semgrep — Static Analysis Security Scan</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-red-100 text-red-800">FAIL</span>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-100">
+          <table class="w-full text-sm text-left mt-3">
+            <thead>
+              <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+                <th class="px-4 py-2">Severity</th>
+                <th class="px-4 py-2">File</th>
+                <th class="px-4 py-2">Line</th>
+                <th class="px-4 py-2">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="px-4 py-3 text-red-700 font-semibold">Critical</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/src/main/java/eds/medicaldemo/config/CustomErrorController.java">CustomErrorController.java</a></td>
+                <td class="px-4 py-3 font-mono text-xs">15</td>
+                <td class="px-4 py-3">Detected RequestMapping("/error") without method constraints. Allows state-changing verbs (like POST/PUT) to execute unhindered, creating CSRF bypass potential.</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-amber-600">Medium</td>
+                <td class="px-4 py-3 font-mono text-xs"><a class="text-blue-600 hover:underline" href="file:///Users/swee/Documents/Projects/CoreX/AppFW/emr-demo-app/checklists/code-reviewer/main-compliance.html">main-compliance.html</a></td>
+                <td class="px-4 py-3 font-mono text-xs">6</td>
+                <td class="px-4 py-3">Subresource Integrity (SRI): Tailwind CSS script tag loaded from external CDN is missing the integrity validation attribute.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      <!-- Card: React Review (PASS) -->
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium text-lg text-slate-500">react — React 19 / Frontend Review</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span>
+        </summary>
+        <div class="px-5 pb-5 border-t border-slate-100">
+          <p class="text-sm text-slate-400 text-center py-4">No React or frontend files found. The project is verified to be a pure Spring Boot / Java Maven project. Check marked N/A (PASS).</p>
+        </div>
+      </details>
+
+    </main>
+  </body>
+</html>

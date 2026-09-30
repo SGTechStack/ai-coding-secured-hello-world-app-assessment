@@ -1,0 +1,28 @@
+app:
+  session:
+    # Local development runs over plain HTTP.
+    secure-cookie: false
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+  password-reset:
+    reset-page-url: http://localhost:5173/reset-password
+  # A development-only Bootstrap admin. Real environments must supply their own.
+  admin:
+    username: devadmin
+    email: devadmin@dev.example.com
+    password: dev-only-admin-password
+  audit:
+    ip-hash-secret: dev-only-ip-hash-secret-never-use-elsewhere
+
+spring:
+  h2:
+    # At /h2-console, JDBC URL jdbc:h2:mem:helloauth. Startup fails if any other profile enables it.
+    console:
+      enabled: true
+
+logging:
+  structured:
+    ecs:
+      service:
+        environment: dev

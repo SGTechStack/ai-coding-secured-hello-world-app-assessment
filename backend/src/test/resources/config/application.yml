@@ -1,0 +1,30 @@
+# Test-only settings. Boot reads classpath:/config/application.yml on top of the main
+# application.yml, so every test, including those that start the real application, gets them.
+app:
+  audit:
+    ip-hash-secret: test-only-ip-hash-secret-never-used-for-real
+    log-file: target/test-logs/audit.ndjson
+  password-reset:
+    reset-page-url: https://app.test.example.com/reset-password
+  # TestAccount.BOOTSTRAP_ADMIN. Every context creates it at startup; IntegrationTest then
+  # empties the database, and tests that need an Admin create it again.
+  admin:
+    username: testadmin
+    email: testadmin@test.example.com
+    password: correct-horse-battery-admin
+  login-protection:
+    # Throttle state is in memory and outlives each test, and tests share one address and a few
+    # usernames, so ordinary tests get limits they never reach. ThrottlingTest sets real ones.
+    throttle:
+      failed-logins-per-ip:
+        attempts: 100000
+      logins-per-username:
+        attempts: 100000
+      registrations-per-ip:
+        attempts: 100000
+      password-reset-requests-per-ip:
+        attempts: 100000
+      password-reset-requests-per-email:
+        attempts: 100000
+      password-reset-confirms-per-ip:
+        attempts: 100000

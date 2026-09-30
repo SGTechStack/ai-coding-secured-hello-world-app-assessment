@@ -1,0 +1,1300 @@
+{
+  "project": "crips",
+  "feature_groups": [
+    {
+      "id": "FG-UNDERTAKINGS-CORE",
+      "title": "Undertakings Core (E-Plans, Requisition Planning & Execution)",
+      "story_ids": [
+        "41",
+        "42",
+        "43",
+        "52",
+        "53",
+        "54",
+        "59",
+        "60",
+        "61"
+      ]
+    },
+    {
+      "id": "FG-COMPENSATION-PAYMENT",
+      "title": "Compensation & Payment Management",
+      "story_ids": [
+        "44",
+        "45",
+        "46"
+      ]
+    },
+    {
+      "id": "FG-REPORTING-ANALYTICS",
+      "title": "Reporting & Analytics Dashboard",
+      "story_ids": [
+        "47",
+        "48",
+        "55",
+        "56"
+      ]
+    },
+    {
+      "id": "FG-REQUIREMENTS-MANAGEMENT",
+      "title": "Undertaking Requirements & Allocation Management",
+      "story_ids": [
+        "49",
+        "50",
+        "51",
+        "57",
+        "58"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "be_e_plan_db_schema",
+      "name": "E-Plan DB Schema (Individual & Combined E-Plans, Schedule of Services)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_e_plan_data_access",
+      "name": "E-Plan Data Access",
+      "duration_days": 1
+    },
+    {
+      "id": "be_e_plan_service",
+      "name": "E-Plan Business Logic Service (create/update individual & combined plans, SoS, status management)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_e_plan_routes",
+      "name": "E-Plan API Routes",
+      "duration_days": 1
+    },
+    {
+      "id": "be_e_plan_reminder_job",
+      "name": "E-Plan Reminder Scheduler Job (3-month and monthly reminders for due dates and reviews)",
+      "duration_days": 1,
+      "appfw_standard": "Appfw-Mcc-Standards/Appfw-Mcns-Standards/MCNS_Core"
+    },
+    {
+      "id": "fe_e_plan_page",
+      "name": "E-Plan Management Page (individual & combined E-Plans, SoS, status display)",
+      "duration_days": 2
+    },
+    {
+      "id": "fe_e_plan_form",
+      "name": "E-Plan Creation/Edit Form (individual & combined, reference number, approver details)",
+      "duration_days": 1
+    },
+    {
+      "id": "report_core",
+      "name": "Report Generation Core (JasperReports, PDF/Excel/CSV templates)",
+      "duration_days": 1,
+      "category": "infrastructure",
+      "appfw_standard": "Appfw-Report-Standards/Report_Core"
+    },
+    {
+      "id": "be_requisition_plan_db_schema",
+      "name": "Requisition Plan DB Schema (plan types: Training, Exercise, Operation)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_requisition_plan_data_access",
+      "name": "Requisition Plan Data Access",
+      "duration_days": 1
+    },
+    {
+      "id": "be_requisition_plan_service",
+      "name": "Requisition Plan Business Logic Service (plan types, draft/submit/approve workflow)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_requisition_plan_routes",
+      "name": "Requisition Plan API Routes (CRUD, submit, download PDF/Excel)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_requisition_plan_page",
+      "name": "Requisition Plan Management Page (plan list, status, CRUD)",
+      "duration_days": 2
+    },
+    {
+      "id": "fe_requisition_plan_form",
+      "name": "Requisition Plan Creation/Edit Form (type selection, SoS import, fund objects)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_requisition_db_schema",
+      "name": "Requisition DB Schema (NOD, DPCU, Service Acceptance, TDPCU, TNOD records)",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_requisition_data_access",
+      "name": "Requisition Data Access",
+      "duration_days": 1
+    },
+    {
+      "id": "be_requisition_service",
+      "name": "Requisition Business Logic Service (NOD/DPCU/TNOD state machine, service acceptance, PDF generation)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_requisition_routes",
+      "name": "Requisition API Routes (NOD/DPCU/acceptance/termination endpoints)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_requisition_page",
+      "name": "Requisition Management Page (NOD generation, DPCU, service acceptance workflow, PDF print)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_iras_integration",
+      "name": "IRAS API Integration (GST registration number retrieval)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "be_payment_hub_integration",
+      "name": "Payment Service Hub Integration (MINDEF/SAF PSH automated payment routing)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_compensation_db_schema",
+      "name": "Compensation DB Schema (compensation records, GST, appeals, progressive payments)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_compensation_data_access",
+      "name": "Compensation Data Access",
+      "duration_days": 1
+    },
+    {
+      "id": "be_compensation_service",
+      "name": "Compensation Business Logic Service (calculation, GST, appeals, CRIC verification routing, Homefront export)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_compensation_routes",
+      "name": "Compensation API Routes (verification, approval, appeals, payment status)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_compensation_page",
+      "name": "Compensation Management Page (status filter tabs, appeals, document download)",
+      "duration_days": 2
+    },
+    {
+      "id": "fe_payment_instruction_page",
+      "name": "Payment Instruction Review Page (MINDEF/SAF rejected payment re-submission)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_payment_export_page",
+      "name": "Homefront Payment Export Page (download verified compensation, upload payment confirmation)",
+      "duration_days": 1
+    },
+    {
+      "id": "be_undertaking_report_service",
+      "name": "Undertaking Reports Service (12 report types: requirement status, firm readiness, clearance, SoS, compensation, payment)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_undertaking_report_routes",
+      "name": "Undertaking Reports API Routes (generate and download reports)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_report_page",
+      "name": "Undertakings Reports Page (report selection, optional filters, export)",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_dashboard_service",
+      "name": "Undertakings Dashboard Aggregation Service (3 sections: Allocation/Planning/Requisition, 3-level drilldown, traffic light)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_dashboard_routes",
+      "name": "Dashboard API Routes (aggregated stats by period and level)",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_dashboard_page",
+      "name": "Undertakings Dashboard Page (traffic light RAG system, 3-level drilldown, period filter, export)",
+      "duration_days": 2
+    },
+    {
+      "id": "be_security_clearance_db_schema",
+      "name": "Security Clearance DB Schema (clearance records, MHA outcomes, expiry dates, re-clearance history)",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_security_clearance_data_access",
+      "name": "Security Clearance Data Access",
+      "duration_days": 1
+    },
+    {
+      "id": "be_security_clearance_service",
+      "name": "Security Clearance Service (MHA submission workflow, re-clearance, Controller Undertakings approval, shared/individual firm designation)",
+      "duration_days": 3
+    },
+    {
+      "id": "be_security_clearance_routes",
+      "name": "Security Clearance API Routes (submit, update outcome, approve, re-clearance)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_undertaking_cuo_page",
+      "name": "Undertaking Requirements Page - Controller Undertakings Office (clearance workflow, approval, coordinating agency assignment)",
+      "duration_days": 2
+    },
+    {
+      "id": "fe_firm_cuo_page",
+      "name": "Firm Information Page - Controller Undertakings Office (de-registration, security re-clearance, ACRA lookup)",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_allocation_service",
+      "name": "Undertaking Allocation Service (allocate/reject requests, batch processing, individual/shared firm designation)",
+      "duration_days": 1.5
+    },
+    {
+      "id": "be_allocation_routes",
+      "name": "Undertaking Allocation API Routes",
+      "duration_days": 0.5
+    },
+    {
+      "id": "fe_allocation_page",
+      "name": "Allocation Management Page (status tabs: Requirement/Allocation/Clearance/Approval/Complete, multi-select)",
+      "duration_days": 2
+    },
+    {
+      "id": "fe_e_plan_cuo_nav",
+      "name": "E-Plan Navigation Access - Controller Undertakings Office (role-based menu integration)",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_requisition_plan_cuo_nav",
+      "name": "Requisition Plan Navigation Access - Controller Undertakings Office",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_requisition_cuo_nav",
+      "name": "Requisition Navigation Access - Controller Undertakings Office",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_report_cuo_nav",
+      "name": "Reports Navigation Access - Controller Undertakings Office",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_dashboard_cuo_nav",
+      "name": "Dashboard Navigation Access - Controller Undertakings Office",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_firm_la_page",
+      "name": "Firm Information Page - Lead Agency (edit POC/contacts, de-registration request, security re-clearance submission)",
+      "duration_days": 1
+    },
+    {
+      "id": "fe_allocation_la_nav",
+      "name": "Allocation Navigation Access - Lead Agency",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_e_plan_la_nav",
+      "name": "E-Plan Navigation Access - Lead Agency",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_requisition_plan_la_nav",
+      "name": "Requisition Plan Navigation Access - Lead Agency",
+      "duration_days": 0.25
+    },
+    {
+      "id": "fe_requisition_la_nav",
+      "name": "Requisition Navigation Access - Lead Agency",
+      "duration_days": 0.25
+    }
+  ],
+  "edges": [
+    [
+      "be_e_plan_db_schema",
+      "be_e_plan_data_access"
+    ],
+    [
+      "be_e_plan_data_access",
+      "be_e_plan_service"
+    ],
+    [
+      "be_e_plan_service",
+      "be_e_plan_routes"
+    ],
+    [
+      "be_e_plan_data_access",
+      "be_e_plan_reminder_job"
+    ],
+    [
+      "fe_e_plan_form",
+      "fe_e_plan_page"
+    ],
+    [
+      "be_e_plan_routes",
+      "fe_e_plan_page"
+    ],
+    [
+      "db_setup",
+      "be_e_plan_db_schema"
+    ],
+    [
+      "arch_tests",
+      "be_e_plan_db_schema"
+    ],
+    [
+      "logging",
+      "be_e_plan_service"
+    ],
+    [
+      "auth_service",
+      "be_e_plan_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_e_plan_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_e_plan_routes"
+    ],
+    [
+      "mcns_core",
+      "be_e_plan_reminder_job"
+    ],
+    [
+      "component_lib",
+      "fe_e_plan_form"
+    ],
+    [
+      "routing_setup",
+      "fe_e_plan_page"
+    ],
+    [
+      "state_management",
+      "fe_e_plan_page"
+    ],
+    [
+      "api_client",
+      "fe_e_plan_page"
+    ],
+    [
+      "auth_ui",
+      "fe_e_plan_page"
+    ],
+    [
+      "be_e_plan_data_access",
+      "be_requisition_plan_service"
+    ],
+    [
+      "be_requisition_plan_db_schema",
+      "be_requisition_plan_data_access"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_requisition_plan_service"
+    ],
+    [
+      "be_requisition_plan_service",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "report_core",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "fe_requisition_plan_form",
+      "fe_requisition_plan_page"
+    ],
+    [
+      "be_requisition_plan_routes",
+      "fe_requisition_plan_page"
+    ],
+    [
+      "db_setup",
+      "be_requisition_plan_db_schema"
+    ],
+    [
+      "arch_tests",
+      "be_requisition_plan_db_schema"
+    ],
+    [
+      "logging",
+      "be_requisition_plan_service"
+    ],
+    [
+      "auth_service",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_requisition_plan_routes"
+    ],
+    [
+      "mcns_core",
+      "be_requisition_plan_service"
+    ],
+    [
+      "component_lib",
+      "fe_requisition_plan_form"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_plan_page"
+    ],
+    [
+      "state_management",
+      "fe_requisition_plan_page"
+    ],
+    [
+      "api_client",
+      "fe_requisition_plan_page"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_plan_page"
+    ],
+    [
+      "be_requisition_plan_db_schema",
+      "be_requisition_db_schema"
+    ],
+    [
+      "be_requisition_db_schema",
+      "be_requisition_data_access"
+    ],
+    [
+      "be_requisition_data_access",
+      "be_requisition_service"
+    ],
+    [
+      "be_requisition_service",
+      "be_requisition_routes"
+    ],
+    [
+      "be_e_plan_data_access",
+      "be_requisition_service"
+    ],
+    [
+      "report_core",
+      "be_requisition_service"
+    ],
+    [
+      "be_requisition_routes",
+      "fe_requisition_page"
+    ],
+    [
+      "db_setup",
+      "be_requisition_db_schema"
+    ],
+    [
+      "arch_tests",
+      "be_requisition_db_schema"
+    ],
+    [
+      "logging",
+      "be_requisition_service"
+    ],
+    [
+      "auth_service",
+      "be_requisition_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_requisition_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_requisition_routes"
+    ],
+    [
+      "mcns_core",
+      "be_requisition_service"
+    ],
+    [
+      "be_file_mcc",
+      "be_requisition_service"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_page"
+    ],
+    [
+      "state_management",
+      "fe_requisition_page"
+    ],
+    [
+      "component_lib",
+      "fe_requisition_page"
+    ],
+    [
+      "api_client",
+      "fe_requisition_page"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_page"
+    ],
+    [
+      "be_requisition_db_schema",
+      "be_compensation_db_schema"
+    ],
+    [
+      "be_compensation_db_schema",
+      "be_compensation_data_access"
+    ],
+    [
+      "be_compensation_data_access",
+      "be_compensation_service"
+    ],
+    [
+      "be_compensation_service",
+      "be_compensation_routes"
+    ],
+    [
+      "be_iras_integration",
+      "be_compensation_service"
+    ],
+    [
+      "be_payment_hub_integration",
+      "be_compensation_service"
+    ],
+    [
+      "be_compensation_routes",
+      "fe_compensation_page"
+    ],
+    [
+      "db_setup",
+      "be_compensation_db_schema"
+    ],
+    [
+      "arch_tests",
+      "be_compensation_db_schema"
+    ],
+    [
+      "logging",
+      "be_compensation_service"
+    ],
+    [
+      "auth_service",
+      "be_compensation_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_compensation_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_compensation_routes"
+    ],
+    [
+      "mcns_core",
+      "be_compensation_service"
+    ],
+    [
+      "routing_setup",
+      "fe_compensation_page"
+    ],
+    [
+      "state_management",
+      "fe_compensation_page"
+    ],
+    [
+      "component_lib",
+      "fe_compensation_page"
+    ],
+    [
+      "api_client",
+      "fe_compensation_page"
+    ],
+    [
+      "auth_ui",
+      "fe_compensation_page"
+    ],
+    [
+      "be_compensation_routes",
+      "fe_payment_instruction_page"
+    ],
+    [
+      "routing_setup",
+      "fe_payment_instruction_page"
+    ],
+    [
+      "state_management",
+      "fe_payment_instruction_page"
+    ],
+    [
+      "component_lib",
+      "fe_payment_instruction_page"
+    ],
+    [
+      "api_client",
+      "fe_payment_instruction_page"
+    ],
+    [
+      "auth_ui",
+      "fe_payment_instruction_page"
+    ],
+    [
+      "be_compensation_routes",
+      "fe_payment_export_page"
+    ],
+    [
+      "routing_setup",
+      "fe_payment_export_page"
+    ],
+    [
+      "state_management",
+      "fe_payment_export_page"
+    ],
+    [
+      "component_lib",
+      "fe_payment_export_page"
+    ],
+    [
+      "api_client",
+      "fe_payment_export_page"
+    ],
+    [
+      "auth_ui",
+      "fe_payment_export_page"
+    ],
+    [
+      "report_core",
+      "be_undertaking_report_service"
+    ],
+    [
+      "be_e_plan_data_access",
+      "be_undertaking_report_service"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_undertaking_report_service"
+    ],
+    [
+      "be_requisition_data_access",
+      "be_undertaking_report_service"
+    ],
+    [
+      "be_compensation_data_access",
+      "be_undertaking_report_service"
+    ],
+    [
+      "be_undertaking_report_service",
+      "be_undertaking_report_routes"
+    ],
+    [
+      "be_undertaking_report_routes",
+      "fe_report_page"
+    ],
+    [
+      "logging",
+      "be_undertaking_report_service"
+    ],
+    [
+      "auth_service",
+      "be_undertaking_report_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_undertaking_report_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_undertaking_report_routes"
+    ],
+    [
+      "arch_tests",
+      "be_undertaking_report_routes"
+    ],
+    [
+      "routing_setup",
+      "fe_report_page"
+    ],
+    [
+      "state_management",
+      "fe_report_page"
+    ],
+    [
+      "component_lib",
+      "fe_report_page"
+    ],
+    [
+      "api_client",
+      "fe_report_page"
+    ],
+    [
+      "auth_ui",
+      "fe_report_page"
+    ],
+    [
+      "be_e_plan_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_requisition_plan_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_requisition_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_compensation_data_access",
+      "be_dashboard_service"
+    ],
+    [
+      "be_dashboard_service",
+      "be_dashboard_routes"
+    ],
+    [
+      "be_dashboard_routes",
+      "fe_dashboard_page"
+    ],
+    [
+      "logging",
+      "be_dashboard_service"
+    ],
+    [
+      "auth_service",
+      "be_dashboard_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_dashboard_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_dashboard_routes"
+    ],
+    [
+      "arch_tests",
+      "be_dashboard_routes"
+    ],
+    [
+      "routing_setup",
+      "fe_dashboard_page"
+    ],
+    [
+      "state_management",
+      "fe_dashboard_page"
+    ],
+    [
+      "component_lib",
+      "fe_dashboard_page"
+    ],
+    [
+      "api_client",
+      "fe_dashboard_page"
+    ],
+    [
+      "auth_ui",
+      "fe_dashboard_page"
+    ],
+    [
+      "be_undertaking_db_schema",
+      "be_security_clearance_db_schema"
+    ],
+    [
+      "be_security_clearance_db_schema",
+      "be_security_clearance_data_access"
+    ],
+    [
+      "be_security_clearance_data_access",
+      "be_security_clearance_service"
+    ],
+    [
+      "be_security_clearance_service",
+      "be_security_clearance_routes"
+    ],
+    [
+      "be_security_clearance_routes",
+      "fe_undertaking_cuo_page"
+    ],
+    [
+      "be_undertaking_data_access",
+      "be_security_clearance_service"
+    ],
+    [
+      "be_acra_integration",
+      "be_security_clearance_service"
+    ],
+    [
+      "be_file_mcc",
+      "be_security_clearance_service"
+    ],
+    [
+      "db_setup",
+      "be_security_clearance_db_schema"
+    ],
+    [
+      "arch_tests",
+      "be_security_clearance_db_schema"
+    ],
+    [
+      "logging",
+      "be_security_clearance_service"
+    ],
+    [
+      "auth_service",
+      "be_security_clearance_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_security_clearance_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_security_clearance_routes"
+    ],
+    [
+      "mcns_core",
+      "be_security_clearance_service"
+    ],
+    [
+      "routing_setup",
+      "fe_undertaking_cuo_page"
+    ],
+    [
+      "state_management",
+      "fe_undertaking_cuo_page"
+    ],
+    [
+      "component_lib",
+      "fe_undertaking_cuo_page"
+    ],
+    [
+      "api_client",
+      "fe_undertaking_cuo_page"
+    ],
+    [
+      "auth_ui",
+      "fe_undertaking_cuo_page"
+    ],
+    [
+      "be_firm_management_routes",
+      "fe_firm_cuo_page"
+    ],
+    [
+      "routing_setup",
+      "fe_firm_cuo_page"
+    ],
+    [
+      "state_management",
+      "fe_firm_cuo_page"
+    ],
+    [
+      "component_lib",
+      "fe_firm_cuo_page"
+    ],
+    [
+      "api_client",
+      "fe_firm_cuo_page"
+    ],
+    [
+      "auth_ui",
+      "fe_firm_cuo_page"
+    ],
+    [
+      "be_undertaking_data_access",
+      "be_allocation_service"
+    ],
+    [
+      "be_allocation_service",
+      "be_allocation_routes"
+    ],
+    [
+      "be_allocation_routes",
+      "fe_allocation_page"
+    ],
+    [
+      "logging",
+      "be_allocation_service"
+    ],
+    [
+      "auth_service",
+      "be_allocation_routes"
+    ],
+    [
+      "exception_mapping",
+      "be_allocation_routes"
+    ],
+    [
+      "openapi_docs",
+      "be_allocation_routes"
+    ],
+    [
+      "arch_tests",
+      "be_allocation_routes"
+    ],
+    [
+      "mcns_core",
+      "be_allocation_service"
+    ],
+    [
+      "routing_setup",
+      "fe_allocation_page"
+    ],
+    [
+      "state_management",
+      "fe_allocation_page"
+    ],
+    [
+      "component_lib",
+      "fe_allocation_page"
+    ],
+    [
+      "api_client",
+      "fe_allocation_page"
+    ],
+    [
+      "auth_ui",
+      "fe_allocation_page"
+    ],
+    [
+      "fe_e_plan_page",
+      "fe_e_plan_cuo_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_e_plan_cuo_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_e_plan_cuo_nav"
+    ],
+    [
+      "fe_requisition_plan_page",
+      "fe_requisition_plan_cuo_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_plan_cuo_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_plan_cuo_nav"
+    ],
+    [
+      "fe_requisition_page",
+      "fe_requisition_cuo_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_cuo_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_cuo_nav"
+    ],
+    [
+      "fe_report_page",
+      "fe_report_cuo_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_report_cuo_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_report_cuo_nav"
+    ],
+    [
+      "fe_dashboard_page",
+      "fe_dashboard_cuo_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_dashboard_cuo_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_dashboard_cuo_nav"
+    ],
+    [
+      "be_firm_management_routes",
+      "fe_firm_la_page"
+    ],
+    [
+      "routing_setup",
+      "fe_firm_la_page"
+    ],
+    [
+      "state_management",
+      "fe_firm_la_page"
+    ],
+    [
+      "component_lib",
+      "fe_firm_la_page"
+    ],
+    [
+      "api_client",
+      "fe_firm_la_page"
+    ],
+    [
+      "auth_ui",
+      "fe_firm_la_page"
+    ],
+    [
+      "fe_allocation_page",
+      "fe_allocation_la_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_allocation_la_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_allocation_la_nav"
+    ],
+    [
+      "fe_e_plan_page",
+      "fe_e_plan_la_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_e_plan_la_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_e_plan_la_nav"
+    ],
+    [
+      "fe_requisition_plan_page",
+      "fe_requisition_plan_la_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_plan_la_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_plan_la_nav"
+    ],
+    [
+      "fe_requisition_page",
+      "fe_requisition_la_nav"
+    ],
+    [
+      "auth_ui",
+      "fe_requisition_la_nav"
+    ],
+    [
+      "routing_setup",
+      "fe_requisition_la_nav"
+    ]
+  ],
+  "user_stories": [
+    {
+      "id": "41",
+      "title": "8.3 Manage E-Plans",
+      "owned_nodes": [
+        "be_e_plan_db_schema",
+        "be_e_plan_data_access",
+        "be_e_plan_service",
+        "be_e_plan_routes",
+        "be_e_plan_reminder_job",
+        "fe_e_plan_page",
+        "fe_e_plan_form"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "42",
+      "title": "8.4 Manage Requisition Plans",
+      "owned_nodes": [
+        "report_core",
+        "be_requisition_plan_db_schema",
+        "be_requisition_plan_data_access",
+        "be_requisition_plan_service",
+        "be_requisition_plan_routes",
+        "fe_requisition_plan_page",
+        "fe_requisition_plan_form"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "43",
+      "title": "8.5 Manage Requisition",
+      "owned_nodes": [
+        "be_requisition_db_schema",
+        "be_requisition_data_access",
+        "be_requisition_service",
+        "be_requisition_routes",
+        "fe_requisition_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "44",
+      "title": "8.6 Manage Compensation",
+      "owned_nodes": [
+        "be_iras_integration",
+        "be_payment_hub_integration",
+        "be_compensation_db_schema",
+        "be_compensation_data_access",
+        "be_compensation_service",
+        "be_compensation_routes",
+        "fe_compensation_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "45",
+      "title": "8.7 Review Payment Instruction",
+      "owned_nodes": [
+        "fe_payment_instruction_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "46",
+      "title": "8.8 Export Homefront Payment",
+      "owned_nodes": [
+        "fe_payment_export_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "47",
+      "title": "8.9 Reports",
+      "owned_nodes": [
+        "be_undertaking_report_service",
+        "be_undertaking_report_routes",
+        "fe_report_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "48",
+      "title": "8.10 Dashboard",
+      "owned_nodes": [
+        "be_dashboard_service",
+        "be_dashboard_routes",
+        "fe_dashboard_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "49",
+      "title": "9.1 Manage Undertaking Requirements",
+      "owned_nodes": [
+        "be_security_clearance_db_schema",
+        "be_security_clearance_data_access",
+        "be_security_clearance_service",
+        "be_security_clearance_routes",
+        "fe_undertaking_cuo_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "50",
+      "title": "9.2 Manage Firms Information",
+      "owned_nodes": [
+        "fe_firm_cuo_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "51",
+      "title": "9.3 Manage Allocations",
+      "owned_nodes": [
+        "be_allocation_service",
+        "be_allocation_routes",
+        "fe_allocation_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "52",
+      "title": "9.4 Manage E-Plans",
+      "owned_nodes": [
+        "fe_e_plan_cuo_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "53",
+      "title": "9.5 Manage Requisition Plans",
+      "owned_nodes": [
+        "fe_requisition_plan_cuo_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "54",
+      "title": "9.6 Manage Requisition",
+      "owned_nodes": [
+        "fe_requisition_cuo_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "55",
+      "title": "9.7 Reports",
+      "owned_nodes": [
+        "fe_report_cuo_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "56",
+      "title": "9.8 Dashboard",
+      "owned_nodes": [
+        "fe_dashboard_cuo_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "57",
+      "title": "10.1 Manage Firms Information",
+      "owned_nodes": [
+        "fe_firm_la_page"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "58",
+      "title": "10.2 Manage Allocations",
+      "owned_nodes": [
+        "fe_allocation_la_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "59",
+      "title": "10.3 Manage E-Plans",
+      "owned_nodes": [
+        "fe_e_plan_la_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "60",
+      "title": "10.4 Manage Requisition Plans",
+      "owned_nodes": [
+        "fe_requisition_plan_la_nav"
+      ],
+      "category": "feature"
+    },
+    {
+      "id": "61",
+      "title": "10.5 Manage Requisition",
+      "owned_nodes": [
+        "fe_requisition_la_nav"
+      ],
+      "category": "feature"
+    }
+  ]
+}

@@ -1,0 +1,271 @@
+[
+  {
+    "id": "14.7",
+    "title": "De-allocate CR Owner",
+    "acceptance_criteria": [
+      "14.7.1 System shall restrict by CR types according to the respective Controller\u2019s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to view the list of CR Owners allocated to each ReqCen and select the CR owners to de-allocate from the chosen ReqCen. When de- allocating CR Owners, the Controller shall be prompted to enter the reasons for the de-allocation.",
+      "14.7.2 OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "14.7.3 Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.8",
+    "title": "Manage Annual Exercise Plan",
+    "acceptance_criteria": [
+      "14.8.1 System shall restrict by ReqCens according to the respective Controller\u2019s access rights.",
+      "14.8.2 System shall display a summary of all ReqCens, the ReqCen Description, Previous and Last Exercise Dates and the Planned Exercise Workyear (e.g. WY 2025).",
+      "14.8.3 System shall update the Previous and Last CR Exercise Dates automatically after ReqCen has completed their CR exercise.",
+      "14.8.4 System shall derive the Planned Exercise Workyear for each ReqCen taking reference from its last exercise dates. A mapping table shall be set-up to define the mapping logic for Planned Exercise Workyear. For example, the planned exercise workyear for ReqCen A is +3 years from its last exercise date.",
+      "14.8.5 Controllers shall be able to amend the Planned Exercise Workyear for ReqCens that he/she is authorised to.",
+      "14.8.6 Upon clicking onto the respective ReqCen\u2019s previous or last CR exercise date, system shall display the exercise scale, i.e. the number of CR owners and the number of CR assets participated in that exercise."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.9",
+    "title": "Manage Requisition Plan",
+    "acceptance_criteria": [
+      "14.9.1 System shall restrict the display by ReqCens according to the respective Controller\u2019s access rights.",
+      "14.9.2 Controllers shall be able to view Requisition Plans.",
+      "14.9.3 Controllers shall be able to export/download the details of Requisition Plans.",
+      "14.9.4 Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.10",
+    "title": "Manage ReqCen POC Details",
+    "acceptance_criteria": [
+      "14.10.1 the details of CRO(Asset) tagged to the ReqCens and collaborate with them on matters related CR allocation, exercises and operations.",
+      "14.10.2 System shall restrict the display by ReqCens according to the respective Controller\u2019s access rights.",
+      "14.10.3 Controllers shall be able to display ReqCen details under two board categories: a. Contact information. Unit/EGB address, name and contact number of primary and secondary CRO(Asset) managing the ReqCen. b. Competent Authority. Rank and name of the Competent Authority, his/her appointment, Unit/EGB name, Armed Forces Postal Number (AFPN).",
+      "14.10.4 Controllers shall be able to export/download the information."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.11",
+    "title": "Manage EMA",
+    "acceptance_criteria": [
+      "14.11.1 Controllers shall be able to view the EMA information of each ReqCen that he/she is authorised.",
+      "14.11.2 Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.12",
+    "title": "Manage CR Owners Information",
+    "acceptance_criteria": [
+      "14.12.1 The CR Owners shall be segregated into \u2018Allocated CR Owners\u2019 and \u2018Unallocated CR Owners\u2019. a. b. Allocated CR Owners. They can be allocated to one or more ReqCens. They are generally termed as shared CR Owner if the company is supporting more than one ReqCen. Controllers shall be able to view all records regardless of ReqCens. He/She shall be able to view when the CR Owner was last mobilised. For shared CR Owner, the last mobilisation date for each ReqCen shall be shown. Unallocated CR Owners. Controllers shall be able to view all the records. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "14.12.2 Header information shall include UEN number, Company Name, Status of the company, Mailing Address, Office/Site Address, GST Registration Number, Office Contact Number, Other Contact Number (e.g. Mobile Number), Email Address etc.",
+      "14.12.3 ReqCen-level information shall include CR Owner\u2019s POC names, their mobile number, office number, fax number and email address. There shall also be a display checkbox to indicate who are the primary and secondary POCs.",
+      "14.12.4 Controllers shall be able to view the CR Owners\u2019 assets which shall be grouped and presented logically. a. \u2018CR Assets Owned\u2019 shall show each CR category and their respective Quantity. It shall provide the total number of CR assets of the CR Owner. b. \u2018CR Category Allocated to ReqCens\u2019 shall show the CR category, Quantity Allocated and ReqCen Allocated. It shall provide the allocation to ownership ratio. E.g. if a CR Owner owns 10 assets and only 5 are allocated, the allocation ratio is 50%. c. \u2018ReqCen Allocation History\u2019 shall show the Allocation Date and the corresponding ReqCen. It shall provide a summary of the total allocation records. d. \u2018De-allocation History\u2019 shall show the De-allocation Date and the corresponding ReqCen and Reason for De-allocation.",
+      "14.12.5 Controllers shall be able to view the CR Mobilisation Exercise History of each CR Owner. The information shall include ReqCen, Requisition Plan Description, Requisition Plan Type, Mobilisation Date.",
+      "14.12.6 Controllers shall be able to view additional information related to Shared CR Owners status. The information shall include Major ReqCen and Shared ReqCens.",
+      "14.12.7 Controllers shall be able to view all the CR assets of the CR Owners. Information shall include CR Type, CR Category, Registration Number, Chassis Number, Engine Number, etc.",
+      "14.12.8 System shall have a function to download a template containing all the essential fields that shall be populated to support mass load CR Owner Details into CRIPS.",
+      "14.12.9 System shall have a function to download all the CR assets of the CR Owners.",
+      "14.12.10 System shall have a function to download all the CR Owners details. There shall be controls to restrict the number of records that can be downloaded each time. This control shall be managed via App Setting or Site Properties.",
+      "14.12.11 Controllers shall be able to export/download the information.",
+      "14.12.12 Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.13",
+    "title": "Manage Compensation Rates",
+    "acceptance_criteria": [
+      "14.13.1 requisitioned by MINDEF/SAF or WOG. The rates will also support CRO(Asset) in working out the required budget for each requisition plan.",
+      "14.13.2 System shall restrict by CR types according to the respective Controller\u2019s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to update, view, verify and reject compensation rates.",
+      "14.13.3 Compensation rates are to be maintained for CR Type + CR category.",
+      "14.13.4 For each CR category, there shall be various types of compensation rates, e.g. a. Asset Hourly Rate without Operators b. Asset Half-Daily Rate without Operators c. Asset Daily Rate without Operators d. Undertaking Hourly Rate with Operators e. Undertaking Half-Daily Rate with Operators f. Undertaking Daily Rate with Operators System shall have a function to download a template containing all the essential fields that shall be populated to support mass load into CRIPS.",
+      "14.13.5 System shall have a function to upload a filled template containing all the information needed to mass upload the compensation rates into CRIPS.",
+      "14.13.6 Controllers shall be able to export/download the compensation rates.",
+      "14.13.7 Controllers shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.14",
+    "title": "Assign EE to ReqCen",
+    "acceptance_criteria": [
+      "14.14.1 System shall control the access by CR Types.",
+      "14.14.2 Controller (Vessels) shall only be able to assign EEs to RSN ReqCens for CR Vessels and CR Craft.",
+      "14.14.3 Controller (Vessels) shall be able to un-tag the EEs to ReqCen.",
+      "14.14.4 Controller (Vessels) shall be able to view details of EE\u2019s CR (Vessels and Craft) requirements.",
+      "14.14.5 Have a function to download and upload template for EE\u2019s CR (Vessels and Craft) requirements.",
+      "14.14.6 Controller (Vehicles) shall be able to view the assignment of EEs to ReqCens.",
+      "14.14.7 Controller (Vehicles) shall be able to view details of EE\u2019s CR (Vehicles and Heavy Plants) requirements.",
+      "14.14.8 Controller (Vehicles) and Controller (Vessels) shall be able to search using keywords. On the screen, he/she shall be able to fill out the search field and fields allowable for search shall have text hint of the search field."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.15",
+    "title": "Reports",
+    "acceptance_criteria": [
+      "14.15.1 rights, a. b. c. System shall restrict by CR types according to the respective Controller\u2019s access a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) CR Vessels, CR Craft (applicable for Controller Vessels) CR Aircraft (applicable for Controller Aircraft) Controllers shall be able to generate reports for Allocation Summary by ReqCen. This report shall generate CR allocation summary details by ReqCen. b. Allocation Summary by Service. This report shall generate CR allocation summary details by Services (e.g. Army, RSAF, RSN, DIS, etc). c. Allocation Summary by Unit/EE. This report shall generate CR allocation summary details by Unit/EE. d. Allocated CR Owners. This report shall generate the allocated CR Owner with summary information of their CR assets by CR category. Information displayed shall be restricted by CR type. e. Unallocated CR Owners. This report shall generate all unallocated CR Owners with summary information of their CR assets by CR category.",
+      "14.15.2 Information displayed shall be restricted by CR type. f. ReqCen CR Requirements vs CR Owner Allocation. This report shall generate ReqCen CR requirements and allocated CR Owner details. g. Unit/EE CR Requirements vs CR Owner Allocation. This report shall generate Unit/EE CR requirements and allocated CR Owner details. h. ReqCen Unit/EE Asset Allocation. This report shall generate individual asset allocation to Unit/EE."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "14.16",
+    "title": "Dashboard",
+    "acceptance_criteria": [
+      "14.16.1 System shall restrict the display by CR types according to the respective Controller\u2019s access rights, a. CR Vehicles, CR Heavy Plants (applicable for Controller Vehicles) b. CR Vessels, CR Craft (applicable for Controller Vessels) c. CR Aircraft (applicable for Controller Aircraft) Asset Dashboard shall be divided into three key sections a. CR Allocation (Asset) focus on demand fulfilment status. b. CR Planning (Asset) focus on CR exercise policy compliance and Undertaking Readiness. c. CR Requisition (Asset) focus on the overall requisition/ derequisition status and response time of CR owners especially during operations.",
+      "14.16.2 Asset Dashboards shall be displayed at three levels a. b. Aggregated at Level 1 \u2013 Display all (i.e. MINDEF/SAF and WOG).",
+      "14.16.3 Aggregated at Level 2 \u2013 Display at Service-level (i.e. Army, RSAF, RSN, DIS and WOG/SCDF). c. Aggregated at Level 3 \u2013 Display at ReqCen-level (e.g. ReqCen A, L1, R1, etc.).",
+      "14.16.4 When generating the dashboards, Controllers shall be able to select by specific period, e.g. Work-Year 2025 which refers to 1 April 2025 to 31 March 2026. a. b. The results shall provide the statistics in numbers and percentage.",
+      "14.16.5 The dashboard shall use the traffic light system (green, amber, red) so that it draws the users\u2019 attention to areas that are important or of concern. The respective performance target for green, amber and red shall be pre-defined and can be re-defined easily."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "15.1",
+    "title": "Manage Undertaking Approvals",
+    "acceptance_criteria": [
+      "15.1.1 Upon a Requesting Agency\u2019s submission of a request to register a firm, system shall send an email notification to the Lead Agency for allocation. Of note, Controller Undertakings shall be included in the list of Lead Agency.",
+      "15.1.2 For cases where CRO(Undertaking) selects Controller Undertakings as the Lead Agency, Controller Undertakings shall be able to allocate and reject agency\u2019s requests routed to him/her.",
+      "15.1.3 Controller Undertakings shall be able to allocate a company to the request if no preferred company is not indicated in the request. If Controller Undertakings rejects the request, system shall prompt him/her to enter the reason for rejecting the request.",
+      "15.1.4 System shall send an email notification to inform Controller Undertakings of the request pending his/her approval, after MHA Office updates in CRIPS the firm\u2019s security clearance is successful. Of note, MHA Office may indicate an expiry date for the security clearance. a. If MHA Office indicate the expiry date as \u201c31-12-9999\u201d, it means no expiry date.",
+      "15.1.5 For other dates, CRO(Undertaking) or Controller Undertakings Office shall initiate security re-clearance at least 2 months before the security clearance expiry date.",
+      "15.1.6 System shall have a workflow to allow CRO(Undertaking) or Controller Undertakings Office to submit for security re-clearance. The re-clearance requests could be due to changes in the firm\u2019s senior management or expiry set by MHA Office.",
+      "15.1.7 Controller Undertakings shall be able to approve and reject agency\u2019s requests to de- register an approved firm. If he/she approves the request, the firm shall be deallocated from the requesting agency. If Controller Undertakings rejects the request, system shall prompt him/her to enter the reason for rejecting the request.",
+      "15.1.8 After de-allocation, if there is only one agency that requires the firm, system shall update it from \u2018Shared\u2019 to \u2018Individual\u2019 firm.",
+      "15.1.9 System shall enable Controller Undertakings to display all undertaking requirements pending his/her action, a. \u2018Allocation\u2019 \u2013 It shall display requirements with \u2018Pending Approval\u2019 status. b. \u2018De-Allocation\u2019 \u2013 It shall display requirements with \u2018Pending De-Allocation Approval\u2019 status.",
+      "15.1.10 System shall enable Controller Undertakings to process the request individually."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "15.2",
+    "title": "Reports",
+    "acceptance_criteria": [
+      "15.2.1 Controller Undertakings shall be able to generate a. Undertakings Requirement Approval Status Report. This report gives an overview of the status of requests for companies/firms by the requesting agency. The report also has information such as the approval dates by the various stakeholders given that each request is routed through multiple agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency, Submission From Dates and Current Status. b. Essential Firms (by Agency) Report. This report generates the list of firms by Requesting Agencies. When generating the report, Controller Undertakings shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Lead Agency and Allocated From Dates. c. Essential Firms (by Company) Report. This report generates the list of firms by company/firm. The report shall show if the Company is \u2018Individual\u2019 or \u2018Shared\u2019, and if it is \u2018Shared\u2019, it shall show the list of agencies that have registered the company. When generating the report, users shall be able to select the period and registration status (e.g. all status, rejected, deregistered firms). There shall be optional fields for users to choose, e.g. Requesting Agency, Coordinating Agency and the Allocated from dates. d. Undertakings Readiness (by Agency) Report. This report generates a summary of firms\u2019 readiness covering the E-Plan and Exercise status by Requesting Agencies. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. e. Undertakings Readiness (by Company) Report. This report generates a summary of firms\u2019 readiness covering the E-Plan and Exercise status by OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "15.2.2 company/firm. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and the range of the approval dates. f. Essential Firm Security Clearance Status Report. This report generates the status of security clearance of companies. When generating the report, users shall be able to select the clearance status (e.g. all status, submitted, approved, pending, rejected). There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm and Security Clearance. g. Essential Firm Security Re-Clearance Report. This report generates the list of companies that are subjected to security re-clearance. There shall be optional fields for users to choose, e.g. Requesting Agency, Essential Firm, Security Expiry Date, Re-clearance status. h. Schedule of Service Report. This report generates a listing of the Schedule of Service of the firms. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. i. Outstanding Service Acceptance. This report generated the list of outstanding service acceptance after TDPCUs have been served. There shall be optional fields for users to choose, e.g. Requesting Agency and Essential Firm. Controller Undertakings shall be able to export/download the reports."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "15.3",
+    "title": "Dashboards",
+    "acceptance_criteria": [
+      "15.3.1 Undertakings Dashboard shall be divided into three key sections a. CR Allocation (Undertakings) focus on demand fulfilment status. b. CR Planning (Undertakings) focus on E-Plan Readiness, Requisition Readiness. c. CR Requisition (Undertakings) focus on the overall requisition/ derequisition status.",
+      "15.3.2 Aside from CR Allocation (\u2018Lead Agency\u2019 selected), all Undertakings Dashboards shall have the same functionality and can be drilled down to three levels a. b. c. Aggregated at Level 1 \u2013 Display all (i.e. MINDEF/SAF and WOG).",
+      "15.3.3 Aggregated at Level 2 \u2013 Display at Ministry-level.",
+      "15.3.4 respective performance target for green, amber and red shall be pre-defined and can be re-defined easily. There shall be accompanying details to support the aggregated information and Controller Undertakings shall be able to export/download the information. 16. CONTROLLER CRIC & CRIC OFFICER USER STORY"
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "16.1",
+    "title": "Verify Compensation",
+    "acceptance_criteria": [
+      "16.1.1 System shall generate and trigger an email to CRIC Officer to notify him/her there is compensation pending verification. If the compensation is not verified, an email shall be sent to CRIC Officer every 7-day interval to remind him/her of the outstanding cases.",
+      "16.1.2 CRIC Officer shall be allowed to verify various types of compensation, i.e. Use, Loss, Damage, Appeal for Use, Appeal for Loss, and Appeal for Damage.",
+      "16.1.3 Compensation for Asset Requisition Plan, CRIC Officer shall be able to a. View Requisition Plan including the Requisition Form and De-requisition Form b. View Progressive Payment Details c. View Compensation Details, e.g. usage duration, unit rate, compensation amount",
+      "16.1.4 d. e. Verify Single and Multiple Compensation Reject Single and Multiple Compensation and state the reason(s) for the rejection Compensation for Modification/Inspection, CRIC Officer shall be able to a. Verify Compensation b. Reject Compensation and state the reason(s) for the rejection Compensation for Undertakings Requisition Plan, CRIC Officer shall be able to a. View Requisition Plan b. View Service Acceptance Form c. View Partial Acceptance Details d. Verify Single and Multiple Compensation e. Reject Single and Multiple Compensation and state the reason(s) for the rejection CRIC Officer shall be able to generate a. Appeal Report. This report shall generate appeal details.",
+      "16.1.5 OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "16.1.7 b. Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. c. Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. d. Undertaking Compensation Report. This report shall generate compensation for undertakings requisition plan. e. Timeliness Report. This report shall generate a timeline of verification, approval and payment processing for compensations. f. Verification Report. This report shall generate compensation count (pending verification and verified) for assets and undertakings.",
+      "16.1.8 CRIC Officer shall be able to export/download the reports."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "16.2",
+    "title": "Review Appeal",
+    "acceptance_criteria": [
+      "16.2.1 System shall generate and trigger an email to Controller CRIC to notify him/her there is appeal case that requires his/her assessment and decision. If he/she does not update the decision, an email shall be sent to Controller CRIC every 7-day interval to remind him/her of the outstanding appeal cases.",
+      "16.2.2 Appeal for Asset, Controller CRIC shall be able to a. View Requisition Plan and Appeal details for Use/Loss/Damage b. View Appeal details for Modification/Inspection c. Update his/her assessment and decision, \uf0a7 Accept and the accepted additional amount; or \uf0a7 Counter Propose and the counter offer additional amount; or \uf0a7 Reject and state the reason(s) for the rejection",
+      "16.2.3 Appeal for Undertaking, Controller CRIC shall be able to a. b. View Requisition Plan and Appeal details for Undertaking Update his/her assessment and decision, \uf0a7 Accept and the accepted additional amount; or \uf0a7 Counter Propose and the counter offer additional amount; or \uf0a7 Reject and state the reason(s) for the rejection",
+      "16.2.4 Controller CRIC shall be able to generate OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "16.2.5 a. b. Appeal Report. This report shall generate appeal details.",
+      "16.2.6 Requisition Compensation Report. This report shall generate requisition compensation for CR assets with requisition plan. c. Modification/Inspection Compensation Report. This report shall generate compensation for CR assets without requisition plan, namely modification and inspection compensation. d. Undertaking Compensation Report. This report shall generate compensation for undertakings requisition plan. e. Timeliness Report. This report shall generate a timeline of verification, approval and payment processing for compensations. f. Verification Report. This report shall generate compensation count (pending verification and verified) for assets and undertakings."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "17.1",
+    "title": "Appeal to RORCB",
+    "acceptance_criteria": [
+      "17.1.1 Upon clicking on the Appeal to RORCB module, system shall display a summary of all appeals rejected by CR Owners/Companies/Firms within 8 weeks from Controller CRIC\u2019s offer. The cases shall be segregated by \u2018Assets\u2019 and \u2018Undertakings\u2019.",
+      "17.1.2 System shall display all RORCB cases and grouped them by tabs according to the status of each case, i.e. 'Open\u2019, \u2018Pending\u2019, and 'Closed'.",
+      "17.1.3 For Asset cases, system shall display details such as CR Owner Name and its UEN, CR Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).",
+      "17.1.4 For Undertaking cases, system shall display details such as the Company/Firm Name and its UEN, Service Category, Appeal Type, First Offer (S$) and GST Amount (S$), Appeal Amount (S$) and GST Amount (S$), Second Offer (S$) and GST Amount (S$).",
+      "17.1.5 System shall have an \u2018Action\u2019 button for each case, and upon clicking it, system shall display appeal details for the selected case. a. Case ID field is not enabled for user input. Requesting Amount and Ordered Amount fields are enabled only if appeal status is \u2018Open\u2019 or \u2018Pending\u2019. \u2018Upload Supporting Document\u2019 function is enabled only if the appeal status is \u2018Open\u2019 or \u2018Pending\u2019. b. C-155 OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "17.1.6 c. d. e. f. g. h. \u2018List of supporting documents\u2019 function is displayed only if the appeal status is \u2018Pending\u2019 or \u2018Closed\u2019.",
+      "17.1.7 There shall be a \u2018Generate Form\u2019 function and upon clicking on this, system shall open a pop-up window with a list of form options available for generation in pdf format. The Competent Authority name will be populated in the pdf document is required. This function is only available if the appeal is \u2018Open\u2019 or \u2018Pending\u2019."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "18.1",
+    "title": "Login to CR Owner Portal",
+    "acceptance_criteria": [
+      "18.1.1 Upon clicking on \u2018Login\u2019 button, system shall require CR owner to login as a Corppass user, i.e. CR owner must have a valid Corppass ID and password for logging in to the CR Owner Portal.",
+      "18.1.2 System shall block non-allocated CR owners from accessing the CR owner portal.",
+      "18.1.3 System shall have \u2018Logout\u2019 button to allow CR owners to logout of the portal.",
+      "18.1.4 System shall display the CR owner last login to the CR owner portal.",
+      "18.1.5 System shall be able to track CR owner login, the corresponding timestamp as well as the audit logs of CR owner\u2019s actions."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "18.2",
+    "title": "CR Owner Information and Contact Details",
+    "acceptance_criteria": [
+      "18.2.1 CR Owner shall be able to submit, update, view, verify the company details and contact information. There should be fields such as the company\u2019s UEN, handphone number, office number, registered company mailing address, email address, GST registration status, POC contact details.",
+      "18.2.2 CR Owner shall be able to assign multiple point-of-contact (POC) to receive notices and notification for CR requisition. CR Owner can update the contact information of the POC.",
+      "18.2.3 System shall have a section on \u2018Contact and Notification Preferences\u2019 and include a \u2018View/Edit\u2019 function. a. b. c. System shall list all the ReqCens supported by the CR owner.",
+      "18.2.4 For each ReqCen, system shall display a message to state \u2018You will receive SMS notification sent to [POCs], [mobile numbers] and email notification at [email addresses].",
+      "18.2.5 Upon clicking on the \u2018View/Edit button\u2019, system shall allow toggle between \u2018View\u2019 and \u2018Edit\u2019 mode. d. e. CR Owner shall be allowed to select \u2018SMS\u2019, \u2018Email\u2019 and \u2018SMS and Email\u2019 as the mode of notifications. System shall require CR Owner to click on the checkbox to consent to the Terms and Conditions of Use and agree to receive digital notices and notifications. The Terms and Conditions of Use shall be embedded with hyperlink to bring him/her to a page with relevant information.",
+      "18.2.6 The content on this page shall be configurable easily via Service Request."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "18.3",
+    "title": "Notices, Orders, Directions and Requisition published in the CR Owner Portal",
+    "acceptance_criteria": [
+      "18.3.1 For new notifications, CR owner shall be able to click \u2018Acknowledge\u2019 in the system.",
+      "18.3.2 The system shall also track and update the status to \u2018Acknowledged\u2019. System shall log and display the timestamp of the acknowledgment.",
+      "18.3.3 System shall be able to mark the notifications as \u2018Read\u2019 once the CR owner view the message, i.e. even without clicking the \u2018Acknowledge\u2019 button, the status shall be updated to \u2018Read\u2019. System shall log and display the timestamp of when the notification was read.",
+      "18.3.4 CR owner shall be able to view and re-open past notifications even though they have been read and/or acknowledged.",
+      "18.3.5 System shall list the notifications according to the timestamp it was sent and display the most recent notifications on top of the list. New notifications that have not been read shall be have a \u2018New\u2019 icon to highlight/draw attention. System shall also show the total number of new notifications."
+    ],
+    "group": "default",
+    "release": 3
+  },
+  {
+    "id": "18.4",
+    "title": "Resources Earmarked for Requisition",
+    "acceptance_criteria": [
+      "18.4.1 For \u2018Exercise\u2019 and \u2018Operation\u2019 Requisition Plans, system shall auto generate and send emails, informing the CR Owners that they have been selected to participate in an upcoming CR requisition.",
+      "18.4.2 CR owner shall be able to retrieve such notifications via the CR Owner Portal. He/She shall be able to view the pertinent details such as the period that they could be activated, the types of CR assets and quantity required for requisition, the primary and alternate EMA address, and contact details of the CROs, name and appointment of the Competent Authority. OFFICIAL (CLOSED)\fOFFICIAL (CLOSED)",
+      "18.4.3 CR Owner shall be able to use the appropriate functions in the CR Owner Portal to inform the CROs on the availability of the allocated CR assets when assets not serviceable.",
+      "18.4.4 CR Owner shall be able to use the appropriate functions in the CR Owner Portal to notify the CROs of changes in their heavy plant assets. For example, new heavy plants acquired and existing heavy plants that have been sold or disposed."
+    ],
+    "group": "default",
+    "release": 3
+  }
+]

@@ -1,0 +1,124 @@
+spring:
+  application:
+    name: hello-auth
+  datasource:
+    url: jdbc:h2:mem:helloauth;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        type.preferred_instant_jdbc_type: TIMESTAMP
+  web:
+    error:
+      # Belt and braces: ProblemErrorController already exposes none of these.
+      include-stacktrace: never
+      include-message: never
+      include-binding-errors: never
+      include-exception: false
+
+server:
+  # The client IP comes from the connection unless app.api.trusted-proxies says otherwise. Stop Boot
+  # from trusting X-Forwarded-For on its own, which it does on some cloud platforms.
+  forward-headers-strategy: none
+  servlet:
+    session:
+      # Spring Session's own wall-clock expiry; the app enforces the same limit on its Clock.
+      timeout: ${app.session.idle-timeout}
+
+logging:
+  # logback-spring.xml sends the application log to the console and audit events to their own file.
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        # service.name comes from spring.application.name.
+        version: '@project.version@'
+        environment: ${APP_ENVIRONMENT:unspecified}
+    json:
+      rename:
+        traceId: trace.id
+        spanId: span.id
+  level:
+    # SecurityConfiguration declares the login provider on purpose; silence Spring's warning about it.
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
+    # A registration that loses a race for a username or email is answered "user exist"; this logger
+    # would otherwise write the clashing username or email to the log.
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: OFF
+
+app:
+  api:
+    base-path: /api
+    # A larger request body gets 400 validation failed before anything reads it.
+    max-request-body-size: 16KB
+    # Reverse proxies (IPs or CIDR ranges) whose X-Forwarded-For names the client. With none, a
+    # forged X-Forwarded-For can't dodge the IP throttle.
+    trusted-proxies: []
+  login-protection:
+    lockout:
+      # Consecutive failed logins that lock an Account, and how long before the lock lifts by itself.
+      threshold: 5
+      duration: 20m
+    # In memory, so correct for a single instance only (ADR-0003). Throttled requests get 429 with Retry-After.
+    throttle:
+      failed-logins-per-ip:
+        attempts: 30
+        period: 10m
+      logins-per-username:
+        attempts: 10
+        period: 1m
+      registrations-per-ip:
+        attempts: 10
+        period: 1h
+      password-reset-requests-per-ip:
+        attempts: 10
+        period: 1h
+      # Keyed on the email as submitted, so reset emails can't flood one inbox.
+      password-reset-requests-per-email:
+        attempts: 3
+        period: 1h
+      password-reset-confirms-per-ip:
+        attempts: 10
+        period: 1h
+  session:
+    # The session cookie is always HttpOnly and SameSite=Lax. Only the dev profile may set this
+    # to false; startup fails anywhere else.
+    secure-cookie: true
+    # A logged-in session ends after this long unused, and after absolute-timeout regardless.
+    idle-timeout: 15m
+    absolute-timeout: 8h
+  password:
+    compromised-check:
+      # Have I Been Pwned range API. If it can't answer within the timeout, setting a password
+      # fails with 503; login goes ahead unchecked.
+      base-url: https://api.pwnedpasswords.com/range/
+      timeout: 3s
+  admin:
+    # The Bootstrap admin, created at startup only if no active Admin exists (ADR-0008). Outside
+    # the dev profile all three are required and startup fails without them; the password must
+    # pass the Password policy.
+    username: ${APP_ADMIN_USERNAME:}
+    email: ${APP_ADMIN_EMAIL:}
+    password: ${APP_ADMIN_PASSWORD:}
+  password-reset:
+    # The SPA's reset-password page; the emailed link adds ?token=... to it. Required: startup
+    # fails without it.
+    reset-page-url: ${APP_RESET_PAGE_URL:}
+    # How long a Password reset token works. It works once.
+    token-validity: 30m
+  cors:
+    # Explicit frontend origins only; a wildcard is rejected at startup.
+    allowed-origins: []
+  audit:
+    # Key for the HMAC-SHA256 of client IPs in audit events, at least 32 characters. Required: startup
+    # fails without it. Keep it secret and stable; hashes made with another key can't be linked.
+    ip-hash-secret: ${AUDIT_IP_HASH_SECRET:}
+    log-file: logs/audit.ndjson

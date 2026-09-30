@@ -2,6 +2,8 @@ package sg.securedhello.config;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +27,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
+import sg.securedhello.persistence.DatabaseFile;
+
 /**
  * The refresh-phase prohibited-configuration validator (T-CFG-033). It runs as a bean factory post-processor, before
  * any application bean is created and so before the web server opens its port, and refuses startup on:
@@ -38,6 +42,8 @@ import org.springframework.util.ClassUtils;
  *   <li>the dev-only reset-link logger's level set in a configuration file outside {@code dev} (ADR-057, control
  *       1; {@link ResetLinkLoggerGuard} is control 2);</li>
  *   <li>an unset or in-memory datasource URL, and under {@code dev} any URL that is not an H2 file (ADR-051);</li>
+ *   <li>an H2 file datasource whose database file does not lie under {@code app.db.data-dir}, which the shed check,
+ *       the {@code h2Data} indicator and the file-size gauge watch (R-OBS-019; T-OBS-016);</li>
  *   <li>the datasource URL rules in {@link DatasourceUrlRules}: {@code FILE_LOCK=NO}, {@code AUTO_SERVER} and, outside
  *       {@code dev}, an unpinned {@code LOCK_TIMEOUT}, {@code INIT} and any backslash in the settings (ADR-072;
  *       T-CFG-012; T-CFG-013). The settings in {@link #DATASOURCE_BYPASS_PREFIXES}, and every Hikari setting outside
@@ -82,6 +88,9 @@ public class ProhibitedConfigurationValidator implements BeanFactoryPostProcesso
      */
     static final List<String> DATASOURCE_BYPASS_PREFIXES = List.of("spring.flyway.url", "spring.flyway.init-sqls",
             "spring.sql.init");
+
+    /** The data directory, which must contain the database file (R-OBS-019). */
+    static final String DATA_DIR = "app.db.data-dir";
 
     static final String HIKARI = "spring.datasource.hikari";
 
@@ -151,6 +160,10 @@ public class ProhibitedConfigurationValidator implements BeanFactoryPostProcesso
             violations.add(ResetLinkLoggerGuard.LEVEL_PROPERTY + " is set outside the dev profile (ADR-057)");
         }
         violations.addAll(DatasourceUrlRules.violations(environment.getProperty(DatasourceUrlRules.PROPERTY), dev));
+        if (!dataDirectoryHoldsDatabase(environment)) {
+            violations.add(DATA_DIR + " does not contain the database file " + DatasourceUrlRules.PROPERTY + " names; "
+                    + "the storage checks would watch the wrong mount (R-OBS-019)");
+        }
         hikariSettingsNotAllowed(environment).forEach(setting -> violations.add(HIKARI + "." + setting + " is set; "
                 + "only pool sizing, timeouts and the pool name may be set on Hikari (ADR-072)"));
         prefixesSet(environment, DATASOURCE_BYPASS_PREFIXES).forEach(prefix -> violations.add(prefix + " is set; "
@@ -173,6 +186,27 @@ public class ProhibitedConfigurationValidator implements BeanFactoryPostProcesso
         secretsFromClasspathFiles(environment).forEach(secret -> violations.add(secret + " comes from a committed "
                 + "configuration file; supply it from a mounted secret or the environment (IM8 as-8; R-CFG-006)"));
         return violations;
+    }
+
+    /**
+     * Whether the H2 file the datasource URL names lies under {@code app.db.data-dir}. Nothing to check while either is
+     * unset or the URL is not an H2 file; an unset data directory fails its own binding instead. A blank one names no
+     * directory, so it holds nothing.
+     */
+    private static boolean dataDirectoryHoldsDatabase(ConfigurableEnvironment environment) {
+        String dataDir = trimmed(environment.getProperty(DATA_DIR));
+        String url = environment.getProperty(DatasourceUrlRules.PROPERTY);
+        if (dataDir == null || url == null || DatabaseFile.databasePath(url).isEmpty()) {
+            return true;
+        }
+        if (dataDir.isEmpty()) {
+            return false;
+        }
+        try {
+            return DatabaseFile.underDataDirectory(url, Path.of(dataDir));
+        } catch (InvalidPathException unreadable) {
+            return false;
+        }
     }
 
     /**

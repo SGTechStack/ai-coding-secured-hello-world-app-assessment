@@ -176,6 +176,7 @@ public final class RunnerProcess {
             env.keySet().removeIf(name -> name.startsWith("APP_") || name.startsWith("SPRING_"));
             Map<String, Object> json = new LinkedHashMap<>();
             json.put("spring.datasource.url", url(database));
+            json.put("app.db.data-dir", database.toAbsolutePath().getParent().toString());
             json.put("app.audit.directory", auditDirectory.toString());
             json.putAll(properties);
             env.put("SPRING_APPLICATION_JSON", JSON.writeValueAsString(json));

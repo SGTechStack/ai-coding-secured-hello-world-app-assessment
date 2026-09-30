@@ -119,7 +119,8 @@ public final class RestartHarness {
     public static ApplicationContextInitializer<ConfigurableApplicationContext> onDatabase(Path directory) {
         String database = directory.resolve("secured-hello").toString().replace('\\', '/');
         return context -> context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
-                "restartDatabase", Map.of("spring.datasource.url", "jdbc:h2:file:" + database + ";LOCK_TIMEOUT=1000")));
+                "restartDatabase", Map.of("spring.datasource.url", "jdbc:h2:file:" + database + ";LOCK_TIMEOUT=1000",
+                        "app.db.data-dir", directory.toString())));
     }
 
     /**

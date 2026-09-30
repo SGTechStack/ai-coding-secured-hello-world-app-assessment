@@ -151,6 +151,19 @@ class ProhibitedConfigurationValidatorTest {
     }
 
     @Test
+    @Proves("T-OBS-016")
+    void aDatabaseFileOutsideTheDataDirectoryRefusesStartup() {
+        assertRefused(production().withProperty("app.db.data-dir", "./elsewhere"), "app.db.data-dir");
+        assertRefused(production().withProperty("app.db.data-dir", "./data/secured-hello/deeper"), "app.db.data-dir");
+        assertRefused(production().withProperty("app.db.data-dir", "./data/secured-hello"), "app.db.data-dir");
+        assertRefused(production().withProperty("app.db.data-dir", " "), "app.db.data-dir");
+        assertThat(ProhibitedConfigurationValidator.violations(production().withProperty("app.db.data-dir", "./data")))
+                .isEmpty();
+        assertThat(ProhibitedConfigurationValidator.violations(production().withProperty("app.db.data-dir", ".")))
+                .as("any directory above the file holds it").isEmpty();
+    }
+
+    @Test
     @Proves("T-CFG-031")
     void outsideDevANonH2DatasourceIsNotRefused() {
         assertThat(ProhibitedConfigurationValidator.violations(

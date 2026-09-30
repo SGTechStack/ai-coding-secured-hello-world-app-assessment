@@ -14,7 +14,8 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
 /**
- * Points {@code spring.datasource.url} at a fresh H2 file in a new temporary directory, one per context (ADR-067).
+ * Points {@code spring.datasource.url} at a fresh H2 file in a new temporary directory, one per context (ADR-067), and
+ * {@code app.db.data-dir} at that directory (R-OBS-019).
  * In-memory H2 is never used. The directory is deleted when the context closes.
  *
  * <p>It also supplies the test-only {@link TestSecrets}, at the lowest precedence, because every context it builds
@@ -33,7 +34,8 @@ public class TemporaryH2FileInitializer implements ApplicationContextInitializer
         String database = directory.resolve("secured-hello").toString().replace('\\', '/');
         String url = "jdbc:h2:file:" + database + ";LOCK_TIMEOUT=${" + LOCK_TIMEOUT_PROPERTY + ":1000}";
         context.getEnvironment().getPropertySources()
-                .addFirst(new MapPropertySource("temporaryH2File", Map.of("spring.datasource.url", url)));
+                .addFirst(new MapPropertySource("temporaryH2File", Map.of("spring.datasource.url", url,
+                        "app.db.data-dir", directory.toString())));
         TestSecrets.addTo(context.getEnvironment());
         // Registered before any other bean, so it is destroyed last: after the pool has closed the database.
         ((DefaultSingletonBeanRegistry) context.getBeanFactory())

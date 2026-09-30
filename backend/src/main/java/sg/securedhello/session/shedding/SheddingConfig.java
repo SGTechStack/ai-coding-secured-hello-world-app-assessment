@@ -1,9 +1,9 @@
 package sg.securedhello.session.shedding;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Clock;
-import java.util.Locale;
+
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.binder.MeterBinder;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpointGroupsPostProcessor;
@@ -11,17 +11,18 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import sg.securedhello.audit.AuditEmitter;
+import sg.securedhello.persistence.DatabaseFile;
 
 /** Anonymous-session shedding and the {@code h2Data} health indicator that shares its state (ADR-041). */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(SheddingProperties.class)
 public class SheddingConfig {
 
-    private static final String H2_FILE_PREFIX = "jdbc:h2:file:";
+    /** The gauge of stored anonymous session rows. */
+    public static final String ANONYMOUS_ROWS_GAUGE = "sessions.anonymous.rows";
 
     @Bean
     AnonymousSessionShedding anonymousSessionShedding(JdbcTemplate jdbc, SessionStoreVolume volume, Clock clock,
@@ -34,12 +35,34 @@ public class SheddingConfig {
         return new AnonymousSessionShedding(rows, volume, clock, audit, properties.floor().toBytes());
     }
 
-    /** The volume of the directory holding the H2 file that {@code spring.datasource.url} names. */
+    /**
+     * The volume of {@code app.db.data-dir}, which holds the H2 file (R-OBS-019). Looked up on each read, and a failed
+     * read sheds.
+     */
     @Bean
-    SessionStoreVolume sessionStoreVolume(Environment environment) {
-        Path directory = databaseDirectory(environment.getRequiredProperty("spring.datasource.url"));
-        // Looked up on each read: the directory may not exist until H2 creates the file, and a failed read sheds.
-        return () -> Files.getFileStore(directory).getUsableSpace();
+    SessionStoreVolume sessionStoreVolume(DatabaseFile databaseFile) {
+        return databaseFile::usableBytes;
+    }
+
+    /**
+     * Stored anonymous session rows, expired ones the cleanup job has not yet deleted included, since stored rows are
+     * what fill the disk; counted at publish over the {@code PRINCIPAL_NAME} index: the one signal that tells
+     * session growth from audit growth on a shared mount. Anonymous means no principal, which only password sign-in
+     * sets (ADR-038). The metrics are pushed, never served, so nobody outside sets its query rate; the shed check keeps
+     * its own cached count (ADR-041). The state object is strongly held, so the gauge never reads {@code NaN} after a
+     * collection (T-OBS-016).
+     */
+    @Bean
+    MeterBinder anonymousSessionRowsGauge(JdbcTemplate jdbc) {
+        return registry -> Gauge.builder(ANONYMOUS_ROWS_GAUGE, jdbc, SheddingConfig::anonymousRows)
+                .description("Stored anonymous session rows (ADR-041)")
+                .strongReference(true)
+                .register(registry);
+    }
+
+    private static double anonymousRows(JdbcTemplate jdbc) {
+        Long rows = jdbc.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION WHERE PRINCIPAL_NAME IS NULL", Long.class);
+        return rows == null ? 0 : rows;
     }
 
     /**
@@ -58,18 +81,4 @@ public class SheddingConfig {
         return new StorageHealthGroup();
     }
 
-    /**
-     * The directory holding the database file of an H2 file URL; {@code ~} is the user's home, as in H2. The startup
-     * validator has already refused anything but an H2 file URL (ADR-051).
-     */
-    static Path databaseDirectory(String url) {
-        if (!url.toLowerCase(Locale.ROOT).startsWith(H2_FILE_PREFIX)) {
-            throw new IllegalStateException("spring.datasource.url is not an H2 file database (ADR-051)");
-        }
-        String file = url.substring(H2_FILE_PREFIX.length()).split(";", 2)[0];
-        if (file.startsWith("~")) {
-            file = System.getProperty("user.home") + file.substring(1);
-        }
-        return Path.of(file).toAbsolutePath().normalize().getParent();
-    }
 }

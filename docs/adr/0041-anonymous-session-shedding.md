@@ -68,7 +68,7 @@ Each of those undoes something deliberate.
   unaffected. The episode clears within about the idle interval plus two minutes of the attack stopping. While the
   attack continues, the only remedy is a per-source limit at the infrastructure edge. A restart does not clear it,
   because the rows are in the database.
-- The volume must be sized to the sizing line, about 6.96 GB at the planning values, of which the session term is
+- The volume must be sized to the sizing line, about 11.5 GB with the measured audit row size and base file size (R-AUD-030; R-RL-009; about 6.96 GB at the planning values), of which the session term is
   about 4.25 GB. The handover document carries the formula, and the register carries `k`, `b` and the unmeasured range.
 - An episode start is one audit row and its end another, at most one episode a minute.
 - Reopening triggers: a measurement of `b` beyond 100,000 rows; an H2 upgrade that changes MVStore retention or

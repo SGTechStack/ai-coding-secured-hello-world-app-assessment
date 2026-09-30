@@ -139,7 +139,10 @@ http://localhost:5173/forgot-password and the reset link, valid for 30 minutes, 
 On its first start against an empty database the app seeds one administrator from `APP_ADMIN_USERNAME` and
 `APP_ADMIN_PASSWORD` (ADR-047); with the demo values above that is `demo-admin` / `lantern-orchard-copper-tide`. It
 seeds only while no `ADMIN` account exists, so later starts seed nothing and changing the variables afterwards has no
-effect. The database is the H2 file under `backend/data/`: stop the app and delete that folder to start over.
+effect. The database is the H2 file under `backend/data/`: stop the app and delete that folder to start over. The
+folder is `app.db.data-dir` (`APP_DB_DATA_DIR`), and the default datasource URL names a file inside it; if you point
+`spring.datasource.url` somewhere else, set `app.db.data-dir` to a directory that holds that file too, or startup
+refuses (R-OBS-019).
 
 The seeded password is a forced-change credential (ADR-046):
 

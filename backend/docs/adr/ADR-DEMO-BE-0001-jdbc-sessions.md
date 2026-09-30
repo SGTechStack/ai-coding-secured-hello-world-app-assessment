@@ -12,5 +12,5 @@ Sessions are stored with Spring Session JDBC in every profile, replacing the tem
 
 ## Consequences
 
-- Remove `spring-boot-starter-session-data-redis`, `feat-redis` session use and `LocalRedisExclusionConfiguration` once no other Redis use remains.
+- Only sessions leave Redis. `feat-redis` still backs the cache manager and the JWKS rotation lock, so the Redis data starter, `feat-redis` and `LocalRedisExclusionConfiguration` stay; the Redis session starter is replaced by the JDBC one.
 - Session tables need Liquibase changelogs for H2 and MSSQL.

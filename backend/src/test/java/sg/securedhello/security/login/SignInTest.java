@@ -415,7 +415,7 @@ class SignInTest extends CtxDefaultTest {
 
         mockMvc.perform(post("/api/logout").with(session.inHeader()))
                 .andExpect(status().isNoContent())
-                .andExpect(header().string("Clear-Site-Data", "\"cache\", \"cookies\", \"storage\""));
+                .andExpect(header().string("Clear-Site-Data", "\"cache\", \"storage\""));
 
         assertThat(sessions.exists(idOf(session.cookie()))).isFalse();
         mockMvc.perform(get("/api/hello").cookie(session.cookie())).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));

@@ -47,3 +47,37 @@ test("T-E2E-006: an attacker's fresh browser locks the account, and the owner's 
   await signIn(page, username)
   await expect(page).toHaveURL(/\/hello$/)
 })
+
+test("T-E2E-007: a signed-out browser keeps its device cookie and still signs in through the attacker's lock", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const username = usernameFor(testInfo, 'device-signout')
+  const apiOrigin = process.env.VITE_API_ORIGIN!
+
+  await signIn(page, username)
+  const logout = page.waitForResponse((response) => response.url() === `${apiOrigin}/api/logout`)
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  expect((await logout).status()).toBe(204)
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+  // Sign-out expires the session cookie and leaves the device cookie (ADR-075).
+  const names = (await page.context().cookies(apiOrigin)).map((cookie) => cookie.name)
+  expect(names).not.toContain('SESSION')
+  expect(names).toContain('DEVICE')
+
+  const attacker = await browser.newContext()
+  try {
+    const attackerPage = await attacker.newPage()
+    await attackerPage.goto('/')
+    await expect(attackerPage.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+    for (let i = 0; i < 5; i++) {
+      expect(await attempt(attackerPage, username, 'not-the-password-at-all')).toBe(401)
+    }
+    expect(await attempt(attackerPage, username, PASSWORD)).toBe(401)
+  } finally {
+    await attacker.close()
+  }
+
+  await signIn(page, username)
+  await expect(page).toHaveURL(/\/hello$/)
+})

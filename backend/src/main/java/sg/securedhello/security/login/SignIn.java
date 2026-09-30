@@ -5,7 +5,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -13,9 +12,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -53,10 +49,10 @@ import sg.securedhello.audit.SessionStartReason;
 import sg.securedhello.audit.SourceThrottleReason;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
+import sg.securedhello.mfa.TotpFactorStatus;
 import sg.securedhello.profile.ProfileReader;
 import sg.securedhello.security.device.TrustedDevices;
 import sg.securedhello.security.lockout.DeferredFailuresRefusal;
-import sg.securedhello.security.lockout.LockoutLane;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.TooManyRequests;
@@ -86,25 +82,30 @@ import tools.jackson.databind.json.JsonMapper;
  *       hand-built one, and without it a token fetched before sign-in would survive sign-in (T-CSRF-007).</li>
  * </ol>
  *
- * <p>A successful sign-in from a browser with no valid device cookie for the account earns one (ADR-075). Every
+ * <p>A successful sign-in from a browser with no valid device cookie for the account earns one (ADR-075), unless the
+ * account needs the second factor: an administrator's browser earns it only at the verified code. Every
  * sign-in failure is the same 401 {@code AUTHENTICATION_FAILED} (ADR-033), and never sets or clears a device cookie; a
  * body that is not JSON
  * credentials is 400 {@code VALIDATION_FAILED}, and a spent username budget is 429 {@code TOO_MANY_REQUESTS}. A
  * displaced session's next request is answered 401 too.
  *
  * <p>Sign-out stays behind {@code CsrfFilter}, so a dead session without a token gets 403 (T-CSRF-005). It writes the
- * logout audit row, invalidates the session, sends {@code Clear-Site-Data} on every request, not only secure ones
- * (REJ-010), and answers 204.
+ * logout audit row, invalidates the session, sends {@code Clear-Site-Data: "cache", "storage"} on every request, not
+ * only secure ones (REJ-010), and answers 204. The {@code "cookies"} directive is deliberately left out, so sign-out
+ * keeps the browser's device cookie (ADR-075). The session cookie is expired instead, by Spring Session through the
+ * session cookie serializer, under its own name and attributes; CSRF tokens live in the session, so there is no CSRF
+ * cookie to expire.
  */
 public final class SignIn {
-
-    private static final Logger log = LoggerFactory.getLogger(SignIn.class);
 
     public static final String LOGIN_PATH = "/api/login";
     public static final String LOGOUT_PATH = "/api/logout";
 
-    /** The directives sent on sign-out. The SPA clears its own state regardless (REJ-010). */
-    static final String CLEAR_SITE_DATA = "\"cache\", \"cookies\", \"storage\"";
+    /**
+     * The directives sent on sign-out. The SPA clears its own state regardless (REJ-010). No {@code "cookies"}: it would
+     * clear the device cookie too, and untrust the browser at every sign-out (ADR-075).
+     */
+    static final String CLEAR_SITE_DATA = "\"cache\", \"storage\"";
 
     /**
      * The session attribute Spring Session's registry sets on a session it expires ({@code
@@ -241,20 +242,16 @@ public final class SignIn {
 
     /**
      * Row 1 and the profile. A sign-in that was not already from a trusted device of this account earns a new one: its
-     * device cookie is set here, on success only, never on a failure (ADR-033; ADR-075).
+     * device cookie is set here, on success only, never on a failure (ADR-033; ADR-075). An account that needs the
+     * second factor earns it at the verified code instead ({@code TotpFactorGrant}), so a password alone neither
+     * trusts nor evicts a device of it.
      */
     private void loginSucceeded(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException {
         SignedInUser user = userOf(authentication);
         audit.emit(AuditEvent.LOGIN_SUCCESS, AccountContext.of(user.id()));
-        if (!LockoutLane.of(authentication.getDetails(), user.id(), clock.instant()).trusted()) {
-            try {
-                devices.issue(user.id(), response);
-            } catch (DataAccessException | NoSuchElementException notIssued) {
-                // Best effort: the session is already authenticated, and a device only picks a lockout lane. Under
-                // row-lock contention, or if the account went away, the sign-in still answers 200 with no cookie.
-                log.warn("A trusted device was not issued at sign-in: {}", notIssued.getClass().getSimpleName());
-            }
+        if (!TotpFactorStatus.requiredFor(user)) {
+            devices.trust(user.id(), request, response);
         }
         response.setStatus(HttpStatus.OK.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

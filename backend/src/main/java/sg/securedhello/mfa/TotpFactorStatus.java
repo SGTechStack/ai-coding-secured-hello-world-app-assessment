@@ -37,10 +37,18 @@ public class TotpFactorStatus {
         this.factors = factors;
     }
 
+    /**
+     * Whether {@code user}'s sign-in needs the second factor: an administrator's does (ADR-023), so its sign-in is
+     * complete only at a verified code, which is when its browser becomes a trusted device (ADR-075).
+     */
+    public static boolean requiredFor(SignedInUser user) {
+        return ADMIN.equals(user.role());
+    }
+
     /** The factor state of {@code authentication}, whose principal is a {@link SignedInUser}. */
     public Factors of(Authentication authentication) {
         SignedInUser user = (SignedInUser) authentication.getPrincipal();
-        if (!ADMIN.equals(user.role())) {
+        if (!requiredFor(user)) {
             return Factors.NONE;
         }
         boolean held = authentication.getAuthorities().stream().anyMatch(authority -> authority

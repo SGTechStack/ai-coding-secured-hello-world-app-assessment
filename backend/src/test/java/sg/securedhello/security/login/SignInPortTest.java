@@ -91,7 +91,7 @@ class SignInPortTest extends CtxPortTest {
 
         assertThat(logout.getStatus().value()).isEqualTo(204);
         assertThat(logout.getResponseHeaders().getFirst("Clear-Site-Data"))
-                .isEqualTo("\"cache\", \"cookies\", \"storage\"");
+                .isEqualTo("\"cache\", \"storage\"");
         String expiry = logout.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
         assertThat(expiry).startsWith("SESSION=;").contains("Max-Age=0", "Path=/", "HttpOnly", "SameSite=Strict");
         assertThat(new SessionRows(jdbc).exists(SessionRows.idOf(signedIn))).isFalse();

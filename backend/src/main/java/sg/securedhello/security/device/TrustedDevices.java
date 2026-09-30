@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -13,6 +14,9 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -30,9 +34,13 @@ import sg.securedhello.user.UserAccountRepository;
  * <p>The cookie is {@code __Host-DEVICE} ({@code DEVICE} under {@code dev}, whose plain HTTP cannot carry
  * {@code Secure}, as the session cookie does; ADR-058), {@code HttpOnly}, {@code SameSite=Strict}, host-only,
  * {@code Path=/} (the {@code __Host-} prefix requires it) and {@code Max-Age} of the configured lifetime. It is set only
- * on a successful sign-in, and never set or cleared on a failure (ADR-033).
+ * once a sign-in is complete, and never set or cleared on a failure (ADR-033) or on sign-out. A sign-in is complete at
+ * the correct password for an account that needs no second factor, and at the verified TOTP code for one that does, so
+ * a password alone never trusts, or evicts, a device of an administrator (ADR-075).
  */
 public final class TrustedDevices {
+
+    private static final Logger log = LoggerFactory.getLogger(TrustedDevices.class);
 
     /** The cookie's name outside {@code dev}. */
     public static final String SECURE_COOKIE = "__Host-DEVICE";
@@ -92,11 +100,28 @@ public final class TrustedDevices {
     }
 
     /**
-     * Trusts a new device for {@code userId}, which has just entered its correct password, and sets its cookie on
+     * Trusts a new device for {@code userId}, whose sign-in has just completed, unless {@code request} already presents
+     * a trusted device of that account. Best effort, called after the success's audit row: the session is already
+     * authenticated, and a device only picks a lockout lane, so under row-lock contention, or if the account went away,
+     * the success still stands with no cookie.
+     */
+    public void trust(UUID userId, HttpServletRequest request, HttpServletResponse response) {
+        if (claim(request).filter(held -> held.userId().equals(userId)).isPresent()) {
+            return;
+        }
+        try {
+            issue(userId, response);
+        } catch (DataAccessException | NoSuchElementException notIssued) {
+            log.warn("A trusted device was not issued: {}", notIssued.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Trusts a new device for {@code userId}, whose sign-in has just completed, and sets its cookie on
      * {@code response}. Under the account's row lock, like every other device write: the account's expired devices go,
      * and its oldest while it holds {@value #MAXIMUM_PER_ACCOUNT} or more.
      */
-    public void issue(UUID userId, HttpServletResponse response) {
+    void issue(UUID userId, HttpServletResponse response) {
         // The columns are TIMESTAMP(6): stored at their precision, so a read-back compares equal.
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         UUID deviceId = transactions.execute(status -> {

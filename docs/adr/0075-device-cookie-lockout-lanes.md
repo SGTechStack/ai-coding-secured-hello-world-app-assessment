@@ -68,11 +68,8 @@ that PRD Story 3's third criterion asks us to prevent.
 
 - PRD Story 3 AC3 is met for trusted browsers: an attacker can no longer lock the owner out of a browser they have
   signed in on. A browser that never signed in, or whose cookie was cleared, is untrusted and still lockable.
-- **Sign-out clears the device cookie.** Logout sends `Clear-Site-Data: "cache","cookies","storage"`, which the
-  standard mandates (Std §3.5:391; R-HDR-008), and the `cookies` directive clears the device cookie too. A user who
-  signs out explicitly returns untrusted; one whose session ended by timeout keeps it. Dropping `cookies` from the
-  header was not done: it would be an unrequested deviation from the standard. It is the first thing to reopen if
-  the residual matters.
+- **Sign-out keeps the device cookie** (amended below, ticket 35). Logout sends `Clear-Site-Data: "cache","storage"`
+  without the `cookies` directive, and expires the session cookie explicitly, so a user who signs out stays trusted.
 - **Residual (accepted).** The cap's disable is still reachable: an attacker who keeps the untrusted lane locked
   climbs the cap counter at the ladder's pace and disables the password in about 14 hours if the owner never signs in
   successfully in between (R-LCK-005). A trusted success resets the cap.
@@ -82,8 +79,28 @@ that PRD Story 3's third criterion asks us to prevent.
 - A sign-in concurrent with a password reset can earn a device after the reset revoked the others; the same window
   exists for its session (R-SES-012).
 - Deferred failures (ADR-011 amendment of 2026-09-30) lose their lane and count in the untrusted lane and on the cap.
-- Tests: T-LCK-024 to T-LCK-032, T-AUTH-019, T-SES-017, T-SES-038, T-CRED-032, T-ADM-036, T-FE-029, T-E2E-006, with
+- Tests: T-LCK-024 to T-LCK-035, T-AUTH-019, T-SES-017, T-SES-038, T-CRED-032, T-ADM-036, T-FE-029, T-E2E-006, with
   T-LCK-002, T-LCK-004 and T-LCK-005 amended.
+
+## Amendment (2026-09-30, ticket 35): sign-out keeps the device; an administrator's device waits for the code
+
+- **Sign-out (user decision; deliberate deviation from Std §3.5:391).** The standard mandates
+  `Clear-Site-Data: "cache","cookies","storage"` on logout, but the `cookies` directive also clears the device cookie,
+  so every explicit sign-out left the browser untrusted and lockable from one source (the residual this ADR first
+  recorded). Logout now sends `"cache","storage"` only. The cookies the directive existed to clear are expired
+  explicitly instead: the session cookie by Spring Session's serializer, a `Set-Cookie` with `Max-Age=0` under the
+  session cookie's own name, path and attributes; there is no CSRF cookie, since the token lives in the session
+  (ADR-036). A user who wants a browser forgotten changes the password, which revokes every device. SPA-origin cookies
+  are no longer reached by the header either; the SPA clears its own state on sign-out (REJ-010; R-HDR-008).
+- **Issuance waits for the whole sign-in (user decision).** An account whose sign-in needs the second factor (an
+  administrator: both factors, ADR-023) earns its device cookie only when the TOTP code verifies (verification or
+  enrolment confirmation, through the factor grant), after that success's audit row and on the same best-effort terms;
+  a renewal from a browser already trusted for the account earns none. Its correct password alone neither issues nor
+  evicts: otherwise a password-only attacker would earn a trusted device of their own and, with the ten-device cap
+  and oldest-first eviction, could untrust every browser the administrator owns. An account that needs no second
+  factor still earns it at the correct password.
+- Tests: T-LCK-033 (sign-out keeps the device), T-LCK-034 (administrator trusted only at the code), T-LCK-035 (no
+  eviction by password alone), T-E2E-007, with T-SES-007, T-HDR-005 and T-LCK-031 amended.
 
 ## Sources
 

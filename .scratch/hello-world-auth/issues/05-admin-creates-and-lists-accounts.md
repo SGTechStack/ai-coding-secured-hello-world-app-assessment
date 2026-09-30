@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] Create returns the Temporary Password exactly once; only its hash is stored; must-change-password and expiry (default 24 h, a property) are set; the Account is enabled
-- [ ] Duplicate username is refused with a conflict
-- [ ] List shows username, Role, enabled and created date; never hashes, Temporary Passwords or delay fields
-- [ ] Every admin endpoint returns 403 for a non-admin and 401 when unauthenticated
-- [ ] Audit line for Account created, with actor and target and no password
-- [ ] Admin OpenAPI spec and generated admin client are regenerated as documented
-- [ ] SPA create-account page and list; frontend tests cover them
-- [ ] Integration tests cover creation, duplicate, listing fields and 403 for non-admins
-- [ ] Backend and frontend verify pass
+- [x] Create returns the Temporary Password exactly once; only its hash is stored; must-change-password and expiry (default 24 h, a property) are set; the Account is enabled
+- [x] Duplicate username is refused with a conflict
+- [x] List shows username, Role, enabled and created date; never hashes, Temporary Passwords or delay fields
+- [x] Every admin endpoint returns 403 for a non-admin and 401 when unauthenticated
+- [x] Audit line for Account created, with actor and target and no password
+- [x] Admin OpenAPI spec and generated admin client are regenerated as documented
+- [x] SPA create-account page and list; frontend tests cover them
+- [x] Integration tests cover creation, duplicate, listing fields and 403 for non-admins
+- [x] Backend and frontend verify pass

@@ -10,7 +10,7 @@ A reference/demo application demonstrating a secure username/password login flow
 
 - **Frontend:** React SPA. Same-origin with the backend: served by Spring under `/app` in prod, behind the Vite dev proxy locally ([ADR-DEMO-0002](../docs/adr/ADR-DEMO-0002-same-origin-no-cors.md)). No CORS.
 - **Backend:** Spring Boot REST API.
-- **Persistence:** Spring Data JPA. H2 for `local`/`test`, MSSQL in cloud profiles. Schema managed by Liquibase changelogs, portable across both.
+- **Persistence:** Spring Data JPA. H2 for `local`/`test`, MSSQL in cloud profiles. No migration tool in the repo: `local`/`test` build the schema from entities, and the deployed MSSQL schema is managed outside it.
 - **Auth mechanism:** Server-side session via a secure HttpOnly cookie, stored with Spring Session JDBC ([ADR-DEMO-BE-0001](../backend/docs/adr/ADR-DEMO-BE-0001-jdbc-sessions.md)).
 - **Account creation:** admin-only. There is no self-registration and no email.
 - **Alternative auth mechanism (documented, not built):** JWT bearer token, see [Appendix: JWT Alternative](#appendix-jwt-alternative).
@@ -133,7 +133,7 @@ Admin endpoints live under `/admin/api/**` (the template's separate chain and Op
 
 ## Data Model
 
-Liquibase changelogs (H2 and MSSQL) extend the existing `app_user` table and add session tables.
+The new columns below extend the existing `app_user` table. `local`/`test` get them from the entities via `ddl-auto`; the deployed MSSQL schema, including the session tables, is managed outside this repo.
 
 ### `app_user` (additions)
 

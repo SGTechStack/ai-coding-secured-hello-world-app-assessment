@@ -78,7 +78,7 @@ Accounts are created and managed only by admins. An admin creates an Account (or
 - **Admin API**: under the template's separate admin chain and prefix (`/admin/api/**`, requires `ADMIN`), with its own OpenAPI spec and generated client: create, list, reset password, enable/disable, change Role, delete. Self-targeting reset, disable, demote and delete are refused. Ending sessions accompanies reset, disable, delete.
 - **Greeting**: `GET /api/hello` on the authenticated API chain returns the greeting.
 - **Admin seed**: on startup, if no `ADMIN` exists, seed from configuration. Cloud values from the secrets manager, local from a `local`-only property. Cloud startup fails without a password. No default password.
-- **Migrations**: Liquibase changelogs for the new columns and the session tables, portable across H2 and MSSQL. Session schema is created by changelog, not by auto-initialization. The persistence target is MSSQL, not Postgres or MySQL.
+- **Migrations**: no migration tool in the repo (Liquibase removed). `local`/`test` build the schema from entities and Spring's embedded session-table setup; the deployed MSSQL schema, including the new columns and session tables, is managed outside this repo. The persistence target is MSSQL, not Postgres or MySQL.
 - **Audit**: structured log lines with actor and target for the events listed in the stories; passwords never logged.
 - **Frontend**: sign-in page, forced change-password page, and admin pages, using the project's form standard and the query-wrapper conventions. Generated client is regenerated per the documented steps.
 - **Docs**: the PRD, CONTEXT.md glossary (Account, Role, Temporary Password) and the two ADRs already reflect these decisions.
@@ -86,7 +86,7 @@ Accounts are created and managed only by admins. An admin creates an Account (or
 ## Testing Decisions
 
 - **What makes a good test**: assert external behavior only, through the HTTP boundary (status, body, cookies, headers, persisted state visible through the API). Never assert on internal classes, method calls or private state.
-- **Seam**: one seam, the backend HTTP API exercised by a full-context integration test with real security filter chains, CSRF, the H2 database, Liquibase changelogs and JDBC sessions. Time-dependent behavior (delay expiry, Temporary Password expiry) is driven through a controllable clock bean rather than sleeping. No unit-level seams are added.
+- **Seam**: one seam, the backend HTTP API exercised by a full-context integration test with real security filter chains, CSRF, the H2 database and JDBC sessions. Time-dependent behavior (delay expiry, Temporary Password expiry) is driven through a controllable clock bean rather than sleeping. No unit-level seams are added.
 - **Covered at the seam**: sign-in success, wrong password, unknown username (identical generic error), disabled Account, CSRF required; delay grows and caps, recovery after delay, IP throttle independent of Account, admin reset clears delay; logout replay rejected; forced change (403 elsewhere, mismatch refused, expired Temporary Password refused, other sessions ended); every admin endpoint 403 for non-admins, self-action refusals, Temporary Password returned once and never listed; seed runs once and cloud startup fails without a password.
 - **Frontend**: page-level tests of the sign-in and change-password forms with the API mocked, in the existing test setup.
 - **Prior art**: the existing admin-chain security integration test and the current-user profile controller integration test.

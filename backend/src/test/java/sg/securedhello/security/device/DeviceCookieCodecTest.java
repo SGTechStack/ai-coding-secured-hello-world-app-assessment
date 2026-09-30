@@ -2,7 +2,11 @@ package sg.securedhello.security.device;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Base64;
 import java.util.UUID;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,6 +47,19 @@ class DeviceCookieCodecTest {
         assertThat(codec.verify(value.substring(0, 30) + changed + value.substring(31))).as("a changed MAC")
                 .isEmpty();
         assertThat(codec.verify(new DeviceCookieCodec(key((byte) 2)).sign(device))).as("another key").isEmpty();
+    }
+
+    /** The MAC is domain-separated: a bare HMAC of the id under the same key, as another use of it might make, fails. */
+    @Test
+    void aBareHmacOfTheIdUnderTheSameKeyIsRefused() throws Exception {
+        UUID device = UUID.randomUUID();
+        String id = codec.sign(device).split("\\.")[0];
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(key((byte) 1), "HmacSHA256"));
+        String bare = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                mac.doFinal(Base64.getUrlDecoder().decode(id)));
+
+        assertThat(codec.verify(id + "." + bare)).isEmpty();
     }
 
     @ParameterizedTest

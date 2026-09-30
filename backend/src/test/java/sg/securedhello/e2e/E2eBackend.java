@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -45,7 +45,8 @@ public final class E2eBackend {
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
             .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
-                    "golden-path", "disable-admin", "disable-user").stream()
+                    "golden-path", "disable-admin", "disable-user", "factor-reset-admin",
+                    "factor-reset-target").stream()
                     .map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
@@ -89,9 +90,14 @@ public final class E2eBackend {
      */
     static class Fixtures {
 
+        /**
+         * Created once every singleton exists, so before the web server starts: a browser test that signs in as soon as
+         * the health check answers finds its account in its final state, not half-way through this setup.
+         */
         @Bean
-        ApplicationRunner e2eAccounts(JdbcTemplate jdbc, PasswordEncoder passwordEncoder, TotpSecretCipher cipher) {
-            return arguments -> {
+        SmartInitializingSingleton e2eAccounts(JdbcTemplate jdbc, PasswordEncoder passwordEncoder,
+                TotpSecretCipher cipher) {
+            return () -> {
                 USERNAMES.forEach(name -> new Accounts(jdbc, passwordEncoder).named(name, PASSWORD));
                 // The forced-change accounts hold an issued credential, as the bootstrap seed does (ADR-046).
                 jdbc.update("UPDATE users SET force_password_change = TRUE, credential_issued_at = CURRENT_TIMESTAMP"
@@ -101,6 +107,12 @@ public final class E2eBackend {
                 // The disable-admin administrators: enrolled with a known secret, so the spec can answer the challenge.
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-disable-admin'");
                 jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-disable-admin'", UUID.class)
+                        .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
+                                + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
+                                cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));
+                // The factor-reset administrators, actor and target: enrolled with the same known secret.
+                jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-factor-reset-%'");
+                jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-factor-reset-%'", UUID.class)
                         .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
                                 + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
                                 cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));

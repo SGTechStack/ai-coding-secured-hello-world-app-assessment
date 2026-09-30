@@ -10,13 +10,19 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 /**
  * Application security. Authentication is a server-side Session carried by a
  * secure cookie (ADR-0001). CSRF uses a cookie-based token
  * ({@link CookieCsrfTokenRepository#withHttpOnlyFalse()}) so the cross-origin
- * SPA can read the token and echo it on state-changing requests. CORS is
- * enabled and configured by {@link CorsConfig}.
+ * SPA can read the token and echo it on state-changing requests. The plain
+ * {@link CsrfTokenRequestAttributeHandler} (rather than Spring Security 6.1's
+ * default BREACH-masking Xor handler) is used because the SPA never renders
+ * the token into HTML, so BREACH masking isn't needed — and the masking
+ * handler is incompatible with reading the raw cookie value directly, which
+ * is the standard SPA cookie-to-header pattern this app's frontend uses. CORS
+ * is enabled and configured by {@link CorsConfig}.
  *
  * <p>Public endpoints: health, registration, the CSRF-token endpoint, and
  * login. Everything else requires authentication; unauthenticated access to a
@@ -32,7 +38,7 @@ public class SecurityConfig {
                 })
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/register", "/api/password-reset/request"))
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .sessionFixation(fixation -> fixation.changeSessionId()))

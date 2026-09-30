@@ -1,0 +1,20 @@
+{
+  "name": "secured-hello-e2e",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Playwright + Allure 3 E2E harness for the Secured Hello World app",
+  "scripts": {
+    "up": "node scripts/lifecycle.mjs up",
+    "reset": "node scripts/lifecycle.mjs reset",
+    "down": "node scripts/lifecycle.mjs down",
+    "status": "node scripts/lifecycle.mjs status",
+    "test": "playwright test --config playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/mcp": "0.0.83",
+    "@playwright/test": "1.63.0",
+    "allure": "3.19.1",
+    "allure-playwright": "3.13.0"
+  }
+}

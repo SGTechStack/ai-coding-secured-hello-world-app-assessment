@@ -34,10 +34,15 @@ public final class AuthTestClient {
         return baseUrl + path;
     }
 
-    /** Registers a new USER account (public, CSRF-exempt endpoint). */
+    /** Registers a new USER account (public but CSRF-protected endpoint). */
     public void register(String username, String email, String password) {
-        rest.postForEntity(url("/api/register"),
-                Map.of("username", username, "email", email, "password", password), Map.class);
+        Csrf csrf = csrf();
+        HttpHeaders headers = jsonHeaders();
+        headers.add("X-XSRF-TOKEN", csrf.token());
+        headers.add(HttpHeaders.COOKIE, csrf.cookie());
+        HttpEntity<Map<String, String>> entity =
+                new HttpEntity<>(Map.of("username", username, "email", email, "password", password), headers);
+        rest.postForEntity(url("/api/register"), entity, Map.class);
     }
 
     /** Performs a CSRF handshake, returning the token and its cookies. */

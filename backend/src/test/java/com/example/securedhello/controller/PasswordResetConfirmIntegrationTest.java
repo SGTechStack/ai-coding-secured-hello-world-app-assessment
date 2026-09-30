@@ -53,9 +53,15 @@ class PasswordResetConfirmIntegrationTest extends HttpIntegrationTest {
     }
 
     private String requestResetAndCaptureToken() {
-        // Reset request is public and CSRF-exempt.
-        http.rest().postForEntity(http.url("/api/password-reset/request"),
-                Map.of("email", "alice@example.com"), Map.class);
+        // Reset request is public but CSRF-protected: obtain a token and echo it.
+        AuthTestClient.Csrf csrf = http.csrf();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        headers.add("X-XSRF-TOKEN", csrf.token());
+        headers.add(HttpHeaders.COOKIE, csrf.cookie());
+        HttpEntity<Map<String, String>> entity =
+                new HttpEntity<>(Map.of("email", "alice@example.com"), headers);
+        http.rest().exchange(http.url("/api/password-reset/request"), HttpMethod.POST, entity, Map.class);
         String link = capturingEmailService.lastLink.get();
         assertThat(link).as("stub email must capture a reset link").isNotNull();
         return link.substring(link.indexOf("token=") + "token=".length());

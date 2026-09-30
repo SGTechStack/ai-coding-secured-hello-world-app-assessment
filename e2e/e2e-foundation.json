@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "protected_files": [
+    {
+      "path": "README.md",
+      "sha256": "3a55263dd99816980d5adda1541aabaf19a2d023c068c2c516c475279c2dbc8d"
+    },
+    {
+      "path": "package.json",
+      "sha256": "a8cf8ab9a20566f7ec7444b319ab15a71b5ab109bcdcdff43d7a4a538cdaa737"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "bb1c788d7edcdbeb8845018a135a3518c1cb18e6588cb9d87cd22b8d75b5092d"
+    },
+    {
+      "path": "playwright.config.ts",
+      "sha256": "71a40a3cf6272d15261812b1d1d78682dc62cfc2b5cb5786b4c598824321b336"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "bd4af8624e66e52eba21ae14257e78a6e9c18d8b9a6cbe9c9d0f35474c4d2dda"
+    },
+    {
+      "path": "scripts/lifecycle.mjs",
+      "sha256": "9d0862466aee6366905179a401acc8932e9bb256d870f051f427f55d51884620"
+    },
+    {
+      "path": "tests/foundation.smoke.spec.ts",
+      "sha256": "37038d4afd6452c157c50fcc70c009439a1efe9f2108b1e9c48c45d1a4c5635d"
+    }
+  ]
+}

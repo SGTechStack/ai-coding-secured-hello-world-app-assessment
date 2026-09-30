@@ -47,12 +47,7 @@ class LockoutIntegrationTest extends HttpIntegrationTest {
         register("alice", "alice@example.com", "correcthorsebattery");
     }
 
-    private void register(String username, String email, String password) {
-        client.postForEntity(baseUrl() + "/api/register",
-                Map.of("username", username, "email", email, "password", password), Map.class);
-    }
-
-    private ResponseEntity<Map> login(String username, String password) {
+    private HttpHeaders csrfHeaders() {
         ResponseEntity<Map> csrf = client.getForEntity(baseUrl() + "/api/csrf", Map.class);
         String token = (String) csrf.getBody().get("token");
         List<String> csrfCookies = csrf.getHeaders().get(HttpHeaders.SET_COOKIE);
@@ -62,8 +57,18 @@ class LockoutIntegrationTest extends HttpIntegrationTest {
         for (String c : csrfCookies) {
             headers.add(HttpHeaders.COOKIE, c.split(";", 2)[0]);
         }
+        return headers;
+    }
+
+    private void register(String username, String email, String password) {
         HttpEntity<Map<String, String>> entity =
-                new HttpEntity<>(Map.of("username", username, "password", password), headers);
+                new HttpEntity<>(Map.of("username", username, "email", email, "password", password), csrfHeaders());
+        client.exchange(baseUrl() + "/api/register", HttpMethod.POST, entity, Map.class);
+    }
+
+    private ResponseEntity<Map> login(String username, String password) {
+        HttpEntity<Map<String, String>> entity =
+                new HttpEntity<>(Map.of("username", username, "password", password), csrfHeaders());
         return client.exchange(baseUrl() + "/api/login", HttpMethod.POST, entity, Map.class);
     }
 

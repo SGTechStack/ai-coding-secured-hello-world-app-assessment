@@ -8,7 +8,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -38,14 +42,28 @@ class PasswordResetRequestIntegrationTest extends HttpIntegrationTest {
         resetClock();
         tokenRepository.deleteAll();
         userRepository.deleteAll();
-        client.postForEntity(baseUrl() + "/api/register",
+        HttpEntity<Map<String, String>> registration = new HttpEntity<>(
                 Map.of("username", "alice", "email", "alice@example.com",
-                        "password", "correcthorsebattery"), Map.class);
+                        "password", "correcthorsebattery"), csrfHeaders());
+        client.exchange(baseUrl() + "/api/register", HttpMethod.POST, registration, Map.class);
+    }
+
+    private HttpHeaders csrfHeaders() {
+        ResponseEntity<Map> csrf = client.getForEntity(baseUrl() + "/api/csrf", Map.class);
+        String token = (String) csrf.getBody().get("token");
+        List<String> csrfCookies = csrf.getHeaders().get(HttpHeaders.SET_COOKIE);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add("X-XSRF-TOKEN", token);
+        for (String c : csrfCookies) {
+            headers.add(HttpHeaders.COOKIE, c.split(";", 2)[0]);
+        }
+        return headers;
     }
 
     private ResponseEntity<Map> requestReset(String email) {
-        return client.postForEntity(baseUrl() + "/api/password-reset/request",
-                Map.of("email", email), Map.class);
+        HttpEntity<Map<String, String>> entity = new HttpEntity<>(Map.of("email", email), csrfHeaders());
+        return client.exchange(baseUrl() + "/api/password-reset/request", HttpMethod.POST, entity, Map.class);
     }
 
     @Test

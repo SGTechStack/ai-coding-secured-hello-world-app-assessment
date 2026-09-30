@@ -5,8 +5,7 @@
 //
 // CSRF: the backend issues a JS-readable `XSRF-TOKEN` cookie (CookieCsrfTokenRepository
 // .withHttpOnlyFalse()) that must be echoed as the `X-XSRF-TOKEN` header on every
-// mutating request except /api/register and /api/password-reset/request, which the
-// backend explicitly exempts.
+// mutating request, register and password-reset-request included.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
 export class ApiError extends Error {
@@ -82,12 +81,11 @@ async function extractErrorMessage(response: Response): Promise<string> {
 interface RequestOptions {
   method?: string;
   body?: unknown;
-  skipCsrf?: boolean;
   parse?: 'json' | 'text' | 'none';
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, skipCsrf = false, parse = 'json' } = options;
+  const { method = 'GET', body, parse = 'json' } = options;
   const headers: Record<string, string> = {};
   let requestBody: string | undefined;
 
@@ -96,7 +94,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     requestBody = JSON.stringify(body);
   }
 
-  if (method !== 'GET' && !skipCsrf) {
+  if (method !== 'GET') {
     await ensureCsrfCookie();
     const token = readCsrfCookie();
     if (token) {
@@ -130,7 +128,7 @@ export async function fetchHealth(): Promise<HealthResponse> {
 }
 
 export async function register(data: RegistrationRequest): Promise<RegistrationResponse> {
-  return request<RegistrationResponse>('/api/register', { method: 'POST', body: data, skipCsrf: true });
+  return request<RegistrationResponse>('/api/register', { method: 'POST', body: data });
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
@@ -156,7 +154,6 @@ export async function requestPasswordReset(email: string): Promise<MessageRespon
   return request<MessageResponse>('/api/password-reset/request', {
     method: 'POST',
     body: { email },
-    skipCsrf: true,
   });
 }
 

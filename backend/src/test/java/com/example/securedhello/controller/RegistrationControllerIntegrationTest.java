@@ -2,12 +2,17 @@ package com.example.securedhello.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -44,10 +49,28 @@ class RegistrationControllerIntegrationTest extends HttpIntegrationTest {
         return Map.of("username", username, "email", email, "password", password);
     }
 
+    private HttpHeaders csrfHeaders() {
+        ResponseEntity<Map> csrf = client.getForEntity(baseUrl() + "/api/csrf", Map.class);
+        String token = (String) csrf.getBody().get("token");
+        List<String> csrfCookies = csrf.getHeaders().get(HttpHeaders.SET_COOKIE);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add("X-XSRF-TOKEN", token);
+        for (String c : csrfCookies) {
+            headers.add(HttpHeaders.COOKIE, c.split(";", 2)[0]);
+        }
+        return headers;
+    }
+
+    private ResponseEntity<Map> registerWithCsrf(Map<String, String> body) {
+        return client.exchange(registerUrl(), HttpMethod.POST,
+                new HttpEntity<>(body, csrfHeaders()), Map.class);
+    }
+
     @Test
     void validRegistrationCreatesEnabledUserWithBcryptHashAndUserRole() {
-        ResponseEntity<Map> response = client.postForEntity(
-                registerUrl(), body("alice", "alice@example.com", "correcthorsebattery"), Map.class);
+        ResponseEntity<Map> response =
+                registerWithCsrf(body("alice", "alice@example.com", "correcthorsebattery"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -64,8 +87,7 @@ class RegistrationControllerIntegrationTest extends HttpIntegrationTest {
 
     @Test
     void responseNeverContainsPasswordOrHash() {
-        ResponseEntity<Map> response = client.postForEntity(
-                registerUrl(), body("bob", "bob@example.com", "correcthorsebattery"), Map.class);
+        ResponseEntity<Map> response = registerWithCsrf(body("bob", "bob@example.com", "correcthorsebattery"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).doesNotContainKey("password");
@@ -74,11 +96,10 @@ class RegistrationControllerIntegrationTest extends HttpIntegrationTest {
 
     @Test
     void duplicateUsernameIsRejectedAndNoSecondAccountCreated() {
-        client.postForEntity(registerUrl(),
-                body("carol", "carol@example.com", "correcthorsebattery"), Map.class);
+        registerWithCsrf(body("carol", "carol@example.com", "correcthorsebattery"));
 
-        HttpClientErrorException ex = catchHttpError(() -> client.postForEntity(registerUrl(),
-                body("carol", "different@example.com", "correcthorsebattery"), Map.class));
+        HttpClientErrorException ex = catchHttpError(
+                () -> registerWithCsrf(body("carol", "different@example.com", "correcthorsebattery")));
 
         assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(userRepository.findAll()).hasSize(1);
@@ -86,11 +107,10 @@ class RegistrationControllerIntegrationTest extends HttpIntegrationTest {
 
     @Test
     void duplicateEmailIsRejectedAndNoSecondAccountCreated() {
-        client.postForEntity(registerUrl(),
-                body("dave", "dave@example.com", "correcthorsebattery"), Map.class);
+        registerWithCsrf(body("dave", "dave@example.com", "correcthorsebattery"));
 
-        HttpClientErrorException ex = catchHttpError(() -> client.postForEntity(registerUrl(),
-                body("dave2", "dave@example.com", "correcthorsebattery"), Map.class));
+        HttpClientErrorException ex = catchHttpError(
+                () -> registerWithCsrf(body("dave2", "dave@example.com", "correcthorsebattery")));
 
         assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(userRepository.findAll()).hasSize(1);
@@ -98,8 +118,8 @@ class RegistrationControllerIntegrationTest extends HttpIntegrationTest {
 
     @Test
     void passwordShorterThanTwelveCharactersIsRejectedAndNoAccountCreated() {
-        HttpClientErrorException ex = catchHttpError(() -> client.postForEntity(registerUrl(),
-                body("erin", "erin@example.com", "short"), Map.class));
+        HttpClientErrorException ex = catchHttpError(
+                () -> registerWithCsrf(body("erin", "erin@example.com", "short")));
 
         assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(userRepository.findByUsername("erin")).isEmpty();
@@ -109,8 +129,8 @@ class RegistrationControllerIntegrationTest extends HttpIntegrationTest {
     void passwordLongerThanMaxIsRejectedAndNoAccountCreated() {
         String tooLong = "a".repeat(129);
 
-        HttpClientErrorException ex = catchHttpError(() -> client.postForEntity(registerUrl(),
-                body("frank", "frank@example.com", tooLong), Map.class));
+        HttpClientErrorException ex = catchHttpError(
+                () -> registerWithCsrf(body("frank", "frank@example.com", tooLong)));
 
         assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(userRepository.findByUsername("frank")).isEmpty();

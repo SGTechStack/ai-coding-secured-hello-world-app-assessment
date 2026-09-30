@@ -49,7 +49,7 @@ public class ProblemExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     @Nullable ResponseEntity<Object> handleUnexpected(Exception ex, NativeWebRequest request) throws IOException {
-        log.error("Unhandled exception", ex);
+        ErrorLog.unhandled(log, "Unhandled exception", ex);
         return write(request, ErrorCode.INTERNAL_ERROR);
     }
 

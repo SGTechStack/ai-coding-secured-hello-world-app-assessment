@@ -66,6 +66,33 @@ class EcsLogFormatterTest {
     }
 
     @Test
+    void theErrorClassificationJoinsTheThrowablesErrorObject() {
+        LoggingEvent event = event("sg.securedhello.Example", new IllegalStateException("boom"));
+        event.addKeyValuePair(new KeyValuePair(EcsLogFormatter.ERROR_CODE, "500"));
+        event.addKeyValuePair(new KeyValuePair(EcsLogFormatter.ERROR_CATEGORY, "server"));
+        event.addKeyValuePair(new KeyValuePair(EcsLogFormatter.ERROR_FOLLOW_UP_ACTION, "contact-admin"));
+
+        String line = EcsJson.render(event);
+
+        assertThat(line).containsOnlyOnce("\"error\":");
+        assertThat(EcsJson.flatten(line)).containsEntry("error.code", "500")
+                .containsEntry("error.category", "server")
+                .containsEntry("error.follow_up_action", "contact-admin")
+                .containsEntry("error.type", "java.lang.IllegalStateException");
+    }
+
+    @Test
+    void withoutAThrowableTheErrorClassificationIsAnOrdinaryPair() {
+        LoggingEvent event = event("sg.securedhello.Example", null);
+        event.addKeyValuePair(new KeyValuePair(EcsLogFormatter.ERROR_CATEGORY, "server"));
+
+        String line = EcsJson.render(event);
+
+        assertThat(line).containsOnlyOnce("\"error\":");
+        assertThat(EcsJson.flatten(line)).containsEntry("error.category", "server").doesNotContainKey("error.type");
+    }
+
+    @Test
     void anAuditRowNeverReportsAThrowableEvenIfOneIsAttached() {
         String line = EcsJson.render(event(AuditEmitter.AUDIT_LOGGER,
                 new IllegalStateException("request-content-in-message-44c1")));

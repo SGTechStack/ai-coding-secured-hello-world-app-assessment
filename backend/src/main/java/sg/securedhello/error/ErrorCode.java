@@ -8,7 +8,8 @@ import java.util.Locale;
  *
  * <p>This enum is the source of the generated {@code docs/api/error-contract.md} and
  * {@code docs/api/error-contract.schema.json} (R-AUTH-003). Adding, removing or editing a code changes both, and the
- * drift gate fails {@code verify} until they are regenerated.
+ * drift gate fails {@code verify} until they are regenerated. Each code also has an {@link #category()} and a
+ * {@link #followUpAction()}, which the application's ERROR line carries (T-AUD-002).
  */
 public enum ErrorCode {
 
@@ -99,6 +100,31 @@ public enum ErrorCode {
     /** The RFC 9457 {@code type}, derived from the code for conformance; clients never read it. */
     public String type() {
         return TYPE_PREFIX + name().toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
+    /** {@code error.category}: the code's family, one of a closed set (R-AUD-039). */
+    public ErrorCategory category() {
+        return switch (this) {
+            case VALIDATION_FAILED, PASSWORD_REJECTED, RESET_TOKEN_INVALID -> ErrorCategory.VALIDATION;
+            case AUTHENTICATION_FAILED, MISSING_FACTOR, INVALID_FACTOR, FACTOR_ENROLMENT_REQUIRED, FACTOR_DISABLED ->
+                    ErrorCategory.AUTHENTICATION;
+            case PASSWORD_CHANGE_REQUIRED, CSRF_TOKEN_INVALID, ACCESS_DENIED -> ErrorCategory.AUTHORIZATION;
+            case TOO_MANY_REQUESTS -> ErrorCategory.RATE_LIMIT;
+            case USER_EXISTS, FACTOR_ALREADY_ENROLLED, TWO_ADMIN_INVARIANT -> ErrorCategory.CONFLICT;
+            case INTERNAL_ERROR -> ErrorCategory.SERVER;
+        };
+    }
+
+    /** {@code error.follow_up_action}: what the caller must do next, one of a closed set (R-AUD-039). */
+    public FollowUpAction followUpAction() {
+        return switch (this) {
+            case TOO_MANY_REQUESTS -> FollowUpAction.RETRY_LATER;
+            case AUTHENTICATION_FAILED, MISSING_FACTOR, INVALID_FACTOR -> FollowUpAction.RE_AUTHENTICATE;
+            case ACCESS_DENIED, FACTOR_DISABLED, INTERNAL_ERROR -> FollowUpAction.CONTACT_ADMIN;
+            case VALIDATION_FAILED, PASSWORD_REJECTED, RESET_TOKEN_INVALID, USER_EXISTS, PASSWORD_CHANGE_REQUIRED,
+                    CSRF_TOKEN_INVALID, FACTOR_ENROLMENT_REQUIRED, FACTOR_ALREADY_ENROLLED, TWO_ADMIN_INVARIANT ->
+                    FollowUpAction.NONE;
+        };
     }
 
     /**

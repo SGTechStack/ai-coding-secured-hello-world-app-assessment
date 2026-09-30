@@ -347,6 +347,7 @@ Further rules for the API surface:
 - **Build deliverable.** The error contract's prose form, `docs/api/error-contract.md`, is generated from the closed
   enum by the build and committed with it. The spec does not write it (R-AUTH-003). A JSON Schema generated from the
   same enum validates every backend body (T-AUTH-011) and every frontend fixture (T-AUTH-012).
+- **Error classification in the log.** The application's ERROR line for an unhandled exception carries one `error` object: `error.code` (the status), `error.category` and `error.follow_up_action`, beside `error.type` and `error.stack_trace`. `error.category` is `validation`, `authentication`, `authorization`, `rate-limit`, `conflict` or `server`, from the code's family. `error.follow_up_action` is `none`, `retry-later`, `re-authenticate` or `contact-admin`, per code. `Log_Schema.md` names the fields without values, so these closed sets are defined here (R-AUD-039; T-AUD-002).
 - **401s carry no `WWW-Authenticate` challenge.** This is a recorded deviation (R-AUTH-005).
 - **The main entry point must match `fetch` requests.** The SPA's `Accept` header is therefore part of the server's
   configuration (T-AUTH-015).

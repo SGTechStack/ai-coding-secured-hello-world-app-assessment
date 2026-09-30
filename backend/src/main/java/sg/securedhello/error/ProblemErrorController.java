@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
  * {@code timestamp/error/message/path} body is never produced.
  *
  * <p>An escaped exception is always {@link ErrorCode#INTERNAL_ERROR}; otherwise the code comes from the status the
- * container recorded. The exception message is logged, never written.
+ * container recorded. The exception is logged once, with its code's classification ({@link ErrorLog}), never written.
  */
 @Controller
 public class ProblemErrorController implements ErrorController {
@@ -36,7 +36,7 @@ public class ProblemErrorController implements ErrorController {
     void error(HttpServletRequest request, HttpServletResponse response) throws IOException {
         ErrorCode code;
         if (request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) instanceof Throwable escaped) {
-            log.error("Exception reached the error dispatch", escaped);
+            ErrorLog.unhandled(log, "Exception reached the error dispatch", escaped);
             code = ErrorCode.INTERNAL_ERROR;
         } else {
             code = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE) instanceof Integer status

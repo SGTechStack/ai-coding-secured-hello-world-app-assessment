@@ -11,7 +11,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
@@ -46,6 +45,9 @@ import com.example.securedhello.web.ProblemResponses;
  * including {@code ROLE_ADMIN} — with no id left for an operator to revoke. The existence check
  * therefore runs <em>above</em> the allowed matcher below, unlike the flag check, and it ends the
  * Session rather than only refusing the request.
+ * <p>
+ * The Account read here is handed on through {@link CurrentAccount}, so nothing behind this filter
+ * looks it up or checks its existence again.
  */
 @Component
 public class RequiredPasswordChangeFilter extends OncePerRequestFilter {
@@ -92,9 +94,9 @@ public class RequiredPasswordChangeFilter extends OncePerRequestFilter {
 			// paths a Required Password Change still permits either. Revoking, not just refusing: the
 			// deleting Admin's own sweep could not reach this Session, and nothing else ever will.
 			this.sessionControl.endCurrent(AccountAdministrationController.ACCOUNT_DELETED, request, response);
-			// Translated by the chain's entry point into the same 401 any unauthenticated request gets.
-			throw new InsufficientAuthenticationException("Account no longer exists");
+			throw CurrentAccount.gone();
 		}
+		CurrentAccount.set(request, current.get());
 		if (this.allowed.matches(request) || !current.get().isPasswordChangeRequired()) {
 			chain.doFilter(request, response);
 			return;

@@ -278,6 +278,21 @@ class AdminAccountDeleteApiTest {
 		assertThat(storedSessions(staleSession)).isZero();
 	}
 
+	/**
+	 * {@code GET /me} relies on the same one check rather than a lookup of its own: the stale Session is
+	 * ended there too, not just refused.
+	 */
+	@Test
+	void aSessionWhoseAccountIsGoneIsRefusedAndEndedOnMe() throws Exception {
+		Cookie staleSession = loggedIn(USER);
+		accountGoneUnderALiveSession(userId, staleSession);
+
+		mvc.perform(get("/api/me").cookie(staleSession)).andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("authentication_required"));
+
+		assertThat(storedSessions(staleSession)).isZero();
+	}
+
 	/** Removes the Account under a still-live Session, and with it the index entry a sweep would need. */
 	private void accountGoneUnderALiveSession(String accountId, Cookie session) {
 		jdbc.update("UPDATE spring_session SET principal_name = NULL WHERE session_id = ?", sessionId(session));

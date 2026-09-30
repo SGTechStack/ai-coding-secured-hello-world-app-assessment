@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,8 +67,9 @@ class PasswordChangeService {
 	 */
 	@Transactional(noRollbackFor = CurrentPasswordInvalidException.class)
 	CompletedPasswordChange change(UUID accountId, String currentPassword, String newPassword) {
-		Account account = accounts.findForUpdateById(accountId)
-			.orElseThrow(() -> new InsufficientAuthenticationException("Account no longer exists"));
+		// RequiredPasswordChangeFilter already refused a Session whose Account is gone. The row still has
+		// to be read here, under its lock, and a delete may have committed while this request waited.
+		Account account = accounts.findForUpdateById(accountId).orElseThrow(CurrentAccount::gone);
 		Instant now = clock.instant();
 		if (!credentialPolicy.matches(currentPassword, account.getPasswordHash())) {
 			boolean newlyLocked = account.recordFailedLogin(now, lockout.threshold(), lockout.duration());

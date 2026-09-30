@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Sign in · DEMO (Local)</title>
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: "Segoe UI", system-ui, sans-serif;
+                background: #f3f2f1;
+                min-height: 100svh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 24px;
+                padding: 24px;
+            }
+
+            .card {
+                background: #fff;
+                border-radius: 4px;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+                padding: 44px 44px 36px;
+                width: 100%;
+                max-width: 440px;
+            }
+
+            .ms-logo {
+                display: flex;
+                gap: 2px;
+                margin-bottom: 24px;
+            }
+            .ms-logo span {
+                display: block;
+                width: 10px;
+                height: 10px;
+            }
+            .ms-logo .r {
+                background: #f25022;
+            }
+            .ms-logo .g {
+                background: #7fba00;
+            }
+            .ms-logo .b {
+                background: #00a4ef;
+            }
+            .ms-logo .y {
+                background: #ffb900;
+            }
+            .ms-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                gap: 2px;
+                width: 22px;
+                height: 22px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: #1b1b1b;
+                margin-bottom: 4px;
+            }
+            .subtitle {
+                font-size: 0.875rem;
+                color: #605e5c;
+                margin-bottom: 28px;
+            }
+            .dev-badge {
+                display: inline-block;
+                font-size: 0.7rem;
+                background: #fff4ce;
+                color: #7a5e00;
+                border: 1px solid #fce100;
+                border-radius: 2px;
+                padding: 1px 6px;
+                margin-left: 8px;
+                vertical-align: middle;
+                font-weight: 600;
+                letter-spacing: 0.04em;
+            }
+
+            .user-list {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-bottom: 24px;
+            }
+
+            .user-btn {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 12px;
+                border: 1px solid #d2d0ce;
+                border-radius: 2px;
+                background: #fff;
+                cursor: pointer;
+                text-align: left;
+                transition:
+                    border-color 0.15s,
+                    background 0.15s;
+                width: 100%;
+            }
+            .user-btn:hover {
+                border-color: #0078d4;
+                background: #f0f6ff;
+            }
+            .user-btn:focus-visible {
+                outline: 2px solid #0078d4;
+                outline-offset: 2px;
+            }
+
+            .avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #0078d4;
+                color: #fff;
+                font-size: 1rem;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                text-transform: uppercase;
+            }
+
+            .user-info {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .user-name {
+                font-size: 0.9375rem;
+                font-weight: 500;
+                color: #1b1b1b;
+            }
+            .user-roles {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            .role-badge {
+                font-size: 0.65rem;
+                font-weight: 600;
+                letter-spacing: 0.04em;
+                padding: 1px 6px;
+                border-radius: 2px;
+                border: 1px solid;
+                text-transform: uppercase;
+            }
+            .role-USER {
+                background: #dff6dd;
+                color: #1e4620;
+                border-color: #a8d5a2;
+            }
+            .role-USER_MANAGER {
+                background: #f0e6ff;
+                color: #4b1f8c;
+                border-color: #c5a3f0;
+            }
+            .role-unknown {
+                background: #f3f2f1;
+                color: #605e5c;
+                border-color: #d2d0ce;
+            }
+
+            .loading {
+                color: #605e5c;
+                font-size: 0.875rem;
+            }
+            .error {
+                color: #d13438;
+                font-size: 0.875rem;
+            }
+
+            .footer {
+                font-size: 0.75rem;
+                color: #a19f9d;
+                text-align: center;
+            }
+
+            form {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="ms-logo">
+                <div class="ms-grid">
+                    <span class="r"></span>
+                    <span class="g"></span>
+                    <span class="b"></span>
+                    <span class="y"></span>
+                </div>
+            </div>
+            <h1>Sign in <span class="dev-badge">LOCAL</span></h1>
+            <p class="subtitle">Choose an account to continue to DEMO</p>
+
+            <div class="user-list" id="user-list">
+                <p class="loading">Loading accounts…</p>
+            </div>
+
+            <form id="login-form" method="post" action="/login">
+                <input type="hidden" name="username" id="username-input" />
+                <input type="hidden" name="password" value="password" />
+            </form>
+        </div>
+
+        <p class="footer">© Microsoft · DEMO Local Dev Environment</p>
+
+        <script src="/local-mock-login.js"></script>
+    </body>
+</html>

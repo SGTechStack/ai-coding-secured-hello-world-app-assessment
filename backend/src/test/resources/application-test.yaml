@@ -1,0 +1,38 @@
+# The default test profile (spec.md S12).
+#
+# In-memory H2 in MODE=PostgreSQL. The SAME test classes re-run against Testcontainers PostgreSQL
+# at `mvn verify` under -Ddb=postgres, which PostgresContextInitializer switches on -- so nothing
+# here may encode an H2-only assumption.
+
+spring:
+  datasource:
+    # DATABASE_TO_LOWER + DEFAULT_NULL_ORDERING mirror application-dev.yaml, so a test that passes
+    # here and fails in dev is a real difference rather than a configuration artefact.
+    url: jdbc:h2:mem:securedlogin;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+server:
+  servlet:
+    session:
+      # `secure: true` is inherited from application.yaml UNCHANGED and deliberately: the whole
+      # point of SessionCookieIT is that no profile overrides it (spec.md S13, test 1).
+      cookie:
+        name: SESSION
+
+app:
+  # Keeps test log files out of backend/logs/, which is dev-run output.
+  log-dir: target/test-logs
+  admin:
+    username: rootadmin
+    # A real value, because AdminBootstrapRunner fails startup without one -- and a value that
+    # satisfies the real policy, so the seed is not a special case. AbstractIntegrationTest mirrors
+    # these three in constants; changing one without the other breaks every administrator test.
+    password: "orchard signal ridge"
+    email: rootadmin@example.com
+
+logging:
+  level:
+    # Liquibase logs every changeset at INFO and drowns the assertions.
+    liquibase: WARN
+    org.hibernate.SQL: WARN

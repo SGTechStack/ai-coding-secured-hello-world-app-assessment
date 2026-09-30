@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# --- Backend: Spotless (Java) ---
+
+STAGED_JAVA="$(git diff --cached --name-only --diff-filter=ACMR -- '*.java')"
+
+if [ -n "$STAGED_JAVA" ]; then
+  SPOTLESS_FILES="$(echo "$STAGED_JAVA" | awk -v root="$REPO_ROOT" '{print root "/" $0}' | paste -sd, -)"
+
+  if [ -f "$REPO_ROOT/backend/mvnw" ]; then
+    "$REPO_ROOT/backend/mvnw" -f "$REPO_ROOT/backend/pom.xml" -q spotless:apply -DspotlessFiles="$SPOTLESS_FILES"
+  elif [ -f "$REPO_ROOT/backend/mvnw.cmd" ]; then
+    "$REPO_ROOT/backend/mvnw.cmd" -f "$REPO_ROOT/backend/pom.xml" -q spotless:apply -DspotlessFiles="$SPOTLESS_FILES"
+  else
+    echo "backend/mvnw not found. Cannot run Spotless." >&2
+    exit 1
+  fi
+
+  while IFS= read -r file; do
+    [ -f "$REPO_ROOT/$file" ] && git add -- "$file"
+  done <<< "$STAGED_JAVA"
+
+  if git diff --cached --quiet; then
+    echo "Pre-commit: Spotless corrected all staged Java files back to their" >&2
+    echo "HEAD state. Nothing left to commit — aborting." >&2
+    echo "Tip: re-stage your changes after reviewing the Spotless corrections." >&2
+    exit 1
+  fi
+fi
+
+# --- Frontend: lint-staged (Prettier) ---
+
+STAGED_FRONTEND="$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' '*.js' '*.json' '*.css' '*.md' | grep '^frontend/' || true)"
+
+if [ -n "$STAGED_FRONTEND" ]; then
+  cd "$REPO_ROOT/frontend"
+  npx lint-staged
+fi

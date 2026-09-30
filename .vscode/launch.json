@@ -1,0 +1,47 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Backend: Run",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "mainClass": "org.eds.demo.Application",
+      "projectName": "demo-backend",
+      "vmArgs": "-Dspring.profiles.active=local"
+    },
+    {
+      "type": "node",
+      "name": "Frontend: Run",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "${workspaceFolder}/frontend"
+    },
+    {
+      "type": "node",
+      "name": "Frontend: Build",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "build"],
+      "cwd": "${workspaceFolder}/frontend"
+    },
+    {
+      "type": "chrome",
+      "name": "Frontend: Launch Browser",
+      "request": "launch",
+      "url": "http://localhost:8080",
+      "webRoot": "${workspaceFolder}/frontend"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack: Run",
+      "configurations": [
+        "Backend: Run",
+        "Frontend: Build",
+        "Frontend: Launch Browser"
+      ]
+    }
+  ]
+}

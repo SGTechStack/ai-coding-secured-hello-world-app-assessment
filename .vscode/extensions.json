@@ -1,0 +1,30 @@
+{
+  "recommendations": [
+    // ========== For Backend : Spring Boot / Java ==========
+    // Provides development tools for VMware Spring Boot projects.
+    "vmware.vscode-boot-dev-pack",
+    // Provides Java language support and development tools.
+    "vscjava.vscode-java-pack",
+    // Linting and formatting: Google Java Format for Java code.
+    "mnghl.google-java-format",
+
+    // ========== For Frontend : React / TypeScript / Tailwind CSS / Vitest ==========
+    // Formats JavaScript, TypeScript, and other supported files.
+    "esbenp.prettier-vscode",
+    // Provides Tailwind CSS IntelliSense and tooling.
+    "bradlc.vscode-tailwindcss",
+    // Enables the latest TypeScript language features and tooling.
+    "ms-vscode.vscode-typescript-next",
+    // Discovers and runs Vitest tests from the editor.
+    "vitest.explorer",
+
+    // ========== General Recommendations ==========
+    // Provides enhanced error highlighting and inline error messages in the editor.
+    "usernamehw.errorlens",
+    // Renders Mermaid diagrams in Markdown files.
+    "bierner.markdown-mermaid",
+
+    // ========== For AI Assistance ==========
+    "anthropic.claude-code" // AI-assisted coding support from Claude.
+  ]
+}

@@ -1,0 +1,47 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+# Ignore local VS Code files by default, but keep shared workspace settings.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+### AI generated files ###
+# Local settings for Claude
+.claude/settings.local.json
+**/docs/plans/*
+
+### Project files ###
+frontend/.githooks/
+
+# fallow analyzer cache (guard against stray runs from repo root; it belongs in frontend/)
+.fallow/

@@ -7,12 +7,16 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import sg.securedhello.audit.AccountContext;
+import sg.securedhello.audit.AuditEmitter;
+import sg.securedhello.audit.AuditEvent;
 import sg.securedhello.credential.CredentialTokenType;
 import sg.securedhello.credential.CredentialTokens;
 import sg.securedhello.email.CredentialLinks;
@@ -32,8 +36,9 @@ import sg.securedhello.user.UserAccountRepository;
  * <ol>
  *   <li>A username that is not canonical, is malformed or is reserved is refused (ADR-045; REJ-021; REJ-027).</li>
  *   <li>A username is unavailable if an account, a tombstone or another address's live {@link UsernameHold} has it.
- *       The one exception is a self-registered pending registration that has outlived the {@link #PENDING_PERIOD}:
- *       it is deleted, and its username is free again.</li>
+ *       The one exception is another address's self-registered pending registration that has outlived the
+ *       {@link #PENDING_PERIOD}: it is deleted, without a tombstone, its username is free again, and the deletion is
+ *       audited (row 48). An administrator's pending invite never lapses. Expired holds are purged first.</li>
  *   <li>Every registration that passes takes or renews the hold on its username for the pending period, <em>whatever
  *       state the email address is in</em>. A second registration of that username from another address is therefore
  *       refused alike whether the first address was new, pending, activated, invited or tombstoned, so the username
@@ -45,8 +50,19 @@ import sg.securedhello.user.UserAccountRepository;
  * The caller answers the same 202 in every email state (R-CRED-018). Nothing here hashes a password, so no state costs
  * a BCrypt call the others do not (T-AUTH-014). The link is sent after the transaction commits.
  *
- * <p>The address's account row is locked first, the lock {@link Activation} takes too, so a re-registration and an
- * activation of one pending registration run one after the other (T-CRED-027).
+ * <p>It runs as three short transactions, each of which locks at most one account row, so two registrations can never
+ * wait on each other's account rows in opposite orders (T-CRED-027):
+ * <ol>
+ *   <li>purge the expired holds;</li>
+ *   <li>delete a lapsed pending registration of another address that has the username, under its row lock, so its
+ *       activation runs wholly before or after;</li>
+ *   <li>reserve: lock the address's account row, the lock {@link Activation} takes too, so a re-registration and an
+ *       activation of one pending registration run one after the other; check the username, which by now names no
+ *       lapsed registration of another address, without locking its row; hold it; and create or replace.</li>
+ * </ol>
+ * A registration that interleaves with another between the steps answers as if it had run after it. The steps share
+ * one instant, so the purge, the lapse and the hold check agree. {@link #register} must not run inside a caller's
+ * transaction: joined into one, the steps would take two account rows again.
  */
 @Service
 public class Registration {
@@ -65,11 +81,12 @@ public class Registration {
     private final CredentialLinks links;
     private final EmailService email;
     private final TransactionTemplate transactions;
+    private final AuditEmitter audit;
     private final Clock clock;
 
     Registration(UserAccountRepository accounts, UsernameHoldRepository holds, Tombstones tombstones,
             CredentialTokens tokens, CredentialLinks links, EmailService email,
-            PlatformTransactionManager transactionManager, Clock clock) {
+            PlatformTransactionManager transactionManager, AuditEmitter audit, Clock clock) {
         this.accounts = accounts;
         this.holds = holds;
         this.tombstones = tombstones;
@@ -77,6 +94,7 @@ public class Registration {
         this.links = links;
         this.email = email;
         this.transactions = new TransactionTemplate(transactionManager);
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -91,9 +109,13 @@ public class Registration {
             throw new InvalidIdentifierException();
         }
         String canonicalEmail = Identifiers.canonicalEmail(submittedEmail).orElseThrow(InvalidIdentifierException::new);
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        transactions.executeWithoutResult(status -> holds.deleteExpired(now));
+        transactions.execute(status -> deleteLapsed(username, canonicalEmail, now)).ifPresent(lapsed ->
+                audit.emit(AuditEvent.PENDING_REGISTRATION_LAPSED, AccountContext.registrationLapsed(lapsed)));
         Optional<LinkEmail> link;
         try {
-            link = transactions.execute(status -> reserve(username, canonicalEmail));
+            link = transactions.execute(status -> reserve(username, canonicalEmail, now));
         } catch (DataIntegrityViolationException e) {
             throw usernameRace(e);
         }
@@ -108,9 +130,23 @@ public class Registration {
         return UniqueIdentifierIndexes.violated(e, UNIQUE_USERNAME_INDEXES) ? new UsernameUnavailableException() : e;
     }
 
-    private Optional<LinkEmail> reserve(String username, String canonicalEmail) {
-        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
-        holds.deleteExpired(now);
+    /**
+     * Deletes the pending registration that has {@code username}, if it is another address's, self-registered, and has
+     * outlived the pending period, and returns its id. Its row is locked first, so an activation of it runs wholly
+     * before this, and then it is no longer pending.
+     */
+    private Optional<UUID> deleteLapsed(String username, String canonicalEmail, Instant now) {
+        return accounts.findForUpdateByUsername(username)
+                .filter(account -> !account.getEmail().equals(canonicalEmail))
+                .filter(account -> !now.isBefore(account.getCreatedAt().plus(PENDING_PERIOD)))
+                .filter(this::isSelfRegisteredPending)
+                .map(account -> {
+                    accounts.delete(account);
+                    return account.getId();
+                });
+    }
+
+    private Optional<LinkEmail> reserve(String username, String canonicalEmail, Instant now) {
         // Locked before anything is read, so an activation of this address's registration runs wholly before or after.
         Optional<UserAccount> holder = accounts.findForUpdateByEmail(canonicalEmail);
         UsernameHold hold = holdUsername(username, canonicalEmail, now);
@@ -131,33 +167,24 @@ public class Registration {
     }
 
     /**
-     * The hold {@code canonicalEmail} may take on {@code username}: the existing one if it is this address's, or a new
-     * one. A pending registration of another address that has outlived the pending period is deleted, which frees its
-     * username.
+     * The hold {@code canonicalEmail} may take on {@code username}: the existing one if it is this address's or has run
+     * out, or a new one. The account the username names is read without its row lock: if it is this address's
+     * self-registered pending registration, the caller holds that lock already; any other account makes the username
+     * unavailable, a lapsed one included, which {@link #deleteLapsed} leaves only if a race kept it from seeing it.
      *
      * @throws UsernameUnavailableException if an account, a tombstone or another address's live hold has the username
      */
     private UsernameHold holdUsername(String username, String canonicalEmail, Instant now) {
-        // Under the row lock, so an activation of a pending registration about to lapse runs wholly before this.
-        Optional<UserAccount> named = accounts.findForUpdateByUsername(username);
-        if (named.isPresent()) {
-            UserAccount account = named.get();
-            boolean pending = isSelfRegisteredPending(account);
-            boolean ours = pending && account.getEmail().equals(canonicalEmail);
-            boolean lapsed = pending && !now.isBefore(account.getCreatedAt().plus(PENDING_PERIOD));
-            if (!ours && !lapsed) {
-                throw new UsernameUnavailableException();
-            }
-            if (!ours) {
-                accounts.delete(account);
-                accounts.flush();
-            }
+        Optional<UserAccount> named = accounts.findByUsername(username);
+        if (named.isPresent() && !(named.get().getEmail().equals(canonicalEmail)
+                && isSelfRegisteredPending(named.get()))) {
+            throw new UsernameUnavailableException();
         }
         if (tombstones.holdsUsername(username)) {
             throw new UsernameUnavailableException();
         }
         Optional<UsernameHold> held = holds.findByUsername(username);
-        if (held.isPresent() && !held.get().getEmail().equals(canonicalEmail)) {
+        if (held.isPresent() && !held.get().getEmail().equals(canonicalEmail) && held.get().liveAt(now)) {
             throw new UsernameUnavailableException();
         }
         return held.orElseGet(() -> new UsernameHold(username, canonicalEmail, now.plus(PENDING_PERIOD)));

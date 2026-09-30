@@ -43,6 +43,11 @@ public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason
         return new AccountContext(userId, reason);
     }
 
+    /** A lapsed pending registration deleted (row 48); {@code userId} is the deleted account. */
+    public static AccountContext registrationLapsed(UUID userId) {
+        return new AccountContext(userId, null);
+    }
+
     /** Session start (row 8). */
     public static AccountContext sessionStart(UUID userId, SessionStartReason reason) {
         return new AccountContext(userId, reason);

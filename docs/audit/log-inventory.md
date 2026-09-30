@@ -65,6 +65,7 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | SESSIONS_RECONCILED | `session-reconciliation` | `end` | success | INFO | low | no | per event | — | `session.ended_count`, `labels.reconciled_accounts` | — | Sessions reconciled at startup. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
 | SHED_EPISODE_CLEARED | `access-control` | `change` | success | INFO | low | no | per event | — | — | — | Anonymous-session shedding cleared. |
+| PENDING_REGISTRATION_LAPSED | `user-provisioning` | `deletion` | success | INFO | low | yes | per event | — | `user.id` | — | Lapsed pending registration deleted. |
 | APPLICATION_SHUTDOWN | `application-shutdown` | `end` | success | INFO | low | no | per event | — | — | — | Application stopping. |
 
 ## Keyed rows and truncation

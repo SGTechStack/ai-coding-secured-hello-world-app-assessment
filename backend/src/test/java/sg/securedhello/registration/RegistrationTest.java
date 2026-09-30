@@ -35,6 +35,7 @@ import sg.securedhello.credential.CredentialTokenType;
 import sg.securedhello.email.LinkEmail;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.testsupport.Accounts;
+import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CtxDefaultTest;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.Registrations;
@@ -48,6 +49,8 @@ import sg.securedhello.user.UserAccountRepository;
  * email axis never does, and only an activation link sent to the address can make the account usable.
  */
 class RegistrationTest extends CtxDefaultTest {
+
+    private static final String LAPSED = "Lapsed pending registration deleted.";
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -328,15 +331,27 @@ class RegistrationTest extends CtxDefaultTest {
         String username = Registrations.freshUsername();
         String squatter = Registrations.emailFor(username);
         registrations.register(username, squatter).andExpect(status().isAccepted());
+        String lapsed = jdbc.queryForObject("SELECT id FROM users WHERE email = ?", String.class, squatter);
         String owner = Registrations.emailFor(Registrations.freshUsername());
 
         clock.advance(Registration.PENDING_PERIOD.minusSeconds(1));
-        registrations.register(username, owner).andExpect(problem(ErrorCode.VALIDATION_FAILED))
-                .andExpect(jsonPath("$.rule").value("USERNAME_UNAVAILABLE"));
+        try (AuditCapture audit = AuditCapture.start()) {
+            registrations.register(username, owner).andExpect(problem(ErrorCode.VALIDATION_FAILED))
+                    .andExpect(jsonPath("$.rule").value("USERNAME_UNAVAILABLE"));
+            assertThat(audit.withMessage(LAPSED)).as("nothing has lapsed yet").isEmpty();
+        }
 
         clock.advance(java.time.Duration.ofSeconds(1));
-        registrations.register(username, owner).andExpect(status().isAccepted());
+        try (AuditCapture audit = AuditCapture.start()) {
+            registrations.register(username, owner).andExpect(status().isAccepted());
+            assertThat(audit.withMessage(LAPSED)).singleElement().satisfies(row -> assertThat(row)
+                    .containsEntry("event.action", "user-provisioning")
+                    .containsEntry("event.type", List.of("deletion"))
+                    .containsEntry("user.id", lapsed));
+        }
         assertThat(usersWithEmail(squatter)).as("the lapsed pending registration is gone").isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM deleted_users WHERE user_id = ?", Integer.class,
+                UUID.fromString(lapsed))).as("no tombstone").isZero();
         assertThat(jdbc.queryForObject("SELECT email FROM users WHERE username = ?", String.class, username))
                 .isEqualTo(owner);
         assertThat(emails.latestToken(owner, CredentialTokenType.ACTIVATION)).isPresent();
@@ -366,12 +381,68 @@ class RegistrationTest extends CtxDefaultTest {
         String username = Registrations.freshUsername();
         String email = Registrations.emailFor(username);
         registrations.register(username, email).andExpect(status().isAccepted());
+        String id = jdbc.queryForObject("SELECT id FROM users WHERE email = ?", String.class, email);
         clock.advance(Registration.PENDING_PERIOD);
 
-        registrations.register(username, email).andExpect(status().isAccepted());
-        assertThat(usersWithEmail(email)).isOne();
+        try (AuditCapture audit = AuditCapture.start()) {
+            registrations.register(username, email).andExpect(status().isAccepted());
+            assertThat(audit.withMessage(LAPSED)).as("its own registration is renewed, not lapsed").isEmpty();
+        }
+        assertThat(jdbc.queryForObject("SELECT id FROM users WHERE email = ?", String.class, email)).isEqualTo(id);
         registrations.activate(emails.latestToken(email, CredentialTokenType.ACTIVATION).orElseThrow(),
                 Registrations.PASSWORD).andExpect(status().isNoContent());
+    }
+
+    @Test
+    @Proves("T-CRED-026")
+    void aRepeatedRegistrationRenewsItsHoldForAnotherTwentyFourHours() throws Exception {
+        Accounts.Account activated = new Accounts(jdbc, passwordEncoder).user();
+        String username = Registrations.freshUsername();
+        String address = activated.username() + "@example.test";
+        registrations.register(username, address).andExpect(status().isAccepted());
+        clock.advance(Registration.PENDING_PERIOD.minusHours(1));
+        registrations.register(username, address).andExpect(status().isAccepted());
+
+        clock.advance(java.time.Duration.ofHours(2));
+        registrations.register(username, Registrations.emailFor(Registrations.freshUsername()))
+                .andExpect(problem(ErrorCode.VALIDATION_FAILED))
+                .andExpect(jsonPath("$.rule").value("USERNAME_UNAVAILABLE"));
+    }
+
+    @Test
+    @Proves("T-CRED-026")
+    void aRegistrationPurgesEveryExpiredHold() throws Exception {
+        String stale = Registrations.freshUsername();
+        registrations.register(stale, Registrations.emailFor(stale)).andExpect(status().isAccepted());
+        clock.advance(Registration.PENDING_PERIOD);
+
+        String next = Registrations.freshUsername();
+        registrations.register(next, Registrations.emailFor(next)).andExpect(status().isAccepted());
+
+        assertThat(holdsOn(stale)).as("an unrelated registration purged the expired hold").isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM username_holds WHERE expires_at <= ?", Integer.class,
+                Timestamp.from(clock.instant()))).isZero();
+    }
+
+    @Test
+    @Proves("T-CRED-026")
+    void anAdministratorsInviteWithItsAdminIssuedTokenNeverLapses() throws Exception {
+        String invited = Registrations.freshUsername();
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO users (id, username, email, role, enabled, created_at) VALUES (?, ?, ?, 'USER', TRUE, ?)",
+                id, invited, Registrations.emailFor(invited), Timestamp.from(clock.instant()));
+        jdbc.update("INSERT INTO credential_tokens (id, user_id, type, token_hash, expires_at, created_at, admin_issued)"
+                        + " VALUES (?, ?, 'ACTIVATION', ?, ?, ?, TRUE)", UUID.randomUUID(), id,
+                UUID.randomUUID().toString().replace("-", "") + "0".repeat(32),
+                Timestamp.from(clock.instant().plus(Registration.PENDING_PERIOD)), Timestamp.from(clock.instant()));
+        clock.advance(Registration.PENDING_PERIOD.multipliedBy(2));
+
+        try (AuditCapture audit = AuditCapture.start()) {
+            registrations.register(invited, Registrations.emailFor(Registrations.freshUsername()))
+                    .andExpect(problem(ErrorCode.VALIDATION_FAILED));
+            assertThat(audit.withMessage(LAPSED)).isEmpty();
+        }
+        assertThat(usersNamed(invited)).isOne();
     }
 
     @Test

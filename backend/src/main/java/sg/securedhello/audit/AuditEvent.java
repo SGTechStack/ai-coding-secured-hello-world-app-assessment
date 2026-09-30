@@ -425,6 +425,17 @@ public enum AuditEvent {
             .scope(Scope.PROCESS)
             .build()),
 
+    /**
+     * Row 48: a self-registered pending registration had lapsed, 24 hours after its last registration, and the next
+     * registration of its username from another address deleted it, freeing the name (ADR-032 amendment). No tombstone
+     * is written: it never held a credential. {@code user.id} is the deleted account; the registrant is anonymous. Per
+     * event: the registration route is budgeted, and each row consumes a pending registration a day old (ADR-019).
+     */
+    PENDING_REGISTRATION_LAPSED(row("user-provisioning", "Lapsed pending registration deleted.")
+            .type("deletion")
+            .required(USER_ID)
+            .build()),
+
     /** Row 44: the application context is closing. */
     APPLICATION_SHUTDOWN(row("application-shutdown", "Application stopping.")
             .type("end")

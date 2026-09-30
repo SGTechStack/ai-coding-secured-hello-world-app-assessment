@@ -3,6 +3,7 @@ package sg.securedhello.testsupport;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.concurrent.Future;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,9 +27,17 @@ public abstract class CtxLockHoldTest extends CtxDefaultTest {
      * then never waited. Bounded by the lock timeout, after which {@code waiter} fails and is done.
      */
     protected void awaitBlocked(Future<?> waiter) {
-        while (blockedSessions() == 0) {
-            if (waiter.isDone()) {
-                fail("the contending transaction finished without waiting on the held lock");
+        awaitBlocked(1, waiter);
+    }
+
+    /**
+     * As {@link #awaitBlocked(Future)}, until at least {@code sessions} H2 sessions are waiting; fails if any of
+     * {@code waiters} finishes first.
+     */
+    protected void awaitBlocked(int sessions, Future<?>... waiters) {
+        while (blockedSessions() < sessions) {
+            if (Stream.of(waiters).anyMatch(Future::isDone)) {
+                fail("a contending transaction finished without waiting on the held lock");
             }
             Thread.onSpinWait();
         }

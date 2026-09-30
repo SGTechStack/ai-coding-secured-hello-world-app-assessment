@@ -52,6 +52,11 @@ class UsernameHold {
         return email;
     }
 
+    /** Whether the hold still blocks the username at {@code now}: it runs out at its expiry. */
+    boolean liveAt(Instant now) {
+        return now.isBefore(expiresAt);
+    }
+
     /** Holds the username for {@code email} until {@code expiresAt}. */
     void renew(String email, Instant expiresAt) {
         this.email = email;

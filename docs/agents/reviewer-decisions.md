@@ -151,7 +151,7 @@ Human decisions on reviewer `Human Decision Needed` findings. Apply a matching e
 
 ## A 401 from the CSRF bootstrap is a session end; other bootstrap failures stay errors
 
-- **Area:** `frontend/src/api/client.ts` (`fetchCsrfToken`, `refreshCsrfToken`, `ensureCsrfToken`, `apiRequest`), issue 19. Triage decision on the issue's own criterion 4, not a reviewer finding.
+- **Area:** `frontend/src/api/client.ts` (`fetchCsrfToken`, `refreshCsrfToken`, `ensureCsrfToken`, `apiRequest`), issue 19. Triage decision on the issue's own criterion 4; proposed by the implementer, confirmed by the human (2026-09-30, option A).
 - **KB finding:** None (KB skipped by request).
 - **Chosen action:** Only a 401 from `GET /api/csrf` counts as a session end. The private bootstrap notifies the session-ended listeners once per fetch, then signals `apiRequest` with a private error that it turns into an ordinary `{ ok: false, status: 401 }` result, without notifying again. Public `refreshCsrfToken()` resolves on a 401. A 403 or 5xx still rejects with the existing `Error`. (Rejected: treating 403 the same, which would turn a non-Session failure into a silent logout; resolving `null` and faking a `Response`; per-call-site catches in `auth.ts`.)
 - **When to reuse:** Any new path that can learn "the Session has ended" outside `apiRequest`'s own 401 branch must go through the same single notification point, and must not notify twice when the result also flows back through `apiRequest`. Map only the status that means a session end; other failures of a supporting request stay visible errors.

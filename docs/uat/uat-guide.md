@@ -48,9 +48,9 @@ Where the application deliberately behaves differently from the PRD's wording, t
   sign-in.
 - **Step-up codes.** Administrator changes need an authenticator code from the last 10 minutes. If it is older, a
   **TOTP Verification** dialog asks for a new code. Enter it, choose **Verify**, and the change completes. This is
-  expected. For `demo-admin`, read the code from a second tab of the same window left open on
-  http://localhost:5173/sign-in: its **Demo accounts** panel shows the current code even while you are signed in. A
-  code can be used once only, so if one is refused just after you used it, wait for the next.
+  expected. For `demo-admin` under `dev`, the dialog itself shows a **Demo code** hint with the current code: choose
+  **Fill in demo code**, then **Verify**. A code can be used once only, so if the hint says the code was just used,
+  wait for the next one it counts down to.
 - **Waiting.** The lockout lasts **20 minutes** and a reset link **30 minutes**. There is no dev-only clock shortcut.
   The only shortcut for a lock is an administrator's **Unlock account**, which UAT-03 lists as an optional step but
   which does not prove the cooldown.

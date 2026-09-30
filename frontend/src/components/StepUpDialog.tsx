@@ -61,6 +61,7 @@ export function StepUpDialog() {
       description={DESCRIPTION}
       showSpinner={checking}
       disabled={lock.locked}
+      demoCodeHint
       message={lock.message ?? failure}
       callback={onCode}
       onCancel={() => {

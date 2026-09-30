@@ -13,6 +13,8 @@ interface MfaDialogProps {
   showSpinner?: boolean
   /** Hold Verify disabled, as while a factor lock lasts. */
   disabled?: boolean
+  /** Offer the dev-only demo code hint in the code form. */
+  demoCodeHint?: boolean
   /** A failure to announce in the dialog's live region. */
   message?: string
   /** Sends a well-formed code; resolves with a message for the field (a refused code) or `undefined`. */
@@ -31,6 +33,7 @@ export function MfaDialog({
   description,
   showSpinner = false,
   disabled = false,
+  demoCodeHint = false,
   message = '',
   callback,
   onCancel,
@@ -49,7 +52,13 @@ export function MfaDialog({
         <Dialog.Popup className="fixed top-1/2 left-1/2 flex w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border bg-background p-6 shadow-lg">
           <Dialog.Title className="text-lg font-semibold">{mfaType} Verification</Dialog.Title>
           {description && <Dialog.Description className="text-sm">{description}</Dialog.Description>}
-          <TotpCodeForm submitLabel="Verify" onCode={callback} showSpinner={showSpinner} disabled={disabled} />
+          <TotpCodeForm
+            submitLabel="Verify"
+            onCode={callback}
+            showSpinner={showSpinner}
+            disabled={disabled}
+            demoCodeHint={demoCodeHint}
+          />
           {/* Always rendered, so a screen reader announces the message when it appears (live region). */}
           <p role="alert" className="text-sm text-destructive">
             {message}

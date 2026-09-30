@@ -83,7 +83,7 @@ export function FactorChallengePage() {
         TOTP Verification
       </h2>
       <p className="text-sm">Enter the 6-digit code your authenticator app shows for this account.</p>
-      <TotpCodeForm submitLabel="Verify" onCode={onCode} autoFocus disabled={lock.locked} />
+      <TotpCodeForm submitLabel="Verify" onCode={onCode} autoFocus disabled={lock.locked} demoCodeHint />
       {/* Always rendered, so a screen reader announces the message when it appears (live region). */}
       <p role="alert" className="text-sm text-destructive">
         {lock.message ?? failure}

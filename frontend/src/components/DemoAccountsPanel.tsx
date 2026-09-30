@@ -1,7 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useId, useState } from 'react'
+import { useId, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { type DemoAccount, DEMO_ACCOUNTS_KEY, fetchDemoAccounts, refreshAfterMs } from '@/lib/auth/demoAccounts'
+import {
+  type DemoAccount,
+  DEMO_ACCOUNTS_KEY,
+  fetchDemoAccounts,
+  refreshAfterMs,
+  useSecondsLeft,
+} from '@/lib/auth/demoAccounts'
 
 /**
  * The sign-in page's "Demo accounts" panel, for local demos. It renders only when the backend's dev-only endpoint
@@ -56,17 +62,6 @@ export function DemoAccountsPanel({ onUse }: { onUse: (username: string, passwor
       </p>
     </section>
   )
-}
-
-/** The whole seconds left until `expiresAt`, ticking once a second while `expiresAt` is set. */
-function useSecondsLeft(expiresAt: number | undefined): number {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    if (expiresAt === undefined) return
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
-  }, [expiresAt])
-  return expiresAt === undefined ? 0 : Math.max(0, Math.ceil((expiresAt - now) / 1000))
 }
 
 function DemoAccountEntry({

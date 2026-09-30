@@ -203,15 +203,15 @@ final class ArchitectureRules {
             .orShould().callMethod(Tombstones.class, "deleteLeavingTombstone", UserAccount.class, UUID.class)
             .because("a role change or delete runs under AdminActionGuard's lock set and checks (ADR-048)");
 
-    /** The offline recovery runner, which bypasses the guard by design (ADR-072); package-private, so named. */
-    static final String RECOVERY_RUNNER = "sg.securedhello.recovery.RecoveryRunner";
+    /** The recovery runner's apply step, the guard's deliberate bypass (ADR-072); package-private, so named. */
+    static final String RECOVERY_APPLIER = "sg.securedhello.recovery.RecoveryApplier";
 
     /**
      * T-ADM-014: only the guarded service removes a TOTP factor, so a factor reset runs under the guard (ADR-049). The
      * one other caller is the offline recovery runner, the deliberate break-glass bypass (ADR-072).
      */
     static final ArchRule ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS = noClasses()
-            .that().doNotBelongToAnyOf(AdminActions.class).and().doNotHaveFullyQualifiedName(RECOVERY_RUNNER)
+            .that().doNotBelongToAnyOf(AdminActions.class).and().doNotHaveFullyQualifiedName(RECOVERY_APPLIER)
             .should().callMethod(TotpFactorRemoval.class, "remove", UUID.class)
             .because("a factor reset runs under AdminActionGuard's lock set and actor-not-subject check (ADR-049)");
 

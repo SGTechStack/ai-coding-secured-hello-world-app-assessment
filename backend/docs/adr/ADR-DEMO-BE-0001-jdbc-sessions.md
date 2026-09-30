@@ -12,5 +12,5 @@ Sessions are stored with Spring Session JDBC in every profile, replacing the tem
 
 ## Consequences
 
-- Only sessions leave Redis. `feat-redis` still backs the cache manager and the JWKS rotation lock, so the Redis data starter, `feat-redis` and `LocalRedisExclusionConfiguration` stay; the Redis session starter is replaced by the JDBC one.
+- Only sessions left Redis at the time. Redis has since been removed entirely (the cache manager and the unused JWKS rotation lock were its only other users), along with `feat-redis`, the Redis data starter and `LocalRedisExclusionConfiguration`.
 - The repo has no migration tool. `local` and `test` get the session tables from Spring's embedded initializer; the deployed MSSQL schema, including the session tables, is managed outside this repo.

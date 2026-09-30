@@ -25,7 +25,7 @@ In production the backend serves the pre-built frontend as static files. Locally
 | Framework    | Spring Boot 4.0                                                                     |
 | Persistence  | Spring Data JPA — H2 (local/test), MS SQL Server (cloud)                            |
 | Security     | Spring Security — session-based auth                                                |
-| Sessions     | Spring Session — in-memory (local/test), Redis (dev/qa/prod)                        |
+| Sessions     | Spring Session JDBC (all profiles)                                                  |
 | Config       | Application properties + AWS Secrets Manager (dev/qa/prod)                          |
 | API docs     | springdoc-openapi / Swagger UI (non-prod only)                                      |
 | Logging      | ECS-format structured JSON (`logs/log.json`)                                        |
@@ -63,7 +63,6 @@ demo-app/
 │   ├── src/main/resources/
 │   │   ├── application.properties              # Base config (defaults to prod)
 │   │   ├── application-local.properties        # Local dev overrides
-│   │   ├── application-feat-redis.properties   # Redis session feature flag
 │   │   ├── application-feat-https.properties   # TLS feature flag
 │   │   ├── application-feat-aws-secrets.properties
 │   │   ├── application-unsafe-openapi.properties
@@ -90,7 +89,6 @@ demo-app/
 
 - Java 21+
 - Node.js 20+ and npm
-- (Optional) Redis — only needed for `dev`/`qa`/`prod` profiles
 
 ### Backend
 
@@ -101,7 +99,7 @@ cd backend
 ./scripts/setup-hooks.sh        # macOS/Linux
 .\scripts\setup-hooks.ps1       # Windows
 
-# Run locally (H2 database, no Redis, Swagger UI enabled)
+# Run locally (H2 database, Swagger UI enabled)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 
 # Run tests
@@ -186,11 +184,11 @@ The dev server starts on **http://localhost:3000** and proxies API requests to t
 
 | Profile | Database                   | Sessions  | Config source       | Notes                         |
 | ------- | -------------------------- | --------- | ------------------- | ----------------------------- |
-| `local` | H2 (file, `backend/data/`) | In-memory | Property files      | Default for local development |
-| `test`  | H2 (in-memory)             | In-memory | Property files      | Automated tests               |
-| `dev`   | MS SQL Server              | Redis     | AWS Secrets Manager | AWS dev environment           |
-| `qa`    | MS SQL Server              | Redis     | AWS Secrets Manager | AWS QA environment            |
-| `prod`  | MS SQL Server              | Redis     | AWS Secrets Manager | Default active profile        |
+| `local` | H2 (file, `backend/data/`) | JDBC      | Property files      | Default for local development |
+| `test`  | H2 (in-memory)             | JDBC      | Property files      | Automated tests               |
+| `dev`   | MS SQL Server              | JDBC      | AWS Secrets Manager | AWS dev environment           |
+| `qa`    | MS SQL Server              | JDBC      | AWS Secrets Manager | AWS QA environment            |
+| `prod`  | MS SQL Server              | JDBC      | AWS Secrets Manager | Default active profile        |
 
 ---
 

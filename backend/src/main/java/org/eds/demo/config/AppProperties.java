@@ -6,8 +6,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 /**
  * Top-level configuration properties for the application, bound under the {@code app} prefix.
  *
- * <p>Nest additional sub-records here as the application grows, for example {@code app.security.*}
- * or {@code app.cache.*}.
+ * <p>Nest additional sub-records here as the application grows, for example {@code app.security.*}.
  */
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(Spa spa, Security security) {

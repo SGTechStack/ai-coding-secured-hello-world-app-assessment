@@ -23,7 +23,7 @@ class DemoLocalProfileIT {
   @Autowired private MockMvc mockMvc;
 
   @Test
-  void localProfileHandlesWebRequestsWithoutRedis() throws Exception {
+  void localProfileHandlesWebRequests() throws Exception {
     mockMvc.perform(get("/")).andExpect(status().is3xxRedirection());
   }
 

@@ -11,7 +11,7 @@ Each domain has:
 - `api`: controllers, request/response DTOs, web mapping
 - `application`: use cases, application services
 - `domain`: domain objects, value objects, domain services, repository interfaces
-- `infrastructure`: adapters (JPA, Redis, HTTP clients, messaging, cloud)
+- `infrastructure`: adapters (JPA, HTTP clients, messaging, cloud)
 
 Dependencies point inward: `api → application → domain`, `infrastructure → domain`. `domain` stays free of Spring MVC, JPA annotations, security objects, and API DTOs unless a documented reason says otherwise (`user/domain` JPA entities: [ADR-DEMO-BE-0002](docs/adr/ADR-DEMO-BE-0002-jpa-entities-in-domain.md)). API records live in `api`, domain types in `domain`; map at the controller boundary, or in a small mapper once mapping is non-trivial.
 

@@ -23,25 +23,35 @@
 
 **Blocked by:** 11, 12, 13, 23, 33
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] A correct password sets an HMAC-signed device cookie bound to the account and a `trusted_devices` row (new
+- [x] A correct password sets an HMAC-signed device cookie bound to the account and a `trusted_devices` row (new
       migration); no failure sets or clears it; tampered, expired, revoked or another username's cookie is untrusted.
-- [ ] The untrusted lane locks on the existing 5-in-window ladder; a trusted device's correct password passes an
+- [x] The untrusted lane locks on the existing 5-in-window ladder; a trusted device's correct password passes an
       untrusted-lane lock; each trusted device has its own persisted lock on the same ladder.
-- [ ] The NIST cap counts every failure in every lane and disables every lane; a trusted-device success resets the
+- [x] The NIST cap counts every failure in every lane and disables every lane; a trusted-device success resets the
       untrusted counter, its device counter and the cap counter.
-- [ ] The 401 body and headers are identical whether or not the account exists or a cookie is present; one
+- [x] The 401 body and headers are identical whether or not the account exists or a cookie is present; one
       `matches()` per request; limiters, cardinality axis, TOTP lockout and deferred counting unchanged in intent.
-- [ ] An untrusted-lane lock does not end the account's sessions; a device lock and the cap still do.
-- [ ] Password change, reset, admin-issued reset, admin disable, delete and the recovery runner revoke every device.
-- [ ] Device lock state survives a restart.
-- [ ] `app.security.lockout.device.{secret,ttl,threshold}` bound and validated; the secret follows ADR-062 (refused as
+- [x] An untrusted-lane lock does not end the account's sessions; a device lock and the cap still do.
+- [x] Password change, reset, admin-issued reset, admin disable, delete and the recovery runner revoke every device.
+- [x] Device lock state survives a restart.
+- [x] `app.security.lockout.device.{secret,ttl,threshold}` bound and validated; the secret follows ADR-062 (refused as
       a published demo value outside dev).
-- [ ] The admin list and detail responses carry the sign-in status; no hash, secret or cookie value (T-ADM-008/016).
-- [ ] The SPA shows the sign-in status on the list and detail pages; Unlock appears only when something is
+- [x] The admin list and detail responses carry the sign-in status; no hash, secret or cookie value (T-ADM-008/016).
+- [x] The SPA shows the sign-in status on the list and detail pages; Unlock appears only when something is
       unlockable, and unlock clears the device locks too.
-- [ ] Playwright: an attacker in a fresh browser context locks the account while the owner's browser still signs in.
-- [ ] Records: new ADR; ADR-010/011/012/033/037 amended; REJ-013 withdrawn; R-LCK-002/003/005 regraded; the new
+- [x] Playwright: an attacker in a fresh browser context locks the account while the owner's browser still signs in.
+- [x] Records: new ADR; ADR-010/011/012/033/037 amended; REJ-013 withdrawn; R-LCK-002/003/005 regraded; the new
       deviation recorded; `docs/prd-coverage.md`, register renderings and audit inventory regenerated.
-- [ ] One full `verify` passes; PIT on the changed gate-list classes holds the threshold.
+- [x] One full `verify` passes. PIT skipped (user decision, deadline); `LockoutLane` and `DeviceCookieCodec` were added to the gate list.
+
+## Closeout
+
+- Decisions: the cookie is `__Host-DEVICE` with `Path=/` (the prefix forbids `/api/login`); `DEVICE` under `dev`.
+  Admin unlock clears every lane, trusted devices included. Deferred (contended) failures count in the untrusted lane
+  and on the cap. The dev key lives in `application-dev.yml` (T-CFG-020 exempts that file alone; T-CFG-039 refuses the
+  value outside dev).
+- Recorded residual: logout's mandated `Clear-Site-Data: "cookies"` clears the device cookie, so an explicit sign-out
+  returns the browser to the untrusted lane (ADR-075; R-LCK-002). A timed-out session keeps it.
+- PIT skipped (user decision, deadline).

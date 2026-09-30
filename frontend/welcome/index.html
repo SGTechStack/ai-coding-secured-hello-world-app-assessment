@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in · %VITE_APP_TITLE%</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --background: oklch(0.97 0 0);
+        --foreground: oklch(0.145 0 0);
+        --card: oklch(1 0 0);
+        --card-foreground: oklch(0.145 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --border: oklch(0.922 0 0);
+        --ring: oklch(0.708 0 0);
+        --radius: 0.625rem;
+        --footnote-background: oklch(0.99 0.006 15);
+      }
+
+      body {
+        background: radial-gradient(
+          ellipse at 60% 20%,
+          oklch(0.93 0.04 270),
+          oklch(0.97 0.02 240) 40%,
+          oklch(0.96 0.03 200) 70%,
+          oklch(0.95 0.02 280)
+        );
+        color: var(--foreground);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+      }
+
+      .card {
+        background-color: var(--card);
+        color: var(--card-foreground);
+        border: 1px solid var(--border);
+        border-radius: calc(var(--radius) + 4px);
+        padding: 16px;
+        width: 100%;
+        max-width: 28rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        box-shadow:
+          0 1px 3px oklch(0 0 0 / 0.06),
+          0 4px 16px oklch(0 0 0 / 0.06);
+      }
+
+      .wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.8rem;
+      }
+
+      .heading {
+        text-align: left;
+        width: 100%;
+      }
+
+      .heading h1 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        line-height: 1.3;
+      }
+
+      .heading p {
+        font-size: 0.875rem;
+        color: var(--muted-foreground);
+        line-height: 1.5;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: 100%;
+        padding: 0.625rem 1.25rem;
+        background-color: transparent;
+        color: var(--primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px solid var(--primary);
+        border-radius: var(--radius);
+        cursor: pointer;
+        text-decoration: none;
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease;
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        background-color: var(--primary);
+        color: var(--primary-foreground);
+      }
+
+      .btn:active {
+        opacity: 0.76;
+      }
+
+      .btn:focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+      }
+
+      .footnote {
+        font-size: 0.75rem;
+        color: var(--muted-foreground);
+        background-color: var(--footnote-background);
+        border-top: 1px solid var(--border);
+        margin: 0 -16px -16px;
+        padding: 1rem 16px;
+        border-radius: 0 0 calc(var(--radius) + 4px) calc(var(--radius) + 4px);
+        align-self: stretch;
+        text-align: left;
+      }
+
+      .footnote h1 {
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div class="card">
+        <div class="heading">
+          <h1>Welcome to %VITE_APP_TITLE%</h1>
+          <p>%VITE_APP_DESCRIPTION%</p>
+        </div>
+
+        <a class="btn" href="%VITE_LOGIN_URL%">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <polyline points="10 17 15 12 10 7" />
+            <line x1="15" y1="12" x2="3" y2="12" />
+          </svg>
+          Sign in
+        </a>
+
+        <footer class="footnote">
+          <h1>%VITE_APP_WARNING_TITLE%</h1>
+          <p>%VITE_APP_WARNING_DESCRIPTION%</p>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

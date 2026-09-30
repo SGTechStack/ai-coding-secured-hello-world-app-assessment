@@ -6,10 +6,10 @@
 
 **Blocked by:** 19, 20
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Resetting your own factor is refused.
-- [ ] Resetting one of exactly two enrolled admins succeeds, so the exemption holds.
-- [ ] After a reset the subject's sessions are gone. On sign-in they get `FACTOR_ENROLMENT_REQUIRED` and can re-enrol.
-- [ ] A tier-2-disabled admin is recoverable by this route.
-- [ ] An audit row names the actor and the subject.
+- [x] Resetting your own factor is refused.
+- [x] Resetting one of exactly two enrolled admins succeeds, so the exemption holds.
+- [x] After a reset the subject's sessions are gone. On sign-in they get `FACTOR_ENROLMENT_REQUIRED` and can re-enrol.
+- [x] A tier-2-disabled admin is recoverable by this route.
+- [x] An audit row names the actor and the subject.

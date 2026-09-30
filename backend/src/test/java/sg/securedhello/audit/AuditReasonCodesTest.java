@@ -42,7 +42,23 @@ class AuditReasonCodesTest {
             // PasswordDisableReason: the NIST cap's disable
             "FAILURE_CAP",
             // AdminRefusalReason: row 34
-            "SELF_ACTION", "TWO_ADMIN_INVARIANT");
+            "SELF_ACTION", "TWO_ADMIN_INVARIANT",
+            // SessionTimeoutReason: row 9
+            "ABSOLUTE_TIMEOUT",
+            // SessionEvictionReason: row 10
+            "CONCURRENT_EVICTION",
+            // InvalidSessionReason: row 11
+            "UNKNOWN_OR_EXPIRED", "DUPLICATE_SESSION_COOKIE",
+            // AccessDeniedReason: row 12
+            "INSUFFICIENT_ROLE",
+            // FactorRequiredReason: row 14
+            "FACTOR_MISSING", "FACTOR_EXPIRED",
+            // RegistrationReason: row 16
+            "NEW_ACCOUNT", "EXISTING_ADDRESS",
+            // RegistrationRefusalReason: row 17
+            "USERNAME_UNAVAILABLE",
+            // TokenRedemptionFailureReason: row 20
+            "TOKEN_UNKNOWN", "TOKEN_EXPIRED", "TOKEN_CONSUMED");
 
     @Test
     @Proves("T-AUD-045")

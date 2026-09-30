@@ -21,6 +21,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.testsupport.MutableClock;
@@ -36,7 +37,8 @@ class AbsoluteLifetimeFilterTest {
 
     private final MutableClock clock = MutableClock.startingAt(Instant.ofEpochMilli(CREATED));
     private final ProblemDetailWriter writer = mock(ProblemDetailWriter.class);
-    private final AbsoluteLifetimeFilter filter = new AbsoluteLifetimeFilter(W, ABSOLUTE, clock, writer);
+    private final AbsoluteLifetimeFilter filter = new AbsoluteLifetimeFilter(W, ABSOLUTE, clock, writer,
+            mock(AuditEmitter.class));
 
     private HttpSession anonymousSession(long lastAccessed) throws Exception {
         HttpSession session = mock(HttpSession.class);

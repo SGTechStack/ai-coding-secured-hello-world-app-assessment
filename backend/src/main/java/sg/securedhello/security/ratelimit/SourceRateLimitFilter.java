@@ -22,11 +22,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import sg.securedhello.audit.AccountContext;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.audit.AuditEvent;
+import sg.securedhello.audit.InvalidSessionReason;
 import sg.securedhello.audit.SourceThrottleReason;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.security.ratelimit.AuthRateLimiter.Refusal;
 import sg.securedhello.security.source.SourceKey;
 import sg.securedhello.security.source.SourceKeyResolver;
+import sg.securedhello.session.FirstSessionCookieResolver;
 
 /**
  * The early per-source filter, first in the security chain, ahead of {@code SecurityContextHolderFilter} (ADR-038).
@@ -41,7 +43,9 @@ import sg.securedhello.security.source.SourceKeyResolver;
  * </ol>
  * On the way out it charges the source one miss if the request presented a session id that did not resolve. The
  * session repository caches the lookup {@code SessionManagementFilter} already made, so this costs no second query
- * (T-RL-021).
+ * (T-RL-021). The same observation writes row 11, {@code UNKNOWN_OR_EXPIRED}, and a request that presented more than
+ * one session cookie writes row 11, {@code DUPLICATE_SESSION_COOKIE} (R-SES-007; T-SES-029; T-AUD-038). Both are
+ * tier-1 keyed rows, and neither is written for a refused request, which never reached the lookup (T-RL-023).
  *
  * <p>A refusal is 429 {@code TOO_MANY_REQUESTS} with an integer {@code Retry-After}, written before
  * {@code CorsFilter} runs, so it adds the SPA's CORS response headers itself; otherwise the SPA could not read it. It
@@ -102,9 +106,22 @@ public final class SourceRateLimitFilter extends OncePerRequestFilter {
         try {
             chain.doFilter(request, response);
         } finally {
-            if (presentsSession && request.getRequestedSessionId() != null && !request.isRequestedSessionIdValid()) {
-                limiter.recordMiss(source);
+            if (presentsSession) {
+                observeSession(request, source);
             }
+        }
+    }
+
+    /** Charges a miss and writes row 11 for a session id that did not resolve, and row 11 for duplicate cookies. */
+    private void observeSession(HttpServletRequest request, SourceKey source) {
+        if (FirstSessionCookieResolver.presentedDuplicates(request)) {
+            audit.emit(AuditEvent.SESSION_INVALID,
+                    AccountContext.invalidSession(InvalidSessionReason.DUPLICATE_SESSION_COOKIE));
+        }
+        if (request.getRequestedSessionId() != null && !request.isRequestedSessionIdValid()) {
+            limiter.recordMiss(source);
+            audit.emit(AuditEvent.SESSION_INVALID,
+                    AccountContext.invalidSession(InvalidSessionReason.UNKNOWN_OR_EXPIRED));
         }
     }
 

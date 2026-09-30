@@ -158,7 +158,10 @@ class PasswordResetConfirmTest extends CtxDefaultTest {
 
         try (AuditCapture audit = AuditCapture.start()) {
             resets.confirm("E".repeat(43), "too short").andExpect(problem(ErrorCode.RESET_TOKEN_INVALID));
-            assertThat(audit.rows()).as("no row before a successful token check").isEmpty();
+            assertThat(audit.rows()).as("no password-rejected row before a successful token check; only the refusal")
+                    .singleElement().satisfies(row -> assertThat(row)
+                            .containsEntry("message", "Credential token redemption failed.")
+                            .containsEntry("event.reason", "TOKEN_UNKNOWN"));
         }
         resets.confirm(token, account.password()).andExpect(problem(ErrorCode.PASSWORD_REJECTED))
                 .andExpect(jsonPath("$.rule").value("HISTORY_REUSE"));

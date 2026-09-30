@@ -73,6 +73,59 @@ public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason
         return new AccountContext(null, IdentifierThrottleReason.RATE_LIMITED_IDENTIFIER);
     }
 
+    /** A signed-in session ended at its absolute lifetime (row 9). */
+    public static AccountContext sessionExpired(UUID userId) {
+        return new AccountContext(userId, SessionTimeoutReason.ABSOLUTE_TIMEOUT);
+    }
+
+    /** A session displaced by a newer sign-in of its account (row 10); {@code userId} is the displaced account. */
+    public static AccountContext sessionEvicted(UUID userId) {
+        return new AccountContext(userId, SessionEvictionReason.CONCURRENT_EVICTION);
+    }
+
+    /** A session cookie not honoured as presented (row 11), which carries no identity: no session resolved. */
+    public static AccountContext invalidSession(InvalidSessionReason reason) {
+        return new AccountContext(null, reason);
+    }
+
+    /** A signed-in caller refused (row 12). */
+    public static AccountContext accessDenied(UUID userId) {
+        return new AccountContext(userId, AccessDeniedReason.INSUFFICIENT_ROLE);
+    }
+
+    /** The admin surface asked a signed-in administrator for the second factor (row 14). */
+    public static AccountContext factorRequired(UUID userId, FactorRequiredReason reason) {
+        return new AccountContext(userId, reason);
+    }
+
+    /** The self-read (row 35). */
+    public static AccountContext profileRead(UUID userId) {
+        return new AccountContext(userId, null);
+    }
+
+    /** A registration that created a new pending registration (row 16), named by its new {@code userId}. */
+    public static AccountContext registrationCreated(UUID userId) {
+        return new AccountContext(userId, RegistrationReason.NEW_ACCOUNT);
+    }
+
+    /**
+     * A registration whose address was already known (row 16). It never names the account: the registrant is
+     * anonymous, and the address's state must not become readable from the row's shape.
+     */
+    public static AccountContext registrationOfExistingAddress() {
+        return new AccountContext(null, RegistrationReason.EXISTING_ADDRESS);
+    }
+
+    /** A registration refused for its username (row 17), which names no account. */
+    public static AccountContext registrationRefused() {
+        return new AccountContext(null, RegistrationRefusalReason.USERNAME_UNAVAILABLE);
+    }
+
+    /** A token that did not redeem (row 20), which names no account: the submitter is anonymous. */
+    public static AccountContext tokenRefused(TokenRedemptionFailureReason reason) {
+        return new AccountContext(null, reason);
+    }
+
     @Override
     public void writeTo(AuditFields fields) {
         if (userId != null) {

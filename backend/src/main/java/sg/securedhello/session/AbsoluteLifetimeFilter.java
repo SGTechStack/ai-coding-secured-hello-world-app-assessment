@@ -11,10 +11,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import sg.securedhello.audit.AccountContext;
+import sg.securedhello.audit.AuditEmitter;
+import sg.securedhello.audit.AuditEvent;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
+import sg.securedhello.user.SignedInUser;
 
 /**
  * Bounds a session's lifetime whatever traffic it sees. It sits after {@code CorsFilter} and the header writer, so its
@@ -23,7 +29,8 @@ import sg.securedhello.error.ProblemDetailWriter;
  *
  * <p>Authenticated branch ({@link SessionAttributes#AUTH_INSTANT} present): once the {@code Clock} reaches the auth
  * instant plus the absolute lifetime, the session is invalidated and the request answered 401
- * {@code AUTHENTICATION_FAILED}, whatever its route. The lifetime runs from sign-in, not from the session's creation,
+ * {@code AUTHENTICATION_FAILED}, whatever its route. Row 9 is written first, while the session still exists, so it
+ * carries that session's hash (R-AUD-003). The lifetime runs from sign-in, not from the session's creation,
  * which {@code changeSessionId()} preserves (T-SES-006).
  *
  * <p>Anonymous branch (no {@code AUTH_INSTANT}): the session expires at its creation plus the idle window W, never
@@ -38,18 +45,22 @@ public class AbsoluteLifetimeFilter extends OncePerRequestFilter {
     private final Duration absolute;
     private final Clock clock;
     private final ProblemDetailWriter writer;
+    private final AuditEmitter audit;
 
     /**
      * @param window   W, the session repository's resolved idle interval
      * @param absolute a signed-in session's lifetime from its {@code AUTH_INSTANT}
      * @param clock    the application clock, which stamped {@code AUTH_INSTANT}
      * @param writer   writes the 401
+     * @param audit    writes row 9
      */
-    public AbsoluteLifetimeFilter(Duration window, Duration absolute, Clock clock, ProblemDetailWriter writer) {
+    public AbsoluteLifetimeFilter(Duration window, Duration absolute, Clock clock, ProblemDetailWriter writer,
+            AuditEmitter audit) {
         this.window = window;
         this.absolute = absolute;
         this.clock = clock;
         this.writer = writer;
+        this.audit = audit;
     }
 
     /** W: how long an anonymous session lives from its creation. */
@@ -64,6 +75,7 @@ public class AbsoluteLifetimeFilter extends OncePerRequestFilter {
         if (session != null) {
             if (session.getAttribute(SessionAttributes.AUTH_INSTANT) instanceof Instant authInstant) {
                 if (!clock.instant().isBefore(authInstant.plus(absolute))) {
+                    auditExpiry();
                     session.invalidate();
                     writer.write(request, response, ErrorCode.AUTHENTICATION_FAILED);
                     return;
@@ -73,6 +85,14 @@ public class AbsoluteLifetimeFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(request, response);
+    }
+
+    /** Row 9, for the signed-in principal the session holds; only password sign-in stamps the auth instant. */
+    private void auditExpiry() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
+            audit.emit(AuditEvent.SESSION_EXPIRED, AccountContext.sessionExpired(user.id()));
+        }
     }
 
     private void pinAnonymous(HttpSession session) {

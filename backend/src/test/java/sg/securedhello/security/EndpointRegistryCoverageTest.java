@@ -69,15 +69,14 @@ class EndpointRegistryCoverageTest extends CtxDefaultTest {
     /** The audit registry for every handler, keyed "METHOD path" as the matrix writes it. */
     private static final Map<String, AuditDisposition> AUDIT = Map.ofEntries(
             entry("GET /api/csrf", AuditDisposition.rows(AuditEvent.SOURCE_THROTTLED, AuditEvent.SHED_EPISODE_CLEARED)),
-            entry("POST /api/register", AuditDisposition.omitted("a registration writes no row of its own; only a "
-                    + "lapsed pending registration it purges does (PENDING_REGISTRATION_LAPSED)")),
-            entry("POST /api/register/activate", AuditDisposition.omitted("an activation writes no row of its own; a "
-                    + "failed redemption is the uniform RESET_TOKEN_INVALID")),
+            entry("POST /api/register", AuditDisposition.rows(AuditEvent.REGISTRATION_ACCEPTED,
+                    AuditEvent.REGISTRATION_REFUSED, AuditEvent.PENDING_REGISTRATION_LAPSED)),
+            entry("POST /api/register/activate", AuditDisposition.rows(AuditEvent.CREDENTIAL_TOKEN_REFUSED)),
             entry("POST /api/password-reset/request", AuditDisposition.rows(AuditEvent.PASSWORD_RESET_REQUESTED,
                     AuditEvent.IDENTIFIER_THROTTLED)),
             entry("POST /api/password-reset/confirm", AuditDisposition.rows(AuditEvent.PASSWORD_RESET_COMPLETED,
-                    AuditEvent.LOCKOUT_CLEARED)),
-            entry("GET /api/profile", AuditDisposition.omitted("the self-read changes nothing")),
+                    AuditEvent.LOCKOUT_CLEARED, AuditEvent.CREDENTIAL_TOKEN_REFUSED)),
+            entry("GET /api/profile", AuditDisposition.rows(AuditEvent.PROFILE_READ)),
             entry("GET /api/hello", AuditDisposition.omitted("the greeting changes nothing")),
             entry("PATCH /api/profile/password", AuditDisposition.omitted("a self-service change writes no row of "
                     + "its own; owner notification is out of scope (ADR-008)")),

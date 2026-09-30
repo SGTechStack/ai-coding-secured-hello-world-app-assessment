@@ -57,12 +57,12 @@ public class Activation {
                 .flatMap(accounts::findForUpdateById)
                 .filter(UserAccount::isPending)
                 .map(UserAccount::getId)
-                .orElseThrow(CredentialTokenInvalidException::new);
+                .orElseThrow(() -> tokens.refused(CredentialTokenType.ACTIVATION, token));
         if (tokens.redeem(CredentialTokenType.ACTIVATION, token).isEmpty()) {
-            throw new CredentialTokenInvalidException();
+            throw tokens.refused(CredentialTokenType.ACTIVATION, token);
         }
         passwords.setPassword(accountId, password);
-        accounts.findById(accountId).orElseThrow(CredentialTokenInvalidException::new)
+        accounts.findById(accountId).orElseThrow(CredentialTokenInvalidException::accountGone)
                 .activate(clock.instant().truncatedTo(ChronoUnit.MICROS));
     }
 }

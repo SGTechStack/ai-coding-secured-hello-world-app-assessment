@@ -63,6 +63,14 @@ public interface CredentialTokenRepository extends JpaRepository<CredentialToken
     /** Whether {@code userId} has a {@code type} token, in any state, issued by an administrator or not. */
     boolean existsByUserIdAndTypeAndAdminIssued(UUID userId, CredentialTokenType type, boolean adminIssued);
 
+    /**
+     * The use and expiry of the stored {@code type} token with this hash: empty when there is none. Read only after a
+     * redemption failed, to name the failure on its audit row (row 20).
+     */
+    @Query("SELECT new sg.securedhello.credential.CredentialTokenState(t.usedAt, t.expiresAt) FROM CredentialToken t"
+            + " WHERE t.tokenHash = :tokenHash AND t.type = :type")
+    Optional<CredentialTokenState> findStateByTokenHash(String tokenHash, CredentialTokenType type);
+
     /** The account a stored token belongs to. */
     @Query("SELECT t.userId FROM CredentialToken t WHERE t.tokenHash = :tokenHash")
     Optional<UUID> findUserIdByTokenHash(String tokenHash);

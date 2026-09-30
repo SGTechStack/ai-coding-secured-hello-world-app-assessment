@@ -166,6 +166,40 @@ public enum AuditEvent {
             .required(USER_ID)
             .build()),
 
+    /**
+     * Row 16: a self-registration was accepted (ADR-032). The wire is the same 202 whatever the address's state; the row
+     * is specific: {@code NEW_ACCOUNT} names the new pending registration, {@code EXISTING_ADDRESS} names nothing.
+     * Written after the reservation commits. Per event: the registration route is budgeted (ADR-019).
+     */
+    REGISTRATION_ACCEPTED(row("user-provisioning", "Registration accepted.")
+            .type("creation")
+            .reasons(RegistrationReason.class)
+            .optional(USER_ID)
+            .build()),
+
+    /**
+     * Row 17: a self-registration was refused because its username is unavailable (400 {@code VALIDATION_FAILED} with
+     * rule {@code USERNAME_UNAVAILABLE}). It names no account. Per event: the registration route is budgeted.
+     */
+    REGISTRATION_REFUSED(row("user-provisioning", "Registration refused.")
+            .type("creation")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.LOW)
+            .reasons(RegistrationRefusalReason.class)
+            .build()),
+
+    /**
+     * Row 20: a submitted activation or reset token did not redeem (400 {@code RESET_TOKEN_INVALID}). It names no
+     * account, and is written after the redemption's transaction rolled back. Per event: both redemption routes are
+     * budgeted.
+     */
+    CREDENTIAL_TOKEN_REFUSED(row("password-reset", "Credential token redemption failed.")
+            .type("change")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(TokenRedemptionFailureReason.class)
+            .build()),
+
     /** Row 7: a signed-in user signed out. */
     LOGOUT(row("user-logout", "Logout succeeded.")
             .type("end")
@@ -180,6 +214,78 @@ public enum AuditEvent {
             .type("start")
             .reasons(SessionStartReason.class)
             .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 9: a signed-in session reached its absolute lifetime, measured from sign-in, and the absolute-lifetime filter
+     * ended it (ADR-038). Written before the session is invalidated, so it carries that session's hash. Per event: at
+     * most once per sign-in.
+     */
+    SESSION_EXPIRED(row("session-end", "Session ended at its absolute lifetime.")
+            .type("end")
+            .reasons(SessionTimeoutReason.class)
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 10: a newer sign-in displaced a session of the same account (one session per account; R-AUTH-002). Written
+     * at displacement, inside the login composite, before the session-start row; {@code user.id} is the displaced
+     * account, and the request fields are the new sign-in's. Per event: behind the login budget.
+     */
+    SESSION_EVICTED(row("session-end", "Session ended by a newer sign-in.")
+            .type("end")
+            .reasons(SessionEvictionReason.class)
+            .required(USER_ID)
+            .build()),
+
+    /**
+     * Row 11: a request presented a session id that resolved to no live session, or more than one session cookie
+     * (R-SES-007). Idle expiry is observed only here, lazily, and cannot be told from a forged or deleted id
+     * (R-AUD-003). It carries no identity, since no session resolved. Anyone can send a cookie, so it is a tier-1 keyed
+     * row (ADR-019).
+     */
+    SESSION_INVALID(row("session-end", "Invalid session presented.")
+            .type("end")
+            .outcome(Outcome.FAILURE)
+            .reasons(InvalidSessionReason.class)
+            .keyed(Keying.SOURCE)
+            .build()),
+
+    /**
+     * Row 12: a signed-in caller was refused 403 {@code ACCESS_DENIED}: a role that does not grant the route, or a
+     * route denied to everyone (ADR-043). A self-action refusal writes row 34 instead. Its key space is the user
+     * population, so it is a tier-2 keyed row (ADR-019).
+     */
+    ACCESS_DENIED(row("access-control", "Access denied.")
+            .type("denied")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(AccessDeniedReason.class)
+            .required(USER_ID)
+            .keyed(Keying.USER)
+            .build()),
+
+    /**
+     * Row 14: the admin surface answered a signed-in administrator 412 {@code MISSING_FACTOR}: the session holds no
+     * TOTP factor, or holds an expired one (ADR-021; ADR-026). A tier-2 keyed row (ADR-019).
+     */
+    FACTOR_REQUIRED(row("access-control", "Second factor required.")
+            .type("denied")
+            .outcome(Outcome.FAILURE)
+            .level(Level.WARN, Severity.MEDIUM)
+            .reasons(FactorRequiredReason.class)
+            .required(USER_ID)
+            .keyed(Keying.USER)
+            .build()),
+
+    /**
+     * Row 35: a signed-in user read their own profile ({@code GET /api/profile}). Every page load makes one, so it is a
+     * tier-2 keyed row rather than no row at all: the event and its magnitude remain (REJ-082).
+     */
+    PROFILE_READ(row("profile-read", "Profile read.")
+            .type("allowed")
+            .required(USER_ID)
+            .keyed(Keying.USER)
             .build()),
 
     /**

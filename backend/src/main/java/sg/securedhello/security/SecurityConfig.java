@@ -108,7 +108,7 @@ public class SecurityConfig {
                         .policyDirectives(API_CONTENT_SECURITY_POLICY)))
                 // After CorsFilter and HeaderWriterFilter, so its 401 carries the SPA's CORS headers and the security
                 // headers; still before CsrfFilter (ADR-038). Added first, so it runs before the body cap.
-                .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow, lifetime.absolute(), clock, writer),
+                .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow, lifetime.absolute(), clock, writer, audit),
                         CorsFilter.class)
                 .addFilterAfter(new RequestBodyCapFilter(requestBody.maxBodyBytes(), writer), CorsFilter.class)
                 .csrf(csrf -> csrf

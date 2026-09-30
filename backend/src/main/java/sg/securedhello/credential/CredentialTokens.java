@@ -121,6 +121,17 @@ public class CredentialTokens {
         return CredentialTokenConsumption.lookup(type, submitted).flatMap(tokens::findUserIdByTokenHash);
     }
 
+    /**
+     * The refusal of a submitted {@code type} token that did not redeem, naming why for its audit row (row 20). It
+     * reads the token's state once, only on this failure path; the wire answer is the same whatever it finds. Call it
+     * before anything in the transaction has consumed the token.
+     */
+    public CredentialTokenInvalidException refused(CredentialTokenType type, String submitted) {
+        return new CredentialTokenInvalidException(CredentialTokenConsumption.failure(
+                CredentialTokenConsumption.lookup(type, submitted)
+                        .flatMap(hash -> tokens.findStateByTokenHash(hash, type)), now()));
+    }
+
     /** The columns are TIMESTAMP(6): work on the stored precision, so an expiry compares what was written. */
     private Instant now() {
         return clock.instant().truncatedTo(ChronoUnit.MICROS);

@@ -64,9 +64,9 @@ public class PasswordResetRedemption {
     public void redeem(String token, String password) {
         Redeemed redeemed = transactions.execute(status -> {
             UUID accountId = tokens.redeem(CredentialTokenType.PASSWORD_RESET, token)
-                    .orElseThrow(CredentialTokenInvalidException::new);
+                    .orElseThrow(() -> tokens.refused(CredentialTokenType.PASSWORD_RESET, token));
             UserAccount account = accounts.findForUpdateById(accountId)
-                    .orElseThrow(CredentialTokenInvalidException::new);
+                    .orElseThrow(CredentialTokenInvalidException::accountGone);
             PasswordLockoutState before = account.getLockoutState();
             // Before setPassword: its token cleanup flushes this change and then clears the persistence context.
             account.setLockoutState(PasswordLockoutState.CLEAR);

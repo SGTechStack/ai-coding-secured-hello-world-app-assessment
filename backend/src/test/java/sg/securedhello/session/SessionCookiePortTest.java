@@ -19,7 +19,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.session.web.http.CookieSerializer;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
 
+import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.error.ErrorCode;
+import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CtxPortTest;
 import sg.securedhello.testsupport.Proves;
 
@@ -39,6 +41,9 @@ class SessionCookiePortTest extends CtxPortTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    private AuditEmitter auditEmitter;
 
     /** One bootstrapped session: the raw {@code Set-Cookie} headers, the cookie value and the token. */
     private record Bootstrap(List<String> setCookies, String value, String token) {
@@ -115,6 +120,25 @@ class SessionCookiePortTest extends CtxPortTest {
             assertThat(lookups).isEqualTo(1);
         } finally {
             jdbc.execute("SET QUERY_STATISTICS FALSE");
+        }
+    }
+
+    @Test
+    @Proves("T-AUD-038")
+    void twoSessionCookiesWriteRow11WithTheDuplicateReason() {
+        Bootstrap a = bootstrap();
+        Bootstrap b = bootstrap();
+        auditEmitter.closeKeyingWindow();
+        try (AuditCapture audit = AuditCapture.start()) {
+            restClient.get().uri(uri("/actuator/health"))
+                    .header(HttpHeaders.COOKIE, "SESSION=" + a.value() + "; SESSION=" + b.value())
+                    .exchange().expectStatus().isOk();
+            auditEmitter.closeKeyingWindow();
+
+            assertThat(audit.withMessage("Invalid session presented.")).singleElement().satisfies(row -> assertThat(row)
+                    .containsEntry("event.reason", "DUPLICATE_SESSION_COOKIE")
+                    .containsEntry("event.count", 1)
+                    .doesNotContainKey("user.id"));
         }
     }
 

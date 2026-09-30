@@ -4,13 +4,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import sg.securedhello.audit.TokenRedemptionFailureReason;
 
 /** Token generation, shape and the domain-separated stored form (ADR-007), as pure functions (level U). */
 class CredentialTokenHashTest {
@@ -84,5 +88,19 @@ class CredentialTokenHashTest {
         assertThat(CredentialTokenConsumption.redeemed(0)).isFalse();
         assertThat(CredentialTokenConsumption.redeemed(1)).isTrue();
         assertThatThrownBy(() -> CredentialTokenConsumption.redeemed(2)).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void aFailedRedemptionIsNamedByWhatTheStoreHolds() {
+        Instant now = Instant.parse("2026-09-30T00:00:00Z");
+        Instant later = now.plusSeconds(1);
+        assertThat(CredentialTokenConsumption.failure(Optional.empty(), now))
+                .isEqualTo(TokenRedemptionFailureReason.TOKEN_UNKNOWN);
+        assertThat(CredentialTokenConsumption.failure(Optional.of(new CredentialTokenState(now, later)), now))
+                .isEqualTo(TokenRedemptionFailureReason.TOKEN_CONSUMED);
+        assertThat(CredentialTokenConsumption.failure(Optional.of(new CredentialTokenState(null, now)), now))
+                .as("expired at exactly its expiry").isEqualTo(TokenRedemptionFailureReason.TOKEN_EXPIRED);
+        assertThat(CredentialTokenConsumption.failure(Optional.of(new CredentialTokenState(null, later)), now))
+                .as("a live token naming no redeemable account").isEqualTo(TokenRedemptionFailureReason.TOKEN_UNKNOWN);
     }
 }

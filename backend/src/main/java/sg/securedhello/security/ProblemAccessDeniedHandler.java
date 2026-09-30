@@ -24,7 +24,7 @@ import sg.securedhello.user.SignedInUser;
 /**
  * Envelope producer 3 (ADR-031). {@code CsrfFilter} reports its refusals here too, so a missing, wrong or superseded
  * CSRF token gets 403 {@code CSRF_TOKEN_INVALID}. Every other refusal of a signed-in caller gets 403
- * {@code ACCESS_DENIED}.
+ * {@code ACCESS_DENIED} and writes row 12, a tier-2 keyed row (ADR-019).
  */
 final class ProblemAccessDeniedHandler implements AccessDeniedHandler {
 
@@ -42,6 +42,10 @@ final class ProblemAccessDeniedHandler implements AccessDeniedHandler {
         if (exception instanceof CsrfException csrfException) {
             csrfRejected(request, response, csrfException);
         } else {
+            UUID userId = signedInUserId();
+            if (userId != null) {
+                audit.emit(AuditEvent.ACCESS_DENIED, AccountContext.accessDenied(userId));
+            }
             writer.write(request, response, ErrorCode.ACCESS_DENIED);
         }
     }

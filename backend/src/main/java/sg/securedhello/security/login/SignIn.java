@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,6 +19,7 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -64,7 +66,8 @@ import tools.jackson.databind.json.JsonMapper;
  * composite</em> (ADR-038), in a fixed order:
  * <ol>
  *   <li>the displaced mark cleared, so a sign-in on a displaced session is a fresh sign-in that the new login wins;</li>
- *   <li>concurrent-session control: one session per account, and the new login wins (R-AUTH-002);</li>
+ *   <li>concurrent-session control: one session per account, and the new login wins (R-AUTH-002). Each session it
+ *       displaces writes row 10 there and then, naming the account;</li>
  *   <li>the session-start audit row, after the displaced session is decided and before the id changes, so it
  *       carries the pre-login {@code session.hash} (T-AUD-015);</li>
  *   <li>the session-id change (ASVS 7.2.4) and the session's registration;</li>
@@ -161,7 +164,8 @@ public final class SignIn {
         csrf.setRequestHandler(csrfHandler);
         return new CompositeSessionAuthenticationStrategy(List.of(
                 SignIn::clearDisplacement,
-                new ConcurrentSessionControlAuthenticationStrategy(sessionRegistry),
+                (authentication, request, response) -> new EvictionAuditingControl(sessionRegistry, audit,
+                        userOf(authentication).id()).onAuthentication(authentication, request, response),
                 (authentication, request, response) -> audit.emit(AuditEvent.SESSION_START,
                         AccountContext.sessionStart(userOf(authentication).id(), SessionStartReason.LOGIN)),
                 new ChangeSessionIdAuthenticationStrategy(),
@@ -236,6 +240,31 @@ public final class SignIn {
 
     private static SignedInUser userOf(Authentication authentication) {
         return (SignedInUser) authentication.getPrincipal();
+    }
+
+    /**
+     * Concurrent-session control, one per sign-in, that writes row 10 for each session it displaces, at displacement
+     * (T-AUD-015). The sessions it is handed are all the signing-in account's, so each row names that account.
+     */
+    static final class EvictionAuditingControl extends ConcurrentSessionControlAuthenticationStrategy {
+
+        private final AuditEmitter audit;
+        private final UUID account;
+
+        EvictionAuditingControl(SessionRegistry sessionRegistry, AuditEmitter audit, UUID account) {
+            super(sessionRegistry);
+            this.audit = audit;
+            this.account = account;
+        }
+
+        @Override
+        protected void allowableSessionsExceeded(List<SessionInformation> sessions, int allowableSessions,
+                SessionRegistry registry) {
+            List<SessionInformation> live = sessions.stream().filter(session -> !session.isExpired()).toList();
+            super.allowableSessionsExceeded(sessions, allowableSessions, registry);
+            live.stream().filter(SessionInformation::isExpired).forEach(displaced ->
+                    audit.emit(AuditEvent.SESSION_EVICTED, AccountContext.sessionEvicted(account)));
+        }
     }
 
     /** The JSON login filter on {@code POST /api/login}. */

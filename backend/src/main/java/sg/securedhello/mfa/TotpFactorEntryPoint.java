@@ -16,6 +16,10 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Component;
 
+import sg.securedhello.audit.AccountContext;
+import sg.securedhello.audit.AuditEmitter;
+import sg.securedhello.audit.AuditEvent;
+import sg.securedhello.audit.FactorRequiredReason;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.user.SignedInUser;
@@ -32,7 +36,7 @@ import sg.securedhello.user.SignedInUser;
  *       pass (R-MFA-006; REJ-049).</li>
  *   <li>Otherwise 412 {@code MISSING_FACTOR}, with {@code factor: TOTP} and {@code reason} {@code MISSING} or
  *       {@code EXPIRED}, the latter when the session holds the factor but the rule's duration has passed
- *       (R-MFA-001).</li>
+ *       (R-MFA-001). A signed-in administrator's 412 writes row 14, a tier-2 keyed row (ADR-019).</li>
  * </ul>
  */
 @Component
@@ -51,10 +55,12 @@ public class TotpFactorEntryPoint implements AuthenticationEntryPoint {
 
     private final TotpUserDetailsRepository factors;
     private final ProblemDetailWriter writer;
+    private final AuditEmitter audit;
 
-    TotpFactorEntryPoint(TotpUserDetailsRepository factors, ProblemDetailWriter writer) {
+    TotpFactorEntryPoint(TotpUserDetailsRepository factors, ProblemDetailWriter writer, AuditEmitter audit) {
         this.factors = factors;
         this.writer = writer;
+        this.audit = audit;
     }
 
     @Override
@@ -72,8 +78,13 @@ public class TotpFactorEntryPoint implements AuthenticationEntryPoint {
                 return;
             }
         }
-        writer.write(request, response, ErrorCode.MISSING_FACTOR,
-                Map.of("factor", FACTOR, "reason", reason(request).name()));
+        Reason reason = reason(request);
+        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
+            FactorRequiredReason audited = reason == Reason.EXPIRED ? FactorRequiredReason.FACTOR_EXPIRED
+                    : FactorRequiredReason.FACTOR_MISSING;
+            audit.emit(AuditEvent.FACTOR_REQUIRED, AccountContext.factorRequired(user.id(), audited));
+        }
+        writer.write(request, response, ErrorCode.MISSING_FACTOR, Map.of("factor", FACTOR, "reason", reason.name()));
     }
 
     /** {@code EXPIRED} when the framework reported the TOTP factor as expired, {@code MISSING} otherwise. */

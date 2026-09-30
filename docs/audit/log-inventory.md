@@ -38,8 +38,17 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | IDENTIFIER_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | per event | `RATE_LIMITED_IDENTIFIER` | — | — | Request throttled for its submitted identifier. |
 | PASSWORD_RESET_REQUESTED | `password-reset-request` | `info` | success | INFO | low | yes | tier 1: per source | — | — | — | Password reset requested. |
 | PASSWORD_RESET_COMPLETED | `password-reset` | `change` | success | INFO | low | yes | per event | — | `user.id` | — | Password reset completed. |
+| REGISTRATION_ACCEPTED | `user-provisioning` | `creation` | success | INFO | low | yes | per event | `NEW_ACCOUNT`, `EXISTING_ADDRESS` | — | `user.id` | Registration accepted. |
+| REGISTRATION_REFUSED | `user-provisioning` | `creation` | failure | WARN | low | yes | per event | `USERNAME_UNAVAILABLE` | — | — | Registration refused. |
+| CREDENTIAL_TOKEN_REFUSED | `password-reset` | `change` | failure | WARN | medium | yes | per event | `TOKEN_UNKNOWN`, `TOKEN_EXPIRED`, `TOKEN_CONSUMED` | — | — | Credential token redemption failed. |
 | LOGOUT | `user-logout` | `end` | success | INFO | low | yes | per event | — | `user.id` | — | Logout succeeded. |
 | SESSION_START | `session-start` | `start` | success | INFO | low | yes | per event | `LOGIN` | `user.id` | — | Session started. |
+| SESSION_EXPIRED | `session-end` | `end` | success | INFO | low | yes | per event | `ABSOLUTE_TIMEOUT` | `user.id` | — | Session ended at its absolute lifetime. |
+| SESSION_EVICTED | `session-end` | `end` | success | INFO | low | yes | per event | `CONCURRENT_EVICTION` | `user.id` | — | Session ended by a newer sign-in. |
+| SESSION_INVALID | `session-end` | `end` | failure | INFO | low | yes | tier 1: per source | `UNKNOWN_OR_EXPIRED`, `DUPLICATE_SESSION_COOKIE` | — | — | Invalid session presented. |
+| ACCESS_DENIED | `access-control` | `denied` | failure | WARN | medium | yes | tier 2: per user | `INSUFFICIENT_ROLE` | `user.id` | — | Access denied. |
+| FACTOR_REQUIRED | `access-control` | `denied` | failure | WARN | medium | yes | tier 2: per user | `FACTOR_MISSING`, `FACTOR_EXPIRED` | `user.id` | — | Second factor required. |
+| PROFILE_READ | `profile-read` | `allowed` | success | INFO | low | yes | tier 2: per user | — | `user.id` | — | Profile read. |
 | CSRF_REJECTED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `CSRF_MISSING`, `CSRF_INVALID` | — | `user.id` | CSRF validation failed. |
 | TOTP_ENROLMENT_PROVISIONED | `totp-enrol` | `creation` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP enrolment provisioned. |
 | TOTP_ENROLMENT_CONFIRMED | `totp-enrol` | `change` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP enrolment confirmed. |

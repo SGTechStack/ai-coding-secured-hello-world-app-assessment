@@ -48,7 +48,10 @@ import sg.securedhello.user.UserAccountRepository;
  *       address, an administrator's pending invite or a tombstoned address creates nothing.</li>
  * </ol>
  * The caller answers the same 202 in every email state (R-CRED-018). Nothing here hashes a password, so no state costs
- * a BCrypt call the others do not (T-AUTH-014). The link is sent after the transaction commits.
+ * a BCrypt call the others do not (T-AUTH-014). The link is sent after the transaction commits. The audit row is
+ * specific where the wire is not (ADR-032): row 16 names a new pending registration ({@code NEW_ACCOUNT}) and nothing
+ * for a known address ({@code EXISTING_ADDRESS}), and a refused username writes row 17, which names nothing. Each is
+ * written once its transaction has ended.
  *
  * <p>It runs as three short transactions, each of which locks at most one account row, so two registrations can never
  * wait on each other's account rows in opposite orders (T-CRED-027):
@@ -121,16 +124,34 @@ public class Registration {
         transactions.executeWithoutResult(status -> holds.deleteExpired(now));
         transactions.execute(status -> deleteLapsed(username, canonicalEmail, now)).ifPresent(lapsed ->
                 audit.emit(AuditEvent.PENDING_REGISTRATION_LAPSED, AccountContext.registrationLapsed(lapsed)));
-        Optional<LinkEmail> link;
+        Reserved reserved;
         try {
-            link = transactions.execute(status -> reserve(username, canonicalEmail, now));
+            reserved = transactions.execute(status -> reserve(username, canonicalEmail, now));
+        } catch (UsernameUnavailableException e) {
+            audit.emit(AuditEvent.REGISTRATION_REFUSED, AccountContext.registrationRefused());
+            throw e;
         } catch (DataIntegrityViolationException e) {
             if (UniqueIdentifierIndexes.violated(e, UNIQUE_EMAIL_INDEX)) {
+                audit.emit(AuditEvent.REGISTRATION_ACCEPTED, AccountContext.registrationOfExistingAddress());
                 return;
             }
-            throw usernameRace(e);
+            RuntimeException refusal = usernameRace(e);
+            if (refusal instanceof UsernameUnavailableException) {
+                audit.emit(AuditEvent.REGISTRATION_REFUSED, AccountContext.registrationRefused());
+            }
+            throw refusal;
         }
-        link.ifPresent(email::send);
+        audit.emit(AuditEvent.REGISTRATION_ACCEPTED, reserved.created()
+                .map(AccountContext::registrationCreated)
+                .orElseGet(AccountContext::registrationOfExistingAddress));
+        reserved.link().ifPresent(email::send);
+    }
+
+    /**
+     * What a reservation did: the new pending registration it created, if any, and the activation link to send, if
+     * any. A renewed pending registration gets a link but is not new.
+     */
+    private record Reserved(Optional<UUID> created, Optional<LinkEmail> link) {
     }
 
     /**
@@ -157,7 +178,7 @@ public class Registration {
                 });
     }
 
-    private Optional<LinkEmail> reserve(String username, String canonicalEmail, Instant now) {
+    private Reserved reserve(String username, String canonicalEmail, Instant now) {
         // Locked before anything is read, so an activation of this address's registration runs wholly before or after.
         Optional<UserAccount> holder = accounts.findForUpdateByEmail(canonicalEmail);
         UsernameHold hold = holdUsername(username, canonicalEmail, now);
@@ -165,7 +186,7 @@ public class Registration {
         holds.save(hold);
         if (tombstones.holdsEmail(canonicalEmail)
                 || holder.isPresent() && !isSelfRegisteredPending(holder.get())) {
-            return Optional.empty();
+            return new Reserved(Optional.empty(), Optional.empty());
         }
         UserAccount account = holder.orElseGet(() -> UserAccount.pendingRegistration(username, canonicalEmail, now));
         if (holder.isPresent()) {
@@ -174,7 +195,8 @@ public class Registration {
             accounts.save(account);
         }
         String token = tokens.mint(account.getId(), CredentialTokenType.ACTIVATION);
-        return Optional.of(links.email(CredentialTokenType.ACTIVATION, canonicalEmail, token));
+        return new Reserved(holder.isPresent() ? Optional.empty() : Optional.of(account.getId()),
+                Optional.of(links.email(CredentialTokenType.ACTIVATION, canonicalEmail, token)));
     }
 
     /**

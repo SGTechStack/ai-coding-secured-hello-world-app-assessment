@@ -44,6 +44,7 @@ public class AccountLifecycleService {
       return;
     }
     refuseSelf(actor, target, "disable");
+    refuseLastAdmin(target, "disable");
     target.disable();
     accountSessions.endAllSessions(target.getUsername());
     audit(EVENT_ACCOUNT_DISABLED, "Account disabled", actor, target);
@@ -63,6 +64,7 @@ public class AccountLifecycleService {
     }
     if (role != Role.ADMIN) {
       refuseSelf(actor, target, "demote");
+      refuseLastAdmin(target, "demote");
     }
     var previous = target.getRoles().stream().max(Comparator.naturalOrder()).orElseThrow();
     target.replaceRolesWith(role);
@@ -86,6 +88,7 @@ public class AccountLifecycleService {
   public void delete(String actor, UUID id) {
     var target = find(id);
     refuseSelf(actor, target, "delete");
+    refuseLastAdmin(target, "delete");
     appUserRepository.delete(target);
     accountSessions.endAllSessions(target.getUsername());
     audit(EVENT_ACCOUNT_DELETED, "Account deleted", actor, target);
@@ -103,6 +106,16 @@ public class AccountLifecycleService {
   private static void refuseSelf(String actor, AppUser target, String action) {
     if (target.getUsername().equals(actor)) {
       throw new ConflictException("You cannot " + action + " your own account");
+    }
+  }
+
+  /** Without an enabled ADMIN nobody could manage Accounts, so the last one is kept. */
+  private void refuseLastAdmin(AppUser target, String action) {
+    if (target.isEnabled()
+        && target.getRoles().contains(Role.ADMIN)
+        && appUserRepository.countByEnabledTrueAndUserRolesRole(Role.ADMIN) <= 1) {
+      throw new ConflictException(
+          "You cannot " + action + " the last remaining enabled administrator");
     }
   }
 

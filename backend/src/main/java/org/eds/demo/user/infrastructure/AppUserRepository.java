@@ -25,4 +25,6 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
   boolean existsByUsername(String username);
 
   boolean existsByUserRolesRole(Role role);
+
+  long countByEnabledTrueAndUserRolesRole(Role role);
 }

@@ -1,8 +1,11 @@
 package org.eds.demo.auth.application;
 
+import jakarta.validation.constraints.Min;
 import java.time.Duration;
+import org.hibernate.validator.constraints.time.DurationMin;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Sign-in throttling, bound under {@code app.sign-in}.
@@ -22,10 +25,11 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param ipMaxFailures failures allowed per address within the window
  * @param ipWindow sliding window for the per-address count
  */
+@Validated
 @ConfigurationProperties(prefix = "app.sign-in")
 public record SignInThrottleProperties(
-    @DefaultValue("3") int backoffThreshold,
-    @DefaultValue("1s") Duration baseDelay,
-    @DefaultValue("15m") Duration maxDelay,
-    @DefaultValue("10") int ipMaxFailures,
-    @DefaultValue("15m") Duration ipWindow) {}
+    @DefaultValue("3") @Min(1) int backoffThreshold,
+    @DefaultValue("1s") @DurationMin(nanos = 1) Duration baseDelay,
+    @DefaultValue("15m") @DurationMin(nanos = 1) Duration maxDelay,
+    @DefaultValue("10") @Min(1) int ipMaxFailures,
+    @DefaultValue("15m") @DurationMin(nanos = 1) Duration ipWindow) {}

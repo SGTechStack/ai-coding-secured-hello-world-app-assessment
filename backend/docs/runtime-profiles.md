@@ -48,3 +48,10 @@ DEMO_CONFIG_SECRET_NAME=/demo-backend/dev
 ```
 
 Use the matching profile and secret name for `qa` and `prod`.
+
+## Behind the Load Balancer (`feat-load-balancer`)
+
+`dev`, `qa`, `preprod` and `prod` include `feat-load-balancer`, which sets
+`server.forward-headers-strategy=native`. The sign-in IP throttle reads the servlet remote address; without this profile every client behind the AWS load balancer shares the balancer's address and one abuser would throttle everyone.
+
+Trust assumption: Tomcat only honors `X-Forwarded-For` from a direct peer inside its internal-proxies pattern (private and loopback ranges by default). This is safe only while the app is reachable solely through the load balancer. If clients can reach Tomcat directly they can spoof any address and evade the throttle. `local` and `test` do not include the profile, so the header is ignored there.

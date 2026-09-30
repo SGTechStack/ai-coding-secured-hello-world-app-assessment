@@ -98,15 +98,15 @@ class AdminAccountLifecycleIT {
   void changingRoleReplacesTheRoleAndIsAudited(CapturedOutput output) throws Exception {
     var target = account("to-promote", Role.USER);
 
-    mockMvc.perform(setRole(target, "USER_MANAGER")).andExpect(status().isNoContent());
+    mockMvc.perform(setRole(target, "ADMIN")).andExpect(status().isNoContent());
 
     assertThat(appUserRepository.findByUsername("to-promote").orElseThrow().getRoles())
-        .containsExactly(Role.USER_MANAGER);
+        .containsExactly(Role.ADMIN);
     assertThat(output.getAll())
         .contains(
             "Account role changed: actor="
                 + ADMIN_ACTOR
-                + ", target=to-promote, from=USER, to=USER_MANAGER");
+                + ", target=to-promote, from=USER, to=ADMIN");
   }
 
   @Test
@@ -135,7 +135,7 @@ class AdminAccountLifecycleIT {
 
   @Test
   void changingRoleEndsTheAccountsSessionsSoTheOldAuthoritiesDoNotLinger() throws Exception {
-    var target = account("to-demote", Role.USER_MANAGER);
+    var target = account("to-demote", Role.ADMIN);
     var session = signIn("to-demote");
 
     mockMvc.perform(setRole(target, "USER")).andExpect(status().isNoContent());
@@ -156,7 +156,7 @@ class AdminAccountLifecycleIT {
   @Test
   void deletingRemovesTheAccountItsRolesAndItsSessionsAndIsAudited(CapturedOutput output)
       throws Exception {
-    var target = account("to-delete", Role.USER_MANAGER);
+    var target = account("to-delete", Role.USER);
     var session = signIn("to-delete");
 
     mockMvc.perform(deleteAccount(target.getId().value())).andExpect(status().isNoContent());
@@ -186,7 +186,7 @@ class AdminAccountLifecycleIT {
   void nonAdminsAreForbiddenAndAnonymousCallersUnauthorizedOnEveryAction() throws Exception {
     var target = account("untouchable", Role.USER);
     var id = target.getId().value();
-    var nonAdmin = user("ada").roles("USER", "USER_MANAGER");
+    var nonAdmin = user("ada").roles("USER");
 
     for (var request :
         java.util.List.of(

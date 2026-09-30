@@ -4,28 +4,10 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-export type ChangeAccountRoleRequestRole =
-  (typeof ChangeAccountRoleRequestRole)[keyof typeof ChangeAccountRoleRequestRole];
-
-export const ChangeAccountRoleRequestRole = {
-  USER: 'USER',
-  USER_MANAGER: 'USER_MANAGER',
-  ADMIN: 'ADMIN',
-} as const;
-
-export interface ChangeAccountRoleRequest {
-  role: ChangeAccountRoleRequestRole;
-}
-
-export interface SetAccountEnabledRequest {
-  enabled: boolean;
-}
-
 export type CreateAccountRequestRole = (typeof CreateAccountRequestRole)[keyof typeof CreateAccountRequestRole];
 
 export const CreateAccountRequestRole = {
   USER: 'USER',
-  USER_MANAGER: 'USER_MANAGER',
   ADMIN: 'ADMIN',
 } as const;
 
@@ -42,7 +24,6 @@ export type CreatedAccountResponseRole = (typeof CreatedAccountResponseRole)[key
 
 export const CreatedAccountResponseRole = {
   USER: 'USER',
-  USER_MANAGER: 'USER_MANAGER',
   ADMIN: 'ADMIN',
 } as const;
 
@@ -58,7 +39,6 @@ export type AccountSummaryResponseRole = (typeof AccountSummaryResponseRole)[key
 
 export const AccountSummaryResponseRole = {
   USER: 'USER',
-  USER_MANAGER: 'USER_MANAGER',
   ADMIN: 'ADMIN',
 } as const;
 
@@ -68,4 +48,20 @@ export interface AccountSummaryResponse {
   role: AccountSummaryResponseRole;
   enabled: boolean;
   createdAt: string;
+}
+
+export type ChangeAccountRoleRequestRole =
+  (typeof ChangeAccountRoleRequestRole)[keyof typeof ChangeAccountRoleRequestRole];
+
+export const ChangeAccountRoleRequestRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export interface ChangeAccountRoleRequest {
+  role: ChangeAccountRoleRequestRole;
+}
+
+export interface SetAccountEnabledRequest {
+  enabled: boolean;
 }

@@ -28,15 +28,15 @@ class CurrentUserProfileControllerIT {
 
   @Test
   void currentUserProfileReturnsAuthenticatedPrincipal() throws Exception {
-    appUserRepository.save(AppUser.create("ada", Set.of(Role.USER_MANAGER, Role.USER)));
+    appUserRepository.save(AppUser.create("ada", Set.of(Role.ADMIN, Role.USER)));
 
     mockMvc
-        .perform(get("/api/v1/me").with(user("ada").roles("USER_MANAGER", "USER")))
+        .perform(get("/api/v1/me").with(user("ada").roles("ADMIN", "USER")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.username").value("ada"))
         .andExpect(jsonPath("$.displayName").value("ada"))
         .andExpect(jsonPath("$.roles").isArray())
-        .andExpect(jsonPath("$.roles[?(@ == 'USER_MANAGER')]").exists())
+        .andExpect(jsonPath("$.roles[?(@ == 'ADMIN')]").exists())
         .andExpect(jsonPath("$.roles[?(@ == 'USER')]").exists());
   }
 

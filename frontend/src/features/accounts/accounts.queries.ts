@@ -9,11 +9,7 @@ import { CreateAccountRequestRole } from '@/api/generated-admin/openAPIDefinitio
 import { HttpError } from '@lib/http';
 
 /** Roles an admin can assign, in the order offered by the form. */
-export const ACCOUNT_ROLES = [
-  CreateAccountRequestRole.USER,
-  CreateAccountRequestRole.USER_MANAGER,
-  CreateAccountRequestRole.ADMIN,
-] as const;
+export const ACCOUNT_ROLES = [CreateAccountRequestRole.USER, CreateAccountRequestRole.ADMIN] as const;
 
 export type AccountRole = (typeof ACCOUNT_ROLES)[number];
 

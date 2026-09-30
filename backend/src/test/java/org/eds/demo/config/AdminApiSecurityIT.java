@@ -29,7 +29,7 @@ class AdminApiSecurityIT {
   @Test
   void nonAdminRoleIsForbidden() throws Exception {
     mockMvc
-        .perform(get(ADMIN_PROBE_URL).with(user("ada").roles("USER", "USER_MANAGER")))
+        .perform(get(ADMIN_PROBE_URL).with(user("ada").roles("USER")))
         .andExpect(status().isForbidden());
   }
 

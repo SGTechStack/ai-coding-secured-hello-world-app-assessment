@@ -80,7 +80,7 @@ describe('AccountsPage', () => {
   it('creates an Account, shows its Temporary Password once with a notice and refreshes the list', async () => {
     const created = {
       username: 'new-hire',
-      role: 'USER_MANAGER',
+      role: 'ADMIN',
       temporaryPassword: 'Xk7-temp-Pass-42',
       temporaryPasswordExpiresAt: '2030-01-03T03:04:05Z',
     };
@@ -90,7 +90,7 @@ describe('AccountsPage', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           status: 200,
-          body: [ROOT, { ...SUSPENDED, username: 'new-hire', role: 'USER_MANAGER', enabled: true }],
+          body: [ROOT, { ...SUSPENDED, username: 'new-hire', role: 'ADMIN', enabled: true }],
         }),
       );
     renderPage();
@@ -101,14 +101,14 @@ describe('AccountsPage', () => {
     const dialog = await openCreateDialog({ user });
     await user.type(within(dialog).getByLabelText('Username'), 'new-hire');
     await user.click(within(dialog).getByRole('combobox', { name: 'Role' }));
-    await user.click(await screen.findByRole('option', { name: 'USER_MANAGER' }));
+    await user.click(await screen.findByRole('option', { name: 'ADMIN' }));
     await user.click(within(dialog).getByRole('button', { name: 'Create account' }));
 
     expect(await screen.findByText('Xk7-temp-Pass-42')).toBeInTheDocument();
     expect(screen.getByText(/shown only once/i)).toBeInTheDocument();
     const [, init] = requestsTo({ method: 'POST' })[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string)).toEqual({ username: 'new-hire', role: 'USER_MANAGER' });
-    await openRoleTab({ role: 'USER_MANAGER' });
+    expect(JSON.parse(init.body as string)).toEqual({ username: 'new-hire', role: 'ADMIN' });
+    await openRoleTab({ role: 'ADMIN' });
     expect(await screen.findByText('new-hire', { selector: 'td' })).toBeInTheDocument();
   });
 
@@ -224,20 +224,20 @@ describe('AccountsPage', () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, ACTIVE] }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
-      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, { ...ACTIVE, role: 'USER_MANAGER' }] }));
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, { ...ACTIVE, role: 'ADMIN' }] }));
     renderPage();
     await screen.findByText('active-user');
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('combobox', { name: 'Role for active-user' }));
-    await user.click(await screen.findByRole('option', { name: 'USER_MANAGER' }));
+    await user.click(await screen.findByRole('option', { name: 'ADMIN' }));
 
     await waitFor(() => expect(screen.queryByText('active-user')).not.toBeInTheDocument());
-    await openRoleTab({ role: 'USER_MANAGER' });
-    expect(await screen.findByRole('combobox', { name: 'Role for active-user' })).toHaveTextContent('USER_MANAGER');
+    await openRoleTab({ role: 'ADMIN' });
+    expect(await screen.findByRole('combobox', { name: 'Role for active-user' })).toHaveTextContent('ADMIN');
     const [url, init] = requestsTo({ method: 'PUT' })[0] as [string, RequestInit];
     expect(url).toBe('/admin/api/users/id-active/role');
-    expect(JSON.parse(init.body as string)).toEqual({ role: 'USER_MANAGER' });
+    expect(JSON.parse(init.body as string)).toEqual({ role: 'ADMIN' });
   });
 
   it('deletes an Account only after confirmation and refreshes the list', async () => {
@@ -307,7 +307,7 @@ describe('AccountsPage', () => {
 
     expect(await screen.findByRole('tab', { name: 'USER (1)' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'ADMIN (1)' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'USER_MANAGER (0)' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
     expect(screen.queryByText('root')).not.toBeInTheDocument();
     await openRoleTab({ role: 'ADMIN' });
     expect(await screen.findByText('root')).toBeInTheDocument();

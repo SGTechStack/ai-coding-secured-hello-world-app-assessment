@@ -20,9 +20,9 @@ class AppUserTest {
   void addRoleExpandsRoleSet() {
     var user = AppUser.create("bob", EnumSet.of(Role.USER));
 
-    user.addRole(Role.USER_MANAGER);
+    user.addRole(Role.ADMIN);
 
-    assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.USER, Role.USER_MANAGER);
+    assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.USER, Role.ADMIN);
   }
 
   @Test

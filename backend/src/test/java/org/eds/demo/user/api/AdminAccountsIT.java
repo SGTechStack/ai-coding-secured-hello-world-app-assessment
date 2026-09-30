@@ -98,46 +98,44 @@ class AdminAccountsIT {
   @Test
   void listShowsOnlyIdUsernameRoleEnabledAndCreatedDate() throws Exception {
     clock.set(Instant.parse("2031-03-04T05:06:07Z"));
-    mockMvc
-        .perform(createAccount("listed-manager", Role.USER_MANAGER))
-        .andExpect(status().isCreated());
+    mockMvc.perform(createAccount("listed-admin", Role.ADMIN)).andExpect(status().isCreated());
 
     var body =
         mockMvc
             .perform(get(ACCOUNTS_URL).with(user(ADMIN_ACTOR).roles("ADMIN")))
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$[?(@.username == 'listed-manager')].role")
-                    .value(org.hamcrest.Matchers.contains("USER_MANAGER")))
+                jsonPath("$[?(@.username == 'listed-admin')].role")
+                    .value(org.hamcrest.Matchers.contains("ADMIN")))
             .andExpect(
-                jsonPath("$[?(@.username == 'listed-manager')].enabled")
+                jsonPath("$[?(@.username == 'listed-admin')].enabled")
                     .value(org.hamcrest.Matchers.contains(true)))
             .andExpect(
-                jsonPath("$[?(@.username == 'listed-manager')].createdAt")
+                jsonPath("$[?(@.username == 'listed-admin')].createdAt")
                     .value(org.hamcrest.Matchers.contains("2031-03-04T05:06:07Z")))
             .andReturn()
             .getResponse()
             .getContentAsString();
 
-    List<Map<String, Object>> entries = JsonPath.read(body, "$[?(@.username == 'listed-manager')]");
+    List<Map<String, Object>> entries = JsonPath.read(body, "$[?(@.username == 'listed-admin')]");
     assertThat(entries.get(0).keySet())
         .containsExactlyInAnyOrder("id", "username", "role", "enabled", "createdAt");
     assertThat(entries.get(0).get("id"))
         .isEqualTo(
             appUserRepository
-                .findByUsername("listed-manager")
+                .findByUsername("listed-admin")
                 .orElseThrow()
                 .getId()
                 .value()
                 .toString());
     assertThat(body)
         .doesNotContain(
-            appUserRepository.findByUsername("listed-manager").orElseThrow().getPasswordHash());
+            appUserRepository.findByUsername("listed-admin").orElseThrow().getPasswordHash());
   }
 
   @Test
   void nonAdminsAreForbiddenFromEveryAccountEndpoint() throws Exception {
-    var nonAdmin = user("ada").roles("USER", "USER_MANAGER");
+    var nonAdmin = user("ada").roles("USER");
 
     mockMvc.perform(get(ACCOUNTS_URL).with(nonAdmin)).andExpect(status().isForbidden());
     mockMvc

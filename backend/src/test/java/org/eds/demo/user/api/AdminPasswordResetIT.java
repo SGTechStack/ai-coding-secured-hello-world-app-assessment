@@ -152,7 +152,7 @@ class AdminPasswordResetIT {
         .perform(
             withCsrf(
                 post("/admin/api/users/{id}/reset-password", target)
-                    .with(user("ada").roles("USER", "USER_MANAGER"))))
+                    .with(user("ada").roles("USER"))))
         .andExpect(status().isForbidden());
     mockMvc
         .perform(withCsrf(post("/admin/api/users/{id}/reset-password", target)))

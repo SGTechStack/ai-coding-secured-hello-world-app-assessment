@@ -8,6 +8,7 @@ import { Label } from '@components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@components/ui/table';
 import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
 import { formatDate, formatTimestamp } from '@lib/locale';
+import { AccountRowActions } from './account-row-actions';
 import { createAccountSchema } from './accounts.schema';
 import {
   ACCOUNT_ROLES,
@@ -164,7 +165,6 @@ function AccountList() {
           <TableHeader>
             <TableRow>
               <TableHead>Username</TableHead>
-              <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Actions</TableHead>
@@ -174,19 +174,21 @@ function AccountList() {
             {accounts.map((account) => (
               <TableRow key={account.username}>
                 <TableCell>{account.username}</TableCell>
-                <TableCell>{account.role}</TableCell>
                 <TableCell>{account.enabled ? 'Enabled' : 'Disabled'}</TableCell>
                 <TableCell>{formatDate(account.createdAt)}</TableCell>
                 <TableCell>
-                  <ResetPasswordButton
-                    account={account}
-                    onStart={() => {
-                      setReset(undefined);
-                      setResetError(undefined);
-                    }}
-                    onReset={setReset}
-                    onError={setResetError}
-                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ResetPasswordButton
+                      account={account}
+                      onStart={() => {
+                        setReset(undefined);
+                        setResetError(undefined);
+                      }}
+                      onReset={setReset}
+                      onError={setResetError}
+                    />
+                    <AccountRowActions account={account} />
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

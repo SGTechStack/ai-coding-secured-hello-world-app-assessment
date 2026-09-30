@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AccountsPage } from './accounts-page';
@@ -18,6 +18,14 @@ const SUSPENDED = {
   role: 'USER',
   enabled: false,
   createdAt: '2030-02-03T04:05:06Z',
+};
+
+const ACTIVE = {
+  id: 'id-active',
+  username: 'active-user',
+  role: 'USER',
+  enabled: true,
+  createdAt: '2030-03-04T05:06:07Z',
 };
 
 function renderPage() {
@@ -50,7 +58,7 @@ describe('AccountsPage', () => {
     renderPage();
 
     const rootRow = (await screen.findByText('root')).closest('tr')!;
-    expect(within(rootRow).getByText('ADMIN')).toBeInTheDocument();
+    expect(within(rootRow).getByLabelText('Role for root')).toHaveValue('ADMIN');
     expect(within(rootRow).getByText('Enabled')).toBeInTheDocument();
     expect(within(rootRow).getByText(/2030/)).toBeInTheDocument();
     const suspendedRow = screen.getByText('suspended').closest('tr')!;
@@ -156,5 +164,77 @@ describe('AccountsPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Admins cannot reset their own password');
     expect(screen.queryByText(/shown only once/i)).not.toBeInTheDocument();
+  });
+
+  it('disables an Account from its row and refreshes the list', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, ACTIVE] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, { ...ACTIVE, enabled: false }] }));
+    renderPage();
+    const row = (await screen.findByText('active-user')).closest('tr')!;
+    const user = userEvent.setup();
+
+    await user.click(within(row).getByRole('button', { name: 'Disable' }));
+
+    expect(await within(screen.getByText('active-user').closest('tr')!).findByText('Disabled')).toBeInTheDocument();
+    const [url, init] = requestsTo({ method: 'PUT' })[0] as [string, RequestInit];
+    expect(url).toBe('/admin/api/users/id-active/enabled');
+    expect(JSON.parse(init.body as string)).toEqual({ enabled: false });
+  });
+
+  it('shows the server reason when an action is refused', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT] }))
+      .mockResolvedValueOnce(
+        jsonResponse({ status: 409, body: { title: 'Conflict', detail: 'You cannot disable your own account' } }),
+      );
+    renderPage();
+    const row = (await screen.findByText('root')).closest('tr')!;
+    const user = userEvent.setup();
+
+    await user.click(within(row).getByRole('button', { name: 'Disable' }));
+
+    expect(await within(row).findByRole('alert')).toHaveTextContent('You cannot disable your own account');
+    expect(within(row).getByText('Enabled')).toBeInTheDocument();
+  });
+
+  it('changes an Account Role from its row and refreshes the list', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, ACTIVE] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, { ...ACTIVE, role: 'USER_MANAGER' }] }));
+    renderPage();
+    await screen.findByText('active-user');
+    const user = userEvent.setup();
+
+    await user.selectOptions(screen.getByLabelText('Role for active-user'), 'USER_MANAGER');
+
+    await waitFor(() => expect(screen.getByLabelText('Role for active-user')).toHaveValue('USER_MANAGER'));
+    const [url, init] = requestsTo({ method: 'PUT' })[0] as [string, RequestInit];
+    expect(url).toBe('/admin/api/users/id-active/role');
+    expect(JSON.parse(init.body as string)).toEqual({ role: 'USER_MANAGER' });
+  });
+
+  it('deletes an Account only after confirmation and refreshes the list', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, ACTIVE] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT] }));
+    renderPage();
+    const row = (await screen.findByText('active-user')).closest('tr')!;
+    const user = userEvent.setup();
+
+    await user.click(within(row).getByRole('button', { name: 'Delete' }));
+    expect(within(row).getByText('Delete active-user permanently?')).toBeInTheDocument();
+    await user.click(within(row).getByRole('button', { name: 'Cancel' }));
+    expect(requestsTo({ method: 'DELETE' })).toHaveLength(0);
+
+    await user.click(within(row).getByRole('button', { name: 'Delete' }));
+    await user.click(within(row).getByRole('button', { name: 'Confirm delete' }));
+
+    await waitFor(() => expect(screen.queryByText('active-user')).not.toBeInTheDocument());
+    const [url] = requestsTo({ method: 'DELETE' })[0] as [string, RequestInit];
+    expect(url).toBe('/admin/api/users/id-active');
   });
 });

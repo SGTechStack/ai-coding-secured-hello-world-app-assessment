@@ -6,8 +6,9 @@ After this ticket, the remaining acceptance gates are procedural, not code: the 
 
 **Blocked by:** 01–27
 
-**Status:** partial: 52 of the 68 remaining ledger rows are proven; 16 await a decision (a row that needs new
-product behaviour, or whose text conflicts with the built design), so the ledger is not yet deleted.
+**Status:** partial: 58 of the 68 remaining ledger rows are proven, two retired (T-CFG-017, T-ARCH-002) and seven
+amended by the user's decision (T-AUTH-016, T-AUD-015, T-AUD-018, T-CFG-019, T-CFG-036, T-FE-011, T-HDR-003). The
+last 8 rows are ticket 30's; the ledger is deleted once it merges.
 
 - [ ] The pending ledger is gone, and `mvn verify` is green with every T-row cited by a test.
 - [x] The catalogue snapshot lists every PRD and standard event above (T-AUD-014, T-AUD-007; the generated
@@ -15,12 +16,5 @@ product behaviour, or whose text conflicts with the built design), so the ledger
 - [ ] Both register renderings are regenerated and committed with no drift.
 - [ ] `mvn -Pmutation` passes at 85% across the full security-decision scope.
 
-**Waiting on a decision (still on the ledger):**
-- Unbuilt audit rows (session-end row 10/11 with `UNKNOWN_OR_EXPIRED` and `DUPLICATE_SESSION_COOKIE`, tier-2 rows 12,
-  14 and 35, rows 16, 17 and 20): T-SES-029, T-AUD-015, T-AUD-026, T-AUD-035, T-AUD-038.
-- Unspecified values or bounds: T-AUD-002 (`error.category`, `error.follow_up_action`), T-AUD-032 (`bytes_per_row`
-  bound), T-OBS-017 (`F_base` bound), T-OBS-016 (`app.db.data-dir` and its gauges, R-OBS-019).
-- Row text conflicts with the built design: T-AUD-018 (the login parse error is never logged), T-CFG-017 (no TOTP
-  `AuthenticationProvider`, ADR-026), T-CFG-019 (the read duration is the absolute lifetime by construction),
-  T-CFG-036 (`lead_days` exists nowhere), T-FE-011 and T-HDR-003 (a single OTP field, no `input-otp` slots),
-  T-ARCH-002 (the shared contexts send from loopback on purpose, with raised budgets).
+**Left for ticket 30 (still on the ledger):** T-SES-029, T-AUD-002, T-AUD-026, T-AUD-032, T-AUD-035, T-AUD-038,
+T-OBS-016, T-OBS-017.

@@ -20,10 +20,20 @@ async function signIn(page: Page, username: string) {
   await page.getByRole('button', { name: 'Sign in' }).click()
 }
 
-test('T-E2E-005: an administrator signs in, is sent to enrolment, then to the challenge, and reads the user list', async ({
+test('T-E2E-005 T-HDR-003: an administrator signs in, is sent to enrolment, then to the challenge, and reads the user list, with no CSP violation', async ({
   page,
 }, testInfo) => {
   const username = usernameFor(testInfo, 'golden-path')
+  // T-HDR-003: the production build under vite preview, served with the production policy (T-HDR-004), raises no
+  // securitypolicyviolation anywhere on this path, the OTP field and the blob: QR code included.
+  const violations: string[] = []
+  await page.exposeFunction('reportCspViolation', (violation: string) => violations.push(violation))
+  await page.addInitScript(() => {
+    document.addEventListener('securitypolicyviolation', (event) => {
+      const report = (window as unknown as { reportCspViolation: (v: string) => void }).reportCspViolation
+      report(`${event.violatedDirective} ${event.blockedURI}`)
+    })
+  })
 
   // Gate order (ADR-023): an unenrolled administrator lands on enrolment. BCrypt at cost 12 on a cold backend is slow.
   await signIn(page, username)
@@ -59,4 +69,5 @@ test('T-E2E-005: an administrator signs in, is sent to enrolment, then to the ch
   await expect(table.getByRole('link', { name: username })).toBeVisible()
   await expect(table.getByRole('row', { name: new RegExp(username) })).toContainText('ADMIN')
   await expect(page.locator('body')).not.toContainText('$2a$')
+  expect(violations).toEqual([])
 })

@@ -2,10 +2,3 @@
 # Each entry is a test-plan row that has no test yet. A ticket that proves a row removes its line here in the same
 # change. The gate fails when an entry is missing, already proven, or not a row, so this file only shrinks.
 # Ticket 28 deletes it. Reconcile after a merge with the command in backend/README.md.
-T-AUD-018
-T-HDR-003
-T-CFG-017
-T-CFG-019
-T-CFG-036
-T-FE-011
-T-ARCH-002

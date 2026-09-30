@@ -40,10 +40,25 @@ final class AdminFactorRules {
 
     private static final String ADMIN_SURFACE = "/api/admin";
 
+    private final Duration readValidity;
     private final Duration sessionLifetime;
     private final Clock clock;
 
+    /** The rules the application runs: reads accept a factor for the whole absolute session lifetime (ADR-021). */
     AdminFactorRules(Duration sessionLifetime, Clock clock) {
+        this(sessionLifetime, sessionLifetime, clock);
+    }
+
+    /**
+     * @throws IllegalStateException if {@code readValidity} is shorter than {@code sessionLifetime}: admins would be
+     *         sent back to the challenge mid-session with no code change to blame (ADR-021; T-CFG-019)
+     */
+    AdminFactorRules(Duration readValidity, Duration sessionLifetime, Clock clock) {
+        if (readValidity.compareTo(sessionLifetime) < 0) {
+            throw new IllegalStateException("Startup refused: the admin read rule's factor validity " + readValidity
+                    + " is shorter than the absolute session lifetime " + sessionLifetime + " (ADR-021)");
+        }
+        this.readValidity = readValidity;
         this.sessionLifetime = sessionLifetime;
         this.clock = clock;
     }
@@ -78,7 +93,7 @@ final class AdminFactorRules {
         if (!covers(route)) {
             return role;
         }
-        Duration totpValidity = HttpMethod.GET.equals(route.method()) ? sessionLifetime : MUTATION_FACTOR_VALIDITY;
+        Duration totpValidity = HttpMethod.GET.equals(route.method()) ? readValidity : MUTATION_FACTOR_VALIDITY;
         AllRequiredFactorsAuthorizationManager<RequestAuthorizationContext> factors =
                 AllRequiredFactorsAuthorizationManager.<RequestAuthorizationContext>builder()
                         .requireFactor(factor -> factor.passwordAuthority().validDuration(sessionLifetime))

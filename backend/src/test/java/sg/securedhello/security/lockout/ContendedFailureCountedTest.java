@@ -21,11 +21,14 @@ import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SignedIn;
 
 /**
- * The failure-counting listener fails open on counting only (Std §3.2:247; Std §5:506): when it cannot take the
- * account's row lock in time, the wrong password is still the uniform 401, never a 500, and the lost count is the only
- * cost. On {@code ctx-locktimeout}, whose 50 ms lock timeout makes the wait end quickly.
+ * A wrong password whose failure count cannot take the account's row lock in time is still the uniform 401, never a
+ * 500 (Std §3.2:247; Std §5:506), and it is still counted: deferred with its own time, then counted by the next outcome
+ * that takes the lock (ADR-011 amendment of 2026-09-30). On {@code ctx-locktimeout}, whose 50 ms lock timeout ends the
+ * wait quickly.
  */
-class CountingFailsOpenTest extends CtxLockTimeoutTest {
+class ContendedFailureCountedTest extends CtxLockTimeoutTest {
+
+    private static final String SOURCE = "203.0.113.71";
 
     @Autowired
     private DataSource dataSource;
@@ -36,9 +39,14 @@ class CountingFailsOpenTest extends CtxLockTimeoutTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    private int failedLoginAttempts(Account account) {
+        return jdbc.queryForObject("SELECT failed_login_attempts FROM users WHERE id = ?", Integer.class,
+                account.id());
+    }
+
     @Test
     @Proves("T-AUTH-016")
-    void aWrongPasswordWhoseCountTimesOutOnTheRowLockIsStillTheUniform401() throws Exception {
+    void aContendedWrongPasswordIsTheUniform401AndIsStillCounted() throws Exception {
         Account account = new Accounts(jdbc, passwordEncoder).user();
 
         try (Connection holder = dataSource.getConnection()) {
@@ -48,12 +56,16 @@ class CountingFailsOpenTest extends CtxLockTimeoutTest {
                 assertThat(lock.executeQuery().next()).isTrue();
             }
 
-            SignedIn.loginFrom(mockMvc, "203.0.113.71", account.username(), Accounts.WRONG_PASSWORD)
+            SignedIn.loginFrom(mockMvc, SOURCE, account.username(), Accounts.WRONG_PASSWORD)
                     .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
 
             holder.rollback();
         }
-        assertThat(jdbc.queryForObject("SELECT failed_login_attempts FROM users WHERE id = ?", Integer.class,
-                account.id())).as("the count that could not be taken").isZero();
+        assertThat(failedLoginAttempts(account)).as("deferred while the row was held").isZero();
+
+        SignedIn.loginFrom(mockMvc, SOURCE, account.username(), Accounts.WRONG_PASSWORD)
+                .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+
+        assertThat(failedLoginAttempts(account)).as("the contended failure and the next one").isEqualTo(2);
     }
 }

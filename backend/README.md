@@ -151,18 +151,36 @@ The seeded password is a forced-change credential (ADR-046):
    answers 403 `PASSWORD_CHANGE_REQUIRED`.
 2. Enter `lantern-orchard-copper-tide` as the current password and a new one that passes the policy. The session
    stays signed in and is no longer confined.
-3. Enrol an authenticator app (ADR-023). After the change the app shows the greeting page without a greeting
-   (`/api/hello` is for the `USER` role only), with a **Two-factor authentication** link to
-   http://localhost:5173/settings/mfa. Choose **Generate QR code**, scan the code with any TOTP app (or type the key
+3. Enrol an authenticator app (ADR-023). After the change the app goes straight to **Two-factor authentication**
+   (http://localhost:5173/settings/mfa). Choose **Generate QR code**, scan the code with any TOTP app (or type the key
    shown under it: time-based, 6 digits, 30 seconds), then enter the app's current code and **Confirm**. The key is
    shown once: generating again replaces it, and nothing re-displays it. Enrolment is refused until the password has
-   been changed.
+   been changed. Then choose **Continue to the user list**. Every later sign-in asks for a code on **TOTP
+   Verification** before the admin pages open.
 
 An unchanged seed password expires 30 days after the first start: sign-in then fails with the uniform 401. Delete
 `backend/data/` to get a fresh seed.
 
 The issuer the app shows beside the account is `app.mfa.totp.issuer`, `Secured Hello World` in `application.yml`; it
-is required and may not be blank. User administration is not built yet.
+is required and may not be blank.
+
+### User administration
+
+The admin pages (`/admin/users`) need the password and a verified TOTP code. Reads accept a code verified at any
+point in the session; every change needs one from the last 10 minutes, and the app asks for a fresh code (step-up)
+before replaying the change (ADR-021). From the user list and each user's page an administrator can:
+
+- invite a user as `USER` or `ADMIN`, and see the activation link once to pass on; inviting the same pending
+  username and email again re-issues it (ADR-006);
+- enable or disable an account (a disable ends its sessions; a re-enable makes the user change their password at the
+  next sign-in), change its role between `USER` and `ADMIN`, or delete it, leaving a tombstone that blocks the
+  username and email (ADR-044);
+- issue a password-reset link, shown once, for any activated, enabled account, their own included (ADR-006);
+- unlock another account's password lockout and TOTP lock, with a reason (REJ-072);
+- reset another administrator's authenticator, which ends their sessions and makes them enrol again (ADR-049).
+
+No administrator can disable, demote, delete, unlock or reset the factor of their own account, and disabling,
+demoting or deleting either of exactly two enrolled administrators is refused (ADR-048).
 
 ### Recovering an account with the recovery runner
 
@@ -300,4 +318,4 @@ mvn -f backend/pom.xml -Pmutation verify
 ```
 
 PIT runs at a mutation threshold of 85 over the security-decision classes (spec, Mandatory gates 7), listed by class
-name in the `pitest-maven` configuration. While none of those classes exist, PIT finds no mutations and passes.
+name in the `pitest-maven` configuration.

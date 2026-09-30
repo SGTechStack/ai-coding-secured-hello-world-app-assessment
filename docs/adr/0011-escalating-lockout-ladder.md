@@ -105,6 +105,24 @@ for a rung, then again every 5 failures until they sign in or reset. That is fri
 spread over months, reintroduced only from the 10th: the price of closing the paced route to the permanent disable.
 `LockoutCounter` and `LockoutLadder` stay pure and inside the mutation gate.
 
+## Amendment (2026-09-30): a contended failure is deferred, never dropped
+
+**Context.** Each failure is counted under the account's row lock (R-DATA-014). When another transaction holds that
+lock past the H2 lock timeout, the counting listener's lock query fails. Before this amendment that failure escaped
+as a 500; failing open by skipping the count was proposed and rejected, because an attacker who can keep the row
+contended would then guess without moving the counter or the NIST cap.
+
+**Decision.** The sign-in still gets the uniform 401 (ADR-033). The failure is not dropped: it is deferred, in memory,
+by username with the time it happened, and the next outcome for that account that takes the row lock (a failure or
+a success) counts every deferred failure first, oldest first, through the same `LockoutCounter`, then its own. So
+windows, rungs and the cap see each failure at its real time. A lock timeout on that later outcome defers again. A
+second wait for the same lock was not added: it would double the response time only under contention, which is a
+timing signal, and would still fail against a long holder.
+
+**Consequences.** The only loss is a restart between the contended failure and the next outcome for the account;
+the deferred list lives on the one supported instance, like every throttle (REJ-018). An entry exists only while its
+row is contended, so the map stays small. T-AUTH-016 proves the 401 and the count.
+
 
 ## Sources
 

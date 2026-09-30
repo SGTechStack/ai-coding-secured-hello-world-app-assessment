@@ -329,6 +329,11 @@ class AdminRoleChangeDeleteTest extends CtxDefaultTest {
         setRole(session, target.id(), "{}").andExpect(problem(ErrorCode.VALIDATION_FAILED));
         setRole(session, target.id(), "{\"role\":\"ROOT\"}").andExpect(problem(ErrorCode.VALIDATION_FAILED));
         setRole(session, target.id(), "{\"role\":\"admin\"}").andExpect(problem(ErrorCode.VALIDATION_FAILED));
+        // Neither an ordinal nor its string names a role, and neither does any other non-name value.
+        for (String body : List.of("{\"role\":1}", "{\"role\":\"1\"}", "{\"role\":null}", "{\"role\":\"\"}",
+                "{\"role\":true}", "{\"role\":[\"ADMIN\"]}", "{\"role\":{}}", "{\"role\":\" ADMIN\"}")) {
+            setRole(session, target.id(), body).andExpect(problem(ErrorCode.VALIDATION_FAILED));
+        }
         assertThat(role(target.id())).isEqualTo("USER");
     }
 

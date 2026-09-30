@@ -99,11 +99,11 @@ public class AdminActions {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public Optional<AdminUserView> setRole(UUID actorId, UUID subjectId, String role) {
-        boolean promote = RoleRequest.ADMIN.equals(role);
+    public Optional<AdminUserView> setRole(UUID actorId, UUID subjectId, Role role) {
+        boolean promote = role == Role.ADMIN;
         return guarded(promote ? Mutation.PROMOTE : Mutation.DEMOTE, actorId, subjectId, account -> {
-            if (!account.getRole().equals(role)) {
-                account.setRole(role);
+            if (!account.getRole().equals(role.name())) {
+                account.setRole(role.name());
                 sessions.endAll(account.getUsername());
             }
             afterCommit(() -> audit.emit(promote ? AuditEvent.ADMIN_USER_PROMOTED : AuditEvent.ADMIN_USER_DEMOTED,

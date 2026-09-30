@@ -1,0 +1,157 @@
+/* Deliberately small. The PRD leaves styling to implementer discretion and nothing here is load-bearing. */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  background: light-dark(#f6f7f9, #16181d);
+  color: light-dark(#1b1e24, #e7e9ee);
+}
+
+.shell {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid light-dark(#dcdfe5, #2c303a);
+}
+
+.brand {
+  font-weight: 650;
+  text-decoration: none;
+  color: inherit;
+}
+
+header nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card {
+  background: light-dark(#fff, #1e212a);
+  border: 1px solid light-dark(#dcdfe5, #2c303a);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+h1 {
+  font-size: 1.35rem;
+  margin-top: 0;
+}
+
+form {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 26rem;
+}
+
+label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+input,
+select {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid light-dark(#c4c9d2, #3a3f4c);
+  border-radius: 0.4rem;
+  background: light-dark(#fff, #14161c);
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: #2f5fd0;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+button.danger {
+  background: #b3261e;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.banner {
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.4rem;
+  margin: 0 0 1rem;
+}
+
+.banner-error {
+  background: light-dark(#fdecea, #3a1d1b);
+  border: 1px solid #b3261e;
+}
+
+.banner-notice {
+  background: light-dark(#e8f1fd, #16263d);
+  border: 1px solid #2f5fd0;
+}
+
+.muted {
+  color: light-dark(#5a606c, #9aa2b1);
+  font-size: 0.9rem;
+}
+
+.hint {
+  color: light-dark(#5a606c, #9aa2b1);
+  font-size: 0.8rem;
+  margin: 0.1rem 0 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid light-dark(#e6e8ed, #2c303a);
+}
+
+.detail {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+  font-size: 0.9rem;
+}
+
+.detail dt {
+  font-weight: 600;
+}
+
+.detail dd {
+  margin: 0;
+}

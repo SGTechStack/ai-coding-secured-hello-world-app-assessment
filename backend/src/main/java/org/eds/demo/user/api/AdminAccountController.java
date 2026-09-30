@@ -27,6 +27,7 @@ public class AdminAccountController {
         .map(
             account ->
                 AccountSummaryResponse.builder()
+                    .id(account.id())
                     .username(account.username())
                     .role(account.role())
                     .enabled(account.enabled())

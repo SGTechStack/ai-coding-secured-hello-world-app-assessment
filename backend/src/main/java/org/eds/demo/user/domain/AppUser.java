@@ -98,7 +98,8 @@ public class AppUser extends BaseAuditableEntity {
   @Builder.Default
   @OneToMany(
       mappedBy = "appUser",
-      cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+      cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+      orphanRemoval = true)
   private List<AppUserRole> userRoles = new ArrayList<>();
 
   public static AppUser create(String username, Set<Role> roles) {
@@ -168,6 +169,11 @@ public class AppUser extends BaseAuditableEntity {
     return delay;
   }
 
+  /** Suspends ({@code false}) or restores ({@code true}) the Account's ability to sign in. */
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
+
   public void updateEmail(String email) {
     this.email = (email != null && !email.isBlank()) ? email.trim() : null;
   }
@@ -190,6 +196,12 @@ public class AppUser extends BaseAuditableEntity {
     return userRoles.stream()
         .map(userRole -> userRole.getRole())
         .collect(Collectors.toUnmodifiableSet());
+  }
+
+  /** Makes {@code role} the Account's only Role. */
+  public void replaceRolesWith(Role role) {
+    userRoles.removeIf(ur -> ur.getRole() != role);
+    addRole(role);
   }
 
   public void addRole(Role role) {

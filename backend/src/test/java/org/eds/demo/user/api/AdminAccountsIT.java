@@ -121,7 +121,15 @@ class AdminAccountsIT {
 
     List<Map<String, Object>> entries = JsonPath.read(body, "$[?(@.username == 'listed-manager')]");
     assertThat(entries.get(0).keySet())
-        .containsExactlyInAnyOrder("username", "role", "enabled", "createdAt");
+        .containsExactlyInAnyOrder("id", "username", "role", "enabled", "createdAt");
+    assertThat(entries.get(0).get("id"))
+        .isEqualTo(
+            appUserRepository
+                .findByUsername("listed-manager")
+                .orElseThrow()
+                .getId()
+                .value()
+                .toString());
     assertThat(body)
         .doesNotContain(
             appUserRepository.findByUsername("listed-manager").orElseThrow().getPasswordHash());

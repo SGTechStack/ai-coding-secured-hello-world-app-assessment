@@ -66,6 +66,7 @@ public class AccountAdministrationService {
         .map(
             account ->
                 new AccountSummary(
+                    account.getId().value(),
                     account.getUsername(),
                     account.getRoles().stream().max(Comparator.naturalOrder()).orElseThrow(),
                     account.isEnabled(),

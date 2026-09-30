@@ -12,6 +12,8 @@
 # Tracked, and why:
 #   .gitignore                    this contract
 #   README.md                     how to run and test the application
+#   AGENTS.md                     agent skill pointers (issue tracker, triage labels, domain docs)
+#   CONTEXT.md                    single-context domain reference cited by AGENTS.md
 #   docs/prd/                     the PRD, which is the source of truth for behaviour
 #   docs/decisions.md             the ten questions the PRD left open, and how each was settled.
 #                                 Kept because the code cites it: without it, deliberate choices
@@ -31,6 +33,8 @@
 
 !/.gitignore
 !/README.md
+!/AGENTS.md
+!/CONTEXT.md
 !/api/
 !/docs/
 !/web/

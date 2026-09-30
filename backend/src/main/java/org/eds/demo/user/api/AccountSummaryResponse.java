@@ -2,6 +2,7 @@ package org.eds.demo.user.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.Builder;
 import org.eds.demo.user.domain.Role;
 
@@ -9,6 +10,9 @@ import org.eds.demo.user.domain.Role;
 // spotless:off
 @Builder
 public record AccountSummaryResponse(
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
+    UUID id,
+
     @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     String username,
 

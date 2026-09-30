@@ -135,6 +135,11 @@ public class AppUser extends BaseAuditableEntity {
 
   /** A correct sign-in clears the failed-attempt counter and any backoff. */
   public void recordSuccessfulSignIn() {
+    clearSignInBackoff();
+  }
+
+  /** Resets the failed-attempt counter and any delay, e.g. after an admin password reset. */
+  public void clearSignInBackoff() {
     this.failedLoginAttempts = 0;
     this.lockedUntil = null;
   }

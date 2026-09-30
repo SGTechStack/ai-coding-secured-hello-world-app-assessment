@@ -2,11 +2,13 @@ package org.eds.demo.user.api;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.eds.demo.user.application.AccountAdministrationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +29,7 @@ public class AdminAccountController {
         .map(
             account ->
                 AccountSummaryResponse.builder()
+                    .id(account.id())
                     .username(account.username())
                     .role(account.role())
                     .enabled(account.enabled())
@@ -47,6 +50,17 @@ public class AdminAccountController {
         .role(created.role())
         .temporaryPassword(created.temporaryPassword())
         .temporaryPasswordExpiresAt(created.temporaryPasswordExpiresAt())
+        .build();
+  }
+
+  @PostMapping("/{id}/reset-password")
+  public CreatedAccountResponse resetPassword(@PathVariable UUID id, Authentication actor) {
+    var reset = accountAdministrationService.resetPassword(actor.getName(), id);
+    return CreatedAccountResponse.builder()
+        .username(reset.username())
+        .role(reset.role())
+        .temporaryPassword(reset.temporaryPassword())
+        .temporaryPasswordExpiresAt(reset.temporaryPasswordExpiresAt())
         .build();
   }
 }

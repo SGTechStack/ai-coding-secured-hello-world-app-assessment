@@ -96,7 +96,7 @@ class AdminAccountsIT {
   }
 
   @Test
-  void listShowsOnlyUsernameRoleEnabledAndCreatedDate() throws Exception {
+  void listShowsOnlyIdUsernameRoleEnabledAndCreatedDate() throws Exception {
     clock.set(Instant.parse("2031-03-04T05:06:07Z"));
     mockMvc
         .perform(createAccount("listed-manager", Role.USER_MANAGER))
@@ -121,7 +121,7 @@ class AdminAccountsIT {
 
     List<Map<String, Object>> entries = JsonPath.read(body, "$[?(@.username == 'listed-manager')]");
     assertThat(entries.get(0).keySet())
-        .containsExactlyInAnyOrder("username", "role", "enabled", "createdAt");
+        .containsExactlyInAnyOrder("id", "username", "role", "enabled", "createdAt");
     assertThat(body)
         .doesNotContain(
             appUserRepository.findByUsername("listed-manager").orElseThrow().getPasswordHash());

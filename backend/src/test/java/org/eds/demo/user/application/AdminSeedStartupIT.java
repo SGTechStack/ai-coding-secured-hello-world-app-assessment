@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.eds.demo.Application;
+import org.eds.demo.user.domain.AppUser;
 import org.eds.demo.user.domain.Role;
 import org.eds.demo.user.infrastructure.AppUserRepository;
 import org.junit.jupiter.api.Test;
@@ -57,5 +58,40 @@ class AdminSeedStartupIT {
       assertThat(users.findByUsername("another-admin")).isEmpty();
       assertThat(users.findByUsername("admin")).isPresent();
     }
+  }
+
+  @Test
+  void configuredAdminUsernameHeldByANonAdminFailsStartupWithClearMessage() {
+    var database = "--spring.datasource.url=jdbc:h2:mem:admin-seed-clash-it;DB_CLOSE_DELAY=-1";
+    var common =
+        new String[] {
+          "--spring.profiles.active=local",
+          "--app.email.inbound.enabled=false",
+          "--server.port=0",
+          "--management.server.port=0",
+          database,
+          "--spring.jpa.hibernate.ddl-auto=update",
+        };
+    try (var first =
+        new SpringApplicationBuilder(Application.class)
+            .web(WebApplicationType.SERVLET)
+            .run(common)) {
+      first
+          .getBean(AppUserRepository.class)
+          .save(AppUser.create("clash", java.util.EnumSet.of(Role.USER)));
+    }
+
+    var withSeedConfig = new java.util.ArrayList<>(java.util.List.of(common));
+    withSeedConfig.addAll(
+        java.util.List.of("--app.admin.username=clash", "--app.admin.password=x"));
+
+    assertThatThrownBy(
+            () ->
+                new SpringApplicationBuilder(Application.class)
+                    .web(WebApplicationType.SERVLET)
+                    .run(withSeedConfig.toArray(String[]::new)))
+        .hasStackTraceContaining("app.admin.username")
+        .hasStackTraceContaining("clash")
+        .hasStackTraceContaining("is not an ADMIN");
   }
 }

@@ -45,6 +45,15 @@ class AdminSeeder implements ApplicationRunner {
       log.warn("No ADMIN Account exists and app.admin.password is not set; skipping admin seed");
       return;
     }
+    if (appUserRepository.existsByUsername(properties.username())) {
+      // Promoting silently would hand ADMIN to an Account nobody chose to elevate; seeding over it
+      // would violate the unique username. The operator must resolve it explicitly.
+      throw new IllegalStateException(
+          "No ADMIN Account exists, but app.admin.username '"
+              + properties.username()
+              + "' already belongs to an Account that is not an ADMIN. Configure a different"
+              + " app.admin.username, or change that Account's Role to ADMIN.");
+    }
     var admin = AppUser.create(properties.username(), EnumSet.of(Role.ADMIN));
     admin.updatePasswordHash(passwordEncoder.encode(properties.password()));
     appUserRepository.save(admin);

@@ -55,3 +55,7 @@ Use the matching profile and secret name for `qa` and `prod`.
 `server.forward-headers-strategy=native`. The sign-in IP throttle reads the servlet remote address; without this profile every client behind the AWS load balancer shares the balancer's address and one abuser would throttle everyone.
 
 Trust assumption: Tomcat only honors `X-Forwarded-For` from a direct peer inside its internal-proxies pattern (private and loopback ranges by default). This is safe only while the app is reachable solely through the load balancer. If clients can reach Tomcat directly they can spoof any address and evade the throttle. `local` and `test` do not include the profile, so the header is ignored there.
+
+## Initial Admin Seed
+
+`AdminSeeder` creates the first ADMIN Account from `app.admin.username` / `app.admin.password` only when no ADMIN exists. If that username already belongs to a non-admin Account, startup fails with a message naming the property; it never promotes silently. Pick another username or change that Account's Role.

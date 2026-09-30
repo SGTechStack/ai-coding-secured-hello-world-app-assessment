@@ -49,7 +49,8 @@ public final class E2eBackend {
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
             .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
                     "golden-path", "disable-admin", "disable-user", "step-up-admin", "step-up-user",
-                    "role-admin", "role-user", "factor-reset-admin", "factor-reset-target", "invite-admin").stream()
+                    "role-admin", "role-user", "factor-reset-admin", "factor-reset-target", "invite-admin",
+                    "demo-code-user").stream()
                     .map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";

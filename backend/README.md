@@ -3,7 +3,10 @@
 ## Running locally
 
 Every secret and origin is required and has no default in any profile (ADR-062). Startup refuses before the port opens
-if one is missing or malformed. Supply them as environment variables:
+if one is missing or malformed. Supply them as environment variables (below), as files mounted under `/run/secrets/`
+named by property (for example `/run/secrets/app.admin.password`), or, in the `dev` profile only, in a `.env` file of
+`property=value` lines in the working directory. `.env` is git-ignored and never read outside `dev`; a mounted file
+wins over it:
 
 | Variable | Property | Value |
 |---|---|---|
@@ -47,8 +50,8 @@ At startup the log shows one `Key loaded` line per key, with its property, versi
 fingerprint. The key itself is never logged. Compare fingerprints to confirm which key is live.
 
 Before the port opens, startup also ends the stored sessions of every account that is disabled, deleted, locked,
-password-capped or under a tier-2 factor disable, and writes one `session-reconciliation` audit row with the counts
-(ADR-039). A lost session kill is repaired by restarting the app.
+password-capped or under a tier-2 factor disable, and writes one "Sessions reconciled at startup." audit row
+(`event.action` `session-end`) with the counts (ADR-039). A lost session kill is repaired by restarting the app.
 
 The tests need none of these variables. The test harness supplies test-only canary values (`TestSecrets`).
 
@@ -213,7 +216,10 @@ point in the session; every change needs one from the last 10 minutes, and the a
 before replaying the change (ADR-021). From the user list and each user's page an administrator can:
 
 - invite a user as `USER` or `ADMIN`, and see the activation link once to pass on; inviting the same pending
-  username and email again re-issues it (ADR-006);
+  username and email again re-issues it (ADR-006). A self-registration left unactivated for 24 hours no longer holds
+  its username or email against an invite. An invite whose link expired unredeemed lapses the same way: the invitee
+  may then register themselves (as a `USER`), and another address may take its username, unless an administrator
+  re-invites it first (ADR-007; ADR-032);
 - enable or disable an account (a disable ends its sessions; a re-enable makes the user change their password at the
   next sign-in), change its role between `USER` and `ADMIN`, or delete it, leaving a tombstone that blocks the
   username and email (ADR-044);
@@ -222,7 +228,9 @@ before replaying the change (ADR-021). From the user list and each user's page a
 - reset another administrator's authenticator, which ends their sessions and makes them enrol again (ADR-049).
 
 No administrator can disable, demote, delete, unlock or reset the factor of their own account, and disabling,
-demoting or deleting either of exactly two enrolled administrators is refused (ADR-048).
+demoting or deleting either of exactly two enrolled administrators is refused (ADR-048). A change that has to wait
+too long for other changes to the administrator accounts is refused with 503 `SERVICE_BUSY` and `Retry-After: 1`,
+having changed nothing; the page says the server was busy and to try again.
 
 ### Recovering an account with the recovery runner
 

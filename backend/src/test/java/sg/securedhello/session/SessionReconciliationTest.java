@@ -96,7 +96,7 @@ class SessionReconciliationTest extends CtxDefaultTest {
 
             List<Map<String, Object>> written = audit.withMessage(ROW);
             assertThat(written).hasSize(2);
-            assertThat(written.get(0)).containsEntry("event.action", "session-reconciliation")
+            assertThat(written.get(0)).containsEntry("event.action", "session-end")
                     .containsEntry("session.ended_count", 1)
                     .containsEntry("labels.reconciled_accounts", List.of("DELETED=0", "DISABLED=0", "CAPPED=1",
                             "LOCKED=0", "FACTOR_DISABLED=0"))

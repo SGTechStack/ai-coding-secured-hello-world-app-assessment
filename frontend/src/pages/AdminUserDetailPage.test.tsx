@@ -134,6 +134,25 @@ describe('/admin/users/:id enable and disable', () => {
     expect(screen.getByText('Enabled')).toBeInTheDocument()
   })
 
+  it('T-FE-028: a busy refusal says to try again and leaves the account as it was', async () => {
+    server.use(
+      http.put(apiUrl('/api/admin/users/:id/enabled'), () =>
+        problemResponse('SERVICE_BUSY', `/api/admin/users/${bob.id}/enabled`),
+      ),
+    )
+    renderApp(`/admin/users/${bob.id}`)
+    const user = userEvent.setup()
+
+    await user.click(await screen.findByRole('button', { name: 'Disable account' }))
+
+    expect(await screen.findByText(/busy with other changes, so nothing was changed. Try again/)).toHaveAttribute(
+      'role',
+      'alert',
+    )
+    expect(screen.getByText('Enabled')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Disable account' })).toBeEnabled()
+  })
+
   it('offers no control on the administrator’s own account', async () => {
     renderApp(`/admin/users/${alice.id}`)
 

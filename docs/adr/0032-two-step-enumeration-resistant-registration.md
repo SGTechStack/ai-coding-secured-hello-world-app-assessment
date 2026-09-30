@@ -92,7 +92,9 @@ account, which this ADR says is never observable.
   that username from another address deletes it and takes the name. Expired holds are purged by each registration,
   so a squatted username frees up within a day instead of never. A lapsed pending registration is deleted without a
   tombstone: it never held a credential, and a tombstone would squat the name for good (ADR-044 covers deleted
-  accounts). An administrator's pending invite never lapses this way.
+  accounts). An administrator's pending invite never lapses this way. (Amended 2026-09-30 by ADR-007's second
+  amendment: an invite whose admin-issued token has expired unredeemed lapses by the same rule, and an invite frees
+  a lapsed pending registration.)
 - **A re-registration and an activation of one pending registration are serialised** on the account's row lock
   (`SELECT ... FOR UPDATE`, R-DATA-014), which both take before touching its tokens, in the same order. Before, a
   replace could rename an account whose activation had just committed, and mint an activation token for an activated

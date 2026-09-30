@@ -20,6 +20,7 @@ export type FixtureTest =
   | 'role-user'
   | 'factor-reset-admin'
   | 'factor-reset-target'
+  | 'demo-code-user'
 
 /** The RFC 6238 code for `secret` at `at`: HMAC-SHA1, 30-second step, 6 digits. */
 export function totp(secret: Buffer, at = Date.now()): string {

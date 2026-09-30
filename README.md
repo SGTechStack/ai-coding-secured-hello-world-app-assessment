@@ -146,7 +146,9 @@ seeded on first start, with their email addresses, passwords and **Copy** button
 
 1. Choose **Fill in demo-user**, then **Sign in**. **Hello, demo-user** opens. Choose **Sign out**.
 2. Choose **Fill in demo-admin**, note the code, then **Sign in**. On **TOTP Verification**, enter the code and
-   choose **Verify**. The **Users** list opens.
+   choose **Verify**. The **Users** list opens. Signed in as `demo-admin`, every code prompt (this one, and the
+   **TOTP Verification** dialog an admin change opens once the code is 10 minutes old) shows a **Demo code** hint
+   with **Fill in demo code**; after a code is used it counts down to the next one.
 3. To try the forgot-password flow, copy an account's email from the panel, choose **Forgot password?** and submit
    it. No mail is sent (`.invalid` is a never-deliverable domain): the reset link appears in the backend console as
    `Dev-only PASSWORD_RESET link (no mail is sent): …`. Once a password changes, the panel says so instead of
@@ -304,7 +306,7 @@ This is a summary. Each item links to the record that governs it. The full pictu
   reason. A password is read from a no-echo prompt, or from stdin with `--non-interactive`, and never from the command line. Every run is audited.
   ([ADR-072](docs/adr/0072-offline-recovery-runner.md))
 - **Configuration validation.** Secrets have no default in any profile and are supplied from the environment or a
-  mounted secret, never from a committed file.
+  mounted secret (in the `dev` profile, also a git-ignored local `.env` file), never from a committed file.
   Startup fails before the port opens when a key is missing, malformed or reused, when configuration is prohibited,
   or when the public demo values are used outside the `dev` profile. Each key's fingerprint, never the key itself, is
   logged at startup. ([ADR-062](docs/adr/0062-secrets-bind-through-configuration-properties.md))

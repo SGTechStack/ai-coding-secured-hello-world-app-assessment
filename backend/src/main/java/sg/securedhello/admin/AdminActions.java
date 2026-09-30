@@ -6,6 +6,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import sg.securedhello.admin.AdminActionGuard.Mutation;
 import sg.securedhello.admin.AuthenticableAdmins.Standing;
 import sg.securedhello.audit.AdminActionContext;
+import sg.securedhello.audit.AdminRefusalReason;
 import sg.securedhello.audit.AdminUnlockContext;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.audit.AuditEvent;
@@ -209,6 +212,8 @@ public class AdminActions {
     /**
      * The one guarded path: locks every admin row and the subject's, then their factor rows, asks the guard, and only
      * then applies {@code change} to the subject. A refusal is audited and thrown, which rolls the transaction back.
+     * So is a lock set that other changes held past the database lock timeout: nothing has been written yet, and the
+     * caller is told to retry rather than shown a 500.
      */
     private Optional<AdminUserView> guarded(Mutation mutation, UUID actorId, UUID subjectId,
             Consumer<UserAccount> change) {
@@ -221,15 +226,33 @@ public class AdminActions {
     /** The guarded path itself, for a mutation that answers with something other than the account's view. */
     private <T> Optional<T> guardedThen(Mutation mutation, UUID actorId, UUID subjectId,
             Function<UserAccount, T> change) {
-        List<Standing> lockSet = admins.lockForChange(subjectId);
+        List<Standing> lockSet = lockSet(actorId, subjectId);
         if (lockSet.stream().map(Standing::id).noneMatch(subjectId::equals)) {
             return Optional.empty();
         }
         AdminActionGuard.decide(mutation, actorId, subjectId, lockSet).ifPresent(reason -> {
-            audit.emit(AuditEvent.ADMIN_ACTION_REFUSED, AdminActionContext.refused(actorId, subjectId, reason));
-            throw new AdminActionRefusedException(reason);
+            throw refuse(actorId, subjectId, reason);
         });
         UserAccount account = accounts.findById(subjectId).orElseThrow();
         return Optional.of(change.apply(account));
+    }
+
+    /**
+     * Takes the guard's lock set, or refuses as {@link AdminRefusalReason#LOCK_TIMEOUT} if it timed out. H2 reports a
+     * lock wait past {@code LOCK_TIMEOUT} as a query timeout and a deadlock as a pessimistic-locking failure; a retry
+     * can succeed after either. Any other database fault is not contention and stays a 500.
+     */
+    private List<Standing> lockSet(UUID actorId, UUID subjectId) {
+        try {
+            return admins.lockForChange(subjectId);
+        } catch (QueryTimeoutException | PessimisticLockingFailureException contended) {
+            throw refuse(actorId, subjectId, AdminRefusalReason.LOCK_TIMEOUT);
+        }
+    }
+
+    /** Writes the refusal row at once and returns the exception that rolls the transaction back (row 34). */
+    private AdminActionRefusedException refuse(UUID actorId, UUID subjectId, AdminRefusalReason reason) {
+        audit.emit(AuditEvent.ADMIN_ACTION_REFUSED, AdminActionContext.refused(actorId, subjectId, reason));
+        return new AdminActionRefusedException(reason);
     }
 }

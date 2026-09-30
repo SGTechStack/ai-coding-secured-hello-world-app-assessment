@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { apiFetch } from '@/lib/api/client'
 
 /** One seeded demo account, as `GET /api/dev/demo-accounts` lists it. */
@@ -39,4 +40,29 @@ export async function fetchDemoAccounts(): Promise<DemoAccount[]> {
 export function refreshAfterMs(accounts: DemoAccount[] | undefined): number | false {
   const seconds = accounts?.find((account) => account.totp)?.totp?.secondsRemaining
   return seconds === undefined ? false : seconds * 1000 + 250
+}
+
+/** The whole seconds left until `expiresAt`, ticking once a second while `expiresAt` is set. */
+export function useSecondsLeft(expiresAt: number | undefined): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (expiresAt === undefined) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [expiresAt])
+  return expiresAt === undefined ? 0 : Math.max(0, Math.ceil((expiresAt - now) / 1000))
+}
+
+/**
+ * The last code any code prompt sent. A verified code can never verify again (the server keeps the last used step), so
+ * the demo code hint holds back a code this tab has just sent until the next step's code arrives. Memory only.
+ */
+let lastSentCode: string | undefined
+
+export function noteSentCode(code: string): void {
+  lastSentCode = code
+}
+
+export function wasSent(code: string): boolean {
+  return code === lastSentCode
 }

@@ -2,10 +2,13 @@ package sg.securedhello.admin;
 
 import java.io.Serial;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,11 +16,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import sg.securedhello.audit.AccountContext;
 import sg.securedhello.audit.AdminActionContext;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.audit.AuditEvent;
 import sg.securedhello.credential.CredentialTokenType;
 import sg.securedhello.credential.CredentialTokens;
+import sg.securedhello.registration.PendingRegistrationLapse;
 import sg.securedhello.user.Identifiers;
 import sg.securedhello.user.Tombstones;
 import sg.securedhello.user.UniqueIdentifierIndexes;
@@ -32,7 +37,9 @@ import sg.securedhello.user.UserAccountRepository;
  *
  * <p>Unlike self-registration, the answer is specific: a username or email address held by any account, pending or
  * not, or by a tombstone, is 400 {@code USER_EXISTS} and creates nothing (R-ADM-005; ADR-044). The caller is an
- * administrator, so there is nothing to hide from them.
+ * administrator, so there is nothing to hide from them. A pending registration that has lapsed
+ * ({@link PendingRegistrationLapse}) no longer holds its identifiers, here as at registration: the invite deletes it,
+ * under its row lock and without a tombstone, audits the deletion (row 48) and proceeds. A live one still refuses.
  *
  * <p>The one exception is a <em>re-invite</em> (ADR-007 amendment): when both identifiers name the same enabled,
  * never-activated account that an administrator invited (its admin-issued activation token says so, never its role),
@@ -53,15 +60,17 @@ public class AdminInvitations {
             UniqueIdentifierIndexes.USERS_EMAIL);
 
     private final UserAccountRepository accounts;
+    private final PendingRegistrationLapse lapse;
     private final Tombstones tombstones;
     private final CredentialTokens tokens;
     private final AuditEmitter audit;
     private final TransactionTemplate transactions;
     private final Clock clock;
 
-    AdminInvitations(UserAccountRepository accounts, Tombstones tombstones, CredentialTokens tokens,
-            AuditEmitter audit, PlatformTransactionManager transactionManager, Clock clock) {
+    AdminInvitations(UserAccountRepository accounts, PendingRegistrationLapse lapse, Tombstones tombstones,
+            CredentialTokens tokens, AuditEmitter audit, PlatformTransactionManager transactionManager, Clock clock) {
         this.accounts = accounts;
+        this.lapse = lapse;
         this.tombstones = tombstones;
         this.tokens = tokens;
         this.audit = audit;
@@ -75,8 +84,8 @@ public class AdminInvitations {
      *
      * @return the account and its activation token, to return once and never log
      * @throws InvalidIdentifierException if the username or the email address is not acceptable as submitted
-     * @throws UserExistsException        if a tombstone, or an account other than a pending invite of both, holds the
-     *                                    username or the email address
+     * @throws UserExistsException        if a tombstone, or an account other than a pending invite of both or a lapsed
+     *                                    pending registration, holds the username or the email address
      */
     @PreAuthorize("hasRole('ADMIN')")
     public IssuedToken invite(UUID actorId, String username, String submittedEmail, String role) {
@@ -91,6 +100,8 @@ public class AdminInvitations {
             // A concurrent invite or registration of the same identifier committed first: the same 400 as one taken.
             throw UniqueIdentifierIndexes.violated(e, UNIQUE_IDENTIFIER_INDEXES) ? new UserExistsException() : e;
         }
+        invited.lapsed().forEach(lapsed ->
+                audit.emit(AuditEvent.PENDING_REGISTRATION_LAPSED, AccountContext.registrationLapsed(lapsed)));
         audit.emit(invited.reissued() ? AuditEvent.ADMIN_USER_REINVITED : AuditEvent.ADMIN_USER_INVITED,
                 AdminActionContext.applied(actorId, invited.issued().userId()));
         return invited.issued();
@@ -104,17 +115,22 @@ public class AdminInvitations {
         if (tombstones.holdsUsername(username) || tombstones.holdsEmail(email)) {
             throw new UserExistsException();
         }
-        if (byEmail.isEmpty() && byUsername.isEmpty()) {
-            UserAccount account = accounts.saveAndFlush(UserAccount.invitation(username, email, role,
-                    clock.instant().truncatedTo(ChronoUnit.MICROS)));
-            return new Invited(issue(account), false);
-        }
-        UserAccount account = byEmail
+        Optional<UserAccount> reinvitable = byEmail
                 .filter(named -> byUsername.filter(other -> other.getId().equals(named.getId())).isPresent())
-                .filter(this::isReinvitable)
-                .orElseThrow(UserExistsException::new);
-        account.reinvite(role);
-        return new Invited(issue(account), true);
+                .filter(this::isReinvitable);
+        if (reinvitable.isPresent()) {
+            reinvitable.get().reinvite(role);
+            return new Invited(issue(reinvitable.get()), true, List.of());
+        }
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        // One persistence context: an account named by both identifiers is one instance, listed once.
+        List<UserAccount> holders = Stream.concat(byEmail.stream(), byUsername.stream()).distinct().toList();
+        if (holders.stream().anyMatch(holder -> !lapse.lapsed(holder, now))) {
+            throw new UserExistsException();
+        }
+        List<UUID> lapsed = holders.stream().map(lapse::delete).toList();
+        UserAccount account = accounts.saveAndFlush(UserAccount.invitation(username, email, role, now));
+        return new Invited(issue(account), false, lapsed);
     }
 
     /** A pending invite an administrator may issue again: enabled, never activated, and marked invited by its token. */
@@ -127,8 +143,11 @@ public class AdminInvitations {
         return new IssuedToken(account.getId(), tokens.issueForAdmin(account.getId(), CredentialTokenType.ACTIVATION));
     }
 
-    /** What an invite did: the token it issued, and whether it re-invited an existing pending invite. */
-    private record Invited(IssuedToken issued, boolean reissued) {
+    /**
+     * What an invite did: the token it issued, whether it re-invited an existing pending invite, and the lapsed pending
+     * registrations it deleted to free the identifiers.
+     */
+    private record Invited(IssuedToken issued, boolean reissued, List<UUID> lapsed) {
     }
 
     /** The username or the email address is not acceptable as submitted: 400 {@code VALIDATION_FAILED}. */

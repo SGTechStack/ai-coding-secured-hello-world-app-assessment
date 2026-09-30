@@ -36,7 +36,7 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | PASSWORD_DISABLED | `user-authentication` | `error` | failure | ERROR | critical | yes | per event | `FAILURE_CAP` | `user.id` | — | Password disabled. |
 | SOURCE_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `RATE_LIMITED_SOURCE`, `RATE_LIMITED_SOURCE_MISSES`, `RATE_LIMITED_LOCKOUT_CARDINALITY`, `DISK_RESERVE_SHED` | — | — | Request throttled for its source. |
 | IDENTIFIER_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | per event | `RATE_LIMITED_IDENTIFIER` | — | — | Request throttled for its submitted identifier. |
-| PASSWORD_RESET_REQUESTED | `password-reset-request` | `info` | success | INFO | low | yes | tier 1: per source | — | — | — | Password reset requested. |
+| PASSWORD_RESET_REQUESTED | `password-reset` | `info` | success | INFO | low | yes | tier 1: per source | — | — | — | Password reset requested. |
 | PASSWORD_RESET_COMPLETED | `password-reset` | `change` | success | INFO | low | yes | per event | — | `user.id` | — | Password reset completed. |
 | REGISTRATION_ACCEPTED | `user-provisioning` | `creation` | success | INFO | low | yes | per event | `NEW_ACCOUNT`, `EXISTING_ADDRESS` | — | `user.id` | Registration accepted. |
 | REGISTRATION_REFUSED | `user-provisioning` | `creation` | failure | WARN | low | yes | per event | `USERNAME_UNAVAILABLE` | — | — | Registration refused. |
@@ -53,10 +53,10 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | TOTP_ENROLMENT_PROVISIONED | `totp-enrol` | `creation` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP enrolment provisioned. |
 | TOTP_ENROLMENT_CONFIRMED | `totp-enrol` | `change` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP enrolment confirmed. |
 | TOTP_ENROLMENT_FAILED | `totp-enrol` | `change` | failure | WARN | medium | yes | per event | — | `user.id` | — | TOTP enrolment confirmation failed. |
-| TOTP_VERIFIED | `totp-verify` | `user` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP verification succeeded. |
-| TOTP_VERIFICATION_FAILED | `totp-verify` | `user` | failure | WARN | medium | yes | per event | — | `user.id` | — | TOTP verification failed. |
-| TOTP_FACTOR_LOCKED | `totp-verify` | `error` | failure | WARN | high | yes | per event | — | `user.id` | — | TOTP factor locked. |
-| TOTP_FACTOR_DISABLED | `totp-verify` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP factor disabled. |
+| TOTP_VERIFIED | `user-authentication` | `user` | success | INFO | low | yes | per event | — | `user.id` | — | TOTP verification succeeded. |
+| TOTP_VERIFICATION_FAILED | `user-authentication` | `user` | failure | WARN | medium | yes | per event | — | `user.id` | — | TOTP verification failed. |
+| TOTP_FACTOR_LOCKED | `user-authentication` | `error` | failure | WARN | high | yes | per event | — | `user.id` | — | TOTP factor locked. |
+| TOTP_FACTOR_DISABLED | `user-authentication` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP factor disabled. |
 | TOTP_REMOVED | `totp-remove` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | TOTP factor reset. |
 | ADMIN_USERS_LISTED | `user-administration` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.count` | — | Administrator listed users. |
 | ADMIN_USER_VIEWED | `user-administration` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Administrator read a user. |
@@ -65,14 +65,14 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | ADMIN_USER_PROMOTED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account role changed to administrator. |
 | ADMIN_USER_DEMOTED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account role changed to user. |
 | ADMIN_USER_DELETED | `user-administration` | `deletion` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account deleted. |
-| ADMIN_ACTION_REFUSED | `user-administration` | `error` | failure | WARN | medium | yes | per event | `SELF_ACTION`, `TWO_ADMIN_INVARIANT` | `user.id`, `user.target.id` | — | Administrative action refused. |
+| ADMIN_ACTION_REFUSED | `user-administration` | `error` | failure | WARN | medium | yes | per event | `SELF_ACTION`, `TWO_ADMIN_INVARIANT`, `LOCK_TIMEOUT` | `user.id`, `user.target.id` | — | Administrative action refused. |
 | ADMIN_USER_INVITED | `user-provisioning` | `creation` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account invited. |
 | ADMIN_USER_REINVITED | `user-provisioning` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Invitation re-issued. |
 | ADMIN_RESET_ISSUED | `password-reset` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Password reset token issued by an administrator. |
 | ADMIN_USER_UNLOCKED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id`, `user.target.unlock_reason` | — | Account unlocked. |
-| TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
+| TOTP_CONTEXT_MISMATCH | `access-control` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
-| SESSIONS_RECONCILED | `session-reconciliation` | `end` | success | INFO | low | no | per event | — | `session.ended_count`, `labels.reconciled_accounts` | — | Sessions reconciled at startup. |
+| SESSIONS_RECONCILED | `session-end` | `end` | success | INFO | low | no | per event | — | `session.ended_count`, `labels.reconciled_accounts` | — | Sessions reconciled at startup. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |
 | SHED_EPISODE_CLEARED | `access-control` | `change` | success | INFO | low | no | per event | — | — | — | Anonymous-session shedding cleared. |
 | PENDING_REGISTRATION_LAPSED | `user-provisioning` | `deletion` | success | INFO | low | yes | per event | — | `user.id` | — | Lapsed pending registration deleted. |

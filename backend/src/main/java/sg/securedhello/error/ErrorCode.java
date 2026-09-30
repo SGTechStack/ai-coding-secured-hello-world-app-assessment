@@ -58,6 +58,10 @@ public enum ErrorCode {
     TWO_ADMIN_INVARIANT(409, "Two-admin minimum",
             "The change would leave fewer than two enrolled administrators.",
             "the two-admin invariant's refusal of a disable, demote or delete"),
+    SERVICE_BUSY(503, "Service busy",
+            "The service is busy. Try again shortly.",
+            "a guarded admin change whose locks other changes held past the lock timeout; always carries an integer "
+                    + "Retry-After"),
     INTERNAL_ERROR(500, "Internal error",
             "An unexpected error occurred.",
             "anything unhandled");
@@ -110,7 +114,7 @@ public enum ErrorCode {
                     ErrorCategory.AUTHENTICATION;
             case PASSWORD_CHANGE_REQUIRED, CSRF_TOKEN_INVALID, ACCESS_DENIED -> ErrorCategory.AUTHORIZATION;
             case TOO_MANY_REQUESTS -> ErrorCategory.RATE_LIMIT;
-            case USER_EXISTS, FACTOR_ALREADY_ENROLLED, TWO_ADMIN_INVARIANT -> ErrorCategory.CONFLICT;
+            case USER_EXISTS, FACTOR_ALREADY_ENROLLED, TWO_ADMIN_INVARIANT, SERVICE_BUSY -> ErrorCategory.CONFLICT;
             case INTERNAL_ERROR -> ErrorCategory.SERVER;
         };
     }
@@ -118,7 +122,7 @@ public enum ErrorCode {
     /** {@code error.follow_up_action}: what the caller must do next, one of a closed set (R-AUD-039). */
     public FollowUpAction followUpAction() {
         return switch (this) {
-            case TOO_MANY_REQUESTS -> FollowUpAction.RETRY_LATER;
+            case TOO_MANY_REQUESTS, SERVICE_BUSY -> FollowUpAction.RETRY_LATER;
             case AUTHENTICATION_FAILED, MISSING_FACTOR, INVALID_FACTOR -> FollowUpAction.RE_AUTHENTICATE;
             case ACCESS_DENIED, FACTOR_DISABLED, INTERNAL_ERROR -> FollowUpAction.CONTACT_ADMIN;
             case VALIDATION_FAILED, PASSWORD_REJECTED, RESET_TOKEN_INVALID, USER_EXISTS, PASSWORD_CHANGE_REQUIRED,

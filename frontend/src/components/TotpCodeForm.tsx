@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { DemoCodeHint } from '@/components/DemoCodeHint'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { noteSentCode } from '@/lib/auth/demoAccounts'
 
 const schema = z.object({
   code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code from your authenticator app.'),
@@ -31,6 +33,11 @@ interface TotpCodeFormProps {
   disabled?: boolean
   /** Show the in-flight spinner on the submit button, which is then not actionable; it also shows while submitting. */
   showSpinner?: boolean
+  /**
+   * Offer the dev-only demo code hint ({@link DemoCodeHint}), for a prompt that checks the enrolled factor. Never set
+   * where a new secret is confirmed: the hint's code is the enrolled one's.
+   */
+  demoCodeHint?: boolean
 }
 
 /**
@@ -43,12 +50,15 @@ export function TotpCodeForm({
   autoFocus = false,
   disabled = false,
   showSpinner = false,
+  demoCodeHint = false,
 }: TotpCodeFormProps) {
   const {
     register,
     handleSubmit,
     setError,
     resetField,
+    setValue,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<CodeForm>({ resolver: zodResolver(schema), defaultValues: { code: '' } })
 
@@ -56,6 +66,7 @@ export function TotpCodeForm({
 
   const onSubmit = async ({ code }: CodeForm) => {
     resetField('code')
+    noteSentCode(code)
     const refusal = await onCode(code)
     if (refusal) {
       setError('code', { message: refusal }, { shouldFocus: true })
@@ -82,6 +93,14 @@ export function TotpCodeForm({
           </p>
         )}
       </div>
+      {demoCodeHint && (
+        <DemoCodeHint
+          onFill={(code) => {
+            setValue('code', code, { shouldValidate: true })
+            setFocus('code')
+          }}
+        />
+      )}
       <div>
         <Button type="submit" disabled={disabled || busy} aria-busy={busy}>
           {busy && <Spinner />}

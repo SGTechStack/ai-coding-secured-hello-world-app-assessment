@@ -1,6 +1,9 @@
 .agents/
 .claude/
 
+# Scratch git worktrees used to parallelize independent ticket implementations.
+.worktrees/
+
 # Secrets — IM8 as-8. The admin seed credential (ticket 16) is supplied by an
 # environment variable or an externally-mounted config file. Nothing matching
 # these patterns may ever be tracked.

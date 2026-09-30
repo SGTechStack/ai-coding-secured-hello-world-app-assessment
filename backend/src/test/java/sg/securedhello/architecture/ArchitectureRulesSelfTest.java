@@ -17,6 +17,7 @@ import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.time.ClockConfig;
 import sg.securedhello.user.PasswordHistoryEntry;
+import sg.securedhello.user.Tombstones;
 import sg.securedhello.user.UserAccount;
 
 /** Proves each rule actually catches what it bans, and lets through what it allows. */
@@ -199,6 +200,16 @@ class ArchitectureRulesSelfTest {
                 ArchitectureViolations.DisablesAroundTheGuard.class, UserAccount.class);
         assertPasses(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_ENABLES_OR_DISABLES, AdminActions.class,
                 UserAccount.class);
+    }
+
+    @Test
+    void aRoleChangeOrDeleteOutsideTheGuardedServiceIsCaught() {
+        assertViolates(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_CHANGES_ROLES_OR_DELETES,
+                ArchitectureViolations.PromotesAroundTheGuard.class, UserAccount.class);
+        assertViolates(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_CHANGES_ROLES_OR_DELETES,
+                ArchitectureViolations.DeletesAroundTheGuard.class, Tombstones.class, UserAccount.class);
+        assertPasses(ArchitectureRules.ONLY_THE_GUARDED_SERVICE_CHANGES_ROLES_OR_DELETES, AdminActions.class,
+                Tombstones.class, UserAccount.class);
     }
 
     @Test

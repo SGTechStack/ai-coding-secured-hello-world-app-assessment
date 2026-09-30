@@ -48,14 +48,15 @@ public final class E2eBackend {
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
             .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
-                    "golden-path", "disable-admin", "disable-user", "step-up-admin", "step-up-user").stream()
+                    "golden-path", "disable-admin", "disable-user", "step-up-admin", "step-up-user",
+                    "role-admin", "role-user").stream()
                     .map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
 
     /**
-     * The disable-admin and step-up-admin administrators' TOTP secret, 20 bytes, mirrored in
-     * {@code e2e/admin-disable.spec.ts} and {@code e2e/step-up.spec.ts}.
+     * The disable-admin, step-up-admin and role-admin administrators' TOTP secret, 20 bytes, mirrored in
+     * {@code e2e/admin-disable.spec.ts}, {@code e2e/step-up.spec.ts} and {@code e2e/admin-role-delete.spec.ts}.
      */
     static final byte[] ADMIN_TOTP_SECRET = "e2e-admin-disable-01".getBytes(StandardCharsets.US_ASCII);
 
@@ -106,9 +107,11 @@ public final class E2eBackend {
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-golden-path'");
                 // The disable-admin administrators: enrolled with a known secret, so the spec can answer the challenge.
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-disable-admin'"
-                        + " OR username LIKE 'e2e-%-step-up-admin'");
+                        + " OR username LIKE 'e2e-%-step-up-admin'"
+                        + " OR username LIKE 'e2e-%-role-admin'");
                 jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-disable-admin'"
-                        + " OR username LIKE 'e2e-%-step-up-admin'", UUID.class)
+                        + " OR username LIKE 'e2e-%-step-up-admin'"
+                        + " OR username LIKE 'e2e-%-role-admin'", UUID.class)
                         .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
                                 + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
                                 cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));

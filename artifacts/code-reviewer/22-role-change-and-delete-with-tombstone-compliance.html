@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Code Review — 22-role-change-and-delete-with-tombstone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">Overall WARN</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">build PASS 0/0/0/2</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">thermo-nuclear WARN 0/0/3/4</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">code-review WARN 0/0/0/3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">semgrep WARN 0/0/0/1</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">im8 WARN 0/0/0/3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">react PASS 0/0/0/3</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">springboot WARN 0/0/0/6</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">22-role-change-and-delete-with-tombstone</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6 space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Consolidated Code Review &amp; Compliance Report</h2>
+          <p class="text-xs text-slate-500 mt-1">Ticket 22: role change and delete with tombstone. Overall WARN, must-fix (Critical + High) = 0.</p>
+        </div>
+        <table class="w-full text-sm text-left border border-slate-100">
+          <thead class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+            <tr><th class="px-4 py-2">Check</th><th class="px-4 py-2">Status</th><th class="px-4 py-2">C / H / M / L</th><th class="px-4 py-2">Summary</th></tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">build</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0 / 0 / 0 / 2</td><td class="px-4 py-2">Prettier, tsc, vitest (178 tests, coverage above 80), vite build, fallow audit and mvn verify (1249 unit tests, ITs, JaCoCo) all pass. Two advisory Low items.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">thermo-nuclear</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0 / 0 / 3 / 4</td><td class="px-4 py-2">AccountActions multi-mode component, deleted-string-as-flag, stringly typed role; minor backend cohesion notes.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">code-review</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 3</td><td class="px-4 py-2">Spec fully met (acceptance criteria 1-5 mapped to tests). Standards: Low only.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">semgrep</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 1</td><td class="px-4 py-2">362 rules on 25 files; one test-only non-literal RegExp.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">im8</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 3</td><td class="px-4 py-2">All touched controls pass; audit-accuracy and step-up UX notes; three manual-review items.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">react</td><td class="px-4 py-2">PASS</td><td class="px-4 py-2">0 / 0 / 0 / 3</td><td class="px-4 py-2">Clean; Low notes on key by id, focus after delete, post-unmount setState.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2">springboot</td><td class="px-4 py-2">WARN</td><td class="px-4 py-2">0 / 0 / 0 / 6</td><td class="px-4 py-2">All seven Spring skills applied; transactional and security design correct; Low items optional.</td></tr>
+          </tbody>
+        </table>
+        <div class="space-y-3 pt-3 border-t border-slate-100">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">High-Priority Issues</h3>
+          <p class="text-sm text-slate-600">None. No Critical or High findings in any check. Top Medium items (thermo-nuclear): <span class="font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</span> (AccountActions duplication, deleted flag) and <span class="font-mono text-xs">backend/src/main/java/sg/securedhello/admin/RoleRequest.java</span> (stringly typed role).</p>
+        </div>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">build</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/components/ui/alert-dialog.tsx; frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">28; 71</td><td class="px-4 py-2">fallow advisory css-token-drift on arbitrary Tailwind values.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">-</td><td class="px-4 py-2">AccountActions is 121 lines (informational, below threshold).</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">thermo-nuclear</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">-</td><td class="px-4 py-2">M1: AccountActions duplicates two AlertDialog blocks, magic-string copy composition, promote ternary repeated four times. Extract ConfirmAction and a copy table.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">-</td><td class="px-4 py-2">M2: deleted username string doubles as a boolean mode flag (disables query, guards render). Navigate to list with notice or early-return a Deleted view.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-amber-600">Medium</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/RoleRequest.java; AdminActions.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">M3: role is stringly typed (regex, equals). Use an enum or shared role constant.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../admin/AdminActions.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L1: guarded() builds a view for a deleted account and discards it; consider Optional of UserAccount.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../user/Tombstones.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L2: read-only lookup now also deletes users rows; mild responsibility creep.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../admin/AdminActions.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L3: change / endAll / afterCommit audit pattern repeated three times; extract at a fourth.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminActionGuard.java; AdminUserController.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L4: Javadoc lines over 120 columns.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">code-review</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">AdminActionGuard.java; AdminUserController.java; AdminActions.java</td><td class="px-4 py-2">21; 28; 78</td><td class="px-4 py-2">Javadoc lines exceed 120 columns (127, 128, 121).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">-</td><td class="px-4 py-2">deleted state is a username string used as flag and heading text.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/.../admin/AdminActions.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">setEnabled / setRole repeat the ternary plus afterCommit audit shape.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-400">Info</td><td class="px-4 py-2 font-mono text-xs">-</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Spec axis: no missing or wrongly implemented requirements; scope additions (event.action retag, alert-dialog) justified.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">semgrep</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.test.tsx</td><td class="px-4 py-2">262</td><td class="px-4 py-2">detect-non-literal-regexp on a test-controlled value; test-only, no attacker input.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">im8</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/AdminActions.java</td><td class="px-4 py-2">setRole</td><td class="px-4 py-2">L-1 (lm-4): no-op role change is audited as a change.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/audit/AuditEvent.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L-2 (lm-4): admin read rows now share event.action user-administration; update any SIEM rules keyed on the old values.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L-3 (ac-2): no in-dialog step-up prompt; server enforcement is authoritative (UX only).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-400">Manual</td><td class="px-4 py-2 font-mono text-xs">-</td><td class="px-4 py-2">-</td><td class="px-4 py-2">Confirm audit consumers updated; confirm plaintext username retention in deleted_users under ADR-044; confirm tombstone HMAC key comes from the approved secret store in production.</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">react</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">49-50</td><td class="px-4 py-2">deleted and notice state survives an :id change; add key={id}. Unreachable in normal use.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">83, 164-171</td><td class="px-4 py-2">Focus lost to body after a successful delete; move focus to the back link or heading.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">frontend/src/pages/AdminUserDetailPage.tsx</td><td class="px-4 py-2">129-140</td><td class="px-4 py-2">setPending(false) after possible unmount; harmless in React 18+ (note only).</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none"><span class="font-medium">springboot</span><span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800">WARN</span></summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead><tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50"><th class="px-4 py-2 text-left">Severity</th><th class="px-4 py-2 text-left">File</th><th class="px-4 py-2 text-left">Line</th><th class="px-4 py-2 text-left">Description</th></tr></thead>
+          <tbody>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/user/Tombstones.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L1 (spring-data): saveAndFlush forces an early flush; save plus one flush gives the same ordering.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/user/Tombstones.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L2: class now owns account deletion; update the Javadoc headline.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/AdminUserController.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L3 (spring-web): no explicit consumes on PUT role; consistent with setEnabled (informational).</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/main/java/sg/securedhello/admin/AdminActions.java</td><td class="px-4 py-2">setRole</td><td class="px-4 py-2">L4 (logging): no-op role change emits a "role changed" audit row.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../AdminRoleChangeDeleteTest.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L5 (spring-test): static volatile armed state in the H2 trigger not cleared after the test.</td></tr>
+            <tr class="border-t border-slate-100"><td class="px-4 py-2 text-slate-500">Low</td><td class="px-4 py-2 font-mono text-xs">backend/src/test/.../TwoAdminInvariantTest.java</td><td class="px-4 py-2">-</td><td class="px-4 py-2">L6 (spring-test): switch and loop logic in tests; small and readable (informational).</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

@@ -425,4 +425,18 @@ public final class ArchitectureViolations {
             account.setEnabled(false);
         }
     }
+
+    /** Promotes an account without AdminActionGuard. */
+    public static final class PromotesAroundTheGuard {
+        void promote(UserAccount account) {
+            account.setRole("ADMIN");
+        }
+    }
+
+    /** Deletes an account without AdminActionGuard. */
+    public static final class DeletesAroundTheGuard {
+        void delete(sg.securedhello.user.Tombstones tombstones, UserAccount account) {
+            tombstones.deleteLeavingTombstone(account, java.util.UUID.randomUUID());
+        }
+    }
 }

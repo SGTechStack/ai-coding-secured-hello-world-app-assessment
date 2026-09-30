@@ -10,10 +10,10 @@
 
 **Blocked by:** 20
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Demoting or deleting yourself is refused. Either action on one of exactly two enrolled admins gets the two-admin 409.
-- [ ] After a role change, the subject's old session is gone.
-- [ ] After delete, the user row and history are gone and a tombstone exists.
-- [ ] Re-registering the username or email fails as taken.
-- [ ] The tombstone insert and the delete succeed or fail together.
+- [x] Demoting or deleting yourself is refused. Either action on one of exactly two enrolled admins gets the two-admin 409.
+- [x] After a role change, the subject's old session is gone.
+- [x] After delete, the user row and history are gone and a tombstone exists.
+- [x] Re-registering the username or email fails as taken.
+- [x] The tombstone insert and the delete succeed or fail together.

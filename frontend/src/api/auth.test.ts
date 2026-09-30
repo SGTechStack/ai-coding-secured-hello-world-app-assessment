@@ -92,6 +92,36 @@ describe('logout', () => {
     expect(csrfCalls).toHaveLength(2)
   })
 
+  it('treats a 401 from the CSRF bootstrap like any other 401: ends the Session once, no rejection', async () => {
+    let csrfCalls = 0
+    const fetch = fakeApi({
+      // The first bootstrap hits the Session the server has ended; the Visitor Session after it is fine.
+      'GET /csrf': () => (++csrfCalls === 1 ? problem(401, 'authentication_required') : rotatingCsrf()()),
+      'POST /logout': () => new Response(null, { status: 204 }),
+    })
+    const sessionEnded = vi.fn()
+    client.onSessionEnded(sessionEnded)
+
+    expect(await auth.logout()).toBe(true)
+
+    expect(sessionEnded).toHaveBeenCalledOnce()
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/logout'))).toHaveLength(0)
+    expect(csrfCalls).toBe(2)
+  })
+
+  it('does not reject when the CSRF refresh after logout answers 401', async () => {
+    let csrfCalls = 0
+    fakeApi({
+      'GET /csrf': () => (++csrfCalls === 1 ? rotatingCsrf()() : problem(401, 'authentication_required')),
+      'POST /logout': () => new Response(null, { status: 204 }),
+    })
+    const sessionEnded = vi.fn()
+    client.onSessionEnded(sessionEnded)
+
+    expect(await auth.logout()).toBe(true)
+    expect(sessionEnded).toHaveBeenCalledOnce()
+  })
+
   it('reports a server failure', async () => {
     fakeApi({ 'GET /csrf': rotatingCsrf(), 'POST /logout': () => problem(500, 'internal_error') })
 

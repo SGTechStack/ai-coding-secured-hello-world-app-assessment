@@ -51,11 +51,39 @@ export function onPasswordChangeRequired(listener: () => void): () => void {
   return () => passwordChangeRequiredListeners.delete(listener)
 }
 
-/** Fetches a fresh CSRF token. Call after login and logout, when the server issues a new one. */
-export function refreshCsrfToken(): Promise<CsrfResponse> {
+/**
+ * The Session-ended signal from the CSRF bootstrap. A 401 from `GET /api/csrf` means the server has
+ * ended the Session (for example, its Account was deleted), exactly as a 401 from any other endpoint
+ * does. The bootstrap has already notified the session-ended listeners when this is thrown, so
+ * whoever catches it must not notify them again.
+ */
+class CsrfSessionEnded extends Error {
+  readonly problem: Problem | null
+
+  constructor(problem: Problem | null) {
+    super('CSRF bootstrap found the Session ended')
+    this.problem = problem
+  }
+}
+
+function notifySessionEnded() {
+  sessionEndedListeners.forEach((listener) => listener())
+}
+
+/**
+ * Fetches a new token, shared by concurrent callers. A 401 notifies the session-ended listeners once
+ * per fetch and rejects with {@link CsrfSessionEnded}; any other failure rejects with an `Error`,
+ * because a 403 or 5xx from `/csrf` says nothing about the Session and must not become a silent logout.
+ */
+function fetchCsrfToken(): Promise<CsrfResponse> {
   csrf = null
   csrfRequest = fetch(`${API_BASE}/csrf`, { credentials: 'include', cache: 'no-store' })
     .then(async (response) => {
+      if (response.status === 401) {
+        const problem = await readProblem(response)
+        notifySessionEnded()
+        throw new CsrfSessionEnded(problem)
+      }
       if (!response.ok) {
         throw new Error(`CSRF bootstrap failed with status ${response.status}`)
       }
@@ -68,10 +96,25 @@ export function refreshCsrfToken(): Promise<CsrfResponse> {
   return csrfRequest
 }
 
-/** Returns the cached CSRF token, fetching one if none is cached yet. */
+/**
+ * Fetches a fresh CSRF token. Call after login and logout, when the server issues a new one. A 401
+ * ends the Session through the listeners and resolves, like a 401 anywhere else; other failures reject.
+ */
+export async function refreshCsrfToken(): Promise<void> {
+  try {
+    await fetchCsrfToken()
+  } catch (error) {
+    if (!(error instanceof CsrfSessionEnded)) throw error
+  }
+}
+
+/**
+ * Returns the cached CSRF token, fetching one if none is cached yet. Rejects on a 401 too (after
+ * notifying the listeners), since there is no token to return; `apiRequest` turns that into a 401 result.
+ */
 export function ensureCsrfToken(): Promise<CsrfResponse> {
   if (csrf) return Promise.resolve(csrf)
-  return csrfRequest ?? refreshCsrfToken()
+  return csrfRequest ?? fetchCsrfToken()
 }
 
 export type RequestOptions = {
@@ -88,12 +131,19 @@ export async function apiRequest<T>(
   { sessionEndedOn401 = true }: RequestOptions = {},
 ): Promise<ApiResult<T>> {
   const method = (init.method ?? 'GET').toUpperCase()
-  let response = await send(path, init, method)
-  if (!SAFE_METHODS.has(method) && (await isCsrfRejection(response))) {
-    // The cached token belonged to a Session the server has since ended (idle timeout, or a login
-    // elsewhere). Fetch a token for the current Session and try once more.
-    await refreshCsrfToken()
+  let response: Response
+  try {
     response = await send(path, init, method)
+    if (!SAFE_METHODS.has(method) && (await isCsrfRejection(response))) {
+      // The cached token belonged to a Session the server has since ended (idle timeout, or a login
+      // elsewhere). Fetch a token for the current Session and try once more.
+      await fetchCsrfToken()
+      response = await send(path, init, method)
+    }
+  } catch (error) {
+    // The bootstrap already ended the Session; answer like any other 401, without notifying twice.
+    if (error instanceof CsrfSessionEnded) return { ok: false, status: 401, problem: error.problem }
+    throw error
   }
 
   if (response.ok) {
@@ -103,7 +153,7 @@ export async function apiRequest<T>(
   const problem = await readProblem(response)
   // Rejected login credentials are a 401 too, but no Session has ended.
   if (response.status === 401 && sessionEndedOn401 && problem?.code !== 'authentication_failed') {
-    sessionEndedListeners.forEach((listener) => listener())
+    notifySessionEnded()
   }
   // The Session is fine; the Account simply may do nothing else until its password is changed.
   if (response.status === 403 && problem?.code === 'password_change_required') {

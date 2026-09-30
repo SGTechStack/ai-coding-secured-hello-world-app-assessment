@@ -17,3 +17,14 @@ The window is narrow and no criterion covers it: the token is cached at login, a
 - [ ] A non-401 failure from `GET /api/csrf` still surfaces as an error; this does not turn every bootstrap failure into a silent logout.
 - [ ] Triage decides whether a 403 from `GET /api/csrf` deserves the same treatment, and whether the thrown `Error` should remain at all once listeners have fired.
 - [ ] Tests cover: a 401 from `GET /api/csrf` with no cached token drives the session-ended path exactly once and does not reject to the caller; a 500 still rejects.
+
+## Triage decision (2026-09-30)
+
+**A 403 from `GET /api/csrf` is not a session end.** The endpoint is `permitAll` and on `RequiredPasswordChangeFilter`'s allowlist, so it can never answer `password_change_required`; a 403 there says nothing about the Session (CORS, a deny rule, a proxy). Treating it as a logout would be the silent logout criterion 3 forbids. It still rejects with the existing `Error`, as does every other non-401 failure.
+
+**The thrown `Error` stays for non-401 failures only; a 401 no longer rejects to any public caller.** The bootstrap (`fetchCsrfToken`, private) notifies `sessionEndedListeners` once per fetch on a 401 (concurrent callers share the one fetch), then rejects with a private `CsrfSessionEnded` carrying the problem body. `apiRequest` catches it on both the first send and the stale-token retry and returns `{ ok: false, status: 401, problem }` without notifying again, so callers see the same result as for a 401 anywhere else. Public `refreshCsrfToken()` swallows it and resolves (now `Promise<void>`; no caller used the value), so `login()`, `logout()` and `changePassword()` do not reject. `ensureCsrfToken()` still rejects on a 401, since it has no token to return; only `apiRequest` uses it. The retry path uses the private fetch rather than `refreshCsrfToken()`, because a resolved refresh followed by `send()` would fetch `/csrf` again and notify twice.
+
+- Rejected resolving the bootstrap to `null` on a 401: `send()` would then need to fake a `Response` to feed the normal 401 branch.
+- Rejected catching the rejection at each call site in `auth.ts`: criterion 2 asks for one change in the shared bootstrap.
+- The start-up `GET /me` (`sessionEndedOn401: false`) is a safe method and never touches the bootstrap, so the bootstrap's unconditional notification does not affect it.
+

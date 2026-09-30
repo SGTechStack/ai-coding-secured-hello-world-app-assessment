@@ -106,6 +106,72 @@ describe('API client', () => {
     await expect(client.ensureCsrfToken()).rejects.toThrow('CSRF bootstrap failed with status 500')
   })
 
+  describe('when GET /csrf answers 401 (the Session ended on the server)', () => {
+    it('ends the Session once and returns the 401 instead of rejecting, with no cached token', async () => {
+      const fetch = fakeApi({ 'GET /csrf': () => problem(401, 'authentication_required') })
+      const listener = vi.fn()
+      client.onSessionEnded(listener)
+
+      const result = await client.apiRequest('/things', { method: 'POST' })
+
+      expect(result).toEqual({ ok: false, status: 401, problem: { status: 401, code: 'authentication_required' } })
+      expect(listener).toHaveBeenCalledOnce()
+      // The state-changing request itself is never sent without a token.
+      expect(fetch.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(0)
+    })
+
+    it('ends the Session once on the stale-token retry path, without rejecting', async () => {
+      let csrfCalls = 0
+      fakeApi({
+        'GET /csrf': () => (++csrfCalls === 1 ? csrfRoute()({}) : problem(401, 'authentication_required')),
+        'POST /things': () => problem(403, 'csrf_invalid'),
+      })
+      const listener = vi.fn()
+      client.onSessionEnded(listener)
+
+      const result = await client.apiRequest('/things', { method: 'POST' })
+
+      expect(result).toMatchObject({ ok: false, status: 401 })
+      expect(listener).toHaveBeenCalledOnce()
+      expect(csrfCalls).toBe(2)
+    })
+
+    it('ends the Session once for concurrent callers sharing one bootstrap', async () => {
+      fakeApi({ 'GET /csrf': () => problem(401, 'authentication_required') })
+      const listener = vi.fn()
+      client.onSessionEnded(listener)
+
+      const results = await Promise.all([
+        client.apiRequest('/things', { method: 'POST' }),
+        client.apiRequest('/things', { method: 'DELETE' }),
+      ])
+
+      expect(results.map((r) => r.status)).toEqual([401, 401])
+      expect(listener).toHaveBeenCalledOnce()
+    })
+
+    it('ends the Session from refreshCsrfToken without rejecting', async () => {
+      fakeApi({ 'GET /csrf': () => problem(401, 'authentication_required') })
+      const listener = vi.fn()
+      client.onSessionEnded(listener)
+
+      await expect(client.refreshCsrfToken()).resolves.toBeUndefined()
+      expect(listener).toHaveBeenCalledOnce()
+    })
+  })
+
+  it.each([403, 500])('still rejects, without ending the Session, when GET /csrf answers %i', async (status) => {
+    fakeApi({ 'GET /csrf': () => problem(status, 'any') })
+    const listener = vi.fn()
+    client.onSessionEnded(listener)
+
+    await expect(client.apiRequest('/things', { method: 'POST' })).rejects.toThrow(
+      `CSRF bootstrap failed with status ${status}`,
+    )
+    await expect(client.refreshCsrfToken()).rejects.toThrow(`CSRF bootstrap failed with status ${status}`)
+    expect(listener).not.toHaveBeenCalled()
+  })
+
   it('treats 401 as "not logged in": notifies listeners and returns the problem', async () => {
     fakeApi({ 'GET /hello': () => problem(401, 'authentication_required') })
     const listener = vi.fn()

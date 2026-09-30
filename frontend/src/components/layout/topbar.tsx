@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
-import { buttonVariants } from '@components/ui/button';
+import { Button } from '@components/ui/button';
 import { Avatar, AvatarFallback } from '@components/ui/avatar';
 import { http } from '@lib/http';
 import { useCurrentUser, getInitials } from '@features/user/user.queries';
@@ -40,14 +40,16 @@ export function Topbar() {
 
       <div className="flex flex-1 items-center justify-end gap-3">
         {user.roles.includes(ADMIN_ROLE) && (
-          <Link
-            to="/admin/accounts"
-            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
-            activeProps={{ className: 'bg-bg-muted' }}
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            role="link"
+            render={<Link to="/admin/accounts" activeProps={{ className: 'bg-bg-muted' }} />}
           >
             <ShieldCheck className="size-4" />
             Admin
-          </Link>
+          </Button>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger className="focus-visible:outline-accent flex items-center gap-2 rounded-full focus-visible:outline-1 focus-visible:outline-offset-0">

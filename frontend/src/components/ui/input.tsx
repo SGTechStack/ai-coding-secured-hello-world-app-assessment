@@ -1,10 +1,11 @@
 import { cn } from '@/lib/utils';
-import { type InputHTMLAttributes, forwardRef } from 'react';
+import { Input as BaseInput } from '@base-ui/react/input';
+import { type ComponentPropsWithoutRef, forwardRef } from 'react';
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement>;
+export type InputProps = ComponentPropsWithoutRef<typeof BaseInput>;
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => (
-  <input
+  <BaseInput
     ref={ref}
     type={type}
     className={cn(

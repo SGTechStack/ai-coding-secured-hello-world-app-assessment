@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { LogOut, Moon, Sun, User, Users } from 'lucide-react';
+import { LogOut, Moon, ShieldCheck, Sun, User } from 'lucide-react';
 import { useTheme } from '@lib/theme';
 import {
   DropdownMenu,
@@ -9,13 +9,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
+import { buttonVariants } from '@components/ui/button';
 import { Avatar, AvatarFallback } from '@components/ui/avatar';
 import { http } from '@lib/http';
 import { useCurrentUser, getInitials } from '@features/user/user.queries';
 
 const APP_NAME = 'DEMO';
 
-/** Role name (as sent by /api/v1/me) that unlocks Account management. */
+/** Role name (as sent by /api/v1/me) that unlocks the Admin page. */
 const ADMIN_ROLE = 'ADMIN';
 
 export function Topbar() {
@@ -38,6 +39,16 @@ export function Topbar() {
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-3">
+        {user.roles.includes(ADMIN_ROLE) && (
+          <Link
+            to="/admin/accounts"
+            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+            activeProps={{ className: 'bg-bg-muted' }}
+          >
+            <ShieldCheck className="size-4" />
+            Admin
+          </Link>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger className="focus-visible:outline-accent flex items-center gap-2 rounded-full focus-visible:outline-1 focus-visible:outline-offset-0">
             <Avatar>
@@ -55,12 +66,6 @@ export function Topbar() {
               <User />
               Profile
             </DropdownMenuItem>
-            {user.roles.includes(ADMIN_ROLE) && (
-              <DropdownMenuItem render={<Link to="/admin/accounts" />}>
-                <Users />
-                Accounts
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem onClick={toggle}>
               {theme === 'dark' ? <Sun /> : <Moon />}
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}

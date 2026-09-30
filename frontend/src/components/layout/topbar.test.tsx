@@ -72,4 +72,21 @@ describe('Topbar', () => {
 
     await waitFor(() => expect(locationMock.href).toBe('/'));
   });
+
+  it('hides the Admin link for non-admin users', async () => {
+    renderTopbar();
+    await waitFor(() => expect(screen.getByText('jsmith')).toBeInTheDocument());
+    expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument();
+  });
+
+  it('shows the Admin link in the topbar for admins', async () => {
+    server.use(
+      mswHttp.get('/api/v1/me', () =>
+        HttpResponse.json({ username: 'root', displayName: 'Root Admin', roles: ['ADMIN'] }),
+      ),
+    );
+    renderTopbar();
+    const link = await screen.findByRole('link', { name: 'Admin' });
+    expect(link).toHaveAttribute('href', '/admin/accounts');
+  });
 });

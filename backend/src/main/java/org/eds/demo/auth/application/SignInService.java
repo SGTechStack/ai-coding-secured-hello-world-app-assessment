@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eds.demo.common.logging.LogSanitizer;
 import org.eds.demo.user.domain.AppUser;
+import org.eds.demo.user.domain.BackoffPolicy;
 import org.eds.demo.user.infrastructure.AppUserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -108,7 +109,7 @@ public class SignInService {
       account.ifPresent(found -> inTransaction(found, this::recordFailure));
       throw refused(username, REASON_BAD_CREDENTIALS);
     }
-    account.ifPresent(found -> inTransaction(found, AppUser::recordSuccessfulSignIn));
+    account.ifPresent(found -> inTransaction(found, AppUser::clearSignInBackoff));
     log.atInfo()
         .addKeyValue(EVENT_KEY, EVENT_SUCCESS)
         .addKeyValue(USERNAME_KEY, LogSanitizer.sanitize(username))
@@ -125,9 +126,8 @@ public class SignInService {
     var delay =
         account.recordFailedSignIn(
             clock.instant(),
-            throttle.backoffThreshold(),
-            throttle.baseDelay(),
-            throttle.maxDelay());
+            new BackoffPolicy(
+                throttle.backoffThreshold(), throttle.baseDelay(), throttle.maxDelay()));
     if (!delay.isZero()) {
       log.atWarn()
           .addKeyValue(EVENT_KEY, EVENT_DELAY)

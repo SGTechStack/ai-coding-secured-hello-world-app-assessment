@@ -106,7 +106,12 @@ class BaseAuditableEntityIT {
     UserId userId = new UserId(UUID.randomUUID());
     var details =
         new AppUserDetails(
-            userId, "charlie", "Charlie D", "", List.of(new SimpleGrantedAuthority("ROLE_USER")));
+            userId,
+            "charlie",
+            "Charlie D",
+            "",
+            true,
+            List.of(new SimpleGrantedAuthority("ROLE_USER")));
     var auth = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
     SecurityContextHolder.getContext().setAuthentication(auth);
 
@@ -131,7 +136,12 @@ class BaseAuditableEntityIT {
     UserId userId = new UserId(UUID.randomUUID());
     var details =
         new AppUserDetails(
-            userId, "manager", "Manager M", "", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+            userId,
+            "manager",
+            "Manager M",
+            "",
+            true,
+            List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
     var auth = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
     SecurityContextHolder.getContext().setAuthentication(auth);
 

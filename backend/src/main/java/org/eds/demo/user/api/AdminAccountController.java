@@ -26,15 +26,7 @@ public class AdminAccountController {
   @GetMapping
   public List<AccountSummaryResponse> listAccounts() {
     return accountAdministrationService.listAccounts().stream()
-        .map(
-            account ->
-                AccountSummaryResponse.builder()
-                    .id(account.id())
-                    .username(account.username())
-                    .role(account.role())
-                    .enabled(account.enabled())
-                    .createdAt(account.createdAt())
-                    .build())
+        .map(AccountSummaryResponse::from)
         .toList();
   }
 
@@ -45,22 +37,12 @@ public class AdminAccountController {
     var created =
         accountAdministrationService.createAccount(
             actor.getName(), request.username(), request.role());
-    return CreatedAccountResponse.builder()
-        .username(created.username())
-        .role(created.role())
-        .temporaryPassword(created.temporaryPassword())
-        .temporaryPasswordExpiresAt(created.temporaryPasswordExpiresAt())
-        .build();
+    return CreatedAccountResponse.from(created);
   }
 
   @PostMapping("/{id}/reset-password")
   public CreatedAccountResponse resetPassword(@PathVariable UUID id, Authentication actor) {
     var reset = accountAdministrationService.resetPassword(actor.getName(), id);
-    return CreatedAccountResponse.builder()
-        .username(reset.username())
-        .role(reset.role())
-        .temporaryPassword(reset.temporaryPassword())
-        .temporaryPasswordExpiresAt(reset.temporaryPasswordExpiresAt())
-        .build();
+    return CreatedAccountResponse.from(reset);
   }
 }

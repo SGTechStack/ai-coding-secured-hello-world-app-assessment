@@ -134,12 +134,9 @@ public class AppUser extends BaseAuditableEntity {
         && !now.isBefore(tempPasswordExpiresAt);
   }
 
-  /** A correct sign-in clears the failed-attempt counter and any backoff. */
-  public void recordSuccessfulSignIn() {
-    clearSignInBackoff();
-  }
-
-  /** Resets the failed-attempt counter and any delay, e.g. after an admin password reset. */
+  /**
+   * Resets the failed-attempt counter and any delay: after a correct sign-in or a password reset.
+   */
   public void clearSignInBackoff() {
     this.failedLoginAttempts = 0;
     this.lockedUntil = null;
@@ -151,25 +148,25 @@ public class AppUser extends BaseAuditableEntity {
   }
 
   /**
-   * Counts a failed sign-in. From the {@code threshold}th consecutive failure on, sets a delay of
-   * {@code baseDelay} doubled once per failure past the threshold, capped at {@code maxDelay}.
+   * Counts a failed sign-in. From the policy's {@code threshold}th consecutive failure on, sets a
+   * delay of {@code baseDelay} doubled once per failure past the threshold, capped at {@code
+   * maxDelay}.
    *
    * @return the delay now in force, or {@link Duration#ZERO} while under the threshold
    */
-  public Duration recordFailedSignIn(
-      Instant now, int threshold, Duration baseDelay, Duration maxDelay) {
+  public Duration recordFailedSignIn(Instant now, BackoffPolicy policy) {
     failedLoginAttempts++;
-    if (failedLoginAttempts < threshold) {
+    if (failedLoginAttempts < policy.threshold()) {
       return Duration.ZERO;
     }
-    var delay = baseDelay;
-    for (int doublings = failedLoginAttempts - threshold; doublings > 0; doublings--) {
-      if (delay.compareTo(maxDelay) >= 0) {
+    var delay = policy.baseDelay();
+    for (int doublings = failedLoginAttempts - policy.threshold(); doublings > 0; doublings--) {
+      if (delay.compareTo(policy.maxDelay()) >= 0) {
         break;
       }
       delay = delay.multipliedBy(2);
     }
-    delay = delay.compareTo(maxDelay) > 0 ? maxDelay : delay;
+    delay = delay.compareTo(policy.maxDelay()) > 0 ? policy.maxDelay() : delay;
     lockedUntil = now.plus(delay);
     return delay;
   }
@@ -220,12 +217,8 @@ public class AppUser extends BaseAuditableEntity {
     }
   }
 
-  public void removeRole(Role role) {
-    userRoles.removeIf(ur -> ur.getRole() == role);
-  }
-
   @Override
   public String toString() {
-    return String.format("id: %s, username: %s, email: %s", getId(), getUsername(), getEmail());
+    return String.format("id: %s, username: %s", getId(), getUsername());
   }
 }

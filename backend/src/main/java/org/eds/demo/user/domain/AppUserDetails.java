@@ -16,15 +16,6 @@ public class AppUserDetails extends User {
       String username,
       String displayName,
       String password,
-      Collection<? extends GrantedAuthority> authorities) {
-    this(userId, username, displayName, password, true, authorities);
-  }
-
-  public AppUserDetails(
-      UserId userId,
-      String username,
-      String displayName,
-      String password,
       boolean enabled,
       Collection<? extends GrantedAuthority> authorities) {
     super(username, password, enabled, true, true, true, authorities);

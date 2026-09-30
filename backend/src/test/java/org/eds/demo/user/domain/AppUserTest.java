@@ -26,15 +26,6 @@ class AppUserTest {
   }
 
   @Test
-  void removeRoleShrinksRoleSet() {
-    var user = AppUser.create("carol", EnumSet.of(Role.USER, Role.USER_MANAGER));
-
-    user.removeRole(Role.USER_MANAGER);
-
-    assertThat(user.getRoles()).containsExactly(Role.USER);
-  }
-
-  @Test
   void updateEmailSetsEmail() {
     var user = AppUser.create("dave", EnumSet.of(Role.USER));
 
@@ -68,15 +59,6 @@ class AppUserTest {
     var user = AppUser.create("frank", EnumSet.of(Role.USER));
 
     user.addRole(Role.USER);
-
-    assertThat(user.getRoles()).containsExactly(Role.USER);
-  }
-
-  @Test
-  void removeRoleIgnoresNonExistentRole() {
-    var user = AppUser.create("grace", EnumSet.of(Role.USER));
-
-    user.removeRole(Role.USER_MANAGER);
 
     assertThat(user.getRoles()).containsExactly(Role.USER);
   }

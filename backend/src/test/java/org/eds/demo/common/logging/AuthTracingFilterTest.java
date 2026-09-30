@@ -35,7 +35,7 @@ class AuthTracingFilterTest {
   @Test
   void setsUserIdAndUsernameWhenAuthenticated() throws Exception {
     var userId = new UserId(UUID.randomUUID());
-    var principal = new AppUserDetails(userId, "alice", "Alice", "secret", List.of());
+    var principal = new AppUserDetails(userId, "alice", "Alice", "secret", true, List.of());
     SecurityContextHolder.getContext()
         .setAuthentication(
             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
@@ -86,7 +86,7 @@ class AuthTracingFilterTest {
   @Test
   void removesMdcKeysAfterFilterChain() throws Exception {
     var userId = new UserId(UUID.randomUUID());
-    var principal = new AppUserDetails(userId, "alice", "Alice", "secret", List.of());
+    var principal = new AppUserDetails(userId, "alice", "Alice", "secret", true, List.of());
     SecurityContextHolder.getContext()
         .setAuthentication(
             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
@@ -111,7 +111,7 @@ class AuthTracingFilterTest {
   @Test
   void proceedsWithFilterChainWhenAuthenticated() throws Exception {
     var principal =
-        new AppUserDetails(new UserId(UUID.randomUUID()), "bob", "Bob", "secret", List.of());
+        new AppUserDetails(new UserId(UUID.randomUUID()), "bob", "Bob", "secret", true, List.of());
     SecurityContextHolder.getContext()
         .setAuthentication(
             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));

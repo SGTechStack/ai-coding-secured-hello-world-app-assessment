@@ -28,7 +28,7 @@ public class AppOidcUser extends AppUserDetails implements OidcUser {
       Collection<? extends GrantedAuthority> authorities,
       OidcUser delegate) {
     // Password is irrelevant for OIDC — credentials are verified by AAS, never checked here.
-    super(userId, username, displayName, "", authorities);
+    super(userId, username, displayName, "", true, authorities);
     this.delegate = delegate;
   }
 

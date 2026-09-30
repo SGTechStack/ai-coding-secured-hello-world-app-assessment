@@ -1,9 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { useChangePassword as useGeneratedChangePassword } from '@/api/generated/change-password-controller/change-password-controller';
 import { useSignIn as useGeneratedSignIn } from '@/api/generated/sign-in-controller/sign-in-controller';
+import type { SignInResponse } from '@/api/generated/openAPIDefinition.schemas';
 import { currentUserQueryOptions } from '@features/user/user.queries';
 import { greetingQueryOptions } from '@features/greeting/greeting.queries';
 import { HttpError } from '@lib/http';
-import type { SignInValues } from './auth.schema';
+import type { ChangePasswordValues, SignInValues } from './auth.schema';
 
 const HTTP_TOO_MANY_REQUESTS = 429;
 
@@ -45,7 +47,27 @@ export function useSignIn() {
   });
 
   return {
-    signIn: (values: SignInValues) => mutation.mutateAsync({ data: values }),
+    signIn: async (values: SignInValues) => (await mutation.mutateAsync({ data: values })).data as SignInResponse,
+    error: mutation.error,
+    isPending: mutation.isPending,
+  };
+}
+
+/** Shown when the server gives no reason for a refused password change. */
+export const CHANGE_PASSWORD_FAILED_MESSAGE = 'Your password could not be changed. Try again shortly.';
+
+/** Message for a refused change: the server's reason, or a fallback when it sent none. */
+export function changePasswordErrorMessage(error: unknown): string {
+  if (error instanceof HttpError && error.body?.detail) return error.body.detail;
+  return CHANGE_PASSWORD_FAILED_MESSAGE;
+}
+
+/** Replaces the holder's Temporary Password with their own. */
+export function useChangePassword() {
+  const mutation = useGeneratedChangePassword();
+
+  return {
+    changePassword: (values: ChangePasswordValues) => mutation.mutateAsync({ data: values }),
     error: mutation.error,
     isPending: mutation.isPending,
   };

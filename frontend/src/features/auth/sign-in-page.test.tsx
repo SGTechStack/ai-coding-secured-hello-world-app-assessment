@@ -60,6 +60,17 @@ describe('SignInPage', () => {
     expect(JSON.parse(init.body as string)).toEqual({ username: 'ada', password: 'correct horse battery' });
   });
 
+  it('sends a holder of a Temporary Password to the change-password page', async () => {
+    sessionStorage.setItem(RETURN_TO_KEY, '/forbidden');
+    fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: { username: 'ada', mustChangePassword: true } }));
+    renderPage();
+
+    await fillAndSubmit({ username: 'ada', password: 'temporary-secret' });
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith({ to: '/change-password' }));
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+  });
+
   it('returns to the page the visitor was sent away from, once', async () => {
     sessionStorage.setItem(RETURN_TO_KEY, '/forbidden');
     fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: { username: 'ada' } }));

@@ -5,40 +5,31 @@ import { Button } from '@components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/card';
 import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
-import { RETURN_TO_KEY } from '@lib/auth';
 import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
-import { signInSchema } from './auth.schema';
+import { changePasswordSchema } from './auth.schema';
+import { changePasswordErrorMessage, useChangePassword } from './auth.queries';
 import { FieldErrors } from './field-errors';
-import { signInErrorMessage, useSignIn } from './auth.queries';
 
-export function SignInPage() {
+/** Forced step after signing in with a Temporary Password: choose your own, typed twice. */
+export function ChangePasswordPage() {
   const navigate = useNavigate();
-  const { signIn, error, isPending } = useSignIn();
+  const { changePassword, error, isPending } = useChangePassword();
 
   const form = useForm({
-    defaultValues: { username: '', password: '' },
+    defaultValues: { newPassword: '', confirmPassword: '' },
     validators: {
-      onBlur: signInSchema,
+      onBlur: changePasswordSchema,
       onChangeAsyncDebounceMs: VALIDATION_DEBOUNCE_MS,
-      onChangeAsync: signInSchema,
-      onSubmit: signInSchema,
+      onChangeAsync: changePasswordSchema,
+      onSubmit: changePasswordSchema,
     },
     onSubmit: async ({ value }) => {
-      let result;
       try {
-        result = await signIn(value);
+        await changePassword(value);
       } catch {
         return; // the failure is shown from the mutation error below
       }
-      // A Temporary Password allows nothing but choosing a new one, so go there first.
-      if (result.mustChangePassword) {
-        await navigate({ to: '/change-password' });
-        return;
-      }
-      // Go back to where a 401 sent the visitor away from, if anywhere; a saved place is used once.
-      const returnTo = sessionStorage.getItem(RETURN_TO_KEY);
-      sessionStorage.removeItem(RETURN_TO_KEY);
-      await navigate({ to: returnTo ?? '/' });
+      await navigate({ to: '/' });
     },
   });
 
@@ -46,7 +37,7 @@ export function SignInPage() {
     <div className="flex flex-1 items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Sign in</CardTitle>
+          <CardTitle>Choose a new password</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -57,20 +48,21 @@ export function SignInPage() {
               void form.handleSubmit();
             }}
           >
-            {error && (
+            {error != null && (
               <Alert variant="danger">
-                <AlertDescription>{signInErrorMessage(error)}</AlertDescription>
+                <AlertDescription>{changePasswordErrorMessage(error)}</AlertDescription>
               </Alert>
             )}
 
-            <form.Field name="username">
+            <form.Field name="newPassword">
               {(field) => (
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={field.name}>Username</Label>
+                  <Label htmlFor={field.name}>New password</Label>
                   <Input
                     id={field.name}
                     name={field.name}
-                    autoComplete="username"
+                    type="password"
+                    autoComplete="new-password"
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
@@ -80,15 +72,15 @@ export function SignInPage() {
               )}
             </form.Field>
 
-            <form.Field name="password">
+            <form.Field name="confirmPassword">
               {(field) => (
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor={field.name}>Password</Label>
+                  <Label htmlFor={field.name}>Confirm new password</Label>
                   <Input
                     id={field.name}
                     name={field.name}
                     type="password"
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
@@ -99,7 +91,7 @@ export function SignInPage() {
             </form.Field>
 
             <Button type="submit" disabled={isPending}>
-              Sign in
+              Change password
             </Button>
           </form>
         </CardContent>

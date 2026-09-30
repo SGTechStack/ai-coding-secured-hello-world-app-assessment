@@ -18,7 +18,8 @@ import jakarta.persistence.UniqueConstraint;
 
 /**
  * An activation or password-reset token ({@code credential_tokens}, ADR-007). It stores only the domain-separated
- * hash, never the token.
+ * hash, never the token, and whether an administrator issued it: an invite's activation token or an admin reset
+ * (ADR-006).
  */
 @Entity
 @Table(name = "credential_tokens",
@@ -52,16 +53,21 @@ public class CredentialToken {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /** An administrator issued it (V9): an invite or an admin reset, which a self-service request never replaces. */
+    @Column(name = "admin_issued", nullable = false)
+    private boolean adminIssued;
+
     protected CredentialToken() {
     }
 
     /** A pending token for {@code userId}, redeemable until {@code createdAt} plus the type's lifetime. */
-    CredentialToken(UUID userId, CredentialTokenType type, String tokenHash, Instant createdAt) {
+    CredentialToken(UUID userId, CredentialTokenType type, String tokenHash, Instant createdAt, boolean adminIssued) {
         this.userId = userId;
         this.type = type;
         this.tokenHash = tokenHash;
         this.createdAt = createdAt;
         this.expiresAt = createdAt.plus(type.lifetime());
+        this.adminIssued = adminIssued;
     }
 
     public UUID getId() {

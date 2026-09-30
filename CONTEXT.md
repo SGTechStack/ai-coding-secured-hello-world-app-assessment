@@ -73,6 +73,12 @@ An activation token that an administrator creating an account receives once, to 
 It is not a separate token type.
 _Avoid_: temporary password, generated password
 
+**Admin-issued token**:
+An invite token or a reset token an administrator was returned, marked as such on the token. The marker, never the
+account's role, is what tells an invite from a self-registration, and a self-service request never replaces a pending
+one.
+_Avoid_: admin token, invite flag
+
 **Domain-separated token hash**:
 A token's stored form, hashed together with its type label so that a token of one type can never be redeemed as
 another.

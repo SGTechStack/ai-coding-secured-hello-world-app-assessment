@@ -79,6 +79,40 @@ framework swap. A maintainer would plausibly reach for either.
   redemption, exactly one succeeds); T-CRED-015 (a rejected password does not burn the token); T-CRED-019 (pending-token
   invalidation); T-CRED-020 (the type check constraint); T-CRED-023 (recovery routes absent).
 
+## Amendment (2026-09-30): admin-issued tokens carry an explicit marker, and self-service leaves them alone
+
+**The defects.**
+- **An invite was told apart from a self-registration by its role** (review of tickets 14 to 16, M1). Once
+  `USER`-role invites existed (ticket 23), a stranger who knew an invitee's address could register it again under a
+  username of their choosing: the repeated registration renamed the invited account and, through the new issuance,
+  cancelled the activation token the administrator had handed on.
+- **A self-service reset request cancelled a pending admin-issued reset token.** "A new issuance of the same type"
+  invalidates the pending token, so anyone who knew the address could cancel an administrator's reset. Outside `dev`
+  the replacement is undeliverable (ADR-057), so the user was left with no working token at all.
+
+**Decision (the user's).**
+- **`credential_tokens.admin_issued`** (V9, `BOOLEAN NOT NULL DEFAULT FALSE`) marks a token an administrator issued:
+  an invite's `ACTIVATION` token or an admin-issued `PASSWORD_RESET` token (ADR-006). Nothing reads the role for this.
+- **A self-registration replaces a pending registration only if its activation token was self-issued**, used, expired
+  or pending. An invite's is admin-issued, so a self-registration of an invitee's address gets the uniform 202 and
+  changes nothing: no rename, no cancelled token, no email. A pending row with no activation token at all (a disabled
+  one, whose tokens a disable cancelled) is not treated as self-registered either, so the check fails closed.
+- **While an admin-issued reset token is pending** (unused, unexpired), a self-service reset request for the address
+  mints nothing and leaves that token in place. Its response is the same empty 202 as for every other address, and it
+  writes the same audit row, which names no account (REJ-002). Its timing follows the no-account path: one account
+  lookup and one indexed existence check, and no hash, insert or email. Once the admin token is redeemed or expires,
+  self-service issues again.
+- **An admin-issued token still yields to the ordinary triggers**: a new admin issuance of the same type, a password
+  set, an admin disable and deletion all invalidate it as before. A self-service issuance deletes only self-issued
+  pending tokens, so even one that raced past the pending check cannot remove an administrator's.
+
+**Consequences.** A stranger can no longer cancel or redirect a credential an administrator issued. A user who holds
+an admin-issued reset token and asks for a self-service one gets nothing new for up to 30 minutes; the admin token is
+the one to use. An invite whose token expired, or was cancelled by a disable, has no route to activation: the invitee's
+own registration leaves it alone, an admin reset refuses a never-activated account and a re-invite finds the identifiers
+taken. It fails closed; the administrator deletes it and invites again (the delete route, ticket 22). Tests: T-CRED-019 (the triggers, admin disable and delete included); the invite and admin-reset tests
+of ticket 23 (`AdminInviteTest`, `AdminPasswordResetTest`) prove both protections.
+
 ## Sources
 
 - PRD, Data model (`password_reset_tokens`).

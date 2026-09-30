@@ -29,7 +29,9 @@ import sg.securedhello.user.UserAccountRepository;
  *   <li>the address is canonicalised (ADR-045); one that cannot be an address is refused;</li>
  *   <li>its per-identifier budget is spent, registered or not, before any lookup (Std §5:452);</li>
  *   <li>only an activated, enabled account is issued a {@code PASSWORD_RESET} token, which cancels its earlier pending
- *       ones (ADR-007). A never-activated account gets nothing (R-CRED-012): its route is to register again;</li>
+ *       ones (ADR-007). A never-activated account gets nothing (R-CRED-012): its route is to register again. Nor
+ *       does an account holding a pending admin-issued reset token: that token stays as it is, so a stranger who
+ *       knows the address cannot cancel what the administrator handed on (ADR-007 amendment);</li>
  *   <li>the link, on the configured origin (REJ-022), goes to {@link EmailService} after commit. Only the {@code dev}
  *       stub makes it readable; elsewhere nothing is delivered (ADR-057; R-CRED-021).</li>
  * </ol>
@@ -78,6 +80,7 @@ public class PasswordResetRequests {
     private Optional<LinkEmail> issue(String canonicalEmail) {
         return accounts.findByEmail(canonicalEmail)
                 .filter(PasswordResetRequests::canReset)
+                .filter(account -> !tokens.adminIssuedPending(account.getId(), CredentialTokenType.PASSWORD_RESET))
                 .map(account -> links.email(CredentialTokenType.PASSWORD_RESET, canonicalEmail,
                         tokens.mint(account.getId(), CredentialTokenType.PASSWORD_RESET)));
     }

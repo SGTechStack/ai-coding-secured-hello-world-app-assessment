@@ -33,6 +33,25 @@ public interface CredentialTokenRepository extends JpaRepository<CredentialToken
             + " AND t.usedAt IS NULL AND t.expiresAt > :now")
     int consume(String tokenHash, CredentialTokenType type, Instant now);
 
+    /**
+     * As {@link #deletePending}, but only the self-issued ones: a self-service issuance never removes an administrator's
+     * token, even one issued between its check and this delete (ADR-007 amendment).
+     *
+     * @return how many tokens were invalidated
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("DELETE FROM CredentialToken t WHERE t.userId = :userId AND t.type = :type AND t.usedAt IS NULL"
+            + " AND t.adminIssued = FALSE")
+    int deletePendingSelfIssued(UUID userId, CredentialTokenType type);
+
+    /** Whether {@code userId} has an unused administrator's {@code type} token that is unexpired at {@code now}. */
+    @Query("SELECT COUNT(t) > 0 FROM CredentialToken t WHERE t.userId = :userId AND t.type = :type"
+            + " AND t.adminIssued = TRUE AND t.usedAt IS NULL AND t.expiresAt > :now")
+    boolean existsAdminIssuedPending(UUID userId, CredentialTokenType type, Instant now);
+
+    /** Whether {@code userId} has a {@code type} token, in any state, issued by an administrator or not. */
+    boolean existsByUserIdAndTypeAndAdminIssued(UUID userId, CredentialTokenType type, boolean adminIssued);
+
     /** The account a stored token belongs to. */
     @Query("SELECT t.userId FROM CredentialToken t WHERE t.tokenHash = :tokenHash")
     Optional<UUID> findUserIdByTokenHash(String tokenHash);

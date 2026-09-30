@@ -167,11 +167,13 @@ public class Registration {
     }
 
     /**
-     * A pending registration a repeated self-registration may replace. An administrator's pending invite is not one:
-     * its token was handed to the administrator, and replacing it would let a stranger rename an invited account.
+     * A pending registration a repeated self-registration may replace: one whose activation token was self-issued. An
+     * administrator's pending invite is not one, whatever its role: its token carries the explicit admin-issued marker,
+     * and replacing it would let a stranger rename the invited account and cancel the token the administrator handed
+     * on (ADR-007 amendment).
      */
-    private static boolean isSelfRegisteredPending(UserAccount account) {
-        return account.isPending() && "USER".equals(account.getRole());
+    private boolean isSelfRegisteredPending(UserAccount account) {
+        return account.isPending() && tokens.selfRegistered(account.getId());
     }
 
     /** The username or the email address is not acceptable as submitted: 400 {@code VALIDATION_FAILED}. */

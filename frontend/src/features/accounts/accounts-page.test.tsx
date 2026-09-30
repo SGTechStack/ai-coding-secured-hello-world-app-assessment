@@ -39,6 +39,11 @@ function renderPage() {
   );
 }
 
+async function openCreateDialog({ user }: { user: ReturnType<typeof userEvent.setup> }) {
+  await user.click(screen.getByRole('button', { name: 'Add account' }));
+  return screen.findByRole('dialog');
+}
+
 function requestsTo({ method }: { method: string }) {
   return fetchMock.mock.calls.filter(([, init]) => ((init as RequestInit | undefined)?.method ?? 'GET') === method);
 }
@@ -58,7 +63,7 @@ describe('AccountsPage', () => {
     renderPage();
 
     const rootRow = (await screen.findByText('root')).closest('tr')!;
-    expect(within(rootRow).getByLabelText('Role for root')).toHaveValue('ADMIN');
+    expect(within(rootRow).getByRole('combobox', { name: 'Role for root' })).toHaveTextContent('ADMIN');
     expect(within(rootRow).getByText('Enabled')).toBeInTheDocument();
     expect(within(rootRow).getByText(/2030/)).toBeInTheDocument();
     const suspendedRow = screen.getByText('suspended').closest('tr')!;
@@ -86,9 +91,11 @@ describe('AccountsPage', () => {
     await screen.findByText('root');
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText('Username'), 'new-hire');
-    await user.selectOptions(screen.getByLabelText('Role'), 'USER_MANAGER');
-    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    const dialog = await openCreateDialog({ user });
+    await user.type(within(dialog).getByLabelText('Username'), 'new-hire');
+    await user.click(within(dialog).getByRole('combobox', { name: 'Role' }));
+    await user.click(await screen.findByRole('option', { name: 'USER_MANAGER' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Create account' }));
 
     expect(await screen.findByText('Xk7-temp-Pass-42')).toBeInTheDocument();
     expect(screen.getByText(/shown only once/i)).toBeInTheDocument();
@@ -107,8 +114,9 @@ describe('AccountsPage', () => {
     await screen.findByText('root');
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText('Username'), 'root');
-    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    const dialog = await openCreateDialog({ user });
+    await user.type(within(dialog).getByLabelText('Username'), 'root');
+    await user.click(within(dialog).getByRole('button', { name: 'Create account' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Username is already taken');
     expect(screen.queryByText(/shown only once/i)).not.toBeInTheDocument();
@@ -120,7 +128,8 @@ describe('AccountsPage', () => {
     await screen.findByText('root');
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    const dialog = await openCreateDialog({ user });
+    await user.click(within(dialog).getByRole('button', { name: 'Create account' }));
 
     expect(await screen.findByText('Enter a username')).toBeInTheDocument();
     expect(requestsTo({ method: 'POST' })).toHaveLength(0);
@@ -208,9 +217,12 @@ describe('AccountsPage', () => {
     await screen.findByText('active-user');
     const user = userEvent.setup();
 
-    await user.selectOptions(screen.getByLabelText('Role for active-user'), 'USER_MANAGER');
+    await user.click(screen.getByRole('combobox', { name: 'Role for active-user' }));
+    await user.click(await screen.findByRole('option', { name: 'USER_MANAGER' }));
 
-    await waitFor(() => expect(screen.getByLabelText('Role for active-user')).toHaveValue('USER_MANAGER'));
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Role for active-user' })).toHaveTextContent('USER_MANAGER'),
+    );
     const [url, init] = requestsTo({ method: 'PUT' })[0] as [string, RequestInit];
     expect(url).toBe('/admin/api/users/id-active/role');
     expect(JSON.parse(init.body as string)).toEqual({ role: 'USER_MANAGER' });
@@ -226,12 +238,15 @@ describe('AccountsPage', () => {
     const user = userEvent.setup();
 
     await user.click(within(row).getByRole('button', { name: 'Delete' }));
-    expect(within(row).getByText('Delete active-user permanently?')).toBeInTheDocument();
-    await user.click(within(row).getByRole('button', { name: 'Cancel' }));
+    let dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Delete active-user permanently/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(requestsTo({ method: 'DELETE' })).toHaveLength(0);
 
     await user.click(within(row).getByRole('button', { name: 'Delete' }));
-    await user.click(within(row).getByRole('button', { name: 'Confirm delete' }));
+    dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(screen.queryByText('active-user')).not.toBeInTheDocument());
     const [url] = requestsTo({ method: 'DELETE' })[0] as [string, RequestInit];

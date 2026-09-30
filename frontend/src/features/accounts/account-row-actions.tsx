@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { ConfirmDialog } from '@components/layout/confirm-dialog';
 import { Button } from '@components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 import { accountActionErrorMessage, useAccountLifecycle } from './accounts-lifecycle.queries';
 import { ACCOUNT_ROLES, type AccountRole, type AccountSummary } from './accounts.queries';
 
@@ -11,21 +13,24 @@ export function AccountRowActions({ account }: { account: AccountSummary }) {
   return (
     <div className="flex flex-col items-start gap-2">
       <div className="flex items-center gap-2">
-        <select
-          aria-label={`Role for ${account.username}`}
-          className="bg-surface border-input h-8 rounded-md border px-2 text-xs"
+        <Select
           value={account.role}
           disabled={isPending}
-          onChange={(event) =>
-            void changeRole({ id: account.id, role: event.target.value as AccountRole }).catch(() => undefined)
+          onValueChange={(role) =>
+            role != null && void changeRole({ id: account.id, role: role as AccountRole }).catch(() => undefined)
           }
         >
-          {ACCOUNT_ROLES.map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger aria-label={`Role for ${account.username}`} className="h-8 w-auto gap-2 px-2 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ACCOUNT_ROLES.map((role) => (
+              <SelectItem key={role} value={role}>
+                {role}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           type="button"
           variant="outline"
@@ -39,23 +44,16 @@ export function AccountRowActions({ account }: { account: AccountSummary }) {
           Delete
         </Button>
       </div>
-      {confirmingDelete && (
-        <div className="flex items-center gap-2 text-xs">
-          <span>Delete {account.username} permanently?</span>
-          <Button
-            type="button"
-            variant="danger"
-            size="sm"
-            disabled={isPending}
-            onClick={() => void deleteAccount({ id: account.id }).catch(() => setConfirmingDelete(false))}
-          >
-            Confirm delete
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => setConfirmingDelete(false)}>
-            Cancel
-          </Button>
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title="Delete account"
+        description={`Delete ${account.username} permanently? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        isPending={isPending}
+        onConfirm={() => void deleteAccount({ id: account.id }).catch(() => setConfirmingDelete(false))}
+      />
       {error != null && (
         <p role="alert" className="text-danger text-xs">
           {accountActionErrorMessage(error)}

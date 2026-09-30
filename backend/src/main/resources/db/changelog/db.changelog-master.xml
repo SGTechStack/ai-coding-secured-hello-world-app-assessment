@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <!--
+    Liquibase owns every table (spec.md S2). `ddl-auto: validate` means entity drift fails at
+    startup rather than being silently reconciled. One versioned file per logical change.
+  -->
+  <include file="db/changelog/001-create-roles.xml"/>
+  <include file="db/changelog/002-create-users.xml"/>
+  <include file="db/changelog/003-create-password-history.xml"/>
+  <include file="db/changelog/004-create-deleted-users.xml"/>
+  <include file="db/changelog/005-create-password-reset-tokens.xml"/>
+  <include file="db/changelog/006-spring-session.xml"/>
+</databaseChangeLog>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <!--
+    spec.md S2. Two decisions are visible in this table's *absences*:
+
+      * There is NO `account_non_locked` boolean. `locked_until` alone is the lock: it is
+        self-expiring, so an automatic lift needs no write, and two sources of truth for "is this
+        account locked" is a silent auth bypass (ticket 07).
+      * `role` is a validated String, not a Java enum (ticket 03), and holds exactly one value per
+        user — single-role-per-user is a standards constraint, not a simplification.
+
+    Every timestamp is TIMESTAMP WITH TIME ZONE stored UTC and read through the injectable Clock.
+  -->
+  <changeSet id="002-create-users" author="secured-login-app">
+    <createTable tableName="users">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="username" type="VARCHAR(100)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uk_users_username"/>
+      </column>
+      <column name="email" type="VARCHAR(255)">
+        <constraints nullable="false" unique="true" uniqueConstraintName="uk_users_email"/>
+      </column>
+      <column name="password_hash" type="VARCHAR(100)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="role" type="VARCHAR(50)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="enabled" type="BOOLEAN" defaultValueBoolean="true">
+        <constraints nullable="false"/>
+      </column>
+      <column name="require_password_change" type="BOOLEAN" defaultValueBoolean="false">
+        <constraints nullable="false"/>
+      </column>
+      <column name="failed_login_attempts" type="INT" defaultValueNumeric="0">
+        <constraints nullable="false"/>
+      </column>
+      <column name="locked_until" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="disabled_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="last_login_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+</databaseChangeLog>

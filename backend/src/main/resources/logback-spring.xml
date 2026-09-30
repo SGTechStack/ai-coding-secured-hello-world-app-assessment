@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Three appenders (spec.md S11, ticket 19's correction to ticket 15):
+
+    CONSOLE      - operator-visible. Logback's status system also reports appender failures here,
+                   which is the detection half of Std:262. There is no alerting channel; an
+                   operator must be watching stdout, and that limit is stated rather than claimed
+                   as discharged.
+    APPLICATION  - Std_Logging:275's durable buffer for a forwarding agent. All logs.
+    AUDIT        - Std_Logging:327's separate destination. Bound BY LOGGER NAME, not by marker,
+                   precisely so ArchUnit can enforce that only com.assessment.auth.audit reaches
+                   it. A marker binding would be unenforceable.
+
+  Every appender uses MaskingStructuredLogEncoder, which wraps Spring Boot's native ECS formatter
+  (`format=ecs`) and adds the two things the native route leaves undischarged: boundary masking
+  and the nested `error` object. No appender emits plain text alongside JSON.
+-->
+<configuration>
+  <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
+
+  <springProperty scope="context" name="logDir" source="app.log-dir" defaultValue="logs"/>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="com.assessment.auth.logging.MaskingStructuredLogEncoder">
+      <format>ecs</format>
+    </encoder>
+  </appender>
+
+  <appender name="APPLICATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${logDir}/application.json</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${logDir}/application-%d{yyyy-MM-dd}.%i.json.gz</fileNamePattern>
+      <maxFileSize>50MB</maxFileSize>
+      <!--
+        Rotation is the application's obligation. The 90-day RETENTION minimum is the integrator's
+        (Std_Logging:287); this value is the local buffer, not the retention guarantee.
+      -->
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>2GB</totalSizeCap>
+    </rollingPolicy>
+    <encoder class="com.assessment.auth.logging.MaskingStructuredLogEncoder">
+      <format>ecs</format>
+    </encoder>
+  </appender>
+
+  <appender name="AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${logDir}/audit.json</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${logDir}/audit-%d{yyyy-MM-dd}.%i.json.gz</fileNamePattern>
+      <maxFileSize>50MB</maxFileSize>
+      <!--
+        The AUDIT stream is classified ABOVE the application log, because source.ip lands only here
+        (ticket 18). It is also where the 90-day retention evidence lives, so it is kept longer
+        locally than APPLICATION.
+      -->
+      <maxHistory>90</maxHistory>
+      <totalSizeCap>5GB</totalSizeCap>
+    </rollingPolicy>
+    <encoder class="com.assessment.auth.logging.MaskingStructuredLogEncoder">
+      <format>ecs</format>
+    </encoder>
+  </appender>
+
+  <!--
+    additivity=false: audit lines reach the AUDIT appender and NOT the application appender.
+    Story 1.22 tests routing as well as emission, through a ListAppender attached to both.
+  -->
+  <logger name="AUDIT" level="INFO" additivity="false">
+    <appender-ref ref="AUDIT"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="APPLICATION"/>
+  </root>
+</configuration>

@@ -1,0 +1,158 @@
+# Profile-independent configuration (spec.md S1).
+#
+# Every secret resolves from an environment variable with no committed default. `.env.example` at
+# the repo root documents the required set.
+
+spring:
+  application:
+    name: secured-login-app
+
+  # PostgreSQL is the declared target (spec.md S2). H2 is confined to `dev` and `test`, both in
+  # MODE=PostgreSQL, and overridden in those profiles.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/securedlogin}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+
+  jpa:
+    hibernate:
+      # Liquibase owns every table (spec.md S2). `validate` means entity drift fails at startup
+      # instead of being silently reconciled.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        # All *stored* timestamps are UTC even though logs render at Asia/Singapore (spec.md S1).
+        jdbc:
+          time_zone: UTC
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+  session:
+    jdbc:
+      # NOT `always`. The recipe's literal value re-runs CREATE TABLE every boot and breaks on the
+      # second boot of file-based dev H2 (spec.md S2). Liquibase owns these tables.
+      initialize-schema: never
+
+server:
+  error:
+    # story 1.3: no whitelabel page; a genuine controller 400 must reach the client as a 400.
+    whitelabel:
+      enabled: false
+  servlet:
+    session:
+      # Idle timeout (spec.md S4). The 8h absolute timeout has no config key and is filter-enforced.
+      timeout: 15m
+      cookie:
+        name: SESSION
+        http-only: true
+        # `true` in EVERY profile, including local dev over HTTP (spec.md S4, ticket 09). The claim
+        # that this round-trips over http://localhost is the map's one unverified assumption and is
+        # the first test to run (spec.md S13).
+        secure: true
+        same-site: lax
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # `health` and nothing else. Actuator is on the classpath solely as Micrometer Tracing's
+        # carrier; nothing about it is an offered feature (spec.md S4, ticket 09).
+        include: health
+  tracing:
+    sampling:
+      probability: 1.0
+
+api:
+  base-path: /api/v1
+
+app:
+  admin:
+    username: ${APP_ADMIN_USERNAME:admin}
+    # Deliberately defaulted to empty rather than to a value: AdminBootstrapRunner fails startup
+    # with an explicit message when it is absent or violates the password policy (spec.md S9).
+    password: ${APP_ADMIN_PASSWORD:}
+    email: ${APP_ADMIN_EMAIL:admin@example.com}
+
+  # Seeded into the read-only `roles` table at startup (spec.md S2, ticket 03).
+  roles:
+    - USER
+    - USER_MANAGER
+
+  password:
+    min-length: 12
+    # 72 is a hard BCrypt limit in Spring Security 7.0.6, not a preference: the encoder *throws*
+    # above 72 bytes, so a longer cap turns a long passphrase into a 500 (spec.md S5).
+    max-length: 72
+    bcrypt-strength: 12
+    # Current + three previous (spec.md S5, the literal reading of Std:355).
+    history-depth: 4
+
+  lockout:
+    max-attempts: 5
+    duration: PT20M
+
+  rate-limit:
+    account-per-minute: 10
+    ip-per-minute: 50
+    reset-request-per-minute: 5
+    reset-confirm-per-minute: 10
+
+  reset:
+    token-ttl: PT30M
+    token-length: 32
+
+  session-policy:
+    absolute-timeout: PT8H
+    max-concurrent-sessions: 1
+
+  security:
+    allowed-origins:
+      - http://localhost:3000
+    # Minimum wall-clock duration for login and password-reset-request responses. A PARTIAL
+    # discharge of Std:247's identical-timing clause -- assert the bound, do not claim constant
+    # time (spec.md S7).
+    response-time-floor: PT0.25S
+
+    # ------------------------------------------------------------------------------------------
+    # The authorization matrix (spec.md S3).
+    #
+    # FLAT, ORDERED, FIRST MATCH WINS, and the SOLE authorization mechanism. @EnableMethodSecurity
+    # is off and no @PreAuthorize annotation exists anywhere in this codebase -- the five in the
+    # standards' recipes were DELETED rather than rewritten, because they name authorities
+    # (USERS_CREATE, SELF_READ, ...) that do not exist under this application's role model.
+    #
+    # Four properties of this table are decisions, not incidentals:
+    #
+    #   * Row 20 is the ONLY hasRole('USER') row, which is what keeps the role hierarchy
+    #     ROLE_USER_MANAGER > ROLE_USER load-bearing rather than dead. Rows 17-19 are
+    #     `authenticated` because self-discovery cannot be gated on a role vocabulary.
+    #   * Row 6 exists because AuthorizationFilter.filterErrorDispatch defaults to true. Without
+    #     it, every Spring Boot /error forward returns 403 under the terminal denyAll.
+    #   * Row 21 closes /actuator/** and Swagger with no explicit row -- a positive answer, not a gap.
+    #   * NO BARE SINGLE-SEGMENT WILDCARDS. RBAC:43's `/api/v1/users/*` would have granted batch
+    #     reset while denying /{userId}/status, /role and /resetPassword.
+    # ------------------------------------------------------------------------------------------
+    authorization-matrix:
+      - { method: GET, path: "/api/v1/csrf", access: permitAll }
+      - { method: POST, path: "/api/v1/auth/login", access: permitAll }
+      - { method: POST, path: "/api/v1/auth/register", access: permitAll }
+      - { method: POST, path: "/api/v1/auth/password-reset/request", access: permitAll }
+      - { method: POST, path: "/api/v1/auth/password-reset/confirm", access: permitAll }
+      - { method: ANY, path: "/error", access: permitAll }
+      - { method: GET, path: "/api/v1/roles", access: "hasRole('USER_MANAGER')" }
+      - { method: GET, path: "/api/v1/users", access: "hasRole('USER_MANAGER')" }
+      - { method: POST, path: "/api/v1/users", access: "hasRole('USER_MANAGER')" }
+      - { method: GET, path: "/api/v1/users/{userId}", access: "hasRole('USER_MANAGER')" }
+      - { method: PATCH, path: "/api/v1/users/{userId}/status", access: "hasRole('USER_MANAGER')" }
+      - { method: PATCH, path: "/api/v1/users/{userId}/role", access: "hasRole('USER_MANAGER')" }
+      - { method: PATCH, path: "/api/v1/users/{userId}/unlock", access: "hasRole('USER_MANAGER')" }
+      - { method: PATCH, path: "/api/v1/users/{userId}/resetPassword", access: "hasRole('USER_MANAGER')" }
+      - { method: DELETE, path: "/api/v1/users/{userId}", access: "hasRole('USER_MANAGER')" }
+      - { method: ANY, path: "/api/v1/users/**", access: "hasRole('USER_MANAGER')" }
+      - { method: GET, path: "/api/v1/currentUser", access: authenticated }
+      - { method: PATCH, path: "/api/v1/currentUser/changePassword", access: authenticated }
+      - { method: POST, path: "/api/v1/auth/logout", access: authenticated }
+      - { method: GET, path: "/api/v1/hello", access: "hasRole('USER')" }
+      - { method: ANY, path: "/**", access: denyAll }

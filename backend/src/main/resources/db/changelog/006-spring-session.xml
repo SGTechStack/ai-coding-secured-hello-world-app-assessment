@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <!--
+    Spring Session's tables, created by Liquibase from Spring Session's own PACKAGED per-vendor
+    script under dbms guards (spec.md S2, ticket 02).
+
+    The recipe's literal `spring.session.jdbc.initialize-schema: always` CANNOT be copied: it
+    re-runs CREATE TABLE on every boot and breaks on the second boot of file-based dev H2. That
+    property is set to `never` in application.yaml and Liquibase owns these tables like every other.
+
+    Liquibase's checksum on these files is the tripwire for a Spring Session upgrade changing the
+    DDL. A checksum failure here is the intended loud failure, NOT a bug to suppress with
+    `validCheckSum` or `runOnChange`.
+
+    The SPRING_SESSION_IX3 index on PRINCIPAL_NAME is load-bearing: it is what makes
+    "invalidate all sessions for this user" (FindByIndexNameSessionRepository) a keyed lookup
+    rather than a table scan. `ddl-auto: validate` does NOT catch its absence, because these tables
+    have no JPA entity — hence the explicit test in story 1.2.
+  -->
+  <changeSet id="006-spring-session-h2" author="secured-login-app" dbms="h2">
+    <sqlFile path="org/springframework/session/jdbc/schema-h2.sql"
+             relativeToChangelogFile="false"
+             splitStatements="true"
+             endDelimiter=";"
+             stripComments="true"/>
+  </changeSet>
+
+  <changeSet id="006-spring-session-postgresql" author="secured-login-app" dbms="postgresql">
+    <sqlFile path="org/springframework/session/jdbc/schema-postgresql.sql"
+             relativeToChangelogFile="false"
+             splitStatements="true"
+             endDelimiter=";"
+             stripComments="true"/>
+  </changeSet>
+</databaseChangeLog>

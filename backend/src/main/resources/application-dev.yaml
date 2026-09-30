@@ -1,0 +1,21 @@
+# Local development (spec.md S2).
+#
+# File-based H2, deliberately: bootstrap idempotence is only observable across restarts if the
+# database survives them (story 1.21 asserts "a restart creates no duplicate account, verified
+# against a persistent database rather than an in-memory one").
+#
+# The path is absolute and anchored at the project root by ProjectRootEnvironmentPostProcessor, so
+# running from backend/ and from the repo root reach the SAME database file (story 1.2).
+
+spring:
+  datasource:
+    url: jdbc:h2:file:${app.project-root}/.data/dev;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+app:
+  security:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:5173

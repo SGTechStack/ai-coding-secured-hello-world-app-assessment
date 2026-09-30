@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <!--
+    Tombstones (spec.md S8, ticket 10). Std:31's glossary calls this "a read-only archive record",
+    which settles :408's "soft-delete" wording in favour of the recipe's mechanism: write the
+    tombstone, then hard-delete the users row, atomically.
+
+    `id` is the SAME id the live row held, so an audit line's target_user_id stays resolvable after
+    the account is gone.
+
+    There is NO password_hash column, ever. Retained indefinitely; purging has no owner, deliberately.
+  -->
+  <changeSet id="004-create-deleted-users" author="secured-login-app">
+    <createTable tableName="deleted_users">
+      <column name="id" type="UUID">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="username" type="VARCHAR(100)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="email" type="VARCHAR(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="role" type="VARCHAR(50)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="enabled" type="BOOLEAN">
+        <constraints nullable="false"/>
+      </column>
+      <column name="deleted_at" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="deleted_by_user_id" type="UUID">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <!--
+      Both username AND email are permanently burned. The recipe checks only username against
+      tombstones (Priv:149), which is a bug: Std:96 states email uniqueness unqualified.
+    -->
+    <createIndex tableName="deleted_users" indexName="ix_deleted_users_username" unique="true">
+      <column name="username"/>
+    </createIndex>
+    <createIndex tableName="deleted_users" indexName="ix_deleted_users_email" unique="true">
+      <column name="email"/>
+    </createIndex>
+  </changeSet>
+</databaseChangeLog>

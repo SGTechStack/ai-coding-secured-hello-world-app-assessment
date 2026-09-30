@@ -42,3 +42,11 @@ export async function setAdminUserEnabled(id: string, enabled: boolean): Promise
     }),
   )
 }
+
+/**
+ * `DELETE /api/admin/users/{id}/totp`: resets another administrator's authenticator app (ADR-049). Needs a factor from
+ * the last 10 minutes. Ends the user's sessions; they set up the app again at their next sign-in. No body.
+ */
+export async function resetAdminUserFactor(id: string): Promise<void> {
+  await apiFetch<unknown>(`/api/admin/users/${encodeURIComponent(id)}/totp`, { method: 'DELETE' })
+}

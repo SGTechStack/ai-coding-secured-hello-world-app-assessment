@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
+import { FactorResetControl } from '@/components/FactorResetControl'
 import { Button } from '@/components/ui/button'
 import type { ErrorCode } from '@/lib/api/errors'
 import { ADMIN_USERS_KEY, type AdminUser, adminUserKey, fetchAdminUser, setAdminUserEnabled } from '@/lib/admin/users'
@@ -60,6 +61,7 @@ export function AdminUserDetailPage() {
             </dd>
           </dl>
           <EnabledControl user={user.data} />
+          <FactorResetControl user={user.data} />
         </>
       )}
       <Link to="/admin/users" className="text-sm underline">

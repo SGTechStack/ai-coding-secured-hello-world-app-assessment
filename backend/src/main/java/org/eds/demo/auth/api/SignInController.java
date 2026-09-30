@@ -6,15 +6,16 @@ import lombok.RequiredArgsConstructor;
 import org.eds.demo.auth.application.SignInService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -41,23 +42,24 @@ public class SignInController {
   private final SignInService signInService;
 
   @PostMapping(SIGN_IN_PATH)
-  public ResponseEntity<?> signIn(
+  public SignInResponse signIn(
       @RequestBody SignInRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse) {
-    try {
-      var authentication = signInService.signIn(request.username(), request.password());
-      sessionFixationStrategy.onAuthentication(authentication, httpRequest, httpResponse);
-      var context = SecurityContextHolder.createEmptyContext();
-      context.setAuthentication(authentication);
-      SecurityContextHolder.setContext(context);
-      securityContextRepository.saveContext(context, httpRequest, httpResponse);
-      return ResponseEntity.ok(SignInResponse.builder().username(authentication.getName()).build());
-    } catch (BadCredentialsException e) {
-      var problem =
-          ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, GENERIC_FAILURE_DETAIL);
-      problem.setTitle("Sign-in failed");
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
-    }
+    var authentication = signInService.signIn(request.username(), request.password());
+    sessionFixationStrategy.onAuthentication(authentication, httpRequest, httpResponse);
+    var context = SecurityContextHolder.createEmptyContext();
+    context.setAuthentication(authentication);
+    SecurityContextHolder.setContext(context);
+    securityContextRepository.saveContext(context, httpRequest, httpResponse);
+    return SignInResponse.builder().username(authentication.getName()).build();
+  }
+
+  @ExceptionHandler(BadCredentialsException.class)
+  @ResponseStatus(HttpStatus.UNAUTHORIZED)
+  ProblemDetail handleBadCredentials() {
+    var problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, GENERIC_FAILURE_DETAIL);
+    problem.setTitle("Sign-in failed");
+    return problem;
   }
 }

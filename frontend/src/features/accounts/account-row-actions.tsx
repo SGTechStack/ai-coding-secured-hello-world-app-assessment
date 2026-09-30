@@ -3,6 +3,7 @@ import { Trash2, UserCheck, UserMinus } from 'lucide-react';
 import { ActionTooltip } from './action-tooltip';
 import { ConfirmDialog } from '@components/layout/confirm-dialog';
 import { Button } from '@components/ui/button';
+import { toast } from '@components/ui/toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@components/ui/select';
 import { accountActionErrorMessage, useAccountLifecycle } from './accounts-lifecycle.queries';
 import { ACCOUNT_ROLES, type AccountRole, type AccountSummary } from './accounts.queries';
@@ -23,7 +24,17 @@ export function AccountRowActions({ account }: { account: AccountSummary }) {
             className="size-8"
             aria-label={account.enabled ? 'Disable' : 'Enable'}
             disabled={isPending}
-            onClick={() => void setEnabled({ id: account.id, enabled: !account.enabled }).catch(() => undefined)}
+            onClick={() =>
+              void setEnabled({ id: account.id, enabled: !account.enabled })
+                .then(() =>
+                  toast.add({
+                    type: 'success',
+                    title: account.enabled ? 'Account disabled' : 'Account enabled',
+                    description: account.username,
+                  }),
+                )
+                .catch(() => undefined)
+            }
           >
             {account.enabled ? <UserMinus className="size-4" /> : <UserCheck className="size-4" />}
           </Button>
@@ -50,7 +61,11 @@ export function AccountRowActions({ account }: { account: AccountSummary }) {
         confirmLabel="Delete"
         variant="destructive"
         isPending={isPending}
-        onConfirm={() => void deleteAccount({ id: account.id }).catch(() => setConfirmingDelete(false))}
+        onConfirm={() =>
+          void deleteAccount({ id: account.id })
+            .then(() => toast.add({ type: 'success', title: 'Account deleted', description: account.username }))
+            .catch(() => setConfirmingDelete(false))
+        }
       />
       {error != null && (
         <p role="alert" className="text-danger text-xs">
@@ -71,7 +86,12 @@ export function AccountRoleSelect({ account }: { account: AccountSummary }) {
         value={account.role}
         disabled={isPending}
         onValueChange={(role) =>
-          role != null && void changeRole({ id: account.id, role: role as AccountRole }).catch(() => undefined)
+          role != null &&
+          void changeRole({ id: account.id, role: role as AccountRole })
+            .then(() =>
+              toast.add({ type: 'success', title: 'Role changed', description: `${account.username} is now ${role}` }),
+            )
+            .catch(() => undefined)
         }
       >
         <SelectTrigger aria-label={`Role for ${account.username}`} className="h-8 w-auto gap-2 px-2 text-xs">

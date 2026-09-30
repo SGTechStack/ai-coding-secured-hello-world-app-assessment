@@ -23,6 +23,7 @@ import { FieldErrors } from '@features/auth/field-errors';
 import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
 import { revalidateBlurError } from '@lib/form';
 import { formatDate, formatTimestamp } from '@lib/locale';
+import { TemporaryPassword } from './temporary-password';
 import { ActionTooltip } from './action-tooltip';
 import { AccountRoleSelect, AccountRowActions } from './account-row-actions';
 import { createAccountSchema } from './accounts.schema';
@@ -58,7 +59,7 @@ function CreatedResult({ created }: { created: CreatedAccount }) {
       <AlertTitle>Account created for {created.username}</AlertTitle>
       <AlertDescription>
         <p>
-          Temporary password: <code className="font-mono font-semibold">{created.temporaryPassword}</code>
+          Temporary password: <TemporaryPassword password={created.temporaryPassword} />
         </p>
         <p>
           It is shown only once. Copy it now and hand it to {created.username}; it expires{' '}
@@ -69,7 +70,13 @@ function CreatedResult({ created }: { created: CreatedAccount }) {
   );
 }
 
-function CreateAccountDialog({ onCreated }: { onCreated: (account: CreatedAccount | undefined) => void }) {
+function CreateAccountDialog({
+  defaultRole,
+  onCreated,
+}: {
+  defaultRole: AccountRole;
+  onCreated: (account: CreatedAccount | undefined) => void;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -85,6 +92,7 @@ function CreateAccountDialog({ onCreated }: { onCreated: (account: CreatedAccoun
           <DialogDescription>A temporary password is generated and shown once after creation.</DialogDescription>
         </DialogHeader>
         <CreateAccountForm
+          defaultRole={defaultRole}
           onCreated={(account) => {
             onCreated(account);
             setOpen(false);
@@ -97,16 +105,18 @@ function CreateAccountDialog({ onCreated }: { onCreated: (account: CreatedAccoun
 }
 
 function CreateAccountForm({
+  defaultRole,
   onStart,
   onCreated,
 }: {
+  defaultRole: AccountRole;
   onStart: () => void;
   onCreated: (account: CreatedAccount) => void;
 }) {
   const { createAccount, error, isPending } = useCreateAccount();
 
   const form = useForm({
-    defaultValues: { username: '', role: ACCOUNT_ROLES[0] as AccountRole },
+    defaultValues: { username: '', role: defaultRole },
     validators: {
       onBlur: createAccountSchema,
       onChangeAsyncDebounceMs: VALIDATION_DEBOUNCE_MS,
@@ -190,12 +200,14 @@ function AccountList({ onCreated }: { onCreated: (account: CreatedAccount | unde
   const { data: accounts } = useAccounts();
   const [reset, setReset] = useState<CreatedAccount | undefined>();
   const [resetError, setResetError] = useState<unknown>();
+  // The open Role tab, which the create dialog pre-selects.
+  const [activeRole, setActiveRole] = useState<AccountRole>(ACCOUNT_ROLES[0]);
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Accounts</CardTitle>
-        <CreateAccountDialog onCreated={onCreated} />
+        <CreateAccountDialog defaultRole={activeRole} onCreated={onCreated} />
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {reset && <ResetResult reset={reset} />}
@@ -204,7 +216,7 @@ function AccountList({ onCreated }: { onCreated: (account: CreatedAccount | unde
             <AlertDescription>{resetPasswordErrorMessage(resetError)}</AlertDescription>
           </Alert>
         )}
-        <Tabs defaultValue={ACCOUNT_ROLES[0]}>
+        <Tabs value={activeRole} onValueChange={(role) => setActiveRole(role as AccountRole)}>
           <TabsList>
             {ACCOUNT_ROLES.map((role) => (
               <TabsTrigger key={role} value={role}>
@@ -359,7 +371,7 @@ function ResetResult({ reset }: { reset: CreatedAccount }) {
       <AlertTitle>Password reset for {reset.username}</AlertTitle>
       <AlertDescription>
         <p>
-          Temporary password: <code className="font-mono font-semibold">{reset.temporaryPassword}</code>
+          Temporary password: <TemporaryPassword password={reset.temporaryPassword} />
         </p>
         <p>
           It is shown only once. Copy it now and hand it to {reset.username}; it expires{' '}

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { ErrorPage } from '@components/layout/error-page';
 import { NotFoundPage } from '@components/layout/not-found-page';
 import { SessionExpiredDialog } from '@components/layout/session-expired-dialog';
+import { ToastProvider } from '@components/ui/toast';
 import { SESSION_EXPIRED_EVENT } from '@lib/auth';
 
 interface RouterContext {
@@ -27,12 +28,14 @@ function RootLayout() {
   }, []);
 
   return (
-    <div className="flex min-h-svh flex-col">
-      <main className="flex flex-1 flex-col">
-        <Outlet />
-      </main>
-      <SessionExpiredDialog open={sessionExpired} />
-      {import.meta.env.DEV && <TanStackRouterDevtools />}
-    </div>
+    <ToastProvider>
+      <div className="flex min-h-svh flex-col">
+        <main className="flex flex-1 flex-col">
+          <Outlet />
+        </main>
+        <SessionExpiredDialog open={sessionExpired} />
+        {import.meta.env.DEV && <TanStackRouterDevtools />}
+      </div>
+    </ToastProvider>
   );
 }

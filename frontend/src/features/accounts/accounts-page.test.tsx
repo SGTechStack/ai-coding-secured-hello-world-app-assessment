@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastProvider } from '@components/ui/toast';
 import { AccountsPage } from './accounts-page';
 
 const fetchMock = vi.fn();
@@ -32,9 +33,11 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <Suspense fallback={<p>Loading</p>}>
-        <AccountsPage />
-      </Suspense>
+      <ToastProvider>
+        <Suspense fallback={<p>Loading</p>}>
+          <AccountsPage />
+        </Suspense>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }
@@ -197,7 +200,10 @@ describe('AccountsPage', () => {
 
     await user.click(within(row).getByRole('button', { name: 'Disable' }));
 
-    expect(await within(screen.getByText('active-user').closest('tr')!).findByText('Disabled')).toBeInTheDocument();
+    expect(
+      await within(screen.getByText('active-user', { selector: 'td' }).closest('tr')!).findByText('Disabled'),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Account disabled')).toBeInTheDocument();
     const [url, init] = requestsTo({ method: 'PUT' })[0] as [string, RequestInit];
     expect(url).toBe('/admin/api/users/id-active/enabled');
     expect(JSON.parse(init.body as string)).toEqual({ enabled: false });
@@ -232,7 +238,8 @@ describe('AccountsPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Role for active-user' }));
     await user.click(await screen.findByRole('option', { name: 'ADMIN' }));
 
-    await waitFor(() => expect(screen.queryByText('active-user')).not.toBeInTheDocument());
+    expect(await screen.findByText('Role changed')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('active-user', { selector: 'td' })).not.toBeInTheDocument());
     await openRoleTab({ role: 'ADMIN' });
     expect(await screen.findByRole('combobox', { name: 'Role for active-user' })).toHaveTextContent('ADMIN');
     const [url, init] = requestsTo({ method: 'PUT' })[0] as [string, RequestInit];
@@ -260,7 +267,8 @@ describe('AccountsPage', () => {
     dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(screen.queryByText('active-user')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('active-user', { selector: 'td' })).not.toBeInTheDocument());
+    expect(await screen.findByText('Account deleted')).toBeInTheDocument();
     const [url] = requestsTo({ method: 'DELETE' })[0] as [string, RequestInit];
     expect(url).toBe('/admin/api/users/id-active');
   });
@@ -311,5 +319,47 @@ describe('AccountsPage', () => {
     expect(screen.queryByText('root')).not.toBeInTheDocument();
     await openRoleTab({ role: 'ADMIN' });
     expect(await screen.findByText('root')).toBeInTheDocument();
+  });
+
+  it('pre-selects the open Role tab in the create dialog', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: [ROOT, ACTIVE] }));
+    renderPage();
+    const user = userEvent.setup();
+    await screen.findByText('active-user');
+
+    let dialog = await openCreateDialog({ user });
+    expect(within(dialog).getByRole('combobox', { name: 'Role' })).toHaveTextContent('USER');
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await openRoleTab({ role: 'ADMIN' });
+    dialog = await openCreateDialog({ user });
+    expect(within(dialog).getByRole('combobox', { name: 'Role' })).toHaveTextContent('ADMIN');
+  });
+
+  it('blurs a Temporary Password until hovered and copies it with the icon button', async () => {
+    const created = {
+      username: 'new-hire',
+      role: 'USER',
+      temporaryPassword: 'Xk7-temp-Pass-42',
+      temporaryPasswordExpiresAt: '2030-01-03T03:04:05Z',
+    };
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ACTIVE] }))
+      .mockResolvedValueOnce(jsonResponse({ status: 201, body: created }))
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ACTIVE] }));
+    renderPage();
+    await screen.findByText('active-user');
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+
+    const dialog = await openCreateDialog({ user });
+    await user.type(within(dialog).getByLabelText('Username'), 'new-hire');
+    await user.click(within(dialog).getByRole('button', { name: 'Create account' }));
+
+    expect(await screen.findByText('Xk7-temp-Pass-42')).toHaveClass('blur-sm', 'hover:blur-none');
+    await user.click(screen.getByRole('button', { name: 'Copy password' }));
+    expect(writeText).toHaveBeenCalledWith('Xk7-temp-Pass-42');
+    expect(await screen.findByText('Temporary password copied')).toBeInTheDocument();
   });
 });

@@ -26,6 +26,7 @@ type CsrfResponse = { headerName: string; token: string }
 let csrf: CsrfResponse | null = null
 let csrfRequest: Promise<CsrfResponse> | null = null
 const sessionEndedListeners = new Set<() => void>()
+const passwordChangeRequiredListeners = new Set<() => void>()
 
 /**
  * Registers the global reaction to "not logged in" (401). The handler must not show an error: a
@@ -34,6 +35,16 @@ const sessionEndedListeners = new Set<() => void>()
 export function onSessionEnded(listener: () => void): () => void {
   sessionEndedListeners.add(listener)
   return () => sessionEndedListeners.delete(listener)
+}
+
+/**
+ * Registers the global reaction to "your password must be changed first" (403
+ * `password_change_required`): the API refuses everything but `/me`, the Password Change, logout and
+ * `/csrf` until the holder chooses a new password. Returns an unsubscribe function.
+ */
+export function onPasswordChangeRequired(listener: () => void): () => void {
+  passwordChangeRequiredListeners.add(listener)
+  return () => passwordChangeRequiredListeners.delete(listener)
 }
 
 /** Fetches a fresh CSRF token. Call after login and logout, when the server issues a new one. */
@@ -89,6 +100,10 @@ export async function apiRequest<T>(
   // Rejected login credentials are a 401 too, but no Session has ended.
   if (response.status === 401 && sessionEndedOn401 && problem?.code !== 'authentication_failed') {
     sessionEndedListeners.forEach((listener) => listener())
+  }
+  // The Session is fine; the Account simply may do nothing else until its password is changed.
+  if (response.status === 403 && problem?.code === 'password_change_required') {
+    passwordChangeRequiredListeners.forEach((listener) => listener())
   }
   return { ok: false, status: response.status, problem }
 }

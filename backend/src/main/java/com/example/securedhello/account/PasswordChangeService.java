@@ -57,7 +57,8 @@ class PasswordChangeService {
 	 * Changes the Account's password. The Account row is locked for the change, so concurrent changes
 	 * and logins run one after another and each sees the other's history and failure count. The
 	 * failure count is committed even though a wrong current password is refused.
-	 * @return the Account's email, for the "password changed" notification once this has committed
+	 * @return the Account's email, for the "password changed" notification once this has committed,
+	 *         and whether this change cleared a Required Password Change, for its audit event
 	 * @throws CurrentPasswordInvalidException when the current password is wrong or the Account is
 	 *         Locked
 	 * @throws com.example.securedhello.credential.PasswordPolicyException when the new password
@@ -66,7 +67,7 @@ class PasswordChangeService {
 	 *         the current one or another in the Password History
 	 */
 	@Transactional(noRollbackFor = CurrentPasswordInvalidException.class)
-	String change(UUID accountId, String currentPassword, String newPassword) {
+	CompletedPasswordChange change(UUID accountId, String currentPassword, String newPassword) {
 		Account account = accounts.findForUpdateById(accountId)
 			.orElseThrow(() -> new InsufficientAuthenticationException("Account no longer exists"));
 		Instant now = clock.instant();
@@ -80,9 +81,16 @@ class PasswordChangeService {
 		if (account.isLocked(now)) {
 			throw new CurrentPasswordInvalidException(false);
 		}
-		passwordUpdater.apply(account, newPassword, now);
+		boolean requirementCleared = passwordUpdater.apply(account, newPassword, now);
 		resetTokenCanceller.cancelPending(accountId, now);
-		return account.getEmail();
+		return new CompletedPasswordChange(account.getEmail(), requirementCleared);
+	}
+
+	/**
+	 * A committed Password Change: the Account's email for the notification, and whether it cleared a
+	 * Required Password Change.
+	 */
+	record CompletedPasswordChange(String email, boolean requirementCleared) {
 	}
 
 }

@@ -29,13 +29,14 @@ class PasswordUpdater {
 	 * Checks {@code newPassword} against the Credential policy and the Account's Password History
 	 * (the latest {@link CredentialPolicy#historyLength()} passwords, the current one included), then
 	 * replaces the Account's password and records it in the Password History, keeping only the latest
-	 * entries.
+	 * entries. A new password also satisfies, and so clears, a Required Password Change.
+	 * @return whether a Required Password Change was cleared, so the caller can audit it
 	 * @throws com.example.securedhello.credential.PasswordPolicyException when the new password
 	 *         breaks the Credential policy
 	 * @throws com.example.securedhello.credential.PasswordHistoryException when the new password is
 	 *         the current one or another in the Password History
 	 */
-	void apply(Account account, String newPassword, Instant now) {
+	boolean apply(Account account, String newPassword, Instant now) {
 		credentialPolicy.check(newPassword);
 		List<PasswordHistoryEntry> history = passwordHistory.findByUserIdOrderByCreatedAtDesc(account.getId());
 		int keep = credentialPolicy.historyLength();
@@ -46,12 +47,13 @@ class PasswordUpdater {
 					.limit(keep)
 					.toList());
 
-		account.changePassword(credentialPolicy.hash(newPassword));
+		boolean requirementCleared = account.changePassword(credentialPolicy.hash(newPassword));
 		passwordHistory.save(new PasswordHistoryEntry(account.getId(), account.getPasswordHash(), now));
 		if (history.size() >= keep) {
 			// The new entry is one of the kept ones, so only keep - 1 older ones remain.
 			passwordHistory.deleteAll(history.subList(keep - 1, history.size()));
 		}
+		return requirementCleared;
 	}
 
 }

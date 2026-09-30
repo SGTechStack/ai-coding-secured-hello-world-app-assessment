@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { changeRole, listAccounts, setEnabled, unlock, type AdminAccount, type AdminActionResult } from '../api/admin'
+import {
+  changeRole,
+  listAccounts,
+  requirePasswordChange,
+  setEnabled,
+  unlock,
+  type AdminAccount,
+  type AdminActionResult,
+} from '../api/admin'
 
 type State =
   { kind: 'loading' } | { kind: 'loaded'; accounts: AdminAccount[] } | { kind: 'forbidden' } | { kind: 'error' }
@@ -15,7 +23,10 @@ const ACTION_ERROR_MESSAGES: Record<Extract<AdminActionResult, { ok: false }>['r
   error: GENERIC_ERROR,
 }
 
-/** The admin Account list, with enable/disable and role actions. Server data is rendered as text only. */
+/**
+ * The admin Account list, with enable/disable, role, unlock and require-password-change actions. Server
+ * data is rendered as text only.
+ */
 export function AdminUsersPage() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [actionError, setActionError] = useState<string | null>(null)
@@ -63,6 +74,7 @@ export function AdminUsersPage() {
           onSetEnabled={(id, enabled) => runAction(id, () => setEnabled(id, enabled))}
           onChangeRole={(id, role) => runAction(id, () => changeRole(id, role))}
           onUnlock={(id) => runAction(id, () => unlock(id))}
+          onRequirePasswordChange={(id) => runAction(id, () => requirePasswordChange(id))}
         />
       )}
       <p>
@@ -78,12 +90,14 @@ function AccountTable({
   onSetEnabled,
   onChangeRole,
   onUnlock,
+  onRequirePasswordChange,
 }: {
   accounts: AdminAccount[]
   busyId: string | null
   onSetEnabled: (id: string, enabled: boolean) => void
   onChangeRole: (id: string, role: 'USER' | 'ADMIN') => void
   onUnlock: (id: string) => void
+  onRequirePasswordChange: (id: string) => void
 }) {
   return (
     <div className="table-scroll">
@@ -121,10 +135,16 @@ function AccountTable({
                     {account.role === 'ADMIN' ? 'Make User' : 'Make Admin'}
                   </button>{' '}
                   {account.locked && (
-                    <button type="button" disabled={busy} onClick={() => onUnlock(account.id)}>
-                      Unlock
-                    </button>
+                    <>
+                      <button type="button" disabled={busy} onClick={() => onUnlock(account.id)}>
+                        Unlock
+                      </button>{' '}
+                    </>
                   )}
+                  {/* Ends the Account's Sessions too, so a suspected attacker is logged out at once. */}
+                  <button type="button" disabled={busy} onClick={() => onRequirePasswordChange(account.id)}>
+                    Require password change
+                  </button>
                 </td>
               </tr>
             )

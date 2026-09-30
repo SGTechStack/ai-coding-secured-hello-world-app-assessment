@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { changePassword, type PasswordChangeResult } from '../api/auth'
 import { useAuth } from '../auth/useAuth'
 import { Field, type FieldError } from '../components/Field'
+import { LogoutButton } from '../components/LogoutButton'
 import { passwordRuleErrors } from '../components/passwordRules'
 
 type Failure = Extract<PasswordChangeResult, { ok: false }>
@@ -24,9 +25,13 @@ const NO_ERRORS: Errors = { violations: [] }
 /**
  * Password Change for the logged-in Account holder. Success ends every Session, this one included,
  * so the holder goes to the login page with a message and logs in with the new password.
+ *
+ * When the Account's password must be changed, this is the only screen it can reach: the way back is
+ * replaced by a logout button, and a notice says why (stories 108 and 110).
  */
 export function PasswordChangePage() {
   const auth = useAuth()
+  const required = auth.state.kind === 'authenticated' && auth.state.account.passwordChangeRequired
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [errors, setErrors] = useState<Errors>(NO_ERRORS)
@@ -58,6 +63,11 @@ export function PasswordChangePage() {
   return (
     <section>
       <h1>Change password</h1>
+      {required && (
+        <p role="status">
+          Your password must be changed before you can do anything else. Choose a new password, then log in again.
+        </p>
+      )}
       <form onSubmit={submit} noValidate>
         <Field
           name="currentPassword"
@@ -81,9 +91,13 @@ export function PasswordChangePage() {
           Change password
         </button>
       </form>
-      <p>
-        <Link to="/">Back</Link>
-      </p>
+      {required ? (
+        <LogoutButton />
+      ) : (
+        <p>
+          <Link to="/">Back</Link>
+        </p>
+      )}
     </section>
   )
 }

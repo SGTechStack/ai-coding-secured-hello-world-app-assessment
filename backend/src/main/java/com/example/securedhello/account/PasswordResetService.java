@@ -92,7 +92,8 @@ class PasswordResetService {
 
 	/**
 	 * Redeems a Reset Token: applies the Credential policy and Password History, marks the token
-	 * used, and cancels any other pending token, but never touches an active lock (story 58).
+	 * used, and cancels any other pending token, but never touches an active lock (story 58). A new
+	 * password also satisfies and clears a Required Password Change.
 	 * @throws TokenInvalidException when the token is unknown, expired or already used
 	 * @throws com.example.securedhello.credential.PasswordPolicyException when the new password
 	 *         breaks the Credential policy
@@ -107,8 +108,9 @@ class PasswordResetService {
 			.orElseThrow(() -> invalid(httpMethod, urlPath));
 		Account account = accounts.findForUpdateById(resetToken.getUserId())
 			.orElseThrow(() -> invalid(httpMethod, urlPath));
+		boolean requirementCleared;
 		try {
-			passwordUpdater.apply(account, newPassword, now);
+			requirementCleared = passwordUpdater.apply(account, newPassword, now);
 		}
 		catch (RuntimeException ex) {
 			auditLog.record(AuditEvent.failure(AuditAction.PASSWORD_RESET, reasonFor(ex))
@@ -120,6 +122,9 @@ class PasswordResetService {
 		resetTokenCanceller.cancelPending(account.getId(), now);
 		auditLog.record(
 				AuditEvent.success(AuditAction.PASSWORD_RESET).userId(account.getId()).request(httpMethod, urlPath));
+		if (requirementCleared) {
+			auditLog.record(PasswordChangeEnforcement.cleared(account.getId()).request(httpMethod, urlPath));
+		}
 		return new ConfirmedReset(account.getId(), account.getEmail());
 	}
 

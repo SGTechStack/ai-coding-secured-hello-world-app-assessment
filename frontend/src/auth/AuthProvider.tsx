@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { fetchOwnAccount } from '../api/auth'
-import { onSessionEnded } from '../api/client'
+import { onPasswordChangeRequired, onSessionEnded } from '../api/client'
 import { AuthContext, type Auth, type AuthState } from './useAuth'
 
 /**
  * Holds the auth state for the whole SPA. On load it calls `GET /me` to decide what to show; any
- * ended Session (a global 401) makes the caller anonymous again.
+ * ended Session (a global 401) makes the caller anonymous again, and any request refused until the
+ * password is changed (a global 403 `password_change_required`) records the requirement, so the route
+ * guard leaves only the Password Change screen and logout reachable.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ kind: 'loading' })
@@ -21,6 +23,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => onSessionEnded(() => setState({ kind: 'anonymous' })), [])
+
+  useEffect(
+    () =>
+      onPasswordChangeRequired(() =>
+        setState((current) =>
+          current.kind === 'authenticated'
+            ? { kind: 'authenticated', account: { ...current.account, passwordChangeRequired: true } }
+            : current,
+        ),
+      ),
+    [],
+  )
 
   const auth = useMemo<Auth>(
     () => ({

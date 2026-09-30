@@ -120,6 +120,32 @@ describe('unlock', () => {
   })
 })
 
+describe('requirePasswordChange', () => {
+  it('sends the target with the CSRF token and no body', async () => {
+    const fetch = fakeApi({
+      'GET /csrf': csrfRoute,
+      [`POST /admin/users/${id}/require-password-change`]: () => new Response(null, { status: 200 }),
+    })
+
+    expect(await admin.requirePasswordChange(id)).toEqual({ ok: true })
+    const [url, init] = fetch.mock.calls.find(([callUrl]) => String(callUrl).includes('/require-password-change'))!
+    expect(new URL(String(url)).pathname).toBe(`/api/admin/users/${id}/require-password-change`)
+    expect(init?.method).toBe('POST')
+    expect(new Headers(init?.headers).get('X-CSRF-TOKEN')).toBe('token-1')
+    expect(init?.body).toBeUndefined()
+  })
+
+  it.each([
+    [problem(404, 'not_found'), 'not_found'],
+    [problem(403, 'access_denied'), 'forbidden'],
+    [problem(500, 'internal_error'), 'error'],
+  ] as const)('maps a refusal (%#)', async (response, reason) => {
+    fakeApi({ 'GET /csrf': csrfRoute, [`POST /admin/users/${id}/require-password-change`]: () => response })
+
+    expect(await admin.requirePasswordChange(id)).toEqual({ ok: false, reason })
+  })
+})
+
 describe('changeRole', () => {
   it('sends the target and the new role as JSON with the CSRF token', async () => {
     const fetch = fakeApi({

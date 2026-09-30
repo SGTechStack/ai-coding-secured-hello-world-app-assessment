@@ -134,6 +134,29 @@ describe('API client', () => {
     expect(listener).not.toHaveBeenCalled()
   })
 
+  it('notifies the global handler when a request is refused until the password is changed', async () => {
+    fakeApi({ 'GET /hello': () => problem(403, 'password_change_required') })
+    const listener = vi.fn()
+    client.onPasswordChangeRequired(listener)
+
+    const result = await client.apiRequest('/hello')
+
+    expect(result).toMatchObject({ ok: false, status: 403, problem: { code: 'password_change_required' } })
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('does not treat another 403 as a required password change, and unsubscribes cleanly', async () => {
+    fakeApi({ 'GET /hello': () => problem(403, 'access_denied') })
+    const listener = vi.fn()
+    const unsubscribe = client.onPasswordChangeRequired(listener)
+
+    await client.apiRequest('/hello')
+    unsubscribe()
+    await client.apiRequest('/hello')
+
+    expect(listener).not.toHaveBeenCalled()
+  })
+
   it('returns text bodies as text', async () => {
     fakeApi({ 'GET /hello': () => new Response('Hello, testuser123', { headers: { 'Content-Type': 'text/plain' } }) })
 

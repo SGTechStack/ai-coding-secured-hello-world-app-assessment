@@ -69,6 +69,14 @@ describe('Login screen', () => {
     expect(csrfCalls).toHaveLength(2)
   })
 
+  it('goes straight to the Password Change screen when the Account must change its password', async () => {
+    renderApp({ 'POST /login': () => json(200, { ...account, passwordChangeRequired: true }) })
+
+    await fillAndSubmit()
+
+    expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+  })
+
   it('always goes to the hello screen, never to a return URL', async () => {
     renderApp(
       { 'POST /login': () => json(200, account) },

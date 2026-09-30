@@ -25,6 +25,9 @@ function renderAt(path: string) {
   )
 }
 
+const requestedPaths = (fetch: ReturnType<typeof fakeApi>) =>
+  fetch.mock.calls.map(([url]) => new URL(String(url)).pathname)
+
 function visit(meRoute: Route, helloRoute: Route = () => new Response('Hello, testuser123')) {
   const fetch = fakeApi({ 'GET /me': meRoute, 'GET /hello': helloRoute })
   renderAt('/')
@@ -105,6 +108,50 @@ describe('SPA start-up', () => {
     await vi.waitFor(() => expect(fetch).toHaveBeenCalled())
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(screen.getByRole('heading', { name: 'Register' })).toBeInTheDocument()
+  })
+
+  it('takes an Account holder whose password must be changed straight to that screen', async () => {
+    const fetch = fakeApi({ 'GET /me': () => json(200, { ...account, passwordChangeRequired: true }) })
+    renderAt('/')
+
+    expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Back' })).not.toBeInTheDocument()
+    expect(requestedPaths(fetch)).not.toContain('/api/hello')
+  })
+
+  it('keeps every other screen out of reach while a password change is required', async () => {
+    fakeApi({ 'GET /me': () => json(200, { ...account, role: 'ADMIN', passwordChangeRequired: true }) })
+    renderAt('/admin/users')
+
+    expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+  })
+
+  it.each(['/register', '/forgot-password', '/reset-password'])(
+    'sends an Account holder whose password must be changed from %s to that screen',
+    async (path) => {
+      fakeApi({ 'GET /me': () => json(200, { ...account, passwordChangeRequired: true }) })
+      renderAt(path)
+
+      expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+    },
+  )
+
+  it('still lets a logged-out holder open the reset screen, which is how a reset clears the flag', async () => {
+    fakeApi({ 'GET /me': () => problem(401, 'authentication_required') })
+    renderAt('/reset-password?token=reset-token-1')
+
+    expect(await screen.findByRole('heading', { name: 'Reset password' })).toBeInTheDocument()
+  })
+
+  it('switches to the Password Change screen when a request is refused until the password changes', async () => {
+    visit(
+      () => json(200, account),
+      () => problem(403, 'password_change_required'),
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('sends unknown paths to the start page', async () => {

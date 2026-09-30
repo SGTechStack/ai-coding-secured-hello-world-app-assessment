@@ -125,9 +125,27 @@ public class Account {
 		return false;
 	}
 
-	/** Replaces the password with one that has passed the Credential policy and Password History. */
-	void changePassword(String newPasswordHash) {
+	/**
+	 * Replaces the password with one that has passed the Credential policy and Password History, and
+	 * clears any Required Password Change, which choosing a new password is exactly what satisfies.
+	 * @return whether a Required Password Change was cleared, for its audit event
+	 */
+	boolean changePassword(String newPasswordHash) {
 		passwordHash = newPasswordHash;
+		boolean wasRequired = passwordChangeRequired;
+		passwordChangeRequired = false;
+		return wasRequired;
+	}
+
+	/**
+	 * An Admin who suspects the Account is compromised requires the holder to choose a new password
+	 * before doing anything else. Idempotent.
+	 * @return whether a Required Password Change was already set, for the audit event's before state
+	 */
+	boolean requirePasswordChange() {
+		boolean wasRequired = passwordChangeRequired;
+		passwordChangeRequired = true;
+		return wasRequired;
 	}
 
 	/** An Admin permits or suspends login. Never touches {@code passwordChangeRequired} (ADR 0001). */

@@ -2,6 +2,7 @@ package com.example.securedhello.security;
 
 import java.util.List;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
@@ -25,6 +27,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.example.securedhello.account.RequiredPasswordChangeFilter;
 import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
@@ -52,11 +55,36 @@ class SecurityConfig {
 		return new HttpSessionCsrfTokenRepository();
 	}
 
+	/**
+	 * The API chain adds {@link RequiredPasswordChangeFilter} itself, at the one place in the chain
+	 * where the request's Account is known. Boot registers every {@code Filter} bean for the whole
+	 * servlet container as well; this disables that registration, so the filter runs in exactly one
+	 * place.
+	 * <p>
+	 * The container copy would run <em>after</em> the chain, not before it: the filter carries no
+	 * {@code @Order} and neither {@code OncePerRequestFilter} nor {@code GenericFilterBean} implements
+	 * {@code Ordered}, so Boot's wrapping registration keeps the default
+	 * {@code Ordered.LOWEST_PRECEDENCE}, while {@code FilterChainProxy} is registered at
+	 * {@code SecurityFilterProperties.DEFAULT_FILTER_ORDER} ({@code -100}). For a request the API
+	 * chain handles, the <em>container</em> copy is therefore the no-op one, because the in-chain
+	 * instance has already set the once-per-request attribute. It is not harmless, though: a request
+	 * another chain handles (the {@code dev} H2 console, see {@code DevH2ConsoleSecurityConfig}) never
+	 * reaches the in-chain instance, so the container copy would enforce outside the chain that
+	 * defines the enforcement.
+	 */
+	@Bean
+	FilterRegistrationBean<RequiredPasswordChangeFilter> requiredPasswordChangeFilterRegistration(
+			RequiredPasswordChangeFilter filter) {
+		FilterRegistrationBean<RequiredPasswordChangeFilter> registration = new FilterRegistrationBean<>(filter);
+		registration.setEnabled(false);
+		return registration;
+	}
+
 	@Bean
 	@Order(10)
 	SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, ApiProperties api, CorsProperties cors,
-			AuditLog auditLog, CsrfTokenRepository csrfTokenRepository, SessionControl sessionControl)
-			throws Exception {
+			AuditLog auditLog, CsrfTokenRepository csrfTokenRepository, SessionControl sessionControl,
+			RequiredPasswordChangeFilter requiredPasswordChange) throws Exception {
 		http.cors((c) -> c.configurationSource(corsConfigurationSource(api, cors)))
 			.csrf((csrf) -> csrf.csrfTokenRepository(csrfTokenRepository))
 			// Size check runs before CSRF, authorization and every controller.
@@ -65,6 +93,8 @@ class SecurityConfig {
 			.addFilterBefore(new SessionLifetimeFilter(sessionControl), CsrfFilter.class)
 			// user.id in MDC once the Session's authentication is loaded, before any rejection.
 			.addFilterBefore(new AccountIdMdcFilter(), CsrfFilter.class)
+			// Required Password Change, after authentication and authorization have had their say.
+			.addFilterAfter(requiredPasswordChange, AuthorizationFilter.class)
 			.authorizeHttpRequests((auth) -> auth
 			.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/csrf")).permitAll()

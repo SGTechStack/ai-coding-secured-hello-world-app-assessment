@@ -32,7 +32,8 @@ import com.example.securedhello.web.ProblemResponses;
  * Account is also audited as a lockout, and a Locked Account gets the same
  * {@code current_password_invalid} refusal as a wrong password. Each outcome is audited
  * as {@code password-reset} with {@code event.type: ["change"]}; a refusal carries only its code as
- * the reason, never the passwords or the broken rules.
+ * the reason, never the passwords or the broken rules. A change that satisfied a Required Password
+ * Change also clears it, audited as {@code password-change-enforcement}.
  */
 @RestController
 @RequestMapping("${app.api.base-path}")
@@ -65,14 +66,18 @@ class PasswordChangeController {
 	@PatchMapping("/me/password")
 	ResponseEntity<Void> change(@AuthenticationPrincipal AccountPrincipal principal,
 			@Valid @RequestBody PasswordChangeRequest body, HttpServletRequest request, HttpServletResponse response) {
+		PasswordChangeService.CompletedPasswordChange completed = passwordChange.change(principal.accountId(),
+				body.currentPassword(), body.newPassword());
 		// The change has committed, so the notification never announces a change that rolled back.
-		emailService.notifyPasswordChanged(
-				passwordChange.change(principal.accountId(), body.currentPassword(), body.newPassword()));
+		emailService.notifyPasswordChanged(completed.email());
 		sessionControl.endAll(principal.accountId(), PASSWORD_CHANGE, request, response);
 		auditLog.record(AuditEvent.success(AuditAction.PASSWORD_RESET)
 			.eventType(CHANGE)
 			.userId(principal.accountId())
 			.request(request));
+		if (completed.requirementCleared()) {
+			auditLog.record(PasswordChangeEnforcement.cleared(principal.accountId()).request(request));
+		}
 		return ResponseEntity.ok().build();
 	}
 

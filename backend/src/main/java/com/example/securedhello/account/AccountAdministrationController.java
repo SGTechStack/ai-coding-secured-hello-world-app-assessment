@@ -34,7 +34,9 @@ import com.example.securedhello.web.ProblemResponses;
  * the change takes effect immediately; re-enabling does not end Sessions or clear the
  * required-password-change flag (ADR 0001). Unlocking clears the lock and failure counter without
  * touching Sessions. The self-action guard and the last-Admin rule are enforced by the service; a
- * rejected attempt is audited here at WARN as {@code user-administration}.
+ * rejected attempt is audited here at WARN as {@code user-administration}. Requiring a password change
+ * also ends the target's Sessions and is audited as {@code password-change-enforcement} instead, since
+ * it changes what the target may do rather than its administrative state.
  */
 @RestController
 @RequestMapping("${app.api.base-path}/admin/users")
@@ -43,6 +45,8 @@ class AccountAdministrationController {
 	static final String ACCOUNT_DISABLED = "account_disabled";
 
 	static final String ROLE_CHANGED = "role_changed";
+
+	static final String PASSWORD_CHANGE_REQUIRED = "password_change_required";
 
 	private final AccountAdministrationService administration;
 
@@ -112,6 +116,21 @@ class AccountAdministrationController {
 			.targetUserId(id)
 			.change("locked", change.before(), false)
 			.request(request));
+		return ResponseEntity.ok().build();
+	}
+
+	/**
+	 * Requires the target Account to change its password and ends its Sessions at once, so a suspected
+	 * attacker is logged out and the holder must choose a new password before doing anything else. An
+	 * Admin may require it of their own Account; that ends their own Session too.
+	 */
+	@PostMapping("/{id}/require-password-change")
+	ResponseEntity<Void> requirePasswordChange(@PathVariable UUID id,
+			@AuthenticationPrincipal AccountPrincipal principal, HttpServletRequest request,
+			HttpServletResponse response) {
+		AccountRequiredPasswordChange change = administration.requirePasswordChange(id);
+		sessionControl.endAll(id, PASSWORD_CHANGE_REQUIRED, request, response);
+		auditLog.record(PasswordChangeEnforcement.set(principal.accountId(), id, change.before()).request(request));
 		return ResponseEntity.ok().build();
 	}
 

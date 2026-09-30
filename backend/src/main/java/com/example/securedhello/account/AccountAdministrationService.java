@@ -96,6 +96,21 @@ class AccountAdministrationService {
 		return new AccountUnlockChange(before);
 	}
 
+	/**
+	 * Requires the Account to change its password before it can do anything else, because an Admin
+	 * suspects it is compromised. Not subject to the self-action guard: an Admin may require it of
+	 * themselves, and the Bootstrap Admin starts out that way. Not subject to the last-Admin rule
+	 * either: the requirement never changes {@code enabled} or the role. Idempotent. Ending the
+	 * target's Sessions and auditing the change are the caller's job, once this has committed.
+	 * @throws AccountNotFoundException when {@code targetId} is not an Account
+	 */
+	@PreAuthorize("hasRole('ADMIN')")
+	@Transactional
+	AccountRequiredPasswordChange requirePasswordChange(UUID targetId) {
+		Account target = accounts.findForUpdateById(targetId).orElseThrow(AccountNotFoundException::new);
+		return new AccountRequiredPasswordChange(target.requirePasswordChange());
+	}
+
 	private static void guardSelfAction(UUID actingAdminId, UUID targetId) {
 		if (actingAdminId.equals(targetId)) {
 			throw new SelfActionForbiddenException(targetId);

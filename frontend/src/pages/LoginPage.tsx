@@ -30,8 +30,9 @@ export function LoginPage() {
       const result = await login(username, password)
       if (result.ok) {
         auth.loggedIn(result.account)
-        // Always the hello screen: a return URL is never followed.
-        navigate('/', { replace: true })
+        // Always one of our own two screens: a return URL is never followed. An Account whose password
+        // must be changed goes straight there, since nothing else is available to it (story 110).
+        navigate(result.account.passwordChangeRequired ? '/password-change' : '/', { replace: true })
         return
       }
       setError(FAILURE_MESSAGES[result.reason])

@@ -194,6 +194,38 @@ describe('admin users screen', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Unlock' })).not.toBeInTheDocument())
   })
 
+  it('requires a password change on an Account and reloads the list', async () => {
+    const target = accounts[1]
+    let required = false
+    const fetch = renderApp(adminAccount, '/admin/users', () => json(200, accounts), {
+      [`POST /admin/users/${target.id}/require-password-change`]: (init) => {
+        required = true
+        expect(init.body).toBeUndefined()
+        return new Response(null, { status: 200 })
+      },
+    })
+    const rows = await screen.findAllByRole('row')
+
+    fireEvent.click(within(rows[2]).getByRole('button', { name: 'Require password change' }))
+
+    await waitFor(() => expect(required).toBe(true))
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/api/admin/users')).length).toBeGreaterThanOrEqual(
+      2,
+    )
+  })
+
+  it('shows a clear message when requiring a password change on an unknown Account', async () => {
+    const target = accounts[1]
+    renderApp(adminAccount, '/admin/users', undefined, {
+      [`POST /admin/users/${target.id}/require-password-change`]: () => problem(404, 'not_found'),
+    })
+    const rows = await screen.findAllByRole('row')
+
+    fireEvent.click(within(rows[2]).getByRole('button', { name: 'Require password change' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('no longer exists')
+  })
+
   it('shows a clear message when an Admin cannot unlock their own Account', async () => {
     const target = accounts[0]
     renderApp(

@@ -55,6 +55,14 @@ export async function unlock(id: string): Promise<AdminActionResult> {
   return toActionResult(await apiRequest(`/admin/users/${id}/unlock`, { method: 'POST' }))
 }
 
+/**
+ * Requires an Account to change its password before it can do anything else, because an Admin
+ * suspects it is compromised. The server also ends that Account's Sessions at once.
+ */
+export async function requirePasswordChange(id: string): Promise<AdminActionResult> {
+  return toActionResult(await apiRequest(`/admin/users/${id}/require-password-change`, { method: 'POST' }))
+}
+
 function toActionResult(result: ApiResult<unknown>): AdminActionResult {
   if (result.ok) return { ok: true }
   const code = result.problem?.code

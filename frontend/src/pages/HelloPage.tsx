@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { logout } from '../api/auth'
 import { apiRequest } from '../api/client'
 import { useAuth } from '../auth/useAuth'
+import { LogoutButton } from '../components/LogoutButton'
 
 type State = { kind: 'loading' } | { kind: 'hello'; message: string } | { kind: 'error' }
 
@@ -11,7 +11,6 @@ const GENERIC_ERROR = 'Something went wrong. Please try again later.'
 export function HelloPage() {
   const auth = useAuth()
   const [state, setState] = useState<State>({ kind: 'loading' })
-  const [logoutFailed, setLogoutFailed] = useState(false)
   // Interface only: the API refuses admin requests from a User on its own.
   const isAdmin = auth.state.kind === 'authenticated' && auth.state.account.role === 'ADMIN'
 
@@ -21,8 +20,10 @@ export function HelloPage() {
       .then((result) => {
         if (!active) return
         if (result.ok) setState({ kind: 'hello', message: String(result.data) })
-        // 401 is handled globally (redirect to login, no error shown).
-        else if (result.status !== 401) setState({ kind: 'error' })
+        // A 401, and a 403 that says the password must be changed first, are both handled globally
+        // (the route guard moves on, no error shown).
+        else if (result.status !== 401 && result.problem?.code !== 'password_change_required')
+          setState({ kind: 'error' })
       })
       .catch(() => active && setState({ kind: 'error' }))
     return () => {
@@ -30,27 +31,12 @@ export function HelloPage() {
     }
   }, [])
 
-  async function logOut() {
-    setLogoutFailed(false)
-    try {
-      if (await logout()) {
-        // The route guard sends the now-anonymous caller to the login screen.
-        auth.loggedOut()
-        return
-      }
-    } catch {
-      // Falls through to the error message.
-    }
-    setLogoutFailed(true)
-  }
-
   if (state.kind === 'loading') return <p>Loading…</p>
   if (state.kind === 'error') return <p role="alert">{GENERIC_ERROR}</p>
   return (
     <section>
       {/* Server data is rendered as text only. */}
       <h1>{state.message}</h1>
-      {logoutFailed && <p role="alert">{GENERIC_ERROR}</p>}
       <p>
         <Link to="/password-change">Change password</Link>
       </p>
@@ -59,9 +45,7 @@ export function HelloPage() {
           <Link to="/admin/users">Manage Accounts</Link>
         </p>
       )}
-      <button type="button" onClick={logOut}>
-        Log out
-      </button>
+      <LogoutButton />
     </section>
   )
 }

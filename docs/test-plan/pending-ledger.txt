@@ -4,17 +4,9 @@
 # Ticket 28 deletes it. Reconcile after a merge with the command in backend/README.md.
 T-SES-029
 T-AUD-002
-T-AUD-015
-T-AUD-018
 T-AUD-026
 T-AUD-032
 T-AUD-035
 T-AUD-038
-T-HDR-003
-T-CFG-017
-T-CFG-019
-T-CFG-036
 T-OBS-016
 T-OBS-017
-T-FE-011
-T-ARCH-002

@@ -111,6 +111,13 @@ public class AppUser extends BaseAuditableEntity {
     this.passwordHash = passwordHash;
   }
 
+  /** Stores a hashed admin-issued Temporary Password the holder must replace before it expires. */
+  public void issueTemporaryPassword(String passwordHash, Instant expiresAt) {
+    this.passwordHash = passwordHash;
+    this.mustChangePassword = true;
+    this.tempPasswordExpiresAt = expiresAt;
+  }
+
   /** A correct sign-in clears the failed-attempt counter and any backoff. */
   public void recordSuccessfulSignIn() {
     this.failedLoginAttempts = 0;

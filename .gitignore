@@ -47,3 +47,12 @@ logs/
 # NOTE: `.scratch/` is deliberately NOT ignored on this branch — the wayfinder map and its
 # decision tickets are the planning deliverable. This is a conscious departure from the
 # `samuelwong` branch, which ignores it.
+
+# Prompt-injection harness output.
+#
+# `security-tests/test_runner.py` shutil.copytree()s backend/, frontend/ and prd/ into one directory
+# PER TEST CASE -- twelve of them -- with no `ignore=` argument, so each copy includes
+# frontend/node_modules and backend/target. That is several gigabytes of duplicated build output, and
+# none of it is source. `results/` is generated reports.
+security-tests/test-submissions/
+security-tests/results/

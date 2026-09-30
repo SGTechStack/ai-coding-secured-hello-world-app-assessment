@@ -127,6 +127,15 @@ Other agents are implementing other tickets in parallel in sibling worktrees; an
   pattern from ticket 11 (once merged).
 - Keep changes scoped to your ticket; don't pre-build later tickets. Small, clean, idiomatic code.
 
+## Gate rules (user-approved)
+- Inner loop: run only the targeted tests for what you are changing.
+- One full `verify` per final state; the build review agent reuses that log instead of running its own.
+- PIT: scoped to the changed classes per ticket; the full scope runs once, at close-out.
+- Playwright: a ticket runs only its own or touched specs; the full suite on both browsers runs once, on the merged
+  tree. Always `--workers=2`. A failing spec is rerun alone, and is called load-flaky only if it then passes.
+- Merges are serialized. At most ~2 tickets run in parallel.
+- Long jobs (full verify, PIT, full Playwright) run in the foreground with long timeouts.
+
 ## Final report (your last message; the orchestrator relays it)
 1. Status: done | partial | blocked (+ why)
 2. Commits (hash + subject) on your branch

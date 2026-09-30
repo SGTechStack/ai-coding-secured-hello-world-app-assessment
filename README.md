@@ -15,6 +15,10 @@ Session-based authentication app with a Spring Boot backend and a React SPA fron
 │   └── assessment-prd.md   # The Product Requirements Document — your source of truth
 ├── backend/                 # Spring Boot 4 (Java 21) REST API
 ├── frontend/                # React + TypeScript SPA (Vite)
+├── docs/
+│   ├── adr/                 # Architecture Decision Records — design choices and deviations from the PRD
+│   ├── agents/              # Conventions for AI coding agents (issue tracker, triage labels, domain docs)
+│   └── jwt-alternative.md   # The PRD's JWT alternative, documented but not built
 └── README.md                 # This file
 ```
 

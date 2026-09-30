@@ -1,0 +1,104 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+
+.app-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
+}
+
+.app-header h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.health-badge p {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.nav-bar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.nav-bar a {
+  text-decoration: none;
+  color: #1a5fb4;
+}
+
+.nav-bar a.active {
+  font-weight: 600;
+}
+
+.nav-link-button {
+  background: none;
+  border: none;
+  color: #1a5fb4;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+main {
+  max-width: 480px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+form label {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+form input {
+  padding: 0.4rem;
+  font-size: 1rem;
+}
+
+form button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+[role='alert'] {
+  color: #c01c28;
+}
+
+[role='status'] {
+  color: #26a269;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #ddd;
+  font-size: 0.9rem;
+}
+
+td button {
+  margin-right: 0.5rem;
+  cursor: pointer;
+}

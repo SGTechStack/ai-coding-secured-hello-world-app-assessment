@@ -1,47 +1,33 @@
-import { useEffect, useState } from 'react';
-import { fetchHealth } from './api/client';
-
-type ConnectionState =
-  | { kind: 'loading' }
-  | { kind: 'connected'; status: string; time: string }
-  | { kind: 'error'; message: string };
+import { Route, Routes } from 'react-router-dom';
+import Layout from './components/Layout';
+import ProtectedRoute from './routes/ProtectedRoute';
+import AdminRoute from './routes/AdminRoute';
+import HomeRedirect from './pages/HomeRedirect';
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import HelloPage from './pages/HelloPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import AdminUsersPage from './pages/AdminUsersPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
-  const [state, setState] = useState<ConnectionState>({ kind: 'loading' });
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchHealth()
-      .then((health) => {
-        if (!cancelled) {
-          setState({ kind: 'connected', status: health.status, time: health.time });
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : 'Unknown error';
-          setState({ kind: 'error', message });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   return (
-    <main>
-      <h1>Secured Hello World</h1>
-      <section aria-live="polite">
-        {state.kind === 'loading' && <p>Checking backend connectivity…</p>}
-        {state.kind === 'connected' && (
-          <p>
-            Backend reachable — status <strong>{state.status}</strong> at {state.time}
-          </p>
-        )}
-        {state.kind === 'error' && (
-          <p role="alert">Backend unreachable: {state.message}</p>
-        )}
-      </section>
-    </main>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<HomeRedirect />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/hello" element={<HelloPage />} />
+        </Route>
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminUsersPage />} />
+        </Route>
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   );
 }

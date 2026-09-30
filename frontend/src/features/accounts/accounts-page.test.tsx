@@ -44,6 +44,10 @@ async function openCreateDialog({ user }: { user: ReturnType<typeof userEvent.se
   return screen.findByRole('dialog');
 }
 
+async function openRoleTab({ role }: { role: string }) {
+  await userEvent.click(await screen.findByRole('tab', { name: new RegExp(`^${role} `) }));
+}
+
 function requestsTo({ method }: { method: string }) {
   return fetchMock.mock.calls.filter(([, init]) => ((init as RequestInit | undefined)?.method ?? 'GET') === method);
 }
@@ -62,11 +66,13 @@ describe('AccountsPage', () => {
     fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: [ROOT, SUSPENDED] }));
     renderPage();
 
+    await openRoleTab({ role: 'ADMIN' });
     const rootRow = (await screen.findByText('root')).closest('tr')!;
     expect(within(rootRow).getByRole('combobox', { name: 'Role for root' })).toHaveTextContent('ADMIN');
     expect(within(rootRow).getByText('Enabled')).toBeInTheDocument();
     expect(within(rootRow).getByText(/2030/)).toBeInTheDocument();
-    const suspendedRow = screen.getByText('suspended').closest('tr')!;
+    await openRoleTab({ role: 'USER' });
+    const suspendedRow = (await screen.findByText('suspended')).closest('tr')!;
     expect(within(suspendedRow).getByText('Disabled')).toBeInTheDocument();
     expect(fetchMock.mock.calls[0][0]).toBe('/admin/api/users');
   });
@@ -88,6 +94,7 @@ describe('AccountsPage', () => {
         }),
       );
     renderPage();
+    await openRoleTab({ role: 'ADMIN' });
     await screen.findByText('root');
     const user = userEvent.setup();
 
@@ -101,6 +108,7 @@ describe('AccountsPage', () => {
     expect(screen.getByText(/shown only once/i)).toBeInTheDocument();
     const [, init] = requestsTo({ method: 'POST' })[0] as [string, RequestInit];
     expect(JSON.parse(init.body as string)).toEqual({ username: 'new-hire', role: 'USER_MANAGER' });
+    await openRoleTab({ role: 'USER_MANAGER' });
     expect(await screen.findByText('new-hire', { selector: 'td' })).toBeInTheDocument();
   });
 
@@ -111,6 +119,7 @@ describe('AccountsPage', () => {
         jsonResponse({ status: 409, body: { title: 'Conflict', detail: 'Username is already taken' } }),
       );
     renderPage();
+    await openRoleTab({ role: 'ADMIN' });
     await screen.findByText('root');
     const user = userEvent.setup();
 
@@ -125,6 +134,7 @@ describe('AccountsPage', () => {
   it('asks for a username without calling the API when it is empty', async () => {
     fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: [ROOT] }));
     renderPage();
+    await openRoleTab({ role: 'ADMIN' });
     await screen.findByText('root');
     const user = userEvent.setup();
 
@@ -166,6 +176,7 @@ describe('AccountsPage', () => {
         jsonResponse({ status: 403, body: { title: 'Forbidden', detail: 'Admins cannot reset their own password' } }),
       );
     renderPage();
+    await openRoleTab({ role: 'ADMIN' });
     const row = (await screen.findByText('root')).closest('tr')!;
     const user = userEvent.setup();
 
@@ -199,6 +210,7 @@ describe('AccountsPage', () => {
         jsonResponse({ status: 409, body: { title: 'Conflict', detail: 'You cannot disable your own account' } }),
       );
     renderPage();
+    await openRoleTab({ role: 'ADMIN' });
     const row = (await screen.findByText('root')).closest('tr')!;
     const user = userEvent.setup();
 
@@ -220,9 +232,9 @@ describe('AccountsPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Role for active-user' }));
     await user.click(await screen.findByRole('option', { name: 'USER_MANAGER' }));
 
-    await waitFor(() =>
-      expect(screen.getByRole('combobox', { name: 'Role for active-user' })).toHaveTextContent('USER_MANAGER'),
-    );
+    await waitFor(() => expect(screen.queryByText('active-user')).not.toBeInTheDocument());
+    await openRoleTab({ role: 'USER_MANAGER' });
+    expect(await screen.findByRole('combobox', { name: 'Role for active-user' })).toHaveTextContent('USER_MANAGER');
     const [url, init] = requestsTo({ method: 'PUT' })[0] as [string, RequestInit];
     expect(url).toBe('/admin/api/users/id-active/role');
     expect(JSON.parse(init.body as string)).toEqual({ role: 'USER_MANAGER' });
@@ -237,19 +249,67 @@ describe('AccountsPage', () => {
     const row = (await screen.findByText('active-user')).closest('tr')!;
     const user = userEvent.setup();
 
-    await user.click(within(row).getByRole('button', { name: 'Delete' }));
+    await user.click(within(row).getByRole('button', { name: 'Delete active-user' }));
     let dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/Delete active-user permanently/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(requestsTo({ method: 'DELETE' })).toHaveLength(0);
 
-    await user.click(within(row).getByRole('button', { name: 'Delete' }));
+    await user.click(within(row).getByRole('button', { name: 'Delete active-user' }));
     dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(screen.queryByText('active-user')).not.toBeInTheDocument());
     const [url] = requestsTo({ method: 'DELETE' })[0] as [string, RequestInit];
     expect(url).toBe('/admin/api/users/id-active');
+  });
+
+  it('shows a tooltip on hover for each row action', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: [ACTIVE] }));
+    renderPage();
+    const row = (await screen.findByText('active-user')).closest('tr')!;
+    const user = userEvent.setup();
+
+    for (const name of ['Reset password', 'Disable', 'Delete active-user']) {
+      await user.hover(within(row).getByRole('button', { name }));
+      expect(await screen.findByText(name, { selector: '[data-side]' })).toBeInTheDocument();
+      await user.unhover(within(row).getByRole('button', { name }));
+    }
+  });
+
+  it('pages a Role tab ten accounts at a time', async () => {
+    const many = Array.from({ length: 12 }, (_, n) => ({
+      ...ACTIVE,
+      id: `id-${n}`,
+      username: `user-${String(n).padStart(2, '0')}`,
+    }));
+    fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: many }));
+    renderPage();
+    await screen.findByText('user-00');
+    const user = userEvent.setup();
+
+    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
+    expect(screen.queryByText('user-10')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument();
+    expect(screen.getByText('user-10')).toBeInTheDocument();
+    expect(screen.queryByText('user-00')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+  });
+
+  it('splits accounts into one tab per Role', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: 200, body: [ROOT, ACTIVE] }));
+    renderPage();
+
+    expect(await screen.findByRole('tab', { name: 'USER (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'ADMIN (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'USER_MANAGER (0)' })).toBeInTheDocument();
+    expect(screen.queryByText('root')).not.toBeInTheDocument();
+    await openRoleTab({ role: 'ADMIN' });
+    expect(await screen.findByText('root')).toBeInTheDocument();
   });
 });

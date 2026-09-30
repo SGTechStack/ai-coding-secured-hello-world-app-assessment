@@ -254,6 +254,8 @@
                             <!-- the lockout counter and ladder -->
                             <param>sg.securedhello.*LockoutCounter*</param>
                             <param>sg.securedhello.*LockoutLadder*</param>
+                            <!-- the chained observation window both lockouts count on (ADR-012; ADR-027) -->
+                            <param>sg.securedhello.*ObservationWindow*</param>
                             <param>sg.securedhello.*AdminActionGuard*</param>
                             <param>sg.securedhello.*SourceKeyResolver*</param>
                             <!-- the PasswordService policy -->

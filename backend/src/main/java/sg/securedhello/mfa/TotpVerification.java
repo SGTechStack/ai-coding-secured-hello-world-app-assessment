@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
 
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -75,7 +74,7 @@ public class TotpVerification {
         AccountContext account = AccountContext.of(userId);
         switch (checked.outcome()) {
             case VERIFIED -> audit.emit(AuditEvent.TOTP_VERIFIED, account);
-            case LOCKED -> throw new FactorLockedException(now, checked.lockedUntil());
+            case LOCKED -> throw new FactorLockedException(now, checked.lockedUntil().orElseThrow());
             case WRONG -> {
                 audit.emit(AuditEvent.TOTP_VERIFICATION_FAILED, account);
                 throw new InvalidFactorException();
@@ -83,7 +82,7 @@ public class TotpVerification {
             case LOCKING -> {
                 audit.emit(AuditEvent.TOTP_VERIFICATION_FAILED, account);
                 audit.emit(AuditEvent.TOTP_FACTOR_LOCKED, account);
-                throw new FactorLockedException(now, checked.lockedUntil());
+                throw new FactorLockedException(now, checked.lockedUntil().orElseThrow());
             }
             case DISABLING -> {
                 audit.emit(AuditEvent.TOTP_VERIFICATION_FAILED, account);
@@ -103,43 +102,31 @@ public class TotpVerification {
         }
         Optional<Instant> locked = factor.lockedUntil(now);
         if (locked.isPresent()) {
-            return new Checked(Outcome.LOCKED, locked.get());
+            return new Checked(TotpOutcome.LOCKED, locked);
         }
         if (code.isEmpty()) {
-            return new Checked(Outcome.WRONG, null);
+            return new Checked(TotpOutcome.WRONG, Optional.empty());
         }
         byte[] secret = cipher.open(userId, factor.getKeyVersion(), factor.getTotpKey());
         OptionalLong counter = TotpWindow.match(secret, code, now, factor.lastUsedCounter());
         if (counter.isPresent()) {
             factor.accept(counter.getAsLong());
-            return new Checked(Outcome.VERIFIED, null);
+            return new Checked(TotpOutcome.VERIFIED, Optional.empty());
         }
-        return switch (factor.fail(now)) {
-            case COUNTED -> new Checked(Outcome.WRONG, null);
-            case LOCKED -> new Checked(Outcome.LOCKING, now.plus(TotpUserDetails.LOCK));
-            case DISABLED -> {
-                account.requirePasswordChange();
-                sessions.endAll(account.getUsername());
-                yield new Checked(Outcome.DISABLING, null);
-            }
-        };
+        TotpOutcome failure = factor.fail(now);
+        if (failure == TotpOutcome.DISABLING) {
+            account.requirePasswordChange();
+            sessions.endAll(account.getUsername());
+        }
+        return new Checked(failure, factor.lockedUntil(now));
     }
 
-    /** What one verification found, decided under the row locks. */
-    private enum Outcome {
-        VERIFIED,
-        /** A wrong code, counted unless empty. */
-        WRONG,
-        /** The factor was already locked; nothing was checked. */
-        LOCKED,
-        /** A wrong code that locked the factor. */
-        LOCKING,
-        /** A wrong code that disabled the factor. */
-        DISABLING
-    }
-
-    /** @param lockedUntil the tier-1 lock's end, for {@code LOCKED} and {@code LOCKING} */
-    private record Checked(Outcome outcome, @Nullable Instant lockedUntil) {
+    /**
+     * What one verification found, decided under the row locks.
+     *
+     * @param lockedUntil the tier-1 lock's end, present for {@code LOCKED} and {@code LOCKING}
+     */
+    private record Checked(TotpOutcome outcome, Optional<Instant> lockedUntil) {
     }
 
     /** A factor tier 2 disabled: 423 {@code FACTOR_DISABLED} until it is rebound (ADR-027; R-MFA-006). */
@@ -158,10 +145,9 @@ public class TotpVerification {
 
         private final long retryAfterSeconds;
 
-        FactorLockedException(Instant now, @Nullable Instant lockedUntil) {
+        FactorLockedException(Instant now, Instant lockedUntil) {
             super("The TOTP factor is locked");
-            long millis = lockedUntil == null ? 0 : Duration.between(now, lockedUntil).toMillis();
-            this.retryAfterSeconds = Math.max(1, Math.ceilDiv(millis, 1000));
+            this.retryAfterSeconds = Math.max(1, Math.ceilDiv(Duration.between(now, lockedUntil).toMillis(), 1000));
         }
 
         /** Whole seconds until the lock lifts, rounded up, never 0. */

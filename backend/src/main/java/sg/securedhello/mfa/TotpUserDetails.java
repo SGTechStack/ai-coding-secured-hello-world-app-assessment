@@ -10,6 +10,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import sg.securedhello.security.lockout.ObservationWindow;
+
 /**
  * A confirmed TOTP factor ({@code totp_user_details}). The row's existence is the enrolment (ADR-053); its key is the
  * user's id. {@code totp_key} is the 69-byte envelope, pinned by named checks the validator cannot see (ADR-028).
@@ -17,9 +19,9 @@ import jakarta.persistence.Table;
  * <p>It owns the two-tier lockout (ADR-027), counted under the row lock by {@link TotpVerification}:
  * <ul>
  *   <li><b>Tier 1:</b> {@value #LOCK_THRESHOLD} consecutive failures, each less than {@link #WINDOW} after the one
- *       before (the password axis's windowed counter, ADR-012), lock the factor for {@link #LOCK}. The lock lifts by
- *       itself, and the first failure after it restarts the count, since the lock is as long as the window. A success
- *       clears the counter and the lock.</li>
+ *       before (the password axis's chained window, {@link ObservationWindow}; ADR-012), lock the factor for
+ *       {@link #LOCK}. The lock lifts by itself, and the first failure after it restarts the count, since the lock is
+ *       as long as the window. A success clears the counter and the lock.</li>
  *   <li><b>Tier 2:</b> the {@value #DISABLE_THRESHOLD}th cumulative failure disables the factor, which outranks a
  *       lock. A success never resets that count; only rebinding, which deletes the row, clears it.</li>
  * </ul>
@@ -40,16 +42,6 @@ public class TotpUserDetails {
 
     /** Tier 2: the cumulative failures that disable the factor (NIST SP 800-63B-4 §3.2.2's upper bound). */
     static final int DISABLE_THRESHOLD = 100;
-
-    /** What a counted failure did. */
-    enum Failure {
-        /** Counted, below both thresholds. */
-        COUNTED,
-        /** Counted, and tier 1 locked the factor. */
-        LOCKED,
-        /** Counted, and tier 2 disabled the factor. */
-        DISABLED
-    }
 
     @Id
     @Column(name = "user_id")
@@ -136,20 +128,25 @@ public class TotpUserDetails {
         return Optional.ofNullable(lockedUntil).filter(until -> until.isAfter(now));
     }
 
-    /** Counts a wrong code at {@code now} on both tiers; the caller found the factor neither locked nor disabled. */
-    Failure fail(Instant now) {
-        failedAttempts = lastFailedAt != null && now.isBefore(lastFailedAt.plus(WINDOW)) ? failedAttempts + 1 : 1;
+    /**
+     * Counts a wrong code at {@code now} on both tiers; the caller found the factor neither locked nor disabled.
+     *
+     * @return {@link TotpOutcome#DISABLING} if tier 2 disabled the factor, {@link TotpOutcome#LOCKING} if tier 1
+     *         locked it, and {@link TotpOutcome#WRONG} otherwise
+     */
+    TotpOutcome fail(Instant now) {
+        failedAttempts = ObservationWindow.count(failedAttempts, lastFailedAt, now, WINDOW);
         lastFailedAt = now;
         cumulativeFailures++;
         if (cumulativeFailures >= DISABLE_THRESHOLD) {
             factorDisabledAt = now;
-            return Failure.DISABLED;
+            return TotpOutcome.DISABLING;
         }
         if (failedAttempts >= LOCK_THRESHOLD) {
             lockedUntil = now.plus(LOCK);
-            return Failure.LOCKED;
+            return TotpOutcome.LOCKING;
         }
-        return Failure.COUNTED;
+        return TotpOutcome.WRONG;
     }
 
     /**

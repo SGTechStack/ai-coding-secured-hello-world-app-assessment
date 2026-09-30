@@ -14,8 +14,8 @@ import sg.securedhello.user.PasswordLockoutState;
  * <p>On a wrong password:
  * <ul>
  *   <li>the windowed counter increments if the previous failure is less than the observation window old, and
- *       otherwise restarts at 1 (ADR-012). Because every rung is at least the window, the first failure after a lock
- *       lifts always restarts it, so a lifted lock gives the user a full count again;</li>
+ *       otherwise restarts at 1 ({@link ObservationWindow}; ADR-012). Because every rung is at least the window, the
+ *       first failure after a lock lifts always restarts it, so a lifted lock gives the user a full count again;</li>
  *   <li>the cap counter increments, with no window;</li>
  *   <li>at the cap the password is disabled, which outranks a lock; when either lock rule fires
  *       ({@link LockoutLadder#locksAt}: the threshold inside the window, or the consecutive threshold since success and
@@ -46,10 +46,8 @@ public final class LockoutCounter {
         if (state.passwordDisabled() || state.lockedAt(now)) {
             return new Outcome(state, false, null, false, false);
         }
-        Instant lastFailedAt = state.lastFailedAt();
-        int windowed = lastFailedAt != null && now.isBefore(lastFailedAt.plus(ladder.window()))
-                ? state.failedLoginAttempts() + 1
-                : 1;
+        int windowed = ObservationWindow.count(state.failedLoginAttempts(), state.lastFailedAt(), now,
+                ladder.window());
         int sinceSuccess = state.consecutiveFailuresSinceSuccess() + 1;
         boolean disabled = sinceSuccess >= ladder.cap();
         Duration lockedFor = !disabled && ladder.locksAt(sinceSuccess, windowed)

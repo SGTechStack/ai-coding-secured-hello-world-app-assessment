@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -63,6 +64,35 @@ public class AppUser extends BaseAuditableEntity {
    */
   @Column(name = "aas_uuid", unique = true)
   private UUID aasUuid;
+
+  /** Password hash from the delegating encoder. Null until a password is set. */
+  @Column(name = "password_hash")
+  private String passwordHash;
+
+  /** Admins disable an Account to suspend access without deleting it. */
+  @Builder.Default
+  @Column(name = "enabled", nullable = false)
+  private boolean enabled = true;
+
+  /** Consecutive failed sign-ins, driving the progressive backoff. */
+  @Builder.Default
+  @Column(name = "failed_login_attempts", nullable = false)
+  private int failedLoginAttempts = 0;
+
+  /**
+   * Sign-in is refused until this instant after repeated failures. Null when no backoff applies.
+   */
+  @Column(name = "locked_until")
+  private Instant lockedUntil;
+
+  /** True while the holder must replace an admin-issued Temporary Password. */
+  @Builder.Default
+  @Column(name = "must_change_password", nullable = false)
+  private boolean mustChangePassword = false;
+
+  /** When an unchanged Temporary Password stops working. Null when none is outstanding. */
+  @Column(name = "temp_password_expires_at")
+  private Instant tempPasswordExpiresAt;
 
   @Builder.Default
   @OneToMany(

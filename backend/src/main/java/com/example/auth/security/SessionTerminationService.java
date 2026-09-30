@@ -13,16 +13,16 @@ import org.springframework.stereotype.Component;
  * AdminUserService} (an admin disabling, deleting or demoting a user must take effect
  * immediately, not just block that user's next login attempt).
  *
- * <p>{@link SessionRegistry} keys sessions by the {@code Authentication}'s principal object, not
- * by username -- but {@code org.springframework.security.core.userdetails.User#equals}/{@code
- * hashCode} (the principal type {@code AppUserDetailsService} returns) are both defined purely in
- * terms of the username. A throwaway instance built with just the username therefore looks up the
- * real principal's session list correctly.
+ * <p>{@link SessionRegistry} takes the {@code Authentication}'s principal object, not a username
+ * -- the Spring Session-backed registry resolves that to its name and looks the sessions up by
+ * the store's principal-name index. A throwaway {@code UserDetails} built with just the username
+ * (the principal type {@code AppUserDetailsService} returns) therefore finds the real
+ * principal's sessions correctly.
  *
  * <p>Callers must invoke this only after the triggering change has already committed (see the
- * password-reset and admin controllers) -- {@link SessionRegistry} is an in-memory side effect,
- * not part of any DB transaction, so sweeping it before commit would let a session registered in
- * the gap between the sweep and the actual commit survive undetected.
+ * password-reset and admin controllers) -- the session store writes in its own transaction, not
+ * the caller's, so sweeping it before commit would let a session created in the gap between the
+ * sweep and the actual commit survive undetected.
  */
 @Component
 public class SessionTerminationService {

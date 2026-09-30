@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { InvalidCredentialsError, ServerUnavailableError, login } from './authApi';
+import { InvalidCredentialsError, ServerUnavailableError, TooManyAttemptsError, login } from './authApi';
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -39,6 +39,14 @@ describe('login', () => {
 
     await expect(login({ username: 'johndoe', password: 'wrong' })).rejects.toBeInstanceOf(
       InvalidCredentialsError,
+    );
+  });
+
+  it('throws TooManyAttemptsError on a 429', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 429 }));
+
+    await expect(login({ username: 'johndoe', password: 'wrong' })).rejects.toBeInstanceOf(
+      TooManyAttemptsError,
     );
   });
 

@@ -10,7 +10,8 @@ import org.springframework.stereotype.Component;
  * mirroring {@link LoginAttemptListener}'s per-account listener but keyed by
  * IP instead of username -- so a spray of failures across many different
  * usernames from one IP is still caught, even though no single account ever
- * reaches its own lockout threshold.
+ * reaches its own lockout threshold. The attempted username is passed along
+ * too, for the throttle's per-username cap.
  *
  * <p>The IP comes from {@code Authentication#getDetails()}, a {@link
  * WebAuthenticationDetails} that {@code AbstractAuthenticationProcessingFilter}
@@ -29,7 +30,8 @@ public class IpThrottleListener {
     public void onFailure(AbstractAuthenticationFailureEvent event) {
         Object details = event.getAuthentication().getDetails();
         if (details instanceof WebAuthenticationDetails webDetails) {
-            ipLoginThrottleService.recordFailure(webDetails.getRemoteAddress());
+            ipLoginThrottleService.recordFailure(
+                    webDetails.getRemoteAddress(), event.getAuthentication().getName());
         }
     }
 }

@@ -30,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -63,6 +62,8 @@ class PasswordResetControllerTest {
     private static final String REQUEST_URL = "/api/password-reset/request";
     private static final String CONFIRM_URL = "/api/password-reset/confirm";
     private static final String HELLO_URL = "/api/hello";
+    /** Spring Session's cookie: the session travels as a real cookie, exactly like a browser. */
+    private static final String SESSION_COOKIE_NAME = "SESSION";
     private static final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
     private static final String CSRF_HEADER_NAME = "X-XSRF-TOKEN";
     private static final String RESET_USERNAME = "reset-flow-user";
@@ -163,27 +164,27 @@ class PasswordResetControllerTest {
 
     @Test
     void resettingThePasswordInvalidatesTheOldSessionSoHelloReturnsUnauthorizedAfterwards() throws Exception {
-        MockHttpSession session = login(RESET_USERNAME, RESET_PASSWORD);
-        mockMvc.perform(get(HELLO_URL).session(session)).andExpect(status().isOk());
+        Cookie session = login(RESET_USERNAME, RESET_PASSWORD);
+        mockMvc.perform(get(HELLO_URL).cookie(session)).andExpect(status().isOk());
 
         String token = requestResetAndCaptureToken();
         confirmReset(token, "BrandNewPassword123!").andExpect(status().isOk());
 
-        mockMvc.perform(get(HELLO_URL).session(session)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get(HELLO_URL).cookie(session)).andExpect(status().isUnauthorized());
     }
 
     @Test
     void resettingThePasswordInvalidatesEveryExistingSessionNotJustOne() throws Exception {
-        MockHttpSession firstSession = login(RESET_USERNAME, RESET_PASSWORD);
-        MockHttpSession secondSession = login(RESET_USERNAME, RESET_PASSWORD);
-        mockMvc.perform(get(HELLO_URL).session(firstSession)).andExpect(status().isOk());
-        mockMvc.perform(get(HELLO_URL).session(secondSession)).andExpect(status().isOk());
+        Cookie firstSession = login(RESET_USERNAME, RESET_PASSWORD);
+        Cookie secondSession = login(RESET_USERNAME, RESET_PASSWORD);
+        mockMvc.perform(get(HELLO_URL).cookie(firstSession)).andExpect(status().isOk());
+        mockMvc.perform(get(HELLO_URL).cookie(secondSession)).andExpect(status().isOk());
 
         String token = requestResetAndCaptureToken();
         confirmReset(token, "BrandNewPassword123!").andExpect(status().isOk());
 
-        mockMvc.perform(get(HELLO_URL).session(firstSession)).andExpect(status().isUnauthorized());
-        mockMvc.perform(get(HELLO_URL).session(secondSession)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get(HELLO_URL).cookie(firstSession)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get(HELLO_URL).cookie(secondSession)).andExpect(status().isUnauthorized());
     }
 
     /** Requests a reset for {@link #RESET_EMAIL}, then recovers the raw token from the captured reset link. */
@@ -228,7 +229,7 @@ class PasswordResetControllerTest {
         return csrfCookie;
     }
 
-    private MockHttpSession login(String username, String password) throws Exception {
+    private Cookie login(String username, String password) throws Exception {
         Cookie csrfCookie = mintCsrfCookie();
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -237,7 +238,9 @@ class PasswordResetControllerTest {
                         .header(CSRF_HEADER_NAME, csrfCookie.getValue()))
                 .andExpect(status().isOk())
                 .andReturn();
-        return (MockHttpSession) result.getRequest().getSession(false);
+        Cookie sessionCookie = result.getResponse().getCookie(SESSION_COOKIE_NAME);
+        assertThat(sessionCookie).isNotNull();
+        return sessionCookie;
     }
 
     /**

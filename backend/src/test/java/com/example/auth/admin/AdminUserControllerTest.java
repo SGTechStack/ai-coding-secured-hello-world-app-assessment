@@ -25,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -46,6 +45,8 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("dev")
 class AdminUserControllerTest {
 
+    /** Spring Session's cookie: the session travels as a real cookie, exactly like a browser. */
+    private static final String SESSION_COOKIE_NAME = "SESSION";
     private static final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
     private static final String CSRF_HEADER_NAME = "X-XSRF-TOKEN";
     private static final String ADMIN_PASSWORD = "AdminPass123!";
@@ -79,10 +80,10 @@ class AdminUserControllerTest {
 
     @Test
     void listUsersAsAdminReturnsFullShapeWithNoPasswordField() throws Exception {
-        MockHttpSession session = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie session = login(admin.getUsername(), ADMIN_PASSWORD);
         String filter = "$[?(@.username=='" + other.getUsername() + "')]";
 
-        mockMvc.perform(get("/api/admin/users").session(session))
+        mockMvc.perform(get("/api/admin/users").cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath(filter + ".id").exists())
                 .andExpect(jsonPath(filter + ".email").value(other.getEmail()))
@@ -94,14 +95,14 @@ class AdminUserControllerTest {
 
     @Test
     void listUsersAsRegularUserReturns403() throws Exception {
-        MockHttpSession session = login(other.getUsername(), OTHER_PASSWORD);
+        Cookie session = login(other.getUsername(), OTHER_PASSWORD);
 
-        mockMvc.perform(get("/api/admin/users").session(session)).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/users").cookie(session)).andExpect(status().isForbidden());
     }
 
     @Test
     void updatingStatusAsRegularUserReturns403() throws Exception {
-        MockHttpSession session = login(other.getUsername(), OTHER_PASSWORD);
+        Cookie session = login(other.getUsername(), OTHER_PASSWORD);
 
         patchWithCsrf("/api/admin/users/" + admin.getId() + "/status", session, "{\"enabled\": false}")
                 .andExpect(status().isForbidden());
@@ -109,7 +110,7 @@ class AdminUserControllerTest {
 
     @Test
     void updatingRoleAsRegularUserReturns403() throws Exception {
-        MockHttpSession session = login(other.getUsername(), OTHER_PASSWORD);
+        Cookie session = login(other.getUsername(), OTHER_PASSWORD);
 
         patchWithCsrf("/api/admin/users/" + admin.getId() + "/role", session, "{\"role\": \"ADMIN\"}")
                 .andExpect(status().isForbidden());
@@ -117,11 +118,11 @@ class AdminUserControllerTest {
 
     @Test
     void deletingUserAsRegularUserReturns403() throws Exception {
-        MockHttpSession session = login(other.getUsername(), OTHER_PASSWORD);
+        Cookie session = login(other.getUsername(), OTHER_PASSWORD);
         Cookie csrfCookie = mintCsrfCookie();
 
         mockMvc.perform(delete("/api/admin/users/{id}", admin.getId())
-                        .session(session)
+                        .cookie(session)
                         .cookie(csrfCookie)
                         .header(CSRF_HEADER_NAME, csrfCookie.getValue()))
                 .andExpect(status().isForbidden());
@@ -129,7 +130,7 @@ class AdminUserControllerTest {
 
     @Test
     void disablingAnotherUserPreventsThemFromLoggingIn() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
 
         List<String> loggedMessages = captureLogs(() -> patchWithCsrf(
                         "/api/admin/users/" + other.getId() + "/status", adminSession, "{\"enabled\": false}")
@@ -146,7 +147,7 @@ class AdminUserControllerTest {
 
     @Test
     void disablingSelfIsRejectedAndLeavesAccountUnchanged() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
 
         patchWithCsrf("/api/admin/users/" + admin.getId() + "/status", adminSession, "{\"enabled\": false}")
                 .andExpect(status().isBadRequest());
@@ -156,47 +157,47 @@ class AdminUserControllerTest {
 
     @Test
     void disablingAnotherUserExpiresTheirExistingSessionImmediately() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
-        MockHttpSession otherSession = login(other.getUsername(), OTHER_PASSWORD);
-        mockMvc.perform(get("/api/hello").session(otherSession)).andExpect(status().isOk());
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie otherSession = login(other.getUsername(), OTHER_PASSWORD);
+        mockMvc.perform(get("/api/hello").cookie(otherSession)).andExpect(status().isOk());
 
         patchWithCsrf("/api/admin/users/" + other.getId() + "/status", adminSession, "{\"enabled\": false}")
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/hello").session(otherSession)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/hello").cookie(otherSession)).andExpect(status().isUnauthorized());
     }
 
     @Test
     void deletingAnotherUserExpiresTheirExistingSessionImmediately() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
-        MockHttpSession otherSession = login(other.getUsername(), OTHER_PASSWORD);
-        mockMvc.perform(get("/api/hello").session(otherSession)).andExpect(status().isOk());
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie otherSession = login(other.getUsername(), OTHER_PASSWORD);
+        mockMvc.perform(get("/api/hello").cookie(otherSession)).andExpect(status().isOk());
         Cookie csrfCookie = mintCsrfCookie();
 
         mockMvc.perform(delete("/api/admin/users/{id}", other.getId())
-                        .session(adminSession)
+                        .cookie(adminSession)
                         .cookie(csrfCookie)
                         .header(CSRF_HEADER_NAME, csrfCookie.getValue()))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/hello").session(otherSession)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/hello").cookie(otherSession)).andExpect(status().isUnauthorized());
     }
 
     @Test
     void changingAnotherUsersRoleExpiresTheirExistingSessionImmediately() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
-        MockHttpSession otherSession = login(other.getUsername(), OTHER_PASSWORD);
-        mockMvc.perform(get("/api/hello").session(otherSession)).andExpect(status().isOk());
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie otherSession = login(other.getUsername(), OTHER_PASSWORD);
+        mockMvc.perform(get("/api/hello").cookie(otherSession)).andExpect(status().isOk());
 
         patchWithCsrf("/api/admin/users/" + other.getId() + "/role", adminSession, "{\"role\": \"ADMIN\"}")
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/hello").session(otherSession)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/hello").cookie(otherSession)).andExpect(status().isUnauthorized());
     }
 
     @Test
     void promotingAnotherUserToAdminSucceeds() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
 
         List<String> loggedMessages = captureLogs(() -> patchWithCsrf(
                         "/api/admin/users/" + other.getId() + "/role", adminSession, "{\"role\": \"ADMIN\"}")
@@ -212,7 +213,7 @@ class AdminUserControllerTest {
 
     @Test
     void roleChangeWithNullRoleIsRejectedRatherThanCorruptingTheRow() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
 
         patchWithCsrf("/api/admin/users/" + other.getId() + "/role", adminSession, "{\"role\": null}")
                 .andExpect(status().isBadRequest());
@@ -222,7 +223,7 @@ class AdminUserControllerTest {
 
     @Test
     void demotingSelfIsRejectedAndLeavesRoleUnchanged() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
 
         patchWithCsrf("/api/admin/users/" + admin.getId() + "/role", adminSession, "{\"role\": \"USER\"}")
                 .andExpect(status().isBadRequest());
@@ -232,12 +233,12 @@ class AdminUserControllerTest {
 
     @Test
     void deletingAnotherUserRemovesThem() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
         Cookie csrfCookie = mintCsrfCookie();
 
         List<String> loggedMessages = captureLogs(() -> mockMvc.perform(delete(
                                 "/api/admin/users/{id}", other.getId())
-                        .session(adminSession)
+                        .cookie(adminSession)
                         .cookie(csrfCookie)
                         .header(CSRF_HEADER_NAME, csrfCookie.getValue()))
                 .andExpect(status().isNoContent()));
@@ -252,11 +253,11 @@ class AdminUserControllerTest {
 
     @Test
     void deletingSelfIsRejectedAndLeavesAccountUnchanged() throws Exception {
-        MockHttpSession adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
+        Cookie adminSession = login(admin.getUsername(), ADMIN_PASSWORD);
         Cookie csrfCookie = mintCsrfCookie();
 
         mockMvc.perform(delete("/api/admin/users/{id}", admin.getId())
-                        .session(adminSession)
+                        .cookie(adminSession)
                         .cookie(csrfCookie)
                         .header(CSRF_HEADER_NAME, csrfCookie.getValue()))
                 .andExpect(status().isBadRequest());
@@ -264,10 +265,10 @@ class AdminUserControllerTest {
         assertThat(userRepository.existsById(admin.getId())).isTrue();
     }
 
-    private ResultActions patchWithCsrf(String url, MockHttpSession session, String jsonBody) throws Exception {
+    private ResultActions patchWithCsrf(String url, Cookie session, String jsonBody) throws Exception {
         Cookie csrfCookie = mintCsrfCookie();
         return mockMvc.perform(patch(url)
-                .session(session)
+                .cookie(session)
                 .cookie(csrfCookie)
                 .header(CSRF_HEADER_NAME, csrfCookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -281,9 +282,11 @@ class AdminUserControllerTest {
         return csrfCookie;
     }
 
-    private MockHttpSession login(String username, String password) throws Exception {
+    private Cookie login(String username, String password) throws Exception {
         MvcResult result = performLogin(username, password).andExpect(status().isOk()).andReturn();
-        return (MockHttpSession) result.getRequest().getSession(false);
+        Cookie sessionCookie = result.getResponse().getCookie(SESSION_COOKIE_NAME);
+        assertThat(sessionCookie).isNotNull();
+        return sessionCookie;
     }
 
     private ResultActions performLogin(String username, String password) throws Exception {

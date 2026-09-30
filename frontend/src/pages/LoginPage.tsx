@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { InvalidCredentialsError, login } from '../api/authApi';
+import { InvalidCredentialsError, TooManyAttemptsError, login } from '../api/authApi';
 import './LoginPage.css';
 
 // Loading state is held for at least this long even if the server responds
@@ -8,6 +8,7 @@ import './LoginPage.css';
 const MIN_LOADING_MS = 400;
 
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid username or password';
+const TOO_MANY_ATTEMPTS_MESSAGE = 'Too many failed login attempts. Please try again later.';
 const SERVER_UNAVAILABLE_MESSAGE = 'Unable to connect to the server. Please try again later.';
 
 interface FieldErrors {
@@ -66,11 +67,13 @@ export default function LoginPage() {
       return;
     }
 
-    setBanner(
-      loginOutcome.reason instanceof InvalidCredentialsError
-        ? INVALID_CREDENTIALS_MESSAGE
-        : SERVER_UNAVAILABLE_MESSAGE,
-    );
+    if (loginOutcome.reason instanceof InvalidCredentialsError) {
+      setBanner(INVALID_CREDENTIALS_MESSAGE);
+    } else if (loginOutcome.reason instanceof TooManyAttemptsError) {
+      setBanner(TOO_MANY_ATTEMPTS_MESSAGE);
+    } else {
+      setBanner(SERVER_UNAVAILABLE_MESSAGE);
+    }
     setIsSubmitting(false);
   }
 

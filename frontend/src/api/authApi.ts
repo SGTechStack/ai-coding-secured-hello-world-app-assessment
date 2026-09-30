@@ -24,6 +24,9 @@ export interface AuthenticatedUser {
 /** Credentials were rejected (HTTP 401). Message is intentionally generic. */
 export class InvalidCredentialsError extends Error {}
 
+/** This client is being throttled after repeated failed logins (HTTP 429). */
+export class TooManyAttemptsError extends Error {}
+
 /** The server returned a 5xx, or the request never reached it at all. */
 export class ServerUnavailableError extends Error {}
 
@@ -47,6 +50,10 @@ export async function login({ username, password }: LoginCredentials): Promise<v
     // Server body is always the identical generic message; hardcode rather
     // than parse it so we never accidentally surface field-specific detail.
     throw new InvalidCredentialsError('Invalid username or password');
+  }
+
+  if (response.status === 429) {
+    throw new TooManyAttemptsError('Too many failed login attempts. Please try again later.');
   }
 
   throw new ServerUnavailableError('Unable to connect to the server. Please try again later.');

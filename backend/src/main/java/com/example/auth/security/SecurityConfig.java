@@ -19,29 +19,28 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
-import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy;
 import org.springframework.security.web.authentication.session.SessionLimit;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
+import org.springframework.session.security.SpringSessionBackedSessionRegistry;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Spring Security wiring for the auth mechanism described in
- * {@code assessment-prd.md}: form-login + CSRF + container session, cross-origin
+ * {@code assessment-prd.md}: form-login + CSRF + Spring Session (JDBC), cross-origin
  * CORS for the separately-hosted SPA, BCrypt password hashing, account lockout,
  * IP throttling, and role-based (USER/ADMIN) authorization. MFA and the JWT
  * bearer-token alternative remain out of scope; see the PRD's Out of Scope
@@ -91,23 +90,18 @@ public class SecurityConfig {
     }
 
     /**
-     * Tracks every user's active sessions so a password reset (Story 7) can
+     * Looks up every user's active sessions so a password reset (Story 7) can
      * force-expire all of them via {@code SessionInformation.expireNow()}.
-     * Declared explicitly (rather than left to whatever default {@code
-     * sessionConcurrency()} would otherwise create) so it is the exact same
-     * instance the manually-wired {@code SessionAuthenticationStrategy}
-     * below registers new sessions into -- two different registries would
-     * make the registry population (and therefore the reset flow) a no-op.
+     * Backed by the Spring Session JDBC store rather than an in-memory map:
+     * sessions are found by the principal name the repository indexes on
+     * every save, so nothing has to register them at login, and the expired
+     * flag is written to the session row itself. Declared explicitly so
+     * {@code sessionConcurrency()} below picks up this registry instead of
+     * creating an in-memory default that would never see those sessions.
      */
     @Bean
-    public SessionRegistry sessionRegistry() {
-        return new SessionRegistryImpl();
-    }
-
-    /** Required for {@link SessionRegistry} to notice sessions the container has destroyed/expired. */
-    @Bean
-    public HttpSessionEventPublisher httpSessionEventPublisher() {
-        return new HttpSessionEventPublisher();
+    public <S extends Session> SessionRegistry sessionRegistry(FindByIndexNameSessionRepository<S> sessionRepository) {
+        return new SpringSessionBackedSessionRegistry<>(sessionRepository);
     }
 
     /**
@@ -157,7 +151,6 @@ public class SecurityConfig {
             HttpSecurity http,
             AuthenticationManager authenticationManager,
             ObjectMapper objectMapper,
-            SessionRegistry sessionRegistry,
             CorsConfigurationSource corsConfigurationSource,
             IpLoginThrottleService ipLoginThrottleService,
             Environment environment,
@@ -181,18 +174,18 @@ public class SecurityConfig {
         // successful login never actually persists into an HttpSession.
         loginFilter.setSecurityContextRepository(new HttpSessionSecurityContextRepository());
         // Same story for session-authentication behavior: http.formLogin()/
-        // .sessionManagement() would normally assemble and wire this composite
-        // (fixation-protection rotation + registration) onto the filter
-        // automatically. Bypassing formLogin() for the custom JSON filter
-        // means that wiring is skipped by default too -- without this,
+        // .sessionManagement() would normally wire fixation protection onto
+        // the filter automatically. Bypassing formLogin() for the custom JSON
+        // filter means that wiring is skipped by default too -- without this,
         // session-ID rotation-on-login (the App-Standards rotation
-        // requirement) and SessionRegistry population would both silently do
-        // nothing. Story 7 allows multiple concurrent sessions per user (a
-        // password reset invalidates *all* of them, not just the newest), so
-        // no ConcurrentSessionControlAuthenticationStrategy is wired here --
+        // requirement) would silently do nothing. No registration strategy
+        // is needed alongside it: the Spring Session-backed SessionRegistry
+        // finds sessions through the store's principal-name index. Story 7
+        // allows multiple concurrent sessions per user (a password reset
+        // invalidates *all* of them, not just the newest), so no
+        // ConcurrentSessionControlAuthenticationStrategy is wired here --
         // a new login must not evict any of the user's other sessions.
-        loginFilter.setSessionAuthenticationStrategy(new CompositeSessionAuthenticationStrategy(
-                List.of(new SessionFixationProtectionStrategy(), new RegisterSessionAuthenticationStrategy(sessionRegistry))));
+        loginFilter.setSessionAuthenticationStrategy(new SessionFixationProtectionStrategy());
         loginFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
             // Same contract as before the migration: 200, empty body, no redirect.
             response.setStatus(200);
@@ -301,10 +294,12 @@ public class SecurityConfig {
                 })
                 .logout(logout -> logout.logoutUrl("/api/auth/logout")
                         // SecurityContextLogoutHandler (added by default) invalidates
-                        // the session; this handler just reports 200 with no
+                        // the session, and Spring Session itself then expires the
+                        // SESSION cookie on the response -- so no deleteCookies()
+                        // here, which would only add a second, duplicate clearing
+                        // header. This handler just reports 200 with no
                         // redirect/body, matching the pre-migration contract.
-                        .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler())
-                        .deleteCookies("JSESSIONID"));
+                        .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler()));
 
         return http.build();
     }

@@ -158,6 +158,20 @@ describe('LoginPage', () => {
     expect(screen.queryByText('Invalid username or password')).not.toBeInTheDocument();
   });
 
+  it('shows the too-many-attempts banner on a 429', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 429 }));
+    const user = userEvent.setup();
+    renderLoginPage();
+
+    await user.type(usernameInput(), VALID_USERNAME);
+    await user.type(passwordInput(), 'wrong-password');
+    await user.click(submitButton());
+
+    expect(
+      await screen.findByText('Too many failed login attempts. Please try again later.'),
+    ).toBeInTheDocument();
+  });
+
   it('shows the server-unavailable banner on a 5xx response', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(503, {}));
     const user = userEvent.setup();

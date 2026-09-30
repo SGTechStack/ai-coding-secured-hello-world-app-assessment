@@ -17,7 +17,12 @@ instead has:
   and surfaced nowhere security-sensitive (never returned by `/api/admin/users`
   or logged).
 
-Neither is a functional gap: the column *is* a password hash regardless of
+- `failed_login_window_start`, nullable — another column the PRD's model
+  doesn't list. It records when the current run of `failed_login_attempts`
+  began, which is what lets Story 3's "N failures within a window" be
+  enforced (see ADR-0005).
+
+Neither of the first two is a functional gap: the column *is* a password hash regardless of
 its name, and collecting a first name is a product-shape choice, not a
 security concern.
 

@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,6 +28,8 @@ import org.springframework.test.web.servlet.MvcResult;
 class HelloControllerTest {
 
     private static final String HELLO_URL = "/api/hello";
+    /** Spring Session's cookie: the session travels as a real cookie, exactly like a browser. */
+    private static final String SESSION_COOKIE_NAME = "SESSION";
     private static final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
     private static final String CSRF_HEADER_NAME = "X-XSRF-TOKEN";
     private static final String VALID_USERNAME = "johndoe";
@@ -62,9 +63,9 @@ class HelloControllerTest {
 
     @Test
     void authenticatedRequestReturnsGreetingAsPlainText() throws Exception {
-        MockHttpSession session = login(VALID_USERNAME, VALID_PASSWORD);
+        Cookie session = login(VALID_USERNAME, VALID_PASSWORD);
 
-        mockMvc.perform(get(HELLO_URL).session(session))
+        mockMvc.perform(get(HELLO_URL).cookie(session))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
                 .andExpect(content().string("Hello, " + VALID_USERNAME));
@@ -77,7 +78,7 @@ class HelloControllerTest {
         return csrfCookie;
     }
 
-    private MockHttpSession login(String username, String password) throws Exception {
+    private Cookie login(String username, String password) throws Exception {
         Cookie csrfCookie = mintCsrfCookie();
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,6 +87,8 @@ class HelloControllerTest {
                         .header(CSRF_HEADER_NAME, csrfCookie.getValue()))
                 .andExpect(status().isOk())
                 .andReturn();
-        return (MockHttpSession) result.getRequest().getSession(false);
+        Cookie sessionCookie = result.getResponse().getCookie(SESSION_COOKIE_NAME);
+        assertThat(sessionCookie).isNotNull();
+        return sessionCookie;
     }
 }

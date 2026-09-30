@@ -33,7 +33,7 @@ You are expected to:
 
 ## Structure
 
-- `backend/` — Spring Boot 4 (Java 21) REST API, session + CSRF cookie auth via Spring Security, H2 in-memory database.
+- `backend/` — Spring Boot 4 (Java 21) REST API, session + CSRF cookie auth via Spring Security, sessions stored with Spring Session (JDBC), H2 in-memory database.
 - `frontend/` — React + TypeScript SPA (Vite), calls the backend as a separate origin via `fetch(..., { credentials: 'include' })`.
 
 ## Features

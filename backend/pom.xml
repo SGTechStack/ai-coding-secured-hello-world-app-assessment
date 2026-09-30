@@ -42,6 +42,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Spring Session backed by the app's own datasource (PRD: "Spring
+             Session"). Spring Boot 4 keeps the auto-configuration in this
+             starter's spring-boot-session-jdbc module, so depending on
+             spring-session-jdbc alone would leave it unconfigured. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-session-jdbc</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>

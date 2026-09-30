@@ -5,9 +5,10 @@ import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -28,6 +29,13 @@ import com.example.securedhello.security.SessionControl;
  * request's method and path. With no request bound (a direct service call), the stored Sessions are
  * still ended and the events simply carry no request fields. Refusals are not events: they are
  * audited where they are handled, because they do not commit a change.
+ * <p>
+ * The side effects run in {@link TransactionSynchronization#afterCommit()}, not in a
+ * {@code @TransactionalEventListener}: Spring only logs what an after-completion callback throws, so
+ * a Session that could not be ended would still be reported to the caller as a success. From
+ * {@code afterCommit} the failure reaches the caller, which answers 5xx. The committed change is
+ * still audited when its Sessions could not be ended, and its holder is then not notified. An event
+ * published with no transaction is refused, because there would be no commit to wait for.
  */
 @Component
 class AccountEventListener {
@@ -58,52 +66,58 @@ class AccountEventListener {
 		this.emailService = emailService;
 	}
 
-	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+	@EventListener
 	void on(AccountEvent event) {
+		if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+			throw new IllegalStateException("An AccountEvent must be published inside the transaction making the change: "
+					+ event.getClass().getSimpleName());
+		}
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				handle(event);
+			}
+		});
+	}
+
+	private void handle(AccountEvent event) {
 		ServletRequestAttributes bound = (RequestContextHolder
 			.getRequestAttributes() instanceof ServletRequestAttributes attributes) ? attributes : null;
 		HttpServletRequest request = (bound != null) ? bound.getRequest() : null;
 		HttpServletResponse response = (bound != null) ? bound.getResponse() : null;
 		switch (event) {
 			case AccountEvent.EnabledChanged changed -> {
-				if (!changed.after()) {
-					endAll(changed.targetId(), ACCOUNT_DISABLED, request, response);
+				AuditEvent change = administration(changed.actingAdminId(), changed.targetId()).change("enabled",
+						changed.before(), changed.after());
+				if (changed.after()) {
+					audit(change, request);
 				}
-				audit(administration(changed.actingAdminId(), changed.targetId()).change("enabled", changed.before(),
-						changed.after()), request);
+				else {
+					endAllThenAudit(changed.targetId(), ACCOUNT_DISABLED, request, response, change);
+				}
 			}
-			case AccountEvent.RoleChanged changed -> {
-				endAll(changed.targetId(), ROLE_CHANGED, request, response);
-				audit(administration(changed.actingAdminId(), changed.targetId()).change("role", changed.before(),
-						changed.after()), request);
-			}
+			case AccountEvent.RoleChanged changed -> endAllThenAudit(changed.targetId(), ROLE_CHANGED, request,
+					response, administration(changed.actingAdminId(), changed.targetId()).change("role",
+							changed.before(), changed.after()));
 			case AccountEvent.Unlocked unlocked -> audit(administration(unlocked.actingAdminId(), unlocked.targetId())
 				.change("locked", unlocked.wasLocked(), false), request);
-			case AccountEvent.PasswordChangeRequired required -> {
-				endAll(required.targetId(), PASSWORD_CHANGE_REQUIRED, request, response);
-				audit(PasswordChangeEnforcement.set(required.actingAdminId(), required.targetId(),
-						required.alreadyRequired()), request);
-			}
-			case AccountEvent.Deleted deleted -> {
-				endAll(deleted.targetId(), AccountAdministrationController.ACCOUNT_DELETED, request, response);
-				audit(administration(deleted.actingAdminId(), deleted.targetId()).change("deleted", false, true),
-						request);
-			}
+			case AccountEvent.PasswordChangeRequired required -> endAllThenAudit(required.targetId(),
+					PASSWORD_CHANGE_REQUIRED, request, response, PasswordChangeEnforcement
+						.set(required.actingAdminId(), required.targetId(), required.alreadyRequired()));
+			case AccountEvent.Deleted deleted -> endAllThenAudit(deleted.targetId(),
+					AccountAdministrationController.ACCOUNT_DELETED, request, response,
+					administration(deleted.actingAdminId(), deleted.targetId()).change("deleted", false, true));
 			case AccountEvent.PasswordChanged changed -> {
-				endAll(changed.accountId(), PASSWORD_CHANGE, request, response);
-				audit(AuditEvent.success(AuditAction.PASSWORD_RESET).eventType(CHANGE).userId(changed.accountId()),
-						request);
-				if (changed.requirementCleared()) {
-					audit(PasswordChangeEnforcement.cleared(changed.accountId()), request);
-				}
+				endAllThenAudit(changed.accountId(), PASSWORD_CHANGE, request, response,
+						AuditEvent.success(AuditAction.PASSWORD_RESET).eventType(CHANGE).userId(changed.accountId()),
+						changed.requirementCleared() ? PasswordChangeEnforcement.cleared(changed.accountId()) : null);
 				emailService.notifyPasswordChanged(changed.email());
 			}
 			case AccountEvent.PasswordResetCompleted completed -> {
-				endAll(completed.accountId(), PASSWORD_RESET, request, response);
-				audit(AuditEvent.success(AuditAction.PASSWORD_RESET).userId(completed.accountId()), request);
-				if (completed.requirementCleared()) {
-					audit(PasswordChangeEnforcement.cleared(completed.accountId()), request);
-				}
+				endAllThenAudit(completed.accountId(), PASSWORD_RESET, request, response,
+						AuditEvent.success(AuditAction.PASSWORD_RESET).userId(completed.accountId()),
+						completed.requirementCleared() ? PasswordChangeEnforcement.cleared(completed.accountId())
+								: null);
 				emailService.notifyPasswordResetCompleted(completed.email());
 			}
 			case AccountEvent.PasswordResetIssued issued -> {
@@ -126,6 +140,25 @@ class AccountEventListener {
 		}
 		else {
 			sessionControl.endAll(accountId, reason);
+		}
+	}
+
+	/**
+	 * Ends the Account's Sessions, then audits the committed change even if that failed, and rethrows
+	 * the failure so that nothing after it (the notification) runs and the caller does not see 2xx.
+	 * A {@code null} event is skipped.
+	 */
+	private void endAllThenAudit(UUID accountId, String reason, HttpServletRequest request,
+			HttpServletResponse response, AuditEvent... events) {
+		try {
+			endAll(accountId, reason, request, response);
+		}
+		finally {
+			for (AuditEvent event : events) {
+				if (event != null) {
+					audit(event, request);
+				}
+			}
 		}
 	}
 

@@ -3,6 +3,14 @@ package com.example.securedhello.account;
 import static com.example.securedhello.support.LogCapture.field;
 import static com.example.securedhello.support.LogCapture.hasField;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,13 +20,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.example.securedhello.security.SessionControl;
 import com.example.securedhello.support.LogCapture;
 import com.example.securedhello.support.RecordingEmailService;
 
@@ -31,6 +47,7 @@ import tools.jackson.databind.JsonNode;
  * to belong to the change rather than to whichever endpoint made it.
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(RecordingEmailService.Config.class)
 class AccountEventsTest {
@@ -52,6 +69,15 @@ class AccountEventsTest {
 
 	@Autowired
 	JdbcTemplate jdbc;
+
+	@Autowired
+	MockMvc mvc;
+
+	@Autowired
+	ApplicationEventPublisher events;
+
+	@MockitoSpyBean
+	SessionControl sessionControl;
 
 	private UUID admin;
 
@@ -77,6 +103,7 @@ class AccountEventsTest {
 	@AfterEach
 	void cleanUp() {
 		SecurityContextHolder.clearContext();
+		RequestContextHolder.resetRequestAttributes();
 		for (UUID id : new UUID[] { admin, target }) {
 			jdbc.update("DELETE FROM spring_session WHERE principal_name = ?", id.toString());
 			jdbc.update("DELETE FROM password_reset_tokens WHERE user_id = ?", id);
@@ -150,6 +177,56 @@ class AccountEventsTest {
 
 		assertThat(email.sent()).isEmpty();
 		assertThat(capture.audit(hasField("user.id", target.toString()))).isEmpty();
+	}
+
+	/**
+	 * A committed disable whose Sessions could not be ended must not answer 2xx: the Admin would be
+	 * told the Account is off while its Session is still live. The committed change is still audited.
+	 */
+	@Test
+	void aDisableWhoseSessionsCannotBeEndedIsNotReportedAsASuccess() throws Exception {
+		doThrow(new IllegalStateException("synthetic session store failure")).when(sessionControl)
+			.endAll(eq(target), anyString(), any(), any());
+		LogCapture capture = LogCapture.start();
+
+		int status = mvc
+			.perform(patch("/api/admin/users/" + target + "/enabled")
+				.with(authentication(new AccountPrincipal(admin, "synthetic", Role.ADMIN).toAuthentication()))
+				.with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"enabled\":false}"))
+			.andReturn()
+			.getResponse()
+			.getStatus();
+
+		assertThat(status).isEqualTo(500);
+		JsonNode change = capture.awaitAudit(hasField("target.user.id", target.toString())).get(0);
+		assertThat(field(change, "event.action")).isEqualTo("user-administration");
+	}
+
+	@Test
+	void anAccountEventPublishedOutsideATransactionIsRefusedRatherThanDropped() {
+		assertThatIllegalStateException()
+			.isThrownBy(() -> events.publishEvent(new AccountEvent.Unlocked(admin, target, true)));
+	}
+
+	/**
+	 * A bound request without a response (possible off the servlet path) still ends the stored
+	 * Sessions, through the no-response path, and the audit still carries the request's fields.
+	 */
+	@Test
+	void aBoundRequestWithoutAResponseStillEndsTheStoredSessions() {
+		storedSessionOf(target);
+		RequestContextHolder
+			.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest("PATCH", "/synthetic")));
+		LogCapture capture = LogCapture.start();
+
+		administration.setEnabled(admin, target, false);
+
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM spring_session WHERE principal_name = ?", Integer.class,
+				target.toString())).isZero();
+		JsonNode change = capture.awaitAudit(hasField("target.user.id", target.toString())).get(0);
+		assertThat(field(change, "url.path")).isEqualTo("/synthetic");
 	}
 
 	private UUID account(String username, Role role) {

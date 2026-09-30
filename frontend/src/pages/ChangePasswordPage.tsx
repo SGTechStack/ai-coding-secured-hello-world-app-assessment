@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, Navigate, useNavigate } from 'react-router'
+import { Navigate, useLocation, useNavigate } from 'react-router'
 import { z } from 'zod'
 import { NewPasswordHints } from '@/components/NewPasswordHints'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,7 @@ const GENERIC_REJECTION = 'The new password was not accepted. Choose another.'
  */
 export function ChangePasswordPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const profile = useQuery({ queryKey: PROFILE_KEY, queryFn: fetchProfile })
   const forced = profile.data?.passwordChangeRequired === true
@@ -90,6 +91,16 @@ export function ChangePasswordPage() {
       } else {
         setFailure((error instanceof ApiError && FAILURE_COPY[error.code]) || GENERIC_FAILURE)
       }
+    }
+  }
+
+  // Back returns to the page the change was opened from (the admin console or the greeting). Opened directly, with
+  // no in-app history, it goes to the account's landing page instead.
+  const onBack = () => {
+    if (location.key !== 'default') {
+      void navigate(-1)
+    } else if (profile.data) {
+      void navigate(landingFor(profile.data))
     }
   }
 
@@ -162,9 +173,9 @@ export function ChangePasswordPage() {
               Sign out
             </Button>
           ) : (
-            <Link to="/hello" className="text-sm underline">
+            <Button type="button" variant="link" className="h-auto p-0 text-sm underline" onClick={onBack}>
               Back
-            </Link>
+            </Button>
           )}
         </div>
       </form>

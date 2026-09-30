@@ -1,10 +1,14 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { render } from '@testing-library/react'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { apiUrl, clearCsrfToken, CSRF_HEADER } from '@/lib/api/client'
 import { PASSWORD_RULES, RULE_COPY } from '@/lib/password/policy'
 import { problemResponse } from '@/test/msw/problems'
+import { createQueryClient, routes } from '@/routes'
 import { server } from '@/test/msw/server'
 import { renderApp } from '@/test/renderApp'
 
@@ -166,7 +170,7 @@ describe('forced change: the first gate (ADR-046)', () => {
 
     expect(await screen.findByText(/You must choose a new password before you can continue/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Back' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument()
   })
 
   it('moves on to the app once the change succeeds', async () => {
@@ -188,5 +192,55 @@ describe('forced change: the first gate (ADR-046)', () => {
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/sign-in')
+  })
+})
+
+describe('Back', () => {
+  const ADMIN = {
+    ...PROFILE,
+    username: 'carol',
+    role: 'ADMIN',
+    factors: { held: true, required: true, enrolled: true, rebindRequired: false },
+  }
+
+  it('returns to the admin console it was opened from, not the greeting', async () => {
+    serve(() => new HttpResponse(null, { status: 204 }), ADMIN)
+    server.use(http.get(apiUrl('/api/admin/users'), () => HttpResponse.json([])))
+    const router = createMemoryRouter(routes, { initialEntries: ['/admin/users', '/change-password'], initialIndex: 1 })
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    )
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Back' }))
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/users'))
+  })
+
+  it('returns a non-admin to the greeting it was opened from', async () => {
+    serve(() => new HttpResponse(null, { status: 204 }))
+    server.use(http.get(apiUrl('/api/hello'), () => HttpResponse.json({ message: 'Hello, alice' })))
+    const router = createMemoryRouter(routes, { initialEntries: ['/hello', '/change-password'], initialIndex: 1 })
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    )
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Back' }))
+
+    expect(await screen.findByRole('heading', { name: 'Hello, alice' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/hello')
+  })
+
+  it('goes to the landing page when opened directly', async () => {
+    serve(() => new HttpResponse(null, { status: 204 }))
+    server.use(http.get(apiUrl('/api/hello'), () => HttpResponse.json({ message: 'Hello, alice' })))
+    const { router } = renderApp('/change-password')
+
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Back' }))
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/hello'))
   })
 })

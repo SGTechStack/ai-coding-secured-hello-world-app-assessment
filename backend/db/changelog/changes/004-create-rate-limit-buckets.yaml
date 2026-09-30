@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-rate-limit-buckets
+      author: builderday
+      comment: Durable Bucket4j JDBC state for the registration source-IP rate limit and the login throttle.
+      changes:
+        - createTable:
+            tableName: rate_limit_buckets
+            columns:
+              - column:
+                  name: id
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_rate_limit_buckets
+              - column:
+                  name: state
+                  type: BYTEA
+              - column:
+                  name: expires_at
+                  type: BIGINT
+        - createIndex:
+            tableName: rate_limit_buckets
+            indexName: ix_rate_limit_buckets_expires_at
+            columns:
+              - column:
+                  name: expires_at

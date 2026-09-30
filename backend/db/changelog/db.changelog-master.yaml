@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - include:
+      file: changes/001-create-users.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/004-create-rate-limit-buckets.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/005-create-spring-session-tables.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/006-create-shedlock.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/010-create-password-reset-tokens.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/011-create-password-history.yaml
+      relativeToChangelogFile: true

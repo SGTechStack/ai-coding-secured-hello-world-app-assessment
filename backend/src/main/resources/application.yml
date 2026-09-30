@@ -1,0 +1,175 @@
+server:
+  port: 8443
+  ssl:
+    # Always HTTPS with an in-memory self-signed certificate generated at startup (common.tls.SelfSignedSslConfig).
+    # The public certificate lives on the ALB in front; this keeps the ALB-to-application hop encrypted.
+    # server.ssl.enabled defaults to true once any server.ssl property (here the bundle) is set.
+    bundle: self-signed
+  # Tomcat RemoteIpValve rewrites request.getRemoteAddr() from X-Forwarded-For (rate-limit key and audit source.ip).
+  # Tomcat's default internal proxies (private ranges) cover the ALB; the security group admits only the ALB.
+  forward-headers-strategy: native
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        name: id
+        http-only: true
+        secure: true
+        same-site: strict
+
+spring:
+  profiles:
+    # Every environment is production unless it explicitly activates local (ADR 0004).
+    default: prod
+  application:
+    # Also the CN of the startup self-signed certificate (common.tls.SelfSignedSslConfig).
+    name: builderday
+  jackson:
+    time-zone: UTC
+  main:
+    banner-mode: off
+  datasource:
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_MAX_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_MIN_IDLE:2}
+      pool-name: mlink-hikari-pool
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  web:
+    error:
+      include-path: never
+      whitelabel:
+        enabled: false
+
+  session:
+    jdbc:
+      initialize-schema: never
+  # The auto-configured task executor (with the shared MDC task decorator). Bounded, so a burst of background work
+  # (Password reset emails) is rejected, logged and audited rather than queued without limit.
+  task:
+    execution:
+      thread-name-prefix: app-task-
+      pool:
+        core-size: 2
+        max-size: 4
+        queue-capacity: 200
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # The load balancer's health check only; no other actuator endpoint is reachable over HTTP.
+        include: health
+  endpoint:
+    health:
+      # Only {"status":"UP"} or DOWN (503): no component names, versions or database details to anonymous callers.
+      show-details: never
+      show-components: never
+      # No Kubernetes liveness/readiness groups: the ALB checks the one composite status.
+      probes:
+        enabled: false
+
+app:
+  # Admin bootstrap credentials (ADR 0009), read only when no Admin has ever existed. Empty by default; blank counts
+  # as unset. ADMIN_PASSWORD is a secret and MUST NOT be stored in plain text (no manifest or committed
+  # file). 
+  admin:
+    username: ${ADMIN_USERNAME:}
+    password: ${ADMIN_PASSWORD:}
+  # Absolute https URI emailed links are built from; never the request's Host header (ADR 0004). Required.
+  public-base-uri: ${APP_PUBLIC_BASE_URI}
+  security:
+    # Configuration-owned roles and the default-deny authorization matrix (anything not listed is denied).
+    # A duplicate or malformed role, or a grant naming an undefined role, stops startup.
+    roles:
+      - USER
+      - ADMIN
+    registration-role: USER
+    # Server-owned paths only (ADR 0007). Every other path is a frontend path, open to everyone in SecurityConfig: the
+    # client router decides what it shows, so a new page needs no entry here.
+    public-access:
+      - { method: GET, pattern: /csrf }
+      - { method: POST, pattern: /api/auth/login }
+      - { method: POST, pattern: /api/auth/register }
+      - { method: POST, pattern: /api/auth/password-reset }
+      - { method: POST, pattern: /api/auth/password-reset/confirm }
+      - { method: GET, pattern: /assets/** }
+      - { method: GET, pattern: /images/** }
+      - { method: GET, pattern: /favicon.ico }
+      # The load balancer's health check; reports only UP or DOWN (management.endpoint.health.show-details: never).
+      - { method: GET, pattern: /actuator/health }
+      # The servlet container's error dispatch (e.g. a missing static file) must reach the Problem Details handling.
+      - { pattern: /error }
+    # Not listed here or in public-access: POST /api/auth/logout is an Authenticated API endpoint answered by the
+    # logout filter before this matrix is consulted; its success handler refuses callers without a Session with 401
+    # (IM8 ac-1, see SecurityConfig and LogoutTest).
+    grants:
+      - { pattern: /api/admin/**, roles: [ADMIN] }
+      - { method: GET, pattern: /api/hello, roles: [USER, ADMIN] }
+      # The SPA restores its Session from this after a reload of a protected page (ADR 0005).
+      - { method: GET, pattern: /api/profile, roles: [USER, ADMIN] }
+    session:
+      absolute-timeout: ${APP_SESSION_ABSOLUTE_TIMEOUT:8h}
+    # Shared Bucket4j JDBC store behind every rate limit (common.ratelimit).
+    rate-limit:
+      retention: ${RATE_LIMIT_RETENTION:48h}
+      cleanup-cron: ${RATE_LIMIT_CLEANUP_CRON:0 */15 * * * *}
+    # Brute-force defence (ADR 0003), App Standard defaults.
+    login:
+      # Login rate limit: attempts per source IP per fixed window, whatever their outcome, shared by every instance.
+      # The only source of the client's "too many sign-in attempts".
+      rate-limit:
+        attempts: ${LOGIN_RATE_LIMIT_ATTEMPTS:10}
+        window: ${LOGIN_RATE_LIMIT_WINDOW:1m}
+      # Login lockout: consecutive failures against one account lock it for a fixed duration. Silent: a locked
+      # account gets the same 401 as a wrong password. Expiry is the only unlock.
+      lockout:
+        threshold: ${LOGIN_LOCKOUT_THRESHOLD:5}
+        duration: ${LOGIN_LOCKOUT_DURATION:20m}
+    registration:
+      rate-limit:
+        rejected-attempt-threshold: ${REGISTRATION_REJECTED_ATTEMPT_THRESHOLD:10}
+        window: ${REGISTRATION_RATE_LIMIT_WINDOW:5m}
+        lock-duration: ${REGISTRATION_LOCK_DURATION:24h}
+    # Password history: a new password may not match the current one or the ones just before it (3 in total).
+    password:
+      history-length: ${PASSWORD_HISTORY_LENGTH:3}
+    # Password reset (ADR 0004): how long an emailed link works.
+    password-reset:
+      token-lifetime: ${PASSWORD_RESET_TOKEN_LIFETIME:30m}
+      # Per source IP, every attempt counted whatever its outcome; over the limit the client gets 429.
+      request-rate-limit:
+        attempts: ${PASSWORD_RESET_REQUEST_RATE_LIMIT_ATTEMPTS:5}
+        window: ${PASSWORD_RESET_REQUEST_RATE_LIMIT_WINDOW:15m}
+      confirm-rate-limit:
+        attempts: ${PASSWORD_RESET_CONFIRM_RATE_LIMIT_ATTEMPTS:10}
+        window: ${PASSWORD_RESET_CONFIRM_RATE_LIMIT_WINDOW:15m}
+      # Per account, silent: over the cap the requester still gets the generic 200 and no email is sent.
+      email-cap:
+        attempts: ${PASSWORD_RESET_EMAIL_CAP_ATTEMPTS:3}
+        window: ${PASSWORD_RESET_EMAIL_CAP_WINDOW:1h}
+    # Standalone standard account hygiene. Inactivity counts from the last login (or creation if never logged in).
+    account-hygiene:
+      disable-after: ${ACCOUNT_DISABLE_AFTER:90d}
+      delete-after: ${ACCOUNT_DELETE_AFTER:180d}
+      cron: ${ACCOUNT_HYGIENE_CRON:0 0 1 * * *}
+      zone: ${ACCOUNT_HYGIENE_ZONE:UTC}
+
+logging:
+  structured:
+    format:
+      file: ecs
+    json:
+      stacktrace:
+        root: first
+        max-length: 8192
+        max-throwable-depth: 30
+        include-common-frames: false
+        include-hashes: true
+  file:
+    path: "logs"

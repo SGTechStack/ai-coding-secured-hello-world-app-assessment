@@ -1,0 +1,7 @@
+# Reviewed exceptions for the dependency-scan profile (backend/pom.xml). Every entry needs a reason and an expiry,
+# after which the finding fails the build again. Format:
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2026-12-31
+# reason = "Why it does not apply here, or which upgrade removes it."

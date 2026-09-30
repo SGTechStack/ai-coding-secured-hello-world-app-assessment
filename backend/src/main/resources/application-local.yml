@@ -1,0 +1,14 @@
+# Local-only profile: spring-boot:run -Dspring-boot.run.profiles=local
+# The seed changelog comes from backend/local/, which only spring-boot:run adds to the classpath (never packaged),
+# so activating this profile on the packaged jar (dev, sit, prod) fails fast instead of seeding data.
+spring:
+  datasource:
+    url: jdbc:h2:mem:login-flow;MODE=PostgreSQL;LOCK_TIMEOUT=10000;DB_CLOSE_DELAY=-1
+    username: sa
+    # Not a secret (in-memory H2), but non-blank: it keys the Session hash, and startup refuses a blank one.
+    password: local-only-h2-password
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-local.yaml
+
+app:
+  public-base-uri: https://localhost:8443

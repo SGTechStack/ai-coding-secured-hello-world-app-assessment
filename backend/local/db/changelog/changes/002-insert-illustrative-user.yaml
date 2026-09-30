@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-insert-illustrative-user
+      author: builderday
+      comment: Insert the development-only illustrative user with its precomputed BCrypt-12 hash.
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  value: 49ac0d5f-9634-49a3-8d46-45a6d19c3fc8
+              - column:
+                  name: username
+                  value: johndoe
+              - column:
+                  name: password_hash
+                  value: $2a$12$hacFBn9OCu.ZNWhd9eJbPeIVszuoiLkgHUT7ElNHZz7611/fVtRxu
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP

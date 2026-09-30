@@ -1,0 +1,29 @@
+# Local agent and editor tooling
+.vscode/
+.scratch/
+.worktrees/
+
+# Java / Maven
+backend/target/
+backend/logs/
+*.class
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+e2e/node_modules/
+artifacts/
+*.tsbuildinfo
+semantic-review/
+test-results/
+
+# Local configuration and OS files
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db

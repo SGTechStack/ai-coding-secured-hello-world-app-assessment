@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "protected_files": [
+    {
+      "path": "package.json",
+      "sha256": "05dc90a111ad41689dcdc16e76708c5e8ed4f7d76a831a8d1c12c77739d01929"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "dab96ee08fb9792cb181172d6586fa9e3dc22acb98ae0eb8adfabc5578f83860"
+    },
+    {
+      "path": "playwright.config.ts",
+      "sha256": "8a730179b3921438f8750e018c9f34e0b96b57d36b7210295e43955aab7e270b"
+    },
+    {
+      "path": "fixtures/session.ts",
+      "sha256": "214397a9d59ee7b7625e93874e3d7a80f52859697082b37e90d1215614df50c7"
+    },
+    {
+      "path": "scripts/lifecycle.mjs",
+      "sha256": "c02fd90279a4beb6a7c06a255327693aa041baf3c45e76914872a149db18e347"
+    },
+    {
+      "path": "scripts/global-setup.mjs",
+      "sha256": "927c033d3421d02d75160133b7d4b5304e052a0a24c9ed06b09907ae09064d2f"
+    },
+    {
+      "path": "tests/login.smoke.spec.ts",
+      "sha256": "e8000e407a817937d723d2e87c49f9798d36e28c10b27c64d8c970a24179476e"
+    },
+    {
+      "path": "README.md",
+      "sha256": "967f3fb303fc6a0fe8d73484cc5f372ebf96014a301316905337a7f207993277"
+    }
+  ]
+}

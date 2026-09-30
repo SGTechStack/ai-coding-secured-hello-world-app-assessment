@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: db.changelog-master.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/002-insert-illustrative-user.yaml
+      relativeToChangelogFile: true

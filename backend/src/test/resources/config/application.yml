@@ -1,0 +1,29 @@
+# Overlays src/main/resources/application.yml (Spring Boot loads classpath:/config/ with higher precedence),
+# so tests run against the real main config and only override what differs here.
+spring:
+  datasource:
+    # PostgreSQL mode so Bucket4j's PostgreSQL SQL (ON CONFLICT, FOR UPDATE) runs against H2.
+    url: jdbc:h2:mem:login-flow-test;MODE=PostgreSQL;LOCK_TIMEOUT=10000;DB_CLOSE_DELAY=-1
+    username: sa
+    # Non-blank: it keys the Session hash (common.audit.SessionIds), and startup refuses a blank one.
+    password: test-only-h2-password
+
+app:
+  security:
+    login:
+      rate-limit:
+        # Every test logs in from 127.0.0.1 against one shared H2 database; tests of the limit set their own.
+        attempts: 1000
+    password-reset:
+      # Every test resets from 127.0.0.1, several times per account; tests of the limits set their own.
+      request-rate-limit:
+        attempts: 1000
+      confirm-rate-limit:
+        attempts: 1000
+      email-cap:
+        attempts: 1000
+    account-hygiene:
+      # Tests invoke the job repeatedly; production keeps a 1-minute floor against clock skew between nodes.
+      lock-at-least-for: PT0S
+
+  public-base-uri: https://app.test.example

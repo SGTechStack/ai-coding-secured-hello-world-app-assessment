@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens — the single source of colour, type and radius for every page.
+ * Components use the semantic names (bg-surface, text-ink, border-line, bg-primary, ...), never raw palette
+ * classes such as bg-slate-100 or text-blue-700. See docs/design-system.md.
+ * Contrast (on surface #FFFFFF): ink 17.9:1, ink-muted 7.6:1, ink-subtle 4.8:1, primary 8.7:1, danger 6.5:1,
+ * success 5.0:1; line-strong 4.8:1 (form-control borders need >= 3:1).
+ */
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Surfaces */
+  --color-canvas: #f4f6fa; /* page background */
+  --color-surface: #ffffff; /* cards, inputs */
+  --color-surface-muted: #f8fafc; /* secondary panels, hover fills */
+
+  /* Text */
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-ink-subtle: #64748b;
+  --color-ink-inverse: #ffffff;
+
+  /* Borders */
+  --color-line: #e2e8f0; /* decorative dividers, card edges */
+  --color-line-strong: #64748b; /* interactive control borders */
+
+  /* Brand — deep navy */
+  --color-brand: #0b1f4b; /* brand panel / header background */
+  --color-brand-soft: #1e3a8a;
+  --color-primary: #1e40af; /* primary actions and links */
+  --color-primary-hover: #1e3a8a;
+  --color-primary-soft: #eff4ff;
+  --color-focus: #2563eb; /* focus ring, 5.2:1 on white */
+
+  /* Feedback */
+  --color-danger: #b91c1c;
+  --color-danger-hover: #991b1b;
+  --color-danger-soft: #fef2f2;
+  --color-danger-line: #fca5a5;
+  --color-success: #15803d;
+  --color-success-soft: #f0fdf4;
+  --color-success-line: #86efac;
+  --color-warning: #b45309;
+  --color-warning-soft: #fffbeb;
+  --color-warning-line: #fcd34d;
+  --color-info: #1e40af;
+  --color-info-soft: #eff4ff;
+  --color-info-line: #93c5fd;
+
+  /* Ordered 5-step scale for meters (password strength, progress health); worst -> best */
+  --color-meter-1: #b91c1c;
+  --color-meter-2: #c2410c;
+  --color-meter-3: #b45309;
+  --color-meter-4: #4d7c0f;
+  --color-meter-5: #15803d;
+
+  --radius-control: 0.5rem;
+  --radius-card: 1rem;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

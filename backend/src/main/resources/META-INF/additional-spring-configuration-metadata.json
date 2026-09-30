@@ -1,0 +1,24 @@
+{
+  "properties": [
+    {
+      "name": "app.security.session.absolute-timeout",
+      "type": "java.time.Duration",
+      "description": "Absolute Session lifetime, whatever the activity."
+    },
+    {
+      "name": "app.security.rate-limit.cleanup-cron",
+      "type": "java.lang.String",
+      "description": "Spring cron expression for removing expired rate-limit buckets."
+    },
+    {
+      "name": "app.security.account-hygiene.cron",
+      "type": "java.lang.String",
+      "description": "Spring cron expression for the daily account hygiene job."
+    },
+    {
+      "name": "app.security.account-hygiene.zone",
+      "type": "java.lang.String",
+      "description": "Time zone the account hygiene cron is evaluated in, e.g. UTC."
+    }
+  ]
+}

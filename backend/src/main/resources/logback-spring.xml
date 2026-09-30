@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Boot's default console + structured file logging, plus dedicated ECS destinations for the "audit" and "access"
+     loggers. -->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/spring.log}"/>
+  <property name="AUDIT_LOG_FILE" value="${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/audit.log"/>
+  <property name="ACCESS_LOG_FILE" value="${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}}/access.log"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <!-- Format comes from logging.structured.format.file in application.yml; charset (UTF-8) and rolling (10MB,
+       7 files) are Boot's defaults. -->
+  <include resource="org/springframework/boot/logging/logback/structured-file-appender.xml"/>
+
+  <!-- Shipped to central durable logging with >= 90 days retention; local files are only a buffer. -->
+  <appender name="AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+      <format>ecs</format>
+      <charset>UTF-8</charset>
+    </encoder>
+    <file>${AUDIT_LOG_FILE}</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${AUDIT_LOG_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+      <maxFileSize>10MB</maxFileSize>
+      <maxHistory>90</maxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <logger name="audit" level="INFO" additivity="false">
+    <appender-ref ref="AUDIT"/>
+  </logger>
+
+  <!-- Request log entries (common.web.RequestLogFilter): operational, never Security audit events. Off the console and
+       out of the general log; rolls like the general log (10MB, 7 files). Retention is the log platform's. -->
+  <appender name="ACCESS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+      <format>ecs</format>
+      <charset>UTF-8</charset>
+    </encoder>
+    <file>${ACCESS_LOG_FILE}</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${ACCESS_LOG_FILE}.%d{yyyy-MM-dd}.%i.gz</fileNamePattern>
+      <maxFileSize>${LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE:-10MB}</maxFileSize>
+      <maxHistory>${LOGBACK_ROLLINGPOLICY_MAX_HISTORY:-7}</maxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <logger name="access" level="INFO" additivity="false">
+    <appender-ref ref="ACCESS"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+</configuration>

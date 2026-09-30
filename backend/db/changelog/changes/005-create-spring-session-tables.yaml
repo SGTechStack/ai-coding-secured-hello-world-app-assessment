@@ -1,0 +1,92 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-spring-session-tables
+      author: builderday
+      comment: Spring Session JDBC tables (spring-session-jdbc schema-postgresql.sql, snake_case) so sessions are shared across instances.
+      changes:
+        - createTable:
+            tableName: spring_session
+            columns:
+              - column:
+                  name: primary_id
+                  type: CHAR(36)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: spring_session_pk
+              - column:
+                  name: session_id
+                  type: CHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: creation_time
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_access_time
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_inactive_interval
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expiry_time
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: principal_name
+                  type: VARCHAR(100)
+        - createIndex:
+            tableName: spring_session
+            indexName: spring_session_ix1
+            unique: true
+            columns:
+              - column:
+                  name: session_id
+        - createIndex:
+            tableName: spring_session
+            indexName: spring_session_ix2
+            columns:
+              - column:
+                  name: expiry_time
+        - createIndex:
+            tableName: spring_session
+            indexName: spring_session_ix3
+            columns:
+              - column:
+                  name: principal_name
+        - createTable:
+            tableName: spring_session_attributes
+            columns:
+              - column:
+                  name: session_primary_id
+                  type: CHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attribute_name
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attribute_bytes
+                  type: BYTEA
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: spring_session_attributes
+            columnNames: session_primary_id, attribute_name
+            constraintName: spring_session_attributes_pk
+        - addForeignKeyConstraint:
+            baseTableName: spring_session_attributes
+            baseColumnNames: session_primary_id
+            referencedTableName: spring_session
+            referencedColumnNames: primary_id
+            constraintName: spring_session_attributes_fk
+            onDelete: CASCADE

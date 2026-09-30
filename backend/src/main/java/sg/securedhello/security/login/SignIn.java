@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -12,6 +13,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -93,6 +97,8 @@ import tools.jackson.databind.json.JsonMapper;
  * (REJ-010), and answers 204.
  */
 public final class SignIn {
+
+    private static final Logger log = LoggerFactory.getLogger(SignIn.class);
 
     public static final String LOGIN_PATH = "/api/login";
     public static final String LOGOUT_PATH = "/api/logout";
@@ -240,10 +246,16 @@ public final class SignIn {
     private void loginSucceeded(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException {
         SignedInUser user = userOf(authentication);
-        if (!LockoutLane.of(authentication.getDetails(), user.id(), clock.instant()).trusted()) {
-            devices.issue(user.id(), response);
-        }
         audit.emit(AuditEvent.LOGIN_SUCCESS, AccountContext.of(user.id()));
+        if (!LockoutLane.of(authentication.getDetails(), user.id(), clock.instant()).trusted()) {
+            try {
+                devices.issue(user.id(), response);
+            } catch (DataAccessException | NoSuchElementException notIssued) {
+                // Best effort: the session is already authenticated, and a device only picks a lockout lane. Under
+                // row-lock contention, or if the account went away, the sign-in still answers 200 with no cookie.
+                log.warn("A trusted device was not issued at sign-in: {}", notIssued.getClass().getSimpleName());
+            }
+        }
         response.setStatus(HttpStatus.OK.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         jsonMapper.writeValue(response.getOutputStream(), profiles.read(authentication));

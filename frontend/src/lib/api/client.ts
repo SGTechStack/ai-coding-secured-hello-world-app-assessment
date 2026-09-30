@@ -51,6 +51,11 @@ export interface ApiFetchOptions {
    * off: it is terminal on 204, 401 and 403 alike, and never retried (REJ-051; T-FE-017).
    */
   csrfRetry?: boolean
+  /**
+   * Whether a `MISSING_FACTOR` refusal waits on the step-up queue; default `true`. The code verification turns it off:
+   * it is what settles the queue, so waiting on it would never end.
+   */
+  stepUp?: boolean
 }
 
 /**
@@ -72,7 +77,8 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, options:
   try {
     return await sendUnsafe<T>(path, init, options)
   } catch (error) {
-    const stepUp = error instanceof ApiError && error.code === 'MISSING_FACTOR' ? awaitStepUp() : undefined
+    const queued = options.stepUp !== false && error instanceof ApiError && error.code === 'MISSING_FACTOR'
+    const stepUp = queued ? awaitStepUp() : undefined
     if (!stepUp) {
       throw error
     }

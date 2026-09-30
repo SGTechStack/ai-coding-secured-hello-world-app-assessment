@@ -86,7 +86,11 @@ async function disableBob() {
 describe('the step-up challenge', () => {
   it('opens one challenge for two concurrent refused changes and replays each once with a fresh token', async () => {
     const { user, router, dialog } = await disableBob()
-    const carolChange = setAdminUserEnabled(carol.id, false)
+    // Settled into a value at once, so a rejection (the dialog unmounting on a timeout) is never left unhandled.
+    const carolChange = setAdminUserEnabled(carol.id, false).then(
+      (value) => ({ value }),
+      (error: unknown) => ({ error }),
+    )
     await waitFor(() => expect(changes).toHaveLength(2))
 
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
@@ -96,7 +100,7 @@ describe('the step-up challenge', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Verify' }))
 
     expect(await screen.findByText('Account disabled. The user has been signed out.')).toHaveAttribute('role', 'status')
-    expect(await carolChange).toMatchObject({ id: carol.id, enabled: false })
+    expect(await carolChange).toEqual({ value: expect.objectContaining({ id: carol.id, enabled: false }) })
     expect(verifications).toEqual([{ code: '123456' }])
     expect(changes.slice(0, 2).map(({ token }) => token)).toEqual(['token-1', 'token-1'])
     expect(changes.slice(2)).toEqual(

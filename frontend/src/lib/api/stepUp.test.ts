@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { problemResponse } from '@/test/msw/problems'
 import { server } from '@/test/msw/server'
 import { apiFetch, apiUrl, clearCsrfToken, CSRF_HEADER, refreshCsrfToken } from './client'
+import { verifyTotp } from '@/lib/mfa/verification'
 import { ApiError } from './errors'
 import { abandonStepUp, completeStepUp, isStepUpPending, StepUpCancelledError, subscribeStepUp } from './stepUp'
 
@@ -171,6 +172,25 @@ describe('step-up queue', () => {
 
     unsubscribe()
 
+    await expect(first).rejects.toBeInstanceOf(StepUpCancelledError)
+    expect(route.attempts).toHaveLength(1)
+  })
+
+  it('the code verification is never queued: a refusal there is returned, not left waiting on itself', async () => {
+    const route = enabledRoute()
+    const first = disable('a')
+    await challengeOpened()
+    server.use(
+      http.post(apiUrl('/api/mfa/totp/verification'), () =>
+        problemResponse('MISSING_FACTOR', '/api/mfa/totp/verification', { factor: 'TOTP', reason: 'MISSING' }),
+      ),
+    )
+
+    await expect(verifyTotp('123456')).rejects.toMatchObject({ code: 'MISSING_FACTOR' })
+    expect(isStepUpPending()).toBe(true)
+    expect(opened).toBe(1)
+
+    abandonStepUp()
     await expect(first).rejects.toBeInstanceOf(StepUpCancelledError)
     expect(route.attempts).toHaveLength(1)
   })

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { LogOut, Moon, Sun, User } from 'lucide-react';
+import { LogOut, Moon, Sun, User, Users } from 'lucide-react';
 import { useTheme } from '@lib/theme';
 import {
   DropdownMenu,
@@ -14,6 +14,9 @@ import { http } from '@lib/http';
 import { useCurrentUser, getInitials } from '@features/user/user.queries';
 
 const APP_NAME = 'DEMO';
+
+/** Role name (as sent by /api/v1/me) that unlocks Account management. */
+const ADMIN_ROLE = 'ADMIN';
 
 export function Topbar() {
   const { data: user } = useCurrentUser();
@@ -52,6 +55,12 @@ export function Topbar() {
               <User />
               Profile
             </DropdownMenuItem>
+            {user.roles.includes(ADMIN_ROLE) && (
+              <DropdownMenuItem render={<Link to="/admin/accounts" />}>
+                <Users />
+                Accounts
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={toggle}>
               {theme === 'dark' ? <Sun /> : <Moon />}
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}

@@ -40,6 +40,11 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:8080',
           changeOrigin: true,
         },
+        // Admin channel (Account management); same origin so the session and CSRF cookies apply.
+        '/admin/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
         '/login': {
           target: 'http://localhost:8080',
           changeOrigin: true,

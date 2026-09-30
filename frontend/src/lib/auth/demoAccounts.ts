@@ -4,6 +4,13 @@ import { apiFetch } from '@/lib/api/client'
 export interface DemoAccount {
   username: string
   role: 'USER' | 'ADMIN'
+  /**
+   * Whether the account exists as seeded. False when it was deleted or its username is held by an account the seeder
+   * did not create (a database from before the demo accounts); it then carries no email, password or code.
+   */
+  seeded: boolean
+  /** The seeded email address, for the forgot-password flow, or null when not seeded. */
+  email: string | null
   /** The committed password, or null once it has been changed. */
   password: string | null
   passwordChanged: boolean

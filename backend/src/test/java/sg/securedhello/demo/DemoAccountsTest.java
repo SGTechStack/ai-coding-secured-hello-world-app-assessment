@@ -122,6 +122,8 @@ class DemoAccountsTest {
             JsonNode user = accounts.get(0);
             assertThat(user.get("username").asText()).isEqualTo("demo-user");
             assertThat(user.get("role").asText()).isEqualTo("USER");
+            assertThat(user.get("seeded").asBoolean()).isTrue();
+            assertThat(user.get("email").asText()).isEqualTo("demo-user@demo.invalid");
             assertThat(user.get("password").asText()).isEqualTo(USER_PASSWORD);
             assertThat(user.get("passwordChanged").asBoolean()).isFalse();
             assertThat(user.get("totp").isNull()).isTrue();
@@ -129,6 +131,8 @@ class DemoAccountsTest {
             JsonNode admin = accounts.get(1);
             assertThat(admin.get("username").asText()).isEqualTo("demo-admin");
             assertThat(admin.get("role").asText()).isEqualTo("ADMIN");
+            assertThat(admin.get("seeded").asBoolean()).isTrue();
+            assertThat(admin.get("email").asText()).isEqualTo("demo-admin@demo.invalid");
             assertThat(admin.get("password").asText()).isEqualTo(ADMIN_PASSWORD);
             String code = admin.get("totp").get("code").asText();
             assertThat(code).matches("\\d{6}");
@@ -144,6 +148,37 @@ class DemoAccountsTest {
             JsonNode changed = panel(context).get(0);
             assertThat(changed.get("passwordChanged").asBoolean()).isTrue();
             assertThat(changed.get("password").isNull()).isTrue();
+            assertThat(changed.get("email").asText()).isEqualTo("demo-user@demo.invalid");
+        });
+
+        assertThat(boot.failure()).isNull();
+    }
+
+    /**
+     * A dev database from before the demo accounts holds {@code demo-admin} as the bootstrap seeded it (another address,
+     * a forced-change credential). The seeder leaves it alone, and the panel still lists the administrator, as not
+     * seeded and with nothing read from that account, rather than dropping it.
+     */
+    @Test
+    void thePanelListsBothAccountsEvenWhenAPreDemoBootstrapAdministratorHoldsTheUsername() {
+        assertThat(RestartHarness.run(
+                builder -> builder.profiles("dev").initializers(RestartHarness.onDatabase(database)), context -> { },
+                "--app.admin.username=demo-admin").failure()).isNull();
+
+        Boot boot = dev(context -> {
+            assertThat(jdbc(context).queryForObject("SELECT email FROM users WHERE username = 'demo-admin'",
+                    String.class)).isEqualTo("demo-admin@admin.invalid");
+            JsonNode accounts = panel(context);
+
+            assertThat(accounts).extracting(account -> account.get("username").asText())
+                    .containsExactly("demo-user", "demo-admin");
+            assertThat(accounts.get(0).get("seeded").asBoolean()).isTrue();
+            JsonNode admin = accounts.get(1);
+            assertThat(admin.get("seeded").asBoolean()).isFalse();
+            assertThat(admin.get("role").asText()).isEqualTo("ADMIN");
+            assertThat(admin.get("email").isNull()).isTrue();
+            assertThat(admin.get("password").isNull()).isTrue();
+            assertThat(admin.get("totp").isNull()).isTrue();
         });
 
         assertThat(boot.failure()).isNull();

@@ -137,15 +137,20 @@ link 30 minutes. Each works once, and a newer link for the same account replaces
 ### 7. Sign in with the demo accounts panel
 
 Under the `dev` profile the **Sign in** page shows a **Demo accounts** panel. It lists two accounts the backend
-seeded on first start, with their passwords and **Copy** buttons:
+seeded on first start, with their email addresses, passwords and **Copy** buttons:
 
-- `demo-user`, an ordinary user;
-- `demo-admin`, an administrator already enrolled in TOTP, with its **current six-digit code**. The code refreshes
-  by itself when its 30-second step ends, so no authenticator app is needed for this account.
+- `demo-user` (`demo-user@demo.invalid`), an ordinary user;
+- `demo-admin` (`demo-admin@demo.invalid`), an administrator already enrolled in TOTP, with its **current six-digit
+  code**. The code refreshes by itself when its 30-second step ends, so no authenticator app is needed for this
+  account.
 
 1. Choose **Fill in demo-user**, then **Sign in**. **Hello, demo-user** opens. Choose **Sign out**.
 2. Choose **Fill in demo-admin**, note the code, then **Sign in**. On **TOTP Verification**, enter the code and
    choose **Verify**. The **Users** list opens.
+3. To try the forgot-password flow, copy an account's email from the panel, choose **Forgot password?** and submit
+   it. No mail is sent (`.invalid` is a never-deliverable domain): the reset link appears in the backend console as
+   `Dev-only PASSWORD_RESET link (no mail is sent): …`. Once a password changes, the panel says so instead of
+   showing it.
 
 Neither account has to change its password first. The panel, the endpoint behind it and the accounts exist only
 under `dev`: every value comes from the backend at run time, nothing is compiled into the SPA, and any other profile
@@ -168,7 +173,8 @@ The app is now ready to use. Stop either server with **Ctrl+C** in its terminal.
 | `npm ci` or `npm run dev` fails with "npm.ps1 cannot be loaded because running scripts is disabled on this system" | Windows PowerShell's default execution policy blocks npm's PowerShell shim. Run `npm.cmd ci` and `npm.cmd run dev` instead, or allow local scripts once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. |
 | "Too many attempts. Wait a moment, then try again." | A rate limit was hit. Everything local comes from one address, so the per-source limits are shared by every browser window. Most limits refill within seconds. Reset requests for one email address allow 3 and then one more every 20 minutes ("Too many reset requests for this address…"). A source that has driven five accounts into lockout is refused for other usernames for up to an hour. |
 | The correct password is refused as "The username or password is not correct." | The account may be locked: 5 wrong passwords within 20 minutes lock it for 20 minutes, and the message never says so. Wait, or have an administrator choose **Unlock account**. For `demo-admin`, see the recovery runner in [`backend/README.md`](backend/README.md#recovering-an-account-with-the-recovery-runner). A forced-change credential also expires 30 days after it is issued. |
-| The sign-in page has no **Demo accounts** panel | The backend is not running under `dev`, `APP_DEV_DEMOACCOUNTS_ENABLED` is `false`, or the database predates the demo accounts: stop the backend, delete `backend/data/`, and start it again. |
+| The sign-in page has no **Demo accounts** panel | The backend is not running under `dev`, or `APP_DEV_DEMOACCOUNTS_ENABLED` is `false`. |
+| The panel says an account is **Not available** | The database has no seeded account of that name: it was deleted, or the database predates the demo accounts (an older `dev` start seeded `demo-admin` from `APP_ADMIN_USERNAME` instead). Stop the backend, delete `backend/data/`, and start it again for a clean seed. |
 | A TOTP code is refused | Check that the phone's clock is set automatically. A code works once only, so wait for the next one (the demo panel shows it). After 10 wrong codes in 20 minutes the factor locks for 20 minutes. |
 | You want a clean start | Stop the backend, delete `backend/data/` (and optionally `backend/logs/`), and start it again. The demo accounts are seeded afresh. |
 

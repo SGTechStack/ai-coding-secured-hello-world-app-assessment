@@ -13,6 +13,8 @@ const DEMO_ACCOUNTS = apiUrl('/api/dev/demo-accounts')
 const user: DemoAccount = {
   username: 'fixture-user',
   role: 'USER',
+  seeded: true,
+  email: 'fixture-user@fixture.test',
   password: 'fixture-user-password',
   passwordChanged: false,
   totp: null,
@@ -20,6 +22,8 @@ const user: DemoAccount = {
 const admin: DemoAccount = {
   username: 'fixture-admin',
   role: 'ADMIN',
+  seeded: true,
+  email: 'fixture-admin@fixture.test',
   password: 'fixture-admin-password',
   passwordChanged: false,
   totp: { code: '111111', secondsRemaining: 20 },
@@ -70,10 +74,38 @@ describe('DemoAccountsPanel on the sign-in page', () => {
     expect(within(panel).getByText('fixture-admin-password')).toBeInTheDocument()
     expect(within(panel).getByText('111111')).toHaveAttribute('aria-live', 'polite')
     expect(within(panel).queryByText('fixture-user-password')).not.toBeInTheDocument()
-    expect(within(panel).getByText('Changed since it was seeded, so not shown.')).toBeInTheDocument()
+    expect(within(panel).getByText('Password was changed since it was seeded, so it is not shown.')).toBeInTheDocument()
+    // Each account's email stays listed, for the forgot-password flow.
+    expect(within(panel).getByText('fixture-user@fixture.test')).toBeInTheDocument()
+    expect(within(panel).getByText('fixture-admin@fixture.test')).toBeInTheDocument()
     // The sign-in form's labels stay unique: the panel labels no control "Username" or "Password".
     expect(screen.getByLabelText('Username')).toHaveAttribute('id', 'username')
     expect(screen.getByLabelText('Password')).toHaveAttribute('id', 'password')
+  })
+
+  it('lists an account that is not seeded with a note, never dropping it', async () => {
+    serve([user, { ...admin, seeded: false, email: null, password: null, passwordChanged: false, totp: null }])
+    renderApp('/sign-in')
+
+    const panel = (await screen.findByRole('heading', { name: 'Demo accounts' })).closest('section')!
+    expect(within(panel).getByRole('heading', { name: 'fixture-admin (administrator)' })).toBeInTheDocument()
+    expect(within(panel).getByText(/Not available: this database has no seeded fixture-admin/)).toBeInTheDocument()
+    expect(within(panel).queryByRole('button', { name: 'Fill in fixture-admin' })).not.toBeInTheDocument()
+    expect(within(panel).queryByRole('button', { name: "Copy fixture-admin's email" })).not.toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Fill in fixture-user' })).toBeInTheDocument()
+  })
+
+  it("copies an account's email for the forgot-password flow", async () => {
+    serve([user, admin])
+    renderApp('/sign-in')
+    const copy = await screen.findByRole('button', { name: "Copy fixture-admin's email" })
+    const clicks = userEvent.setup()
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
+
+    await clicks.click(copy)
+
+    expect(writeText).toHaveBeenCalledWith('fixture-admin@fixture.test')
+    expect(await screen.findByText("Copied fixture-admin's email.")).toBeInTheDocument()
   })
 
   it('copies a value and announces it', async () => {

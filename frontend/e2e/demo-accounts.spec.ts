@@ -15,7 +15,10 @@ async function fillFromPanel(page: Page, username: string) {
 }
 
 test('the demo user signs in from the sign-in page panel', async ({ page }) => {
-  await fillFromPanel(page, 'demo-user')
+  const panel = await fillFromPanel(page, 'demo-user')
+  // Both accounts are listed, each with its seeded email for the forgot-password flow.
+  await expect(panel.getByText('demo-user@demo.invalid', { exact: true })).toBeVisible()
+  await expect(panel.getByText('demo-admin@demo.invalid', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
 
   await expect(page.getByRole('heading', { name: 'Hello, demo-user' })).toBeVisible({ timeout: 20_000 })

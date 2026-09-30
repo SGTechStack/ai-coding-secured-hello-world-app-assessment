@@ -5,7 +5,9 @@ import { type DemoAccount, DEMO_ACCOUNTS_KEY, fetchDemoAccounts, refreshAfterMs 
 
 /**
  * The sign-in page's "Demo accounts" panel, for local demos. It renders only when the backend's dev-only endpoint
- * answers 200 with accounts; outside `dev` it renders nothing at all. Every value shown comes from that response.
+ * answers 200 with accounts; outside `dev` it renders nothing at all. Every value shown comes from that response. The
+ * endpoint always lists both accounts, so each one appears with its email and password, a note that its password was
+ * changed, or a note that this database has no seeded account of that name.
  *
  * Button names come from their text (with a visually hidden suffix), never `aria-label`, so the sign-in form's
  * "Username" and "Password" labels stay the only labelled controls with those words.
@@ -78,13 +80,19 @@ function DemoAccountEntry({
   onCopy: (what: string, value: string) => Promise<void>
   onUse: (username: string, password: string) => void
 }) {
-  const { username, role, password, totp } = account
+  const { username, role, seeded, email, password, totp } = account
   const secondsLeft = useSecondsLeft(totp ? fetchedAt + totp.secondsRemaining * 1000 : undefined)
   return (
     <div className="flex flex-col gap-2 border-t pt-3">
       <h4 className="text-sm font-medium">
         {username} ({role === 'ADMIN' ? 'administrator' : 'user'})
       </h4>
+      {!seeded && (
+        <p className="text-sm">
+          Not available: this database has no seeded {username}. It was deleted, or an account the demo seeder did not
+          create holds the name. Stop the app and delete the backend&apos;s data folder to start from a clean seed.
+        </p>
+      )}
       <dl className="grid grid-cols-[max-content_1fr_max-content] items-center gap-x-4 gap-y-1 text-sm">
         <dt>Username</dt>
         <dd>
@@ -95,8 +103,21 @@ function DemoAccountEntry({
             Copy <span className="sr-only">{username}&apos;s username</span>
           </Button>
         </dd>
-        <dt>Password</dt>
-        {password ? (
+        {email && (
+          <>
+            <dt>Email</dt>
+            <dd>
+              <code>{email}</code>
+            </dd>
+            <dd>
+              <Button type="button" variant="outline" size="sm" onClick={() => onCopy(`${username}'s email`, email)}>
+                Copy <span className="sr-only">{username}&apos;s email</span>
+              </Button>
+            </dd>
+          </>
+        )}
+        {seeded && <dt>Password</dt>}
+        {seeded && password && (
           <>
             <dd>
               <code>{password}</code>
@@ -112,8 +133,9 @@ function DemoAccountEntry({
               </Button>
             </dd>
           </>
-        ) : (
-          <dd className="col-span-2">Changed since it was seeded, so not shown.</dd>
+        )}
+        {seeded && !password && (
+          <dd className="col-span-2">Password was changed since it was seeded, so it is not shown.</dd>
         )}
         {totp && (
           <>

@@ -6,10 +6,8 @@ import static sg.securedhello.config.PublishedDemoValues.demoEmail;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jspecify.annotations.Nullable;
@@ -28,10 +26,13 @@ import sg.securedhello.user.UserAccountRepository;
  * {@code GET /api/dev/demo-accounts}: the sign-in page's demo panel, under {@code dev} only. Outside dev this handler is
  * never registered, so its whitelist row finds no handler and the route answers 404.
  *
- * <p>It lists each seeded demo account that exists (username and seeded address): its role and committed password,
- * or {@code passwordChanged} and no password once the password has changed; and, for the administrator whose factor
- * still holds the committed secret, the current six-digit code and the seconds left in its 30-second step, computed
- * here from the secret and the application {@link Clock} with {@link TotpWindow}. The response is {@code no-store}.
+ * <p>It always lists both demo accounts, user first. One that exists as seeded (its username with its seeded address)
+ * is listed with its role, address and committed password, or {@code passwordChanged} and no password once the
+ * password has changed; and, for the administrator whose factor still holds the committed secret, the current
+ * six-digit code and the seconds left in its 30-second step, computed here from the secret and the application
+ * {@link Clock} with {@link TotpWindow}. One that does not ({@code seeded} false: deleted, or its username taken by an
+ * account the seeder did not create, such as a pre-demo bootstrap administrator) carries no address, password or code,
+ * so nothing is ever read from an account that is not a demo account. The response is {@code no-store}.
  */
 @RestController
 @Profile("dev")
@@ -55,19 +56,27 @@ class DemoAccountsController {
         this.clock = clock;
     }
 
-    /** The panel's data: the demo accounts that exist, user first. */
+    /** The panel's data: both demo accounts, user first. */
     record DemoAccounts(List<DemoAccount> accounts) {
     }
 
     /**
      * One demo account.
      *
-     * @param password        the committed password, or null once it has changed
+     * @param role            the role it is seeded with
+     * @param seeded          whether the account exists as seeded: this username with its seeded address
+     * @param email           the seeded address, or null when not {@code seeded}
+     * @param password        the committed password, or null once it has changed or when not {@code seeded}
      * @param passwordChanged whether the stored password is no longer the committed one
-     * @param totp            the administrator's current code, or null for the user or a re-enrolled factor
+     * @param totp            the administrator's current code, or null for the user, a re-enrolled factor or an
+     *                        account not {@code seeded}
      */
-    record DemoAccount(String username, String role, @Nullable String password, boolean passwordChanged,
-            @Nullable CurrentCode totp) {
+    record DemoAccount(String username, String role, boolean seeded, @Nullable String email,
+            @Nullable String password, boolean passwordChanged, @Nullable CurrentCode totp) {
+
+        static DemoAccount notSeeded(String username, String role) {
+            return new DemoAccount(username, role, false, null, null, false, null);
+        }
     }
 
     /** The current TOTP code and the whole seconds until its step ends. */
@@ -76,14 +85,14 @@ class DemoAccountsController {
 
     @GetMapping("/api/dev/demo-accounts")
     ResponseEntity<DemoAccounts> demoAccounts() {
-        List<DemoAccount> listed = new ArrayList<>();
-        describe(DEMO_USER, demo.userPassword(), false).ifPresent(listed::add);
-        describe(DEMO_ADMIN, demo.adminPassword(), true).ifPresent(listed::add);
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new DemoAccounts(List.copyOf(listed)));
+        List<DemoAccount> listed = List.of(describe(DEMO_USER, "USER", demo.userPassword()),
+                describe(DEMO_ADMIN, "ADMIN", demo.adminPassword()));
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new DemoAccounts(listed));
     }
 
-    /** The seeded account {@code username} (its seeded address too), if it exists; the code for the administrator. */
-    private Optional<DemoAccount> describe(String username, String committed, boolean admin) {
+    /** The demo account {@code username}, as seeded or not; the code for the administrator. */
+    private DemoAccount describe(String username, String role, String committed) {
+        boolean admin = "ADMIN".equals(role);
         return accounts.findByUsername(username).filter(account -> demoEmail(username).equals(account.getEmail()))
                 .map(account -> {
                     String hash = account.getPasswordHash();
@@ -91,9 +100,9 @@ class DemoAccountsController {
                             && committedByHash.computeIfAbsent(hash, key -> encoder.matches(committed, key));
                     CurrentCode code = admin && factors.holds(account.getId(), demo.adminTotpSecretBytes())
                             ? currentCode() : null;
-                    return new DemoAccount(username, account.getRole(), unchanged ? committed : null, !unchanged,
-                            code);
-                });
+                    return new DemoAccount(username, account.getRole(), true, account.getEmail(),
+                            unchanged ? committed : null, !unchanged, code);
+                }).orElseGet(() -> DemoAccount.notSeeded(username, role));
     }
 
     private CurrentCode currentCode() {

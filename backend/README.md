@@ -151,12 +151,22 @@ logs `Demo accounts: seeded demo-user` and `Demo accounts: seeded demo-admin, en
 `Administrator bootstrap: an ADMIN account exists, so none is seeded`. A restart seeds nothing again, and an account
 that already exists, or whose username or address a tombstone holds, is left as it is.
 
-The sign-in page shows a **Demo accounts** panel with each account's username and password (and **Copy** and
-**Fill in** buttons) and `demo-admin`'s current six-digit code, which refreshes as each 30-second step ends. The panel
-reads `GET /api/dev/demo-accounts`, which computes the code on the server from the committed secret; no demo value is
-compiled into the SPA. A password changed since seeding is no longer shown, and the code is dropped once
-`demo-admin`'s authenticator has been reset. To add `demo-admin` to an authenticator app instead, type in the secret
-above (time-based, 6 digits, 30 seconds).
+The sign-in page shows a **Demo accounts** panel with each account's username, email address and password (and
+**Copy** and **Fill in** buttons) and `demo-admin`'s current six-digit code, which refreshes as each 30-second step
+ends. The panel reads `GET /api/dev/demo-accounts`, which always lists both accounts and computes the code on the
+server from the committed secret; no demo value, address included, is compiled into the SPA. A password changed since
+seeding is replaced by a note, and the code is dropped once `demo-admin`'s authenticator has been reset. An account
+the database does not hold as seeded (deleted, or a `demo-admin` that an older `dev` start's administrator bootstrap
+created as `demo-admin@admin.invalid`) is listed as **Not available**, with nothing read from it. To add `demo-admin`
+to an authenticator app instead, type in the secret above (time-based, 6 digits, 30 seconds).
+
+The addresses serve the forgot-password flow: submit one on **Forgot password?** and the reset link is logged by the
+dev link logger like any other (`Dev-only PASSWORD_RESET link (no mail is sent): …`); the `.invalid` domain only
+guarantees that no real mailbox could ever receive it.
+
+The seed state lives in the H2 database under `backend/data/` (`app.db.data-dir`). Stop the app and delete that
+folder to return to a clean seed: the next `dev` start seeds both accounts afresh, with their committed passwords and
+the pre-enrolled factor.
 
 **These accounts exist only under `dev`.** Outside `dev` nothing seeds them, `GET /api/dev/demo-accounts` has no
 handler and no authorization-matrix row, so it is refused exactly as an unknown route is, and startup refuses any

@@ -52,6 +52,17 @@ describe('built index.html (vite build, mode production)', () => {
       (m) => m[1],
     )
     expect(values).toHaveLength(3)
+    // And their seeded addresses, built on the backend as `<username>@<DEMO_EMAIL_DOMAIN>` (PublishedDemoValues).
+    const published = readFileSync(
+      path.join(root, '../backend/src/main/java/sg/securedhello/config/PublishedDemoValues.java'),
+      'utf8',
+    )
+    const constant = (name: string) => published.match(new RegExp(`\\b${name} = "([^"]+)"`))?.[1]
+    const domain = constant('DEMO_EMAIL_DOMAIN')
+    const usernames = [constant('DEMO_USER'), constant('DEMO_ADMIN')]
+    expect(domain).toBe('demo.invalid')
+    expect(usernames).toEqual(['demo-user', 'demo-admin'])
+    values.push(`@${domain}`, ...usernames.map((username) => `${username}@${domain}`))
     const files = readdirSync(outDir, { recursive: true, encoding: 'utf8' }).filter((entry) =>
       /\.(html|js|css|map|json|txt|webmanifest)$/.test(entry),
     )

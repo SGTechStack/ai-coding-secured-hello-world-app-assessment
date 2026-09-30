@@ -10,11 +10,11 @@
 
 **Blocked by:** 16, 24
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] With no flags, the runner changes nothing and prints a digest.
-- [ ] A stale or wrong digest is refused.
-- [ ] `password` sets a forced-change credential the admin can then sign in with. `totp` clears the factor so the admin re-enrols.
-- [ ] Against a missing database file it fails rather than creating one.
-- [ ] The canary scan finds no password in stdout, stderr or the logs.
-- [ ] The three audit rows are written with the before and after counts.
+- [x] With no flags, the runner changes nothing and prints a digest.
+- [x] A stale or wrong digest is refused.
+- [x] `password` sets a forced-change credential the admin can then sign in with. `totp` clears the factor so the admin re-enrols.
+- [x] Against a missing database file it fails rather than creating one.
+- [x] The canary scan finds no password in stdout, stderr or the logs.
+- [x] The three audit rows are written with the before and after counts.

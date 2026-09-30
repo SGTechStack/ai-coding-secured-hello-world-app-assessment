@@ -84,6 +84,15 @@ class RecoveryPlanTest {
     }
 
     @Test
+    void anAccountWithoutAFactorRowHasNoFactorAndThePlanNamesItsTargets() {
+        RecoveryPlan.Account noFactor = new RecoveryPlan.Account(UUID.randomUUID(), "bob", true, null, null, null);
+        assertThat(noFactor.hasFactor()).isFalse();
+        assertThat(ACCOUNT.hasFactor()).isTrue();
+        assertThat(new RecoveryPlan(RecoveryScope.TOTP, List.of(ACCOUNT, noFactor), null, DATABASE).targets())
+                .containsExactly(ACCOUNT.id(), noFactor.id());
+    }
+
+    @Test
     void theHelperIsSha256() {
         assertThat(RecoveryPlan.sha256("abc"))
                 .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");

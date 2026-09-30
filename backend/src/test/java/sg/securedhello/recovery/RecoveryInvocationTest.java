@@ -90,6 +90,8 @@ class RecoveryInvocationTest {
                 "--confirm=" + DIGEST, "--reason=" + "x".repeat(257))).hasMessageContaining("1 to 256");
         assertThatThrownBy(() -> parse("--rebind", "--scope=totp", "--username=alice", "--operator=o",
                 "--confirm=" + DIGEST, "--reason= ")).hasMessageContaining("1 to 256");
+        assertThat(parse("--rebind", "--scope=totp", "--username=alice", "--operator=o", "--confirm=" + DIGEST,
+                "--reason=" + "x".repeat(256)).reason()).hasSize(256);
     }
 
     @Test

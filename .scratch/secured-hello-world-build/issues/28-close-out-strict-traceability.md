@@ -6,15 +6,14 @@ After this ticket, the remaining acceptance gates are procedural, not code: the 
 
 **Blocked by:** 01–27
 
-**Status:** partial: 58 of the 68 remaining ledger rows are proven, two retired (T-CFG-017, T-ARCH-002) and seven
-amended by the user's decision (T-AUTH-016, T-AUD-015, T-AUD-018, T-CFG-019, T-CFG-036, T-FE-011, T-HDR-003). The
-last 8 rows are ticket 30's; the ledger is deleted once it merges.
+**Status:** done. Of the 68 rows left on the ledger at the start: 58 proven here (seven of them amended by the user's
+decision: T-AUTH-016, T-AUD-015, T-AUD-018, T-CFG-019, T-CFG-036, T-FE-011, T-HDR-003), two retired (T-CFG-017,
+T-ARCH-002, reasons in the test plan's Retired IDs), and eight proven by ticket 30. The ledger is deleted and
+`TraceabilityGateIT` is strict.
 
-- [ ] The pending ledger is gone, and `mvn verify` is green with every T-row cited by a test.
+- [x] The pending ledger is gone, and `mvn verify` is green with every T-row cited by a test.
 - [x] The catalogue snapshot lists every PRD and standard event above (T-AUD-014, T-AUD-007; the generated
       `docs/audit/log-inventory.md`, T-AUD-017).
-- [ ] Both register renderings are regenerated and committed with no drift.
-- [ ] `mvn -Pmutation` passes at 85% across the full security-decision scope.
-
-**Left for ticket 30 (still on the ledger):** T-SES-029, T-AUD-002, T-AUD-026, T-AUD-032, T-AUD-035, T-AUD-038,
-T-OBS-016, T-OBS-017.
+- [x] Both register renderings are regenerated and committed with no drift (`RegisterDriftIT` green).
+- [x] `mvn -Pmutation` passes at 85% across the full security-decision scope (375 mutations, 372 killed: 99%).
+- [x] The narrow Playwright suite (15 tests, 30 runs on Chromium and Firefox) is green.

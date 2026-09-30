@@ -5,6 +5,7 @@ import static sg.securedhello.testsupport.ProblemAssertions.problem;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 
 import javax.sql.DataSource;
 
@@ -16,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.Accounts.Account;
+import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CtxLockTimeoutTest;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SignedIn;
@@ -29,6 +31,9 @@ import sg.securedhello.testsupport.SignedIn;
 class ContendedFailureCountedTest extends CtxLockTimeoutTest {
 
     private static final String SOURCE = "203.0.113.71";
+
+    /** The lock threshold, as application.yml binds it (ADR-011). */
+    private static final int THRESHOLD = 5;
 
     @Autowired
     private DataSource dataSource;
@@ -67,5 +72,39 @@ class ContendedFailureCountedTest extends CtxLockTimeoutTest {
                 .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
 
         assertThat(failedLoginAttempts(account)).as("the contended failure and the next one").isEqualTo(2);
+    }
+
+    @Test
+    @Proves("T-AUTH-016")
+    void contendedFailuresThatReachTheThresholdRefuseTheNextCorrectPasswordAndKeepTheLock() throws Exception {
+        Account account = new Accounts(jdbc, passwordEncoder).user();
+
+        try (Connection holder = dataSource.getConnection()) {
+            holder.setAutoCommit(false);
+            try (PreparedStatement lock = holder.prepareStatement("SELECT id FROM users WHERE id = ? FOR UPDATE")) {
+                lock.setObject(1, account.id());
+                assertThat(lock.executeQuery().next()).isTrue();
+            }
+            for (int i = 0; i < THRESHOLD; i++) {
+                SignedIn.loginFrom(mockMvc, SOURCE, account.username(), Accounts.WRONG_PASSWORD)
+                        .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+            }
+            holder.rollback();
+        }
+
+        try (AuditCapture audit = AuditCapture.start()) {
+            SignedIn.loginFrom(mockMvc, SOURCE, account.username(), account.password())
+                    .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+
+            assertThat(audit.withMessage("Account locked.")).hasSize(1);
+            assertThat(audit.withMessage("Account lock cleared.")).isEmpty();
+            assertThat(audit.withMessage("Login succeeded.")).isEmpty();
+            assertThat(audit.withMessage("Login failed.")).singleElement().satisfies(row -> assertThat(row)
+                    .containsEntry("event.reason", "ACCOUNT_LOCKED")
+                    .containsEntry("user.id", account.id().toString()));
+        }
+        assertThat(failedLoginAttempts(account)).isEqualTo(THRESHOLD);
+        assertThat(jdbc.queryForObject("SELECT locked_until FROM users WHERE id = ?", Timestamp.class,
+                account.id()).toInstant()).isAfter(clock.instant());
     }
 }

@@ -101,12 +101,19 @@ export function MfaSettingsPage() {
             6-digit code the app shows.
           </p>
           <div>
-            <Button type="button" onClick={onGenerate} disabled={generating || stateUnknown || keyExists}>
+            <Button
+              type="button"
+              onClick={onGenerate}
+              disabled={generating || stateUnknown || keyExists}
+              aria-describedby={keyExists || (stateUnknown && profile.isError) ? 'generate-unavailable' : undefined}
+            >
               {provisioning ? 'Generate a new QR code' : 'Generate QR code'}
             </Button>
           </div>
-          {keyExists && <p className="text-sm">{ALREADY_ENROLLED}</p>}
-          {profile.isError && <p className="text-sm">{STATUS_UNKNOWN}</p>}
+          {/* Announced when the self-read settles, and named as the reason Generate is unavailable. */}
+          <p id="generate-unavailable" role="status" className="text-sm">
+            {keyExists ? ALREADY_ENROLLED : stateUnknown && profile.isError ? STATUS_UNKNOWN : ''}
+          </p>
         </>
       )}
       {provisioning && <ProvisionedSecret provisioning={provisioning} onCode={onCode} />}

@@ -4,8 +4,32 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+export type ProblemDetailProperties = { [key: string]: unknown };
+
+export interface ProblemDetail {
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+  properties?: ProblemDetailProperties;
+}
+
+export interface SignInRequest {
+  username?: string;
+  password?: string;
+}
+
+export interface SignInResponse {
+  username?: string;
+}
+
 export interface UserProfileResponse {
   username: string;
   displayName: string;
   roles: string[];
+}
+
+export interface GreetingResponse {
+  message?: string;
 }

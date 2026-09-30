@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\rate-limit.architecture.json",
+  "output": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\rate-limit.html",
+  "specification": {
+    "sha256": "fca56c41be1fc44c004c4bebea14f6762593aab1fbae55f1c2302980fa465ae1",
+    "bytes": 4608
+  },
+  "artifact": {
+    "sha256": "4db5708a7f8b61d3232fb479f453da488191ba5b847356fdfd632d548b7c8d37",
+    "bytes": 809495
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

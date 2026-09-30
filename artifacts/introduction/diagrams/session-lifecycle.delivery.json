@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\session-lifecycle.architecture.json",
+  "output": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\session-lifecycle.html",
+  "specification": {
+    "sha256": "4f5d2a9f04d796d3724072b4d9683d115ecc70704e35dbe4235fdea6f6f8a192",
+    "bytes": 3512
+  },
+  "artifact": {
+    "sha256": "b39dc79b12d060e5ccfb0167cc4fe8f52dc100eb7e6078a4edec754e9659c525",
+    "bytes": 805500
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

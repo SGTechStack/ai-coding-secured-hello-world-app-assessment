@@ -18,7 +18,10 @@ Seven Archify diagrams illustrate how the frontend and backend interact (trust b
 
 - `diagrams/*.json` — Archify source specifications (edit these).
 - `diagrams/*.html` — interactive, self-contained viewers (pan/zoom, themes, export).
+- `diagrams/*.delivery.json` — validated specification and HTML hashes.
 - `diagrams/*.visual-check.json` — Archify browser-check receipts.
+- `diagrams/*.visual-check.html` — light/dark screenshot contact sheets.
+- `diagrams/review.json` — presentation review and verification summary.
 - `img/*.png` — static captures embedded in the reader and `introduction.md`.
 
 After editing a diagram, validate, deliver and re-capture it, then rebuild:

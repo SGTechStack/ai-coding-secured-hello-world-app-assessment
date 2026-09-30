@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\proxy-trust.architecture.json",
+  "output": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\proxy-trust.html",
+  "specification": {
+    "sha256": "9835f5fee2980e2313426d82f8f0dd92bdb02842944adbdf21f206d7dcd11151",
+    "bytes": 3168
+  },
+  "artifact": {
+    "sha256": "77b377a5de6e43853f38296ad98d964cb38f3e2515fe9d7e53281731d3da847a",
+    "bytes": 804189
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

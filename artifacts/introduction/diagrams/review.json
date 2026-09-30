@@ -1,0 +1,160 @@
+{
+  "date": "2026-09-29",
+  "scope": "Documentation presentation refresh; existing security claims and review date retained. No application or deployment tests run.",
+  "readme": {
+    "localLinks": "passed",
+    "chapterAnchors": "passed",
+    "desktopVisualReview": "passed",
+    "mobileVisualReview": "passed",
+    "mobileHorizontalOverflow": false
+  },
+  "diagrams": [
+    {
+      "diagram": "csrf-cookies",
+      "diagram_type": "sequence",
+      "output": "csrf-cookies.html",
+      "specification_sha256": "878f1b5e90e2164c61d931e535f1f59e78ebf3504736c72f838d2abca10ae159",
+      "artifact_sha256": "db77452cbebd7b5931a27afa3d6b6ce923884df56f8c099f1984e61a566748f8",
+      "validation": {
+        "checksPassed": 9,
+        "checkCount": 9,
+        "compositionProfile": "showcase",
+        "compositionStatus": "pass",
+        "errors": 0,
+        "warnings": 0
+      },
+      "browser_evidence": "passed",
+      "visual_review": "passed",
+      "visual_review_scope": "Light and dark screenshot inspection; layout, routing, label fit, legend and composition.",
+      "correction_rounds": 0,
+      "delivery_receipt": "csrf-cookies.delivery.json",
+      "browser_receipt": "csrf-cookies.visual-check.json"
+    },
+    {
+      "diagram": "login",
+      "diagram_type": "sequence",
+      "output": "login.html",
+      "specification_sha256": "f07d0b9896ea4c1fa3597cca635b3a316c667b03c09803727fb47ace038be511",
+      "artifact_sha256": "48a73a4079e9861905630bd464a7b601fd4d23fa911c78948c8edc9ac3bc37be",
+      "validation": {
+        "checksPassed": 9,
+        "checkCount": 9,
+        "compositionProfile": "showcase",
+        "compositionStatus": "pass",
+        "errors": 0,
+        "warnings": 0
+      },
+      "browser_evidence": "passed",
+      "visual_review": "passed",
+      "visual_review_scope": "Light and dark screenshot inspection; layout, routing, label fit, legend and composition.",
+      "correction_rounds": 1,
+      "delivery_receipt": "login.delivery.json",
+      "browser_receipt": "login.visual-check.json"
+    },
+    {
+      "diagram": "password-reset",
+      "diagram_type": "sequence",
+      "output": "password-reset.html",
+      "specification_sha256": "71a44fc1ed84e610ffddec7563f8e5957f560c82da5e1b4484f4e7c125fd9f74",
+      "artifact_sha256": "d05c49d638b9df0c06a13c520556513d3ee0c51db20a958031ad5bfd3811d016",
+      "validation": {
+        "checksPassed": 9,
+        "checkCount": 9,
+        "compositionProfile": "showcase",
+        "compositionStatus": "pass",
+        "errors": 0,
+        "warnings": 0
+      },
+      "browser_evidence": "passed",
+      "visual_review": "passed",
+      "visual_review_scope": "Light and dark screenshot inspection; layout, routing, label fit, legend and composition.",
+      "correction_rounds": 1,
+      "delivery_receipt": "password-reset.delivery.json",
+      "browser_receipt": "password-reset.visual-check.json"
+    },
+    {
+      "diagram": "proxy-trust",
+      "diagram_type": "architecture",
+      "output": "proxy-trust.html",
+      "specification_sha256": "9835f5fee2980e2313426d82f8f0dd92bdb02842944adbdf21f206d7dcd11151",
+      "artifact_sha256": "77b377a5de6e43853f38296ad98d964cb38f3e2515fe9d7e53281731d3da847a",
+      "validation": {
+        "checksPassed": 9,
+        "checkCount": 9,
+        "compositionProfile": "showcase",
+        "compositionStatus": "pass",
+        "errors": 0,
+        "warnings": 0
+      },
+      "browser_evidence": "passed",
+      "visual_review": "passed",
+      "visual_review_scope": "Light and dark screenshot inspection; layout, routing, label fit, legend and composition.",
+      "correction_rounds": 0,
+      "delivery_receipt": "proxy-trust.delivery.json",
+      "browser_receipt": "proxy-trust.visual-check.json"
+    },
+    {
+      "diagram": "rate-limit",
+      "diagram_type": "architecture",
+      "output": "rate-limit.html",
+      "specification_sha256": "fca56c41be1fc44c004c4bebea14f6762593aab1fbae55f1c2302980fa465ae1",
+      "artifact_sha256": "4db5708a7f8b61d3232fb479f453da488191ba5b847356fdfd632d548b7c8d37",
+      "validation": {
+        "checksPassed": 9,
+        "checkCount": 9,
+        "compositionProfile": "showcase",
+        "compositionStatus": "pass",
+        "errors": 0,
+        "warnings": 0
+      },
+      "browser_evidence": "passed",
+      "visual_review": "passed",
+      "visual_review_scope": "Light and dark screenshot inspection; layout, routing, label fit, legend and composition.",
+      "correction_rounds": 0,
+      "delivery_receipt": "rate-limit.delivery.json",
+      "browser_receipt": "rate-limit.visual-check.json"
+    },
+    {
+      "diagram": "session-lifecycle",
+      "diagram_type": "architecture",
+      "output": "session-lifecycle.html",
+      "specification_sha256": "4f5d2a9f04d796d3724072b4d9683d115ecc70704e35dbe4235fdea6f6f8a192",
+      "artifact_sha256": "b39dc79b12d060e5ccfb0167cc4fe8f52dc100eb7e6078a4edec754e9659c525",
+      "validation": {
+        "checksPassed": 9,
+        "checkCount": 9,
+        "compositionProfile": "showcase",
+        "compositionStatus": "pass",
+        "errors": 0,
+        "warnings": 0
+      },
+      "browser_evidence": "passed",
+      "visual_review": "passed",
+      "visual_review_scope": "Light and dark screenshot inspection; layout, routing, label fit, legend and composition.",
+      "correction_rounds": 0,
+      "delivery_receipt": "session-lifecycle.delivery.json",
+      "browser_receipt": "session-lifecycle.visual-check.json"
+    },
+    {
+      "diagram": "trust-boundaries",
+      "diagram_type": "architecture",
+      "output": "trust-boundaries.html",
+      "specification_sha256": "5cd68b2e5410ea5a379de42c616311c9e82b5a617a897270ec07ce8308ca2d4a",
+      "artifact_sha256": "e261f787975aa219a03713de6bb95661819527bda22fe9e44d2a9f2067b004fb",
+      "validation": {
+        "checksPassed": 9,
+        "checkCount": 9,
+        "compositionProfile": "showcase",
+        "compositionStatus": "pass",
+        "errors": 0,
+        "warnings": 0
+      },
+      "browser_evidence": "passed",
+      "visual_review": "passed",
+      "visual_review_scope": "Light and dark screenshot inspection; layout, routing, label fit, legend and composition.",
+      "correction_rounds": 0,
+      "delivery_receipt": "trust-boundaries.delivery.json",
+      "browser_receipt": "trust-boundaries.visual-check.json"
+    }
+  ]
+}

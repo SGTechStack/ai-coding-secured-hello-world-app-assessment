@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\trust-boundaries.architecture.json",
+  "output": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\trust-boundaries.html",
+  "specification": {
+    "sha256": "5cd68b2e5410ea5a379de42c616311c9e82b5a617a897270ec07ce8308ca2d4a",
+    "bytes": 3458
+  },
+  "artifact": {
+    "sha256": "e261f787975aa219a03713de6bb95661819527bda22fe9e44d2a9f2067b004fb",
+    "bytes": 805208
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

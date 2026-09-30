@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/auth-context'
 import { ApiError } from '@/lib/api'
 import { BrandMark } from '@/components/brand-mark'
+import { CryingPanda } from '@/components/crying-panda'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -40,8 +41,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-linear-to-b from-primary/10 via-background to-background p-6">
-      <Card className="w-full max-w-sm">
+    <main className="panda-login">
+      <div className="panda-login-layout">
+      <CryingPanda />
+      <Card className="panda-login-card">
         <CardHeader>
           <BrandMark />
           <CardTitle className="text-2xl">Sign in</CardTitle>
@@ -81,7 +84,7 @@ export default function LoginPage() {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex-col items-stretch gap-3">
+          <CardFooter className="mt-5 flex-col items-stretch gap-3">
             <Button type="submit" disabled={submitting} className="w-full">
               {submitting ? 'Signing in…' : 'Sign in'}
             </Button>
@@ -102,6 +105,8 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+      </div>
     </main>
   )
 }
+

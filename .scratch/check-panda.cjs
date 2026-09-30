@@ -1,0 +1,43 @@
+const { chromium } = require('../e2e/node_modules/playwright');
+const fs = require('node:fs');
+(async () => {
+ const browser = await chromium.launch({headless:true, channel:'msedge', args:['--enable-unsafe-swiftshader']});
+ const page = await browser.newPage({viewport:{width:1440,height:1000}});
+ const errors=[]; page.on('pageerror', e=>errors.push(e.message));
+ await page.route('**/api/**', route => {
+  const url=route.request().url();
+  const status=url.endsWith('/csrf') ? 200 : 401;
+  route.fulfill({status,json:url.endsWith('/csrf') ? {token:'test'} : {detail:'Invalid username or password'}});
+ });
+ await page.goto('http://127.0.0.1:3000/login');
+ await page.getByRole('button',{name:'Pause animation'}).waitFor();
+ await page.waitForTimeout(1500);
+ await page.screenshot({path:'.scratch/panda-desktop.png'});
+ await page.getByRole('button',{name:'Pause animation'}).click();
+ const a=await page.locator('canvas').screenshot();
+ await page.waitForTimeout(500);
+ const b=await page.locator('canvas').screenshot();
+ if(!a.equals(b)) throw new Error('Pause does not freeze scene');
+ await page.getByLabel('Username',{exact:true}).fill('panda');
+ await page.getByLabel('Password',{exact:true}).fill('incorrect');
+ await page.getByRole('button',{name:'Sign in',exact:true}).click();
+ await page.getByRole('alert').waitFor();
+ await page.getByRole('link',{name:'Register',exact:true}).click();
+ await page.getByRole('link',{name:'Sign in',exact:true}).click();
+ await page.getByRole('button',{name:'Pause animation'}).waitFor();
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:'.scratch/panda-mobile.png',fullPage:true});
+ if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) throw new Error('Mobile overflow');
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.waitForTimeout(200);
+ const c=await page.locator('canvas').screenshot();
+ await page.waitForTimeout(300);
+ const d=await page.locator('canvas').screenshot();
+ if(!c.equals(d)) throw new Error('Reduced motion does not freeze scene');
+ await page.evaluate(()=>document.documentElement.classList.add('dark'));
+ await page.screenshot({path:'.scratch/panda-dark.png',fullPage:true});
+ if(errors.length) throw new Error(errors.join('\n'));
+ console.log('PASS: 3D render, pause, reduced motion, form error, navigation/remount, mobile overflow, no runtime errors');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});
+

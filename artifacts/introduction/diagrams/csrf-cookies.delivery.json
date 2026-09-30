@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "sequence",
+  "input": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\csrf-cookies.sequence.json",
+  "output": "C:\\chris\\dev\\temp\\Lab\\chris\\ai-coding-secured-hello-world-app-assessment\\artifacts\\introduction\\diagrams\\csrf-cookies.html",
+  "specification": {
+    "sha256": "878f1b5e90e2164c61d931e535f1f59e78ebf3504736c72f838d2abca10ae159",
+    "bytes": 3746
+  },
+  "artifact": {
+    "sha256": "db77452cbebd7b5931a27afa3d6b6ce923884df56f8c099f1984e61a566748f8",
+    "bytes": 807110
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

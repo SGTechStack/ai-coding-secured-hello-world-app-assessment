@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RETURN_TO_KEY } from '@lib/auth';
+import { SIGN_IN_THROTTLED_MESSAGE } from './auth.queries';
 import { SignInPage } from './sign-in-page';
 
 const mockNavigate = vi.fn();
@@ -80,6 +81,30 @@ describe('SignInPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid username or password');
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('tells the visitor to wait when too many attempts have been made from their address', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        status: 429,
+        body: { title: 'Sign-in throttled', detail: 'Too many failed sign-in attempts. Try again later.' },
+      }),
+    );
+    renderPage();
+
+    await fillAndSubmit({ username: 'ada', password: 'correct horse battery' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too many failed sign-in attempts. Try again later.');
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a wait message when the throttled response has no detail', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: 429, body: {} }));
+    renderPage();
+
+    await fillAndSubmit({ username: 'ada', password: 'correct horse battery' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(SIGN_IN_THROTTLED_MESSAGE);
   });
 
   it('asks for both fields without calling the API when they are empty', async () => {

@@ -45,3 +45,6 @@ frontend/.githooks/
 
 # fallow analyzer cache (guard against stray runs from repo root; it belongs in frontend/)
 .fallow/
+
+### Node ###
+node_modules/

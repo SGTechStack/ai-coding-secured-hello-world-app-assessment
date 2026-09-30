@@ -454,4 +454,55 @@ public final class ArchitectureViolations {
             return System.console() != null;
         }
     }
+
+    /** Returns an entity from a controller, bare and inside generic wrappers. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ReturnsAnEntity {
+        public UserAccount one() {
+            return null;
+        }
+    }
+
+    /** Returns an entity as a generic argument, two levels down. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ReturnsAWrappedEntity {
+        public org.springframework.http.ResponseEntity<java.util.List<? extends UserAccount>> list() {
+            return null;
+        }
+    }
+
+    /** Returns an array of entities. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ReturnsAnEntityArray {
+        public UserAccount[] all() {
+            return null;
+        }
+    }
+
+    /** Returns a response record, as every real controller does. */
+    @org.springframework.web.bind.annotation.RestController
+    public static final class ReturnsARecord {
+        public record View(String name) {
+        }
+
+        public org.springframework.http.ResponseEntity<java.util.List<View>> list() {
+            return null;
+        }
+    }
+
+    /** Encodes bytes in the credential-token alphabet, as a fabricated token would be. */
+    public static final class FabricatesATokenString {
+        String token(byte[] bytes) {
+            return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+        }
+    }
+
+    /** Draws random bytes, the other half of a fabricated token. */
+    public static final class DrawsRandomBytes {
+        byte[] bytes() {
+            byte[] bytes = new byte[32];
+            new java.security.SecureRandom().nextBytes(bytes);
+            return bytes;
+        }
+    }
 }

@@ -1,8 +1,10 @@
 package sg.securedhello.mfa;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -205,6 +207,7 @@ class TotpLockoutTest extends CtxDefaultTest {
     }
 
     @Test
+    @Proves("T-MFA-021")
     void oneHundredCumulativeFailuresInterleavedWithSuccessesAndATierOneLiftDisableTheFactor() throws Exception {
         Account admin = accounts.withRole("ADMIN");
         byte[] secret = factors.enrol(admin);
@@ -234,6 +237,25 @@ class TotpLockoutTest extends CtxDefaultTest {
         clock.advance(Duration.ofSeconds(TotpWindow.STEP_SECONDS));
         TotpFactors.verify(mockMvc, SignedIn.as(mockMvc, admin), factors.code(secret))
                 .andExpect(problem(ErrorCode.FACTOR_DISABLED));
+
+        // An admin unlock clears tier 1 only: the factor stays disabled. A factor reset is what clears it.
+        Account other = accounts.withRole("ADMIN");
+        CsrfSession otherSession = factors.verified(mockMvc, SignedIn.as(mockMvc, other), factors.enrol(other));
+        mockMvc.perform(post("/api/admin/users/" + admin.id() + "/unlock").with(otherSession.inHeader())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"USER_REQUEST\"}"))
+                .andExpect(status().is2xxSuccessful());
+        assertThat(factorRow(admin).get("factor_disabled_at")).as("after the unlock").isNotNull();
+        clock.advance(Duration.ofSeconds(TotpWindow.STEP_SECONDS));
+        TotpFactors.verify(mockMvc, SignedIn.as(mockMvc, admin), factors.code(secret))
+                .andExpect(problem(ErrorCode.FACTOR_DISABLED));
+
+        mockMvc.perform(delete("/api/admin/users/" + admin.id() + "/totp").with(otherSession.inHeader()))
+                .andExpect(status().is2xxSuccessful());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM totp_user_details WHERE user_id = ?", Integer.class,
+                admin.id())).as("the disabled factor is gone").isZero();
+        mockMvc.perform(get("/api/profile").cookie(SignedIn.as(mockMvc, admin).cookie())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.factors.enrolled").value(false))
+                .andExpect(jsonPath("$.factors.rebindRequired").value(false));
     }
 
     @Test

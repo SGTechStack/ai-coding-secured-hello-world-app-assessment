@@ -235,6 +235,25 @@ class ArchitectureRulesSelfTest {
                 ArchitectureViolations.EncodesAPassword.class);
     }
 
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.ReturnsAnEntity.class,
+            ArchitectureViolations.ReturnsAWrappedEntity.class, ArchitectureViolations.ReturnsAnEntityArray.class})
+    void aControllerReturningAnEntityIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.NO_ENTITY_IN_CONTROLLER_RESPONSES, violator, UserAccount.class);
+    }
+
+    @Test
+    void aControllerReturningARecordIsAllowed() {
+        assertPasses(ArchitectureRules.NO_ENTITY_IN_CONTROLLER_RESPONSES, ArchitectureViolations.ReturnsARecord.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(classes = {ArchitectureViolations.FabricatesATokenString.class,
+            ArchitectureViolations.DrawsRandomBytes.class})
+    void fabricatingATokenInATestIsCaught(Class<?> violator) {
+        assertViolates(ArchitectureRules.TESTS_FABRICATE_NO_TOKENS, violator);
+    }
+
     private static void assertViolates(ArchRule rule, Class<?>... classes) {
         assertThat(rule.evaluate(importClasses(classes)).hasViolation()).as("%s violates the rule", classes[0]).isTrue();
     }

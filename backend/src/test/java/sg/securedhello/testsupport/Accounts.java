@@ -72,19 +72,19 @@ public final class Accounts {
 
     /** A username no account has. */
     public static String unknownUsername() {
-        return "nobody-" + UUID.randomUUID().toString().substring(0, 8);
+        return FixtureIdentities.username("nobody-", 15);
     }
 
     private Account create(String role, boolean enabled, boolean activated, String password) {
         UUID id = UUID.randomUUID();
-        return create(id, "u" + id.toString().replace("-", "").substring(0, 16), role, enabled, activated, password);
+        return create(id, FixtureIdentities.username("u", 17), role, enabled, activated, password);
     }
 
     private Account create(UUID id, String username, String role, boolean enabled, boolean activated,
             String password) {
         Timestamp now = Timestamp.from(Instant.now(TestClock.shared()));
         jdbc.update("INSERT INTO users (id, username, email, password_hash, role, enabled, activated_at, created_at)"
-                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", id, username, username + "@example.test",
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?)", id, username, FixtureIdentities.email(username),
                 password == null ? null : encoder.encode(password), role, enabled, activated ? now : null, now);
         return new Account(id, username, password);
     }

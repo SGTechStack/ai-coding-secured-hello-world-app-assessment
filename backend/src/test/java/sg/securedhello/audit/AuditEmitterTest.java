@@ -201,6 +201,7 @@ class AuditEmitterTest {
     }
 
     @Test
+    @Proves("T-AUD-023")
     void beforeAHandlerMatchesTheRawUriIsNeutralisedAndCappedWithAMarker() {
         MockHttpServletRequest raw = new MockHttpServletRequest("GET", "/api/x\r\ninjected|" + "a".repeat(7000));
         raw.setQueryString("q=query-canary-31f0");

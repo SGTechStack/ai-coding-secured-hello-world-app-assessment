@@ -122,6 +122,12 @@ class AdminDisableSessionsPortTest extends CtxPortTest {
     }
 
     @Test
+    @Proves("T-SES-015")
+    void aResetSubjectsReplayedCookieIsRefusedAndItsRowIsGone() {
+        assertReplayRefusedAfter(HttpMethod.POST, "/password-reset", null, 200);
+    }
+
+    @Test
     @Proves("T-SES-018")
     void aFactorResetAdminsReplayedCookieIsRefusedAndItsRowIsGone() {
         Account target = new Accounts(jdbc, passwordEncoder).withRole("ADMIN");

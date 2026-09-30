@@ -15,8 +15,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.env.OriginTrackedMapPropertySource;
+import org.springframework.boot.origin.OriginTrackedValue;
+import org.springframework.boot.origin.TextResourceOrigin;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mock.env.MockEnvironment;
 
 import sg.securedhello.testsupport.Proves;
@@ -358,6 +363,68 @@ class ProhibitedConfigurationValidatorTest {
                 .withMessageContaining("server.servlet.session.cookie.max-age")
                 .withMessageNotContaining("/secret-looking-value")
                 .withMessageNotContaining("31337");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"always", "ALWAYS", " always ", "embedded"})
+    @Proves("T-CFG-027")
+    void springSessionsOwnSchemaInitialisationRefusesStartup(String value) {
+        assertRefused(production().withProperty("spring.session.jdbc.initialize-schema", value),
+                "spring.session.jdbc.initialize-schema");
+        assertRefused(dev().withProperty("spring.session.jdbc.initialize-schema", value),
+                "spring.session.jdbc.initialize-schema");
+    }
+
+    @Test
+    @Proves("T-CFG-027")
+    void theCommittedNeverIsAllowed() {
+        assertThat(ProhibitedConfigurationValidator.violations(production()
+                .withProperty("spring.session.jdbc.initialize-schema", "never"))).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"management.endpoint.env.show-values, always", "management.endpoint.env.show-values, when-authorized",
+            "management.endpoint.configprops.show-values, always",
+            "management.endpoint.configprops.show-values, WHEN_AUTHORIZED"})
+    @Proves("T-CFG-028")
+    void loosenedActuatorValueMaskingRefusesStartup(String property, String value) {
+        assertRefused(production().withProperty(property, value), property);
+        assertRefused(dev().withProperty(property, value), property);
+        assertThat(ProhibitedConfigurationValidator.violations(production().withProperty(property, "never")))
+                .isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"app.mfa.totp.encryption.key", "app.mfa.totp.encryption.retired-keys.0",
+            "app.security.hmac.tombstone.key", "app.security.hmac.log.key", "app.admin.username",
+            "app.admin.password", "management.otlp.metrics.export.headers.Authorization"})
+    @Proves("T-CFG-030")
+    void aSecretFromACommittedClasspathFileRefusesStartup(String property) {
+        MockEnvironment environment = dev();
+        environment.getPropertySources().addFirst(configFileWithOrigin(property, "committed-secret-7c21",
+                new ClassPathResource("application.yml")));
+
+        assertThat(ProhibitedConfigurationValidator.violations(environment)).singleElement().asString()
+                .contains("committed configuration file").doesNotContain("committed-secret-7c21");
+    }
+
+    @Test
+    @Proves("T-CFG-030")
+    void aSecretFromAMountedFileOrTheEnvironmentIsAllowed() {
+        MockEnvironment environment = production();
+        environment.getPropertySources().addFirst(configFileWithOrigin("app.admin.password", "mounted-7c21",
+                new FileSystemResource("/run/secrets/app.admin.password")));
+        environment.getPropertySources().addFirst(new SystemEnvironmentPropertySource("systemEnvironment",
+                Map.of("APP_SECURITY_HMAC_LOG_KEY", "from-the-environment")));
+
+        assertThat(ProhibitedConfigurationValidator.violations(environment)).isEmpty();
+    }
+
+    /** A property source of the kind Boot loads from a configuration file, each value tracked to {@code resource}. */
+    private static OriginTrackedMapPropertySource configFileWithOrigin(String property, String value,
+            Resource resource) {
+        return new OriginTrackedMapPropertySource("Config resource '" + resource + "'", Map.of(property,
+                OriginTrackedValue.of(value, new TextResourceOrigin(resource, new TextResourceOrigin.Location(0, 0)))));
     }
 
     private static void assertRefused(MockEnvironment environment, String property) {

@@ -3,7 +3,6 @@ package sg.securedhello.testsupport;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.util.Map;
-import java.util.UUID;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,12 +37,12 @@ public final class Registrations {
 
     /** A username no account has: canonical and well-formed. */
     public static String freshUsername() {
-        return "r" + UUID.randomUUID().toString().replace("-", "").substring(0, 15);
+        return FixtureIdentities.username("r", 16);
     }
 
     /** The canonical email address tests pair with {@code username}. */
     public static String emailFor(String username) {
-        return username + "@example.test";
+        return FixtureIdentities.email(username);
     }
 
     /** {@code POST /api/register} with {@code {username, email}}. */

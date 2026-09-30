@@ -9,8 +9,10 @@ import java.time.InstantSource;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Base64;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -29,13 +31,19 @@ import com.tngtech.archunit.core.domain.JavaCall;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaConstructor;
 import com.tngtech.archunit.core.domain.JavaFieldAccess;
+import com.tngtech.archunit.core.domain.JavaGenericArrayType;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
+import com.tngtech.archunit.core.domain.JavaParameterizedType;
+import com.tngtech.archunit.core.domain.JavaType;
+import com.tngtech.archunit.core.domain.JavaTypeVariable;
+import com.tngtech.archunit.core.domain.JavaWildcardType;
 import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 
+import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
 import jakarta.servlet.ServletRequest;
 
@@ -288,6 +296,82 @@ final class ArchitectureRules {
                 .should(new BootTestSliceCondition())
                 .because("security-control tests boot the full context (ADR-065)");
     }
+
+    /**
+     * T-ADM-016: no controller method's return type is or contains a JPA {@code @Entity}, including as a generic
+     * argument ({@code ResponseEntity<UserAccount>}, {@code List<Page<UserAccount>>}) or an array element. Responses are
+     * records, so a new entity column can never reach the wire by default (PRD Story 8; ADR-050).
+     */
+    static final ArchRule NO_ENTITY_IN_CONTROLLER_RESPONSES = methods()
+            .that().areDeclaredInClassesThat().areMetaAnnotatedWith(Controller.class)
+            .should(new ArchCondition<>("not return a JPA entity, or a type carrying one") {
+                @Override
+                public void check(JavaMethod method, ConditionEvents events) {
+                    entityIn(method.getReturnType()).ifPresent(entity -> events.add(SimpleConditionEvent.violated(
+                            method, method.getFullName() + " returns the entity " + entity.getName())));
+                }
+            })
+            .because("an entity serialised to JSON exposes every column, the credential included (PRD Story 8)");
+
+    /** The first {@code @Entity} class in {@code type}, its type arguments, bounds or array components. */
+    static Optional<JavaClass> entityIn(JavaType type) {
+        if (type instanceof JavaParameterizedType parameterized) {
+            Optional<JavaClass> own = entityIn(parameterized.toErasure());
+            return own.isPresent() ? own : parameterized.getActualTypeArguments().stream()
+                    .map(ArchitectureRules::entityIn).flatMap(Optional::stream).findFirst();
+        }
+        if (type instanceof JavaWildcardType wildcard) {
+            return Stream.concat(wildcard.getUpperBounds().stream(), wildcard.getLowerBounds().stream())
+                    .map(ArchitectureRules::entityIn).flatMap(Optional::stream).findFirst();
+        }
+        if (type instanceof JavaTypeVariable<?> variable) {
+            return variable.getUpperBounds().stream()
+                    .map(ArchitectureRules::entityIn).flatMap(Optional::stream).findFirst();
+        }
+        if (type instanceof JavaGenericArrayType array) {
+            return entityIn(array.getComponentType());
+        }
+        JavaClass raw = type.toErasure();
+        JavaClass base = raw.isArray() ? raw.getBaseComponentType() : raw;
+        return base.isAnnotatedWith(Entity.class) ? Optional.of(base) : Optional.empty();
+    }
+
+    /** The one test class that encodes values in the token alphabet: the canary scan, for its search forms. */
+    static final String LOG_OUTPUT_GUARD = "sg.securedhello.testsupport.LogOutputGuard";
+
+    /**
+     * The test classes that may draw random bytes, none of them for a token: the TOTP fixture (authenticator secrets)
+     * and the schema fixture (raw column values: stored digests and envelopes, which no route redeems).
+     */
+    static final Set<String> RANDOM_BYTES_ALLOWED = Set.of("sg.securedhello.testsupport.TotpFactors",
+            "sg.securedhello.persistence.SchemaFixture");
+
+    /** Random sources by name, since the JDK classes are not imported and their hierarchy is unknown. */
+    private static final Set<String> RANDOM_SOURCES = Set.of(Random.class.getName(), "java.security.SecureRandom");
+
+    /**
+     * T-ARCH-004: no test fabricates a credential token. A token is 256 random bits in unpadded Base64url (ADR-007),
+     * so a test would need random bytes and the URL-safe encoder; tokens reach tests only from the production
+     * generator, a captured response or a captured email.
+     */
+    static final ArchRule TESTS_FABRICATE_NO_TOKENS = noClasses()
+            .that().doNotHaveFullyQualifiedName(LOG_OUTPUT_GUARD)
+            .should().callMethod(Base64.class, "getUrlEncoder")
+            .orShould(new ArchCondition<>("draw random bytes outside " + RANDOM_BYTES_ALLOWED) {
+                @Override
+                public void check(JavaClass javaClass, ConditionEvents events) {
+                    if (RANDOM_BYTES_ALLOWED.contains(javaClass.getName())) {
+                        return;
+                    }
+                    javaClass.getMethodCallsFromSelf().stream()
+                            .filter(call -> call.getName().equals("nextBytes")
+                                    && (call.getTargetOwner().isAssignableTo(Random.class)
+                                    || RANDOM_SOURCES.contains(call.getTargetOwner().getName())))
+                            .forEach(call -> events.add(SimpleConditionEvent.satisfied(call, call.getDescription())));
+                }
+            })
+            .because("test tokens come only from the production generator, captured responses or captured emails "
+                    + "(Std §5:528)");
 
     /** Accesses, including method and constructor references, that read the system clock. */
     private static DescribedPredicate<JavaAccess<?>> ambientTimeRead() {

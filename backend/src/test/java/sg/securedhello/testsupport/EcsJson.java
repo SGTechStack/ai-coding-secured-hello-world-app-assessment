@@ -53,7 +53,9 @@ public final class EcsJson {
         converter.setContext(new LoggerContext());
         converter.start();
         StructuredLogFormatter<ILoggingEvent> formatter = new StructuredLogFormatterFactory<>(ILoggingEvent.class,
-                new MockEnvironment().withProperty("spring.application.name", "secured-hello-world"),
+                new MockEnvironment().withProperty("spring.application.name", "secured-hello-world")
+                        .withProperty("logging.structured.ecs.service.version", "0.0.0-test")
+                        .withProperty("logging.structured.ecs.service.environment", "test"),
                 parameters -> parameters.add(ThrowableProxyConverter.class, converter), formatters -> {
                 })
                 .get(EcsLogFormatter.class.getName());

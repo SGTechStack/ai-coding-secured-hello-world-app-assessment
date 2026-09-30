@@ -113,7 +113,7 @@ class MatrixAndAdviceTest extends CtxDefaultTest {
     }
 
     @Test
-    @Proves("T-AUTH-011")
+    @Proves({"T-AUTH-011", "T-AUTH-008"})
     void aControllerExceptionIsAnInternalErrorWithoutItsMessage() throws Exception {
         String body = mockMvc.perform(get("/api/probe/boom").with(user("user-boom").roles("USER"))
                         .accept(MediaType.TEXT_HTML))
@@ -131,7 +131,7 @@ class MatrixAndAdviceTest extends CtxDefaultTest {
     }
 
     @Test
-    @Proves("T-AUTH-011")
+    @Proves({"T-AUTH-011", "T-AUTH-008"})
     void anUnreadableBodyIsAValidationFailure() throws Exception {
         mockMvc.perform(post("/api/probe/echo").with(validToken(mockMvc)).with(user("user-echo").roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON).content("{not json"))

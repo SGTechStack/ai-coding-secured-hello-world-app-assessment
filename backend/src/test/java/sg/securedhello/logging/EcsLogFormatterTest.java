@@ -2,6 +2,7 @@ package sg.securedhello.logging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Map;
 
 import ch.qos.logback.classic.Level;
@@ -71,6 +72,25 @@ class EcsLogFormatterTest {
 
         assertThat(EcsJson.flatten(line)).doesNotContainKeys("error.type", "error.message", "error.stack_trace");
         assertThat(line).doesNotContain("request-content-in-message-44c1", "IllegalStateException");
+    }
+
+    @Test
+    @Proves("T-AUD-010")
+    void userTargetKeysNestBesideUserIdInOneWellFormedLine() {
+        LoggingEvent event = event(AuditEmitter.AUDIT_LOGGER, null);
+        event.addKeyValuePair(new KeyValuePair("event.action", "user-administration"));
+        event.addKeyValuePair(new KeyValuePair("user.id", "7d2b3c1e-0000-4000-8000-000000000001"));
+        event.addKeyValuePair(new KeyValuePair("user.target.id", "7d2b3c1e-0000-4000-8000-000000000002"));
+        event.addKeyValuePair(new KeyValuePair("user.target.roles", List.of("ADMIN")));
+
+        String line = EcsJson.render(event);
+
+        assertThat(line.strip()).startsWith("{").endsWith("}").doesNotContain("\n", "\r")
+                .contains("\"user\":{\"id\":\"7d2b3c1e-0000-4000-8000-000000000001\",\"target\":{");
+        assertThat(EcsJson.flatten(line)).containsEntry("user.id", "7d2b3c1e-0000-4000-8000-000000000001")
+                .containsEntry("user.target.id", "7d2b3c1e-0000-4000-8000-000000000002")
+                .containsEntry("user.target.roles", List.of("ADMIN"))
+                .containsEntry("event.action", "user-administration");
     }
 
     private LoggingEvent event(String loggerName, Throwable throwable) {

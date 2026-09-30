@@ -43,6 +43,6 @@ public final class PasswordResets {
 
     /** The canonical email address a fixture account from {@link Accounts} has. */
     public static String emailOf(Accounts.Account account) {
-        return account.username() + "@example.test";
+        return FixtureIdentities.email(account.username());
     }
 }

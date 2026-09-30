@@ -9,6 +9,7 @@ import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SE
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS;
 import static sg.securedhello.architecture.ArchitectureRules.NO_ACCOUNT_LOOKUP_BEFORE_AUTHENTICATION;
 import static sg.securedhello.architecture.ArchitectureRules.NO_AMBIENT_TIME;
+import static sg.securedhello.architecture.ArchitectureRules.NO_ENTITY_IN_CONTROLLER_RESPONSES;
 import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_COOKIE;
 import static sg.securedhello.architecture.ArchitectureRules.NO_CSRF_TEST_POST_PROCESSOR;
 import static sg.securedhello.architecture.ArchitectureRules.NO_SEND_ERROR;
@@ -21,6 +22,7 @@ import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVI
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_OPERATOR_PASSWORD_READS_THE_CONSOLE;
 import static sg.securedhello.architecture.ArchitectureRules.RESET_PATHS_AVOID_THE_AUTHENTICATION_MANAGER;
+import static sg.securedhello.architecture.ArchitectureRules.TESTS_FABRICATE_NO_TOKENS;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -175,5 +177,19 @@ class ArchitectureTest {
         // Not vacuous: the guarded service does make both calls.
         assertThat(MAIN.get(AdminActions.class).getMethodCallsFromSelf().stream().map(call -> call.getName()))
                 .contains("unlocked", "unlockTier1");
+    }
+
+    @Test
+    @Proves("T-ADM-016")
+    void noControllerReturnsAnEntity() {
+        NO_ENTITY_IN_CONTROLLER_RESPONSES.check(MAIN);
+        // Not vacuous: the admin controller's methods are checked, and they return generic response types.
+        assertThat(MAIN.get(AdminUserController.class).getMethods()).isNotEmpty();
+    }
+
+    @Test
+    @Proves("T-ARCH-004")
+    void testsFabricateNoCredentialTokens() {
+        TESTS_FABRICATE_NO_TOKENS.check(TESTS);
     }
 }

@@ -49,6 +49,7 @@ public class SignInService {
   private final AppUserRepository appUserRepository;
   private final SignInThrottleProperties throttle;
   private final SignInIpThrottle ipThrottle;
+  private final TimingEqualizer timingEqualizer;
   private final Clock clock;
   private final TransactionTemplate transactions;
 
@@ -86,9 +87,11 @@ public class SignInService {
     var account = appUserRepository.findByUsername(username);
     if (account.filter(found -> found.isSignInDelayed(clock.instant())).isPresent()) {
       // The password is not even checked, so a correct one cannot end the delay early.
+      timingEqualizer.spendPasswordCheck(password);
       throw refused(username, REASON_DELAYED);
     }
     if (account.filter(found -> found.isTemporaryPasswordExpired(clock.instant())).isPresent()) {
+      timingEqualizer.spendPasswordCheck(password);
       throw refused(username, REASON_TEMP_PASSWORD_EXPIRED);
     }
     Authentication authentication;

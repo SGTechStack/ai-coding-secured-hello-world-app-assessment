@@ -1,0 +1,5 @@
+/* Fonts come from npm (@fontsource-variable/*); Vite bundles the woff2 files,
+   so there are no external CDN refs and it works air-gapped. */
+@import '@fontsource-variable/inter/wght.css';
+@import '@fontsource-variable/inter/wght-italic.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';

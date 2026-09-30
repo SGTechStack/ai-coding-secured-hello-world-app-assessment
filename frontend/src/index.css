@@ -1,0 +1,146 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@import './tokens/fonts.css';
+@import './tokens/baseline.css';
+@import './tokens/c3-light.css';
+@import './tokens/c3-dark.css';
+@import './tokens/enterprise-light.css';
+@import './tokens/enterprise-dark.css';
+
+@theme inline {
+  --radius-xs: var(--prizm-radius-xs);
+  --radius-sm: var(--prizm-radius-sm);
+  --radius-md: var(--prizm-radius-md);
+  --radius-lg: var(--prizm-radius-lg);
+  --radius-xl: var(--prizm-radius-xl);
+
+  --shadow-sm: var(--prizm-shadow-sm);
+  --shadow-md: var(--prizm-shadow-md);
+  --shadow-lg: var(--prizm-shadow-lg);
+
+  --font-sans: var(--prizm-font-sans);
+  --font-mono: var(--prizm-font-mono);
+
+  --color-bg: var(--prizm-color-bg);
+  --color-bg-subtle: var(--prizm-color-bg-subtle);
+  --color-bg-muted: var(--prizm-color-bg-muted);
+  --color-surface: var(--prizm-color-surface);
+  --color-surface-elevated: var(--prizm-color-surface-elevated);
+  --color-border: var(--prizm-color-border);
+  --color-border-strong: var(--prizm-color-border-strong);
+  --color-fg: var(--prizm-color-fg);
+  --color-fg-muted: var(--prizm-color-fg-muted);
+  --color-fg-subtle: var(--prizm-color-fg-subtle);
+  --color-accent: var(--prizm-color-accent);
+  --color-accent-fg: var(--prizm-color-accent-fg);
+  --color-accent-hover: var(--prizm-color-accent-hover);
+  --color-danger: var(--prizm-color-danger);
+  --color-danger-fg: var(--prizm-color-danger-fg);
+  --color-success: var(--prizm-color-success);
+  --color-warning: var(--prizm-color-warning);
+  --color-info: var(--prizm-color-info);
+
+  /* Custom spacing variables */
+  --spacing-topbar: 3.5rem;
+  --spacing-ai-drawer: 31.25rem;
+
+  /* Sweeping shimmer for in-progress cards */
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+
+  /* Indeterminate progress bar animation */
+  --animate-progress-indeterminate: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+    width: 35%;
+  }
+  50% {
+    transform: translateX(120%);
+    width: 65%;
+  }
+  100% {
+    transform: translateX(350%);
+    width: 35%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--prizm-color-border);
+  }
+  svg {
+    stroke-width: 1.5;
+  }
+}
+
+html {
+  /* Always reserve the vertical scrollbar gutter so viewport width stays constant when content
+     height changes (e.g. filtering table rows) — prevents layout jerk of sticky elements. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  background-color: var(--prizm-color-bg);
+  color: var(--prizm-color-fg);
+}
+
+/* Ensure that buttons and elements with role="button" show a pointer cursor when enabled */
+button:not(:disabled),
+[role='button']:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Tiptap enquiry-body editor (see rich-text-editor.tsx). No typography plugin in this project, so
+   the block/table styling the WYSIWYG needs is spelled out here rather than via prose classes. */
+.prose-editor p {
+  margin: 0.375rem 0;
+}
+.prose-editor p:first-child {
+  margin-top: 0;
+}
+.prose-editor p:last-child {
+  margin-bottom: 0;
+}
+/* Placeholder for the empty document's first line (data-placeholder set in rich-text-editor.tsx). */
+.prose-editor.is-editor-empty:first-child::before,
+.prose-editor p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--prizm-color-fg-muted);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.prose-editor table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  table-layout: fixed;
+}
+.prose-editor th,
+.prose-editor td {
+  border: 1px solid var(--prizm-color-border);
+  padding: 0.375rem 0.5rem;
+  vertical-align: top;
+  text-align: left;
+}
+.prose-editor th {
+  font-weight: 600;
+  background-color: var(--prizm-color-bg-muted);
+}
+/* Cell being resized / column-resize handle affordance from TableKit. */
+.prose-editor .selectedCell {
+  background-color: color-mix(in oklab, var(--prizm-color-accent) 12%, transparent);
+}
+.prose-editor .column-resize-handle {
+  background-color: var(--prizm-color-accent);
+  width: 2px;
+}

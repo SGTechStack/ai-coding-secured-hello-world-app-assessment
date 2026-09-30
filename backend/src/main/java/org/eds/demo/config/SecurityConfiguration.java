@@ -64,8 +64,12 @@ class SecurityConfiguration {
     WebSpaController.SIGN_IN_PATH,
     WebSpaController.SIGN_IN_PATH + "/**",
     // The SPA sign-in page and the built assets it needs must load before anyone is signed in.
+    // WebSpaController serves them by forwarding to /index.html and /assets/**, and the forward is
+    // authorized again, so those targets must be public too. They are the same static build files.
     WebSpaController.SPA_SIGN_IN_PATH,
     WebSpaController.SPA_ROOT + "/assets/**",
+    "/index.html",
+    "/assets/**",
     LOGIN_URL,
     AppErrorController.ERROR_URL,
     AppErrorController.NOT_FOUND_PAGE,

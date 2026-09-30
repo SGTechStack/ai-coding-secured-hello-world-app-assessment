@@ -42,7 +42,6 @@ class EnumerationUniformityTest extends CtxDefaultTest {
             + "\"title\":\"Authentication failed\",\"status\":401,"
             + "\"detail\":\"Authentication is required, or the credentials were not accepted.\","
             + "\"instance\":\"/api/login\",\"code\":\"AUTHENTICATION_FAILED\"}";
-    private static final String WRONG = "not-the-password-at-all";
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -76,13 +75,13 @@ class EnumerationUniformityTest extends CtxDefaultTest {
                 expired.id());
         Map<String, String[]> states = new LinkedHashMap<>();
         states.put("unknown", new String[] {Accounts.unknownUsername(), Accounts.PASSWORD});
-        states.put("wrong password", new String[] {known.username(), WRONG});
+        states.put("wrong password", new String[] {known.username(), Accounts.WRONG_PASSWORD});
         states.put("locked", new String[] {locked.username(), Accounts.PASSWORD});
         states.put("disabled", new String[] {accounts.disabled().username(), Accounts.PASSWORD});
         states.put("grace-period-disabled (NIST cap)", new String[] {capped.username(), Accounts.PASSWORD});
         states.put("not yet activated", new String[] {accounts.notActivated().username(), Accounts.PASSWORD});
         states.put("forced-change expiry, correct password", new String[] {expired.username(), Accounts.PASSWORD});
-        states.put("forced-change expiry, wrong password", new String[] {expired.username(), WRONG});
+        states.put("forced-change expiry, wrong password", new String[] {expired.username(), Accounts.WRONG_PASSWORD});
         return states;
     }
 

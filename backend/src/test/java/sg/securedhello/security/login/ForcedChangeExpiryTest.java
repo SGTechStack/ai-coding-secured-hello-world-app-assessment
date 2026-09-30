@@ -44,7 +44,6 @@ class ForcedChangeExpiryTest extends CtxBudgetTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String LOGIN_FAILED = "Login failed.";
-    private static final String WRONG = "not-the-password-at-all";
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -109,7 +108,7 @@ class ForcedChangeExpiryTest extends CtxBudgetTest {
 
         try (AuditCapture audit = AuditCapture.start()) {
             Attempt correct = login(account, account.password());
-            Attempt wrong = login(account, WRONG);
+            Attempt wrong = login(account, Accounts.WRONG_PASSWORD);
 
             assertThat(correct.status()).isEqualTo(401);
             assertThat(correct.body()).as("the body without traceId").isEqualTo(wrong.body());

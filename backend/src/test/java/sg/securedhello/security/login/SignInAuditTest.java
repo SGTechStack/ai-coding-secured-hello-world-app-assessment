@@ -96,7 +96,7 @@ class SignInAuditTest extends CtxDefaultTest {
         Account disabled = accounts.disabled();
         Account pending = accounts.notActivated();
         try (AuditCapture audit = AuditCapture.start()) {
-            SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), known.username(), "not-the-password-at-all");
+            SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), known.username(), Accounts.WRONG_PASSWORD);
             SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), disabled.username(), Accounts.PASSWORD);
             SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), pending.username(), Accounts.PASSWORD);
 
@@ -126,7 +126,7 @@ class SignInAuditTest extends CtxDefaultTest {
     void noAuditRowOfTheFlowCarriesAUsernameOrEmail() throws Exception {
         Account alice = accounts.user();
         try (AuditCapture audit = AuditCapture.start()) {
-            SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), alice.username(), "not-the-password-at-all");
+            SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), alice.username(), Accounts.WRONG_PASSWORD);
             CsrfSession session = SignedIn.as(mockMvc, alice);
             mockMvc.perform(post("/api/logout").cookie(session.cookie())); // a CSRF refusal, row 13
             mockMvc.perform(post("/api/logout").with(session.inHeader())).andExpect(status().isNoContent());

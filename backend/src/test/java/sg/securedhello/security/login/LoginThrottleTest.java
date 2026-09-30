@@ -70,7 +70,7 @@ class LoginThrottleTest extends CtxBudgetTest {
     /** Spends {@code username}'s whole burst on wrong passwords. */
     private void spend(String username) throws Exception {
         for (long i = 0; i < budgets.login().username().burst(); i++) {
-            login(username, "not-the-password-at-all").andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+            login(username, Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
         }
     }
 
@@ -136,7 +136,7 @@ class LoginThrottleTest extends CtxBudgetTest {
                 login(user.username(), user.password()).andExpect(status().isOk());
                 session = CsrfSession.bootstrap(mockMvc, source);
             } else {
-                login(user.username(), "not-the-password-at-all").andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+                login(user.username(), Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
             }
         }
 

@@ -138,7 +138,7 @@ class SignInTest extends CtxDefaultTest {
     void aFailedJsonLoginGetsThe401EnvelopeWithNoChallenge() throws Exception {
         Account alice = accounts.user();
 
-        SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), alice.username(), "not-the-password-at-all")
+        SignedIn.login(mockMvc, CsrfSession.bootstrap(mockMvc), alice.username(), Accounts.WRONG_PASSWORD)
                 .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED))
                 .andExpect(header().doesNotExist("Location"));
     }
@@ -157,7 +157,7 @@ class SignInTest extends CtxDefaultTest {
                 java.sql.Timestamp.from(clock.instant()), capped.id());
         List<String[]> attempts = List.of(
                 new String[] {Accounts.unknownUsername(), Accounts.PASSWORD},
-                new String[] {known.username(), "not-the-password-at-all"},
+                new String[] {known.username(), Accounts.WRONG_PASSWORD},
                 new String[] {disabled.username(), Accounts.PASSWORD},
                 new String[] {pending.username(), Accounts.PASSWORD},
                 new String[] {locked.username(), Accounts.PASSWORD},
@@ -426,7 +426,7 @@ class SignInTest extends CtxDefaultTest {
         Account alice = accounts.user();
         CsrfSession live = SignedIn.as(mockMvc, alice);
 
-        login(CsrfSession.bootstrap(mockMvc), alice.username(), "not-the-password-at-all");
+        login(CsrfSession.bootstrap(mockMvc), alice.username(), Accounts.WRONG_PASSWORD);
 
         mockMvc.perform(get("/api/hello").cookie(live.cookie())).andExpect(status().isOk());
     }

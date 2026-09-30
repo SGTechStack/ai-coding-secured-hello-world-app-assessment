@@ -37,7 +37,6 @@ import sg.securedhello.testsupport.SignedIn;
  */
 class LockoutCardinalityTest extends CtxBudgetTest {
 
-    private static final String WRONG = "not-the-password-at-all";
 
     @Autowired
     private LockoutCardinalityProperties cardinality;
@@ -72,7 +71,8 @@ class LockoutCardinalityTest extends CtxBudgetTest {
     private void fail(Account account, int times) throws Exception {
         CsrfSession session = CsrfSession.bootstrap(mockMvc, source);
         for (int i = 0; i < times; i++) {
-            login(session, account.username(), WRONG).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+            login(session, account.username(), Accounts.WRONG_PASSWORD)
+                    .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
         }
     }
 
@@ -102,7 +102,7 @@ class LockoutCardinalityTest extends CtxBudgetTest {
         login(bystander.username(), bystander.password())
                 .andExpect(problem(ErrorCode.TOO_MANY_REQUESTS))
                 .andExpect(header().string(HttpHeaders.RETRY_AFTER, Long.toString(cardinality.window().toSeconds())));
-        login(Accounts.unknownUsername(), WRONG).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
+        login(Accounts.unknownUsername(), Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
 
         verify(passwordEncoder, never()).matches(any(), any());
         verify(userAccounts, never()).findByUsername(any());
@@ -170,15 +170,15 @@ class LockoutCardinalityTest extends CtxBudgetTest {
 
         Account last = accounts.user();
         // The member was locked twice but counts once, so the set is one short of k and a newcomer is admitted.
-        login(last.username(), WRONG).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+        login(last.username(), Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
         lock(last);
 
-        login(Accounts.unknownUsername(), WRONG).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
+        login(Accounts.unknownUsername(), Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
         // A locked member still reaches the provider: 401, not 429.
         login(member.username(), member.password()).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
 
         clock.advance(lockout.ladder().rungs().getFirst());
-        login(Accounts.unknownUsername(), WRONG).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
+        login(Accounts.unknownUsername(), Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
         for (Account account : List.of(member, others.getFirst(), last)) {
             login(account.username(), account.password()).andExpect(result ->
                     assertThat(result.getResponse().getStatus()).as("a member proceeds").isEqualTo(200));
@@ -196,14 +196,14 @@ class LockoutCardinalityTest extends CtxBudgetTest {
         clock.advance(Duration.ofMinutes(20));
         lock(first);
         String stranger = Accounts.unknownUsername();
-        login(stranger, WRONG).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS))
+        login(stranger, Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS))
                 .andExpect(header().string(HttpHeaders.RETRY_AFTER,
                         Long.toString(cardinality.window().minus(Duration.ofMinutes(50)).toSeconds())));
 
         clock.advance(Duration.ofMinutes(10).minusSeconds(1));
-        login(stranger, WRONG).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
+        login(stranger, Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.TOO_MANY_REQUESTS));
 
         clock.advance(Duration.ofSeconds(1));
-        login(stranger, WRONG).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
+        login(stranger, Accounts.WRONG_PASSWORD).andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
     }
 }

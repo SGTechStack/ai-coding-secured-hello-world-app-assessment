@@ -81,16 +81,16 @@ class PasswordMatchCountTest extends CtxBudgetTest {
                 capped.id());
 
         assertThat(matchesCalls(known.username(), known.password())).as("success").isEqualTo(1);
-        assertThat(matchesCalls(known.username(), "not-the-password-at-all")).as("wrong password").isEqualTo(1);
+        assertThat(matchesCalls(known.username(), Accounts.WRONG_PASSWORD)).as("wrong password").isEqualTo(1);
         assertThat(matchesCalls(Accounts.unknownUsername(), Accounts.PASSWORD)).as("unknown user").isEqualTo(1);
         assertThat(matchesCalls(accounts.disabled().username(), Accounts.PASSWORD)).as("disabled").isEqualTo(1);
         assertThat(matchesCalls(accounts.notActivated().username(), Accounts.PASSWORD)).as("never activated")
                 .isEqualTo(1);
         assertThat(matchesCalls(locked.username(), Accounts.PASSWORD)).as("locked, right password").isEqualTo(1);
-        assertThat(matchesCalls(locked.username(), "not-the-password-at-all")).as("locked, wrong password")
+        assertThat(matchesCalls(locked.username(), Accounts.WRONG_PASSWORD)).as("locked, wrong password")
                 .isEqualTo(1);
         assertThat(matchesCalls(capped.username(), Accounts.PASSWORD)).as("capped, right password").isEqualTo(1);
-        assertThat(matchesCalls(capped.username(), "not-the-password-at-all")).as("capped, wrong password")
+        assertThat(matchesCalls(capped.username(), Accounts.WRONG_PASSWORD)).as("capped, wrong password")
                 .isEqualTo(1);
     }
 

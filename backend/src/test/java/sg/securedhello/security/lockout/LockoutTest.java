@@ -49,7 +49,6 @@ class LockoutTest extends CtxDefaultTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String LOOPBACK = "127.0.0.1";
-    private static final String WRONG = "not-the-password-at-all";
 
     private static final String LOGIN_FAILED = "Login failed.";
     private static final String LOCKED = "Account locked.";
@@ -83,7 +82,7 @@ class LockoutTest extends CtxDefaultTest {
     }
 
     private void fail(Account account) throws Exception {
-        assertThat(login(LOOPBACK, account, WRONG).getResponse().getStatus()).isEqualTo(401);
+        assertThat(login(LOOPBACK, account, Accounts.WRONG_PASSWORD).getResponse().getStatus()).isEqualTo(401);
     }
 
     private void fail(Account account, int times) throws Exception {
@@ -126,7 +125,7 @@ class LockoutTest extends CtxDefaultTest {
                     .containsEntry("event.reason", "THRESHOLD_REACHED")
                     .containsEntry("event.action", "user-authentication"));
 
-            MvcResult wrong = login(LOOPBACK, alice, WRONG);
+            MvcResult wrong = login(LOOPBACK, alice, Accounts.WRONG_PASSWORD);
             MvcResult right = login(LOOPBACK, alice, alice.password());
             assertThat(right.getResponse().getStatus()).isEqualTo(401);
             assertThat(right.getResponse().getContentAsString()).contains(ErrorCode.AUTHENTICATION_FAILED.name());
@@ -200,7 +199,7 @@ class LockoutTest extends CtxDefaultTest {
     void failuresFromDistinctSourcesLockTheAccount() throws Exception {
         Account dan = accounts.user();
         for (int i = 1; i <= lockout.threshold(); i++) {
-            assertThat(login("192.0.2." + i, dan, WRONG).getResponse().getStatus()).isEqualTo(401);
+            assertThat(login("192.0.2." + i, dan, Accounts.WRONG_PASSWORD).getResponse().getStatus()).isEqualTo(401);
         }
         assertThat(state(dan).lockedAt(clock.instant())).isTrue();
         assertThat(login("192.0.2.200", dan, dan.password()).getResponse().getStatus()).isEqualTo(401);
@@ -332,7 +331,7 @@ class LockoutTest extends CtxDefaultTest {
         assertThat(capped.passwordDisabled()).isTrue();
 
         try (AuditCapture audit = AuditCapture.start()) {
-            MvcResult wrong = login(LOOPBACK, erin, WRONG);
+            MvcResult wrong = login(LOOPBACK, erin, Accounts.WRONG_PASSWORD);
             MvcResult right = login(LOOPBACK, erin, erin.password());
             assertThat(right.getResponse().getStatus()).isEqualTo(401);
             assertThat(bodyWithoutTraceId(right)).isEqualTo(bodyWithoutTraceId(wrong));
@@ -362,9 +361,9 @@ class LockoutTest extends CtxDefaultTest {
     void anUnknownUsernameOrADisabledAccountMovesNoCounter() throws Exception {
         Account disabled = accounts.disabled();
         for (int i = 0; i < lockout.threshold(); i++) {
-            SignedIn.loginFrom(mockMvc, LOOPBACK, disabled.username(), WRONG)
+            SignedIn.loginFrom(mockMvc, LOOPBACK, disabled.username(), Accounts.WRONG_PASSWORD)
                     .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
-            SignedIn.loginFrom(mockMvc, LOOPBACK, Accounts.unknownUsername(), WRONG)
+            SignedIn.loginFrom(mockMvc, LOOPBACK, Accounts.unknownUsername(), Accounts.WRONG_PASSWORD)
                     .andExpect(problem(ErrorCode.AUTHENTICATION_FAILED));
         }
         assertThat(state(disabled)).isEqualTo(new PasswordLockoutState(0, null, null, 0, null));
@@ -391,8 +390,8 @@ class LockoutTest extends CtxDefaultTest {
             for (CsrfSession session : sessions) {
                 done.add(pool.submit(() -> {
                     start.await();
-                    statuses.add(SignedIn.login(mockMvc, session, grace.username(), WRONG).andReturn().getResponse()
-                            .getStatus());
+                    statuses.add(SignedIn.login(mockMvc, session, grace.username(), Accounts.WRONG_PASSWORD)
+                            .andReturn().getResponse().getStatus());
                     return null;
                 }));
             }

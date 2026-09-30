@@ -93,7 +93,7 @@ class SourceBudgetTest extends CtxBudgetTest {
         String source = nextSource();
         Accounts.Account target = accounts.user();
         CsrfSession session = CsrfSession.bootstrap(mockMvc, source);
-        String wrong = SignedIn.credentials(target.username(), "not-the-password-at-all");
+        String wrong = SignedIn.credentials(target.username(), Accounts.WRONG_PASSWORD);
         for (long i = 0; i < burst; i++) {
             // Each username is fresh, so only the source axis can refuse.
             mockMvc.perform(login(source, session, SignedIn.credentials(Accounts.unknownUsername(), "x")))

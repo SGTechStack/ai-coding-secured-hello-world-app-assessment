@@ -31,7 +31,6 @@ import tools.jackson.databind.json.JsonMapper;
 class LockoutSessionsPortTest extends CtxPortTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
-    private static final String WRONG = "not-the-password-at-all";
 
     @Autowired
     private LockoutProperties lockout;
@@ -96,12 +95,12 @@ class LockoutSessionsPortTest extends CtxPortTest {
         String live = signIn(account);
 
         for (int i = 0; i < lockout.threshold() - 1; i++) {
-            assertThat(login(account, WRONG)).isEqualTo(401);
+            assertThat(login(account, Accounts.WRONG_PASSWORD)).isEqualTo(401);
         }
         assertThat(send(HttpMethod.GET, "/api/hello", live, null, null).getStatus().value())
                 .as("below the threshold the owner's session stands (ADR-034)").isEqualTo(200);
 
-        assertThat(login(account, WRONG)).isEqualTo(401);
+        assertThat(login(account, Accounts.WRONG_PASSWORD)).isEqualTo(401);
 
         assertThat(accounts.lockoutState(account).lockedUntil()).as("the account is locked").isNotNull();
         assertEnded(live);
@@ -117,7 +116,7 @@ class LockoutSessionsPortTest extends CtxPortTest {
         jdbc.update("UPDATE users SET consecutive_failures_since_success = ? WHERE id = ?",
                 lockout.nist().cap() - 1, account.id());
 
-        assertThat(login(account, WRONG)).isEqualTo(401);
+        assertThat(login(account, Accounts.WRONG_PASSWORD)).isEqualTo(401);
 
         assertThat(accounts.lockoutState(account).passwordDisabledAt()).as("the password is disabled").isNotNull();
         assertThat(accounts.lockoutState(account).lockedUntil()).as("the cap alone ended it, not a lock").isNull();

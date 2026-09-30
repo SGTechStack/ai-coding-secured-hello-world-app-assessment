@@ -13,8 +13,9 @@ public interface EmailService {
 	void notifyPasswordChanged(String to);
 
 	/**
-	 * Sends the password-reset link, with the Reset Token written in full (ADR 0001). The link is
-	 * never written anywhere but the stub's own file.
+	 * Sends the password-reset link. The stub writes it, Reset Token included, to its own file in the
+	 * {@code dev} profile only (ADR 0001) and withholds it everywhere else; the link is never written
+	 * anywhere but that file.
 	 */
 	void sendPasswordResetLink(String to, String resetLink);
 

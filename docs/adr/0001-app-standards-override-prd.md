@@ -44,7 +44,7 @@ The PRD is the assessment's source of truth, but the organisation's App-Standard
 - **TLS is a deployment requirement,** not enforced by the app, because local HTTPS is out of scope.
 - **Business-rule rejections are logged at WARN.** The User Access Control standard puts failed administrative attempts at WARN; the Logging standard's general rule says ERROR. The more specific standard wins.
 - **`session.hash` is logged** before authentication, as the User Access Control standard and the Log Schema require, although the Logging questions advise against logging Session IDs in any form. It never goes into MDC.
-- **The `EmailService` stub logs the reset link, including the plaintext Reset Token,** to its own logger and file (recipient masked), which stand in for a mailbox. No other log may contain the token. This ends when a real email integration replaces the stub.
+- **The `EmailService` stub logs the reset link, including the plaintext Reset Token,** to its own logger and file (recipient masked), which stand in for a mailbox — **in the `dev` profile only** (IM8 lm-19). In every other profile the stub records the email but withholds the link, so no Reset Token is written anywhere and self-service reset cannot be completed until real email delivery replaces the stub. No other log may contain the token. This ends when a real email integration replaces the stub.
 - **OWASP Dependency-Check runs locally** through a Maven profile; the CI gate is out of scope with the rest of CI/CD.
 
 ## Accepted IM8 deviations

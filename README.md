@@ -86,8 +86,8 @@ What `dev` gives you, and nothing else does:
   development** — see [The Bootstrap Admin](#4-the-bootstrap-admin).
 
 Logs are written under `backend/logs/`: `application.log`, `audit.log`, and `email.log`,
-which stands in for a mailbox — the `EmailService` is a stub, so the password-reset link
-appears there rather than in an inbox. All three are ECS JSON, one object per line.
+which stands in for a mailbox — the `EmailService` is a stub, so in `dev` the password-reset
+link appears there rather than in an inbox. All three are ECS JSON, one object per line.
 
 Actuator listens separately on <http://127.0.0.1:9090/actuator/health> and
 `/actuator/prometheus`, bound to the loopback address.
@@ -299,9 +299,11 @@ as a local buffer. The platform owns the rest, and none of it is built here
   an app that cannot write its audit log looks exactly like an app nobody is using.
 
 `logs/application.log` (7 days on disk) is worth forwarding too, but it is not the audit
-trail. `logs/email.log` stands in for a mailbox and **contains plaintext Reset Tokens**
-(ADR 0001): while the `EmailService` is a stub, treat that file as a credential store, or
-replace the stub with real email delivery before deploying at all.
+trail. In `dev`, `logs/email.log` stands in for a mailbox and **contains plaintext Reset
+Tokens** (ADR 0001). In every other profile the stub withholds the reset link: the email is
+recorded (recipient masked, `reset.link_withheld: true`) but no Reset Token is written
+anywhere, so self-service password reset cannot be completed until the stub is replaced
+with real email delivery.
 
 ### 9. Hosting the SPA
 
@@ -374,7 +376,8 @@ entities disagree). Migrations are per vendor, selected by
 - [ ] Management port unreachable from any public route.
 - [ ] `audit.log` forwarded to central logging: 90+ days, write-once, access-restricted,
       alerting when events stop.
-- [ ] `email.log` treated as a credential store, or the `EmailService` stub replaced.
+- [ ] `EmailService` stub replaced with real email delivery, or password reset accepted
+      as unusable (outside `dev` the stub withholds reset links).
 - [ ] `VITE_API_ORIGIN` and `VITE_SECURITY_CONTACT` set for the production build;
       `security.txt` `Expires` date tracked.
 - [ ] SPA host sends HSTS, CSP, `X-Frame-Options`, `X-Content-Type-Options` and
@@ -415,8 +418,9 @@ the difference:
 - **Central log-platform configuration is not built:** forwarding, retention, write-once
   storage, access control and alerting on audit-logging failure are all yours
   ([§8](#8-forward-the-audit-log-to-central-logging)).
-- **The `EmailService` is a stub** that logs the reset link, Reset Token and all, to
-  `email.log` with the recipient masked. No real email, and therefore no delivery retry.
+- **The `EmailService` is a stub** that logs each email to `email.log` with the recipient
+  masked. Only in `dev` does it write the reset link, Reset Token and all; elsewhere the
+  link is withheld. No real email, and therefore no delivery retry.
 - **Reset confirmation is rate-limited per client address, not per Account,** because an
   invalid token identifies no Account.
 - **No automatic Required Password Change when an Account is re-enabled.** An Admin

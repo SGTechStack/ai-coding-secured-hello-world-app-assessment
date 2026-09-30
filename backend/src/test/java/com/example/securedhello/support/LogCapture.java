@@ -80,6 +80,11 @@ public final class LogCapture {
 		return parse(linesSince(emailFile, emailMark));
 	}
 
+	/** Raw email-file lines written since the mark. */
+	public List<String> emailText() {
+		return linesSince(emailFile, emailMark);
+	}
+
 	public static Path applicationLogFile() {
 		return file(root(), APPLICATION_APPENDER);
 	}

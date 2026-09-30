@@ -11,8 +11,14 @@ function jsonResponse({ status, body }: { status: number; body: unknown }) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-const ROOT = { username: 'root', role: 'ADMIN', enabled: true, createdAt: '2030-01-02T03:04:05Z' };
-const SUSPENDED = { username: 'suspended', role: 'USER', enabled: false, createdAt: '2030-02-03T04:05:06Z' };
+const ROOT = { id: 'id-root', username: 'root', role: 'ADMIN', enabled: true, createdAt: '2030-01-02T03:04:05Z' };
+const SUSPENDED = {
+  id: 'id-suspended',
+  username: 'suspended',
+  role: 'USER',
+  enabled: false,
+  createdAt: '2030-02-03T04:05:06Z',
+};
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -110,5 +116,45 @@ describe('AccountsPage', () => {
 
     expect(await screen.findByText('Enter a username')).toBeInTheDocument();
     expect(requestsTo({ method: 'POST' })).toHaveLength(0);
+  });
+
+  it('resets an Account password from its row and shows the new Temporary Password once', async () => {
+    const reset = {
+      username: 'suspended',
+      role: 'USER',
+      temporaryPassword: 'Rs9-reset-Pass-77',
+      temporaryPasswordExpiresAt: '2030-01-03T03:04:05Z',
+    };
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT, SUSPENDED] }))
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: reset }));
+    renderPage();
+    const row = (await screen.findByText('suspended')).closest('tr')!;
+    const user = userEvent.setup();
+
+    await user.click(within(row).getByRole('button', { name: 'Reset password' }));
+
+    expect(await screen.findByText('Rs9-reset-Pass-77')).toBeInTheDocument();
+    expect(screen.getByText(/shown only once/i)).toBeInTheDocument();
+    expect(screen.getByText(/Password reset for suspended/)).toBeInTheDocument();
+    const [url, init] = requestsTo({ method: 'POST' })[0] as [string, RequestInit];
+    expect(url).toBe('/admin/api/users/id-suspended/reset-password');
+    expect(init.body).toBeUndefined();
+  });
+
+  it('shows the server reason and no Temporary Password when a reset is refused', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ status: 200, body: [ROOT] }))
+      .mockResolvedValueOnce(
+        jsonResponse({ status: 403, body: { title: 'Forbidden', detail: 'Admins cannot reset their own password' } }),
+      );
+    renderPage();
+    const row = (await screen.findByText('root')).closest('tr')!;
+    const user = userEvent.setup();
+
+    await user.click(within(row).getByRole('button', { name: 'Reset password' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Admins cannot reset their own password');
+    expect(screen.queryByText(/shown only once/i)).not.toBeInTheDocument();
   });
 });

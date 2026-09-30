@@ -3,6 +3,7 @@ import {
   getListAccountsQueryKey,
   listAccounts,
   useCreateAccount as useGeneratedCreateAccount,
+  useResetPassword as useGeneratedResetPassword,
 } from '@/api/generated-admin/admin-account-controller/admin-account-controller';
 import { CreateAccountRequestRole } from '@/api/generated-admin/openAPIDefinition.schemas';
 import { HttpError } from '@lib/http';
@@ -17,6 +18,7 @@ export const ACCOUNT_ROLES = [
 export type AccountRole = (typeof ACCOUNT_ROLES)[number];
 
 export type AccountSummary = {
+  id: string;
   username: string;
   role: string;
   enabled: boolean;
@@ -63,5 +65,24 @@ export function useCreateAccount() {
     error: mutation.error,
     isPending: mutation.isPending,
     reset: mutation.reset,
+  };
+}
+
+/** Shown when the server gives no reason for a failed password reset. */
+export const RESET_PASSWORD_FAILED_MESSAGE = 'The password could not be reset. Try again shortly.';
+
+/** Message for a failed reset: the server's reason (for example a refused self-reset) or a fallback. */
+export function resetPasswordErrorMessage(error: unknown): string {
+  if (error instanceof HttpError && error.body?.detail) return error.body.detail;
+  return RESET_PASSWORD_FAILED_MESSAGE;
+}
+
+/** Issues a new Temporary Password for an Account; the server returns it only this once. */
+export function useResetPassword() {
+  const mutation = useGeneratedResetPassword();
+
+  return {
+    resetPassword: async ({ id }: { id: string }) => (await mutation.mutateAsync({ id })).data as CreatedAccount,
+    isPending: mutation.isPending,
   };
 }

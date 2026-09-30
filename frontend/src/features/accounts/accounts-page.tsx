@@ -12,8 +12,11 @@ import { createAccountSchema } from './accounts.schema';
 import {
   ACCOUNT_ROLES,
   createAccountErrorMessage,
+  resetPasswordErrorMessage,
   useAccounts,
   useCreateAccount,
+  useResetPassword,
+  type AccountSummary,
   type CreatedAccount,
 } from './accounts.queries';
 
@@ -142,13 +145,21 @@ function CreateAccountCard({
 
 function AccountList() {
   const { data: accounts } = useAccounts();
+  const [reset, setReset] = useState<CreatedAccount | undefined>();
+  const [resetError, setResetError] = useState<unknown>();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Accounts</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
+        {reset && <ResetResult reset={reset} />}
+        {resetError != null && (
+          <Alert variant="danger">
+            <AlertDescription>{resetPasswordErrorMessage(resetError)}</AlertDescription>
+          </Alert>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -156,6 +167,7 @@ function AccountList() {
               <TableHead>Role</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -165,12 +177,73 @@ function AccountList() {
                 <TableCell>{account.role}</TableCell>
                 <TableCell>{account.enabled ? 'Enabled' : 'Disabled'}</TableCell>
                 <TableCell>{formatDate(account.createdAt)}</TableCell>
+                <TableCell>
+                  <ResetPasswordButton
+                    account={account}
+                    onStart={() => {
+                      setReset(undefined);
+                      setResetError(undefined);
+                    }}
+                    onReset={setReset}
+                    onError={setResetError}
+                  />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+function ResetPasswordButton({
+  account,
+  onStart,
+  onReset,
+  onError,
+}: {
+  account: AccountSummary;
+  onStart: () => void;
+  onReset: (reset: CreatedAccount) => void;
+  onError: (error: unknown) => void;
+}) {
+  const { resetPassword, isPending } = useResetPassword();
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={isPending}
+      onClick={async () => {
+        onStart();
+        try {
+          onReset(await resetPassword({ id: account.id }));
+        } catch (error) {
+          onError(error);
+        }
+      }}
+    >
+      Reset password
+    </Button>
+  );
+}
+
+function ResetResult({ reset }: { reset: CreatedAccount }) {
+  return (
+    <Alert variant="success">
+      <AlertTitle>Password reset for {reset.username}</AlertTitle>
+      <AlertDescription>
+        <p>
+          Temporary password: <code className="font-mono font-semibold">{reset.temporaryPassword}</code>
+        </p>
+        <p>
+          It is shown only once. Copy it now and hand it to {reset.username}; it expires{' '}
+          {formatTimestamp(reset.temporaryPasswordExpiresAt)}. Their sessions have ended.
+        </p>
+      </AlertDescription>
+    </Alert>
   );
 }
 

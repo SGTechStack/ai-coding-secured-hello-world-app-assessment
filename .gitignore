@@ -30,6 +30,16 @@ node_modules/
 dist/
 *.log
 
+# Local runtime state, written by running the application locally.
+#
+# Neither is build output, and `*.log` does not cover either: the log appenders emit `.json`
+# (every line is an ECS document -- there is no plain-text appender), and `.data/` is the
+# file-based dev H2 database, which is file-based deliberately so that bootstrap idempotence is
+# observable across restarts (spec.md S2). Committing it would ship a seeded administrator
+# password hash.
+.data/
+logs/
+
 # Generated documentation
 **/javadoc/
 **/tsdoc/

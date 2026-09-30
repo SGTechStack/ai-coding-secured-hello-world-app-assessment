@@ -27,6 +27,19 @@ curl -s http://localhost:8080/v3/api-docs/admin    > docs/openapi-admin.json   #
 
 Stop the server.
 
+### Alternative: Maven, no manual server
+
+The build boots the app and writes both specs to `backend/target/`. Skip the tests to keep it to about 10s:
+
+```bash
+cd backend
+./mvnw verify -DskipITs -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false
+cp target/openapi.json ../docs/openapi.json
+cp target/openapi-admin.json ../docs/openapi-admin.json
+```
+
+Property order can differ from the curl output, so the diff may show reordering only.
+
 ## 2. Regenerate the frontend clients
 
 ```bash

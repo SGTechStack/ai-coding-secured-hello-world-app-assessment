@@ -15,6 +15,7 @@ import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
 
+import sg.securedhello.audit.FactorRequiredReason;
 import sg.securedhello.mfa.TotpFactorEntryPoint;
 import sg.securedhello.mfa.TotpProblemAdvice;
 import sg.securedhello.password.PasswordRule;
@@ -58,7 +59,7 @@ public final class ErrorContract {
                     "factor", new Extension(List.of(TotpFactorEntryPoint.FACTOR), true,
                             "The factor the admin surface requires (R-MFA-001)."),
                     "reason", new Extension(
-                            Arrays.stream(TotpFactorEntryPoint.Reason.values()).map(Enum::name).toList(), true,
+                            Arrays.stream(FactorRequiredReason.values()).map(Enum::name).toList(), true,
                             "`MISSING` when the session does not hold the factor; `EXPIRED` when it holds one older "
                                     + "than the rule accepts (ADR-021).")),
             ErrorCode.TOO_MANY_REQUESTS, Map.of(

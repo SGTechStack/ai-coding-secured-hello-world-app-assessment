@@ -45,14 +45,6 @@ public class TotpFactorEntryPoint implements AuthenticationEntryPoint {
     /** The {@code factor} member's value. */
     public static final String FACTOR = "TOTP";
 
-    /** Why the factor was refused, as the {@code reason} member. */
-    public enum Reason {
-        /** The session does not hold the factor. */
-        MISSING,
-        /** The session holds it, but it was issued longer ago than the rule accepts. */
-        EXPIRED
-    }
-
     private final TotpUserDetailsRepository factors;
     private final ProblemDetailWriter writer;
     private final AuditEmitter audit;
@@ -78,22 +70,20 @@ public class TotpFactorEntryPoint implements AuthenticationEntryPoint {
                 return;
             }
         }
-        Reason reason = reason(request);
+        FactorRequiredReason reason = reason(request);
         if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
-            FactorRequiredReason audited = reason == Reason.EXPIRED ? FactorRequiredReason.FACTOR_EXPIRED
-                    : FactorRequiredReason.FACTOR_MISSING;
-            audit.emit(AuditEvent.FACTOR_REQUIRED, AccountContext.factorRequired(user.id(), audited));
+            audit.emit(AuditEvent.FACTOR_REQUIRED, AccountContext.factorRequired(user.id(), reason));
         }
         writer.write(request, response, ErrorCode.MISSING_FACTOR, Map.of("factor", FACTOR, "reason", reason.name()));
     }
 
     /** {@code EXPIRED} when the framework reported the TOTP factor as expired, {@code MISSING} otherwise. */
-    static Reason reason(HttpServletRequest request) {
+    static FactorRequiredReason reason(HttpServletRequest request) {
         return request.getAttribute(WebAttributes.REQUIRED_FACTOR_ERRORS) instanceof List<?> errors
                 && errors.stream().anyMatch(error -> error instanceof RequiredFactorError factorError
                         && TotpFactorGrant.AUTHORITY.equals(factorError.getRequiredFactor().getAuthority())
                         && factorError.isExpired())
-                ? Reason.EXPIRED
-                : Reason.MISSING;
+                ? FactorRequiredReason.EXPIRED
+                : FactorRequiredReason.MISSING;
     }
 }

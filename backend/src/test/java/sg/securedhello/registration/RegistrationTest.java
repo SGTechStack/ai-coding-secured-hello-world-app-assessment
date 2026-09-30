@@ -424,30 +424,46 @@ class RegistrationTest extends CtxDefaultTest {
                 Timestamp.from(clock.instant()))).isZero();
     }
 
+    /**
+     * An invite lapses once its latest admin-issued token has expired (ADR-007 amendment of 2026-09-30), not 24 hours
+     * after it was created: re-invited 20 hours in, it still holds its username 30 hours in, and frees it only when
+     * the re-issued token runs out.
+     */
     @Test
-    @Proves("T-CRED-026")
-    void anAdministratorsInviteWithItsAdminIssuedTokenNeverLapses() throws Exception {
+    @Proves({"T-CRED-026", "T-CRED-030"})
+    void anAdministratorsInviteLapsesOnlyOnceItsLatestTokenHasExpired() throws Exception {
         String invited = Registrations.freshUsername();
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO users (id, username, email, role, enabled, created_at) VALUES (?, ?, ?, 'USER', TRUE, ?)",
                 id, invited, Registrations.emailFor(invited), Timestamp.from(clock.instant()));
+        clock.advance(Registration.PENDING_PERIOD.minusHours(4));
         jdbc.update("INSERT INTO credential_tokens (id, user_id, type, token_hash, expires_at, created_at, admin_issued)"
                         + " VALUES (?, ?, 'ACTIVATION', ?, ?, ?, TRUE)", UUID.randomUUID(), id,
                 UUID.randomUUID().toString().replace("-", "") + "0".repeat(32),
                 Timestamp.from(clock.instant().plus(Registration.PENDING_PERIOD)), Timestamp.from(clock.instant()));
-        clock.advance(Registration.PENDING_PERIOD.multipliedBy(2));
+        clock.advance(java.time.Duration.ofHours(10));
+        String other = Registrations.emailFor(Registrations.freshUsername());
 
         try (AuditCapture audit = AuditCapture.start()) {
-            registrations.register(invited, Registrations.emailFor(Registrations.freshUsername()))
-                    .andExpect(problem(ErrorCode.VALIDATION_FAILED));
-            assertThat(audit.withMessage(LAPSED)).isEmpty();
+            registrations.register(invited, other).andExpect(problem(ErrorCode.VALIDATION_FAILED));
+            assertThat(audit.withMessage(LAPSED)).as("its re-issued token is live").isEmpty();
         }
         assertThat(usersNamed(invited)).isOne();
+
+        clock.advance(Registration.PENDING_PERIOD);
+        try (AuditCapture audit = AuditCapture.start()) {
+            registrations.register(invited, other).andExpect(status().isAccepted());
+            assertThat(audit.withMessage(LAPSED)).singleElement()
+                    .satisfies(row -> assertThat(row).containsEntry("user.id", id.toString()));
+        }
+        assertThat(jdbc.queryForObject("SELECT email FROM users WHERE username = ?", String.class, invited))
+                .isEqualTo(other);
     }
 
+    /** A pending row with no activation token is neither a self-registration nor an invite, so it fails closed. */
     @Test
     @Proves("T-CRED-026")
-    void anAdministratorsInviteNeverLapses() throws Exception {
+    void aPendingRowWithNoActivationTokenNeverLapses() throws Exception {
         String invited = Registrations.freshUsername();
         jdbc.update("INSERT INTO users (id, username, email, role, enabled, created_at) VALUES (?, ?, ?, 'ADMIN', TRUE, ?)",
                 UUID.randomUUID(), invited, Registrations.emailFor(invited), Timestamp.from(clock.instant()));

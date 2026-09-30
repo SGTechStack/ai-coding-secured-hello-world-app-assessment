@@ -36,16 +36,19 @@ import sg.securedhello.user.UserAccountRepository;
  * <ol>
  *   <li>A username that is not canonical, is malformed or is reserved is refused (ADR-045; REJ-021; REJ-027).</li>
  *   <li>A username is unavailable if an account, a tombstone or another address's live {@link UsernameHold} has it.
- *       The one exception is another address's self-registered pending registration that has outlived the
- *       {@link #PENDING_PERIOD}: it is deleted, without a tombstone, its username is free again, and the deletion is
- *       audited (row 48). An administrator's pending invite never lapses. Expired holds are purged first.</li>
+ *       The one exception is another address's pending registration that has lapsed ({@link PendingRegistrationLapse}):
+ *       a self-registration {@link #PENDING_PERIOD} after its last registration, an administrator's invite once its
+ *       activation token has expired. It is deleted, without a tombstone, its username is free again, and the deletion
+ *       is audited (row 48). Expired holds are purged first.</li>
  *   <li>Every registration that passes takes or renews the hold on its username for the pending period, <em>whatever
  *       state the email address is in</em>. A second registration of that username from another address is therefore
  *       refused alike whether the first address was new, pending, activated, invited or tombstoned, so the username
  *       axis never reveals the email axis (ADR-032 amendment of 2026-09-29; T-AUTH-018).</li>
  *   <li>The email address's state then decides silently: a new address becomes a pending registration; a
  *       self-registered pending address is replaced, taking the new username (R-CRED-010); an activated account's
- *       address, an administrator's pending invite or a tombstoned address creates nothing.</li>
+ *       address, an administrator's live invite or a tombstoned address creates nothing. A lapsed invite of the
+ *       address is deleted first, as above, so the address is new again: the invitee may register themselves once
+ *       the administrator's link has expired (ADR-007 amendment).</li>
  * </ol>
  * The caller answers the same 202 in every email state (R-CRED-018). Nothing here hashes a password, so no state costs
  * a BCrypt call the others do not (T-AUTH-014). The link is sent after the transaction commits. The audit row is
@@ -53,12 +56,13 @@ import sg.securedhello.user.UserAccountRepository;
  * for a known address ({@code EXISTING_ADDRESS}), and a refused username writes row 17, which names nothing. Each is
  * written once its transaction has ended.
  *
- * <p>It runs as three short transactions, each of which locks at most one account row, so two registrations can never
+ * <p>It runs as four short transactions, each of which locks at most one account row, so two registrations can never
  * wait on each other's account rows in opposite orders (T-CRED-027):
  * <ol>
  *   <li>purge the expired holds;</li>
  *   <li>delete a lapsed pending registration of another address that has the username, under its row lock, so its
  *       activation runs wholly before or after;</li>
+ *   <li>delete a lapsed invite of this address, under its row lock;</li>
  *   <li>reserve: lock the address's account row, the lock {@link Activation} takes too, so a re-registration and an
  *       activation of one pending registration run one after the other; check the username, which by now names no
  *       lapsed registration of another address, without locking its row; hold it; and create or replace.</li>
@@ -71,7 +75,7 @@ import sg.securedhello.user.UserAccountRepository;
 public class Registration {
 
     /** How long a registration holds its username, and a pending registration lives: its activation token's life. */
-    static final Duration PENDING_PERIOD = CredentialTokenType.ACTIVATION.lifetime();
+    static final Duration PENDING_PERIOD = PendingRegistrationLapse.PENDING_PERIOD;
 
     /**
      * The unique index a new address's pending registration is inserted into (V2). A concurrent registration of the
@@ -87,6 +91,7 @@ public class Registration {
 
     private final UserAccountRepository accounts;
     private final UsernameHoldRepository holds;
+    private final PendingRegistrationLapse lapse;
     private final Tombstones tombstones;
     private final CredentialTokens tokens;
     private final CredentialLinks links;
@@ -95,11 +100,12 @@ public class Registration {
     private final AuditEmitter audit;
     private final Clock clock;
 
-    Registration(UserAccountRepository accounts, UsernameHoldRepository holds, Tombstones tombstones,
-            CredentialTokens tokens, CredentialLinks links, EmailService email,
+    Registration(UserAccountRepository accounts, UsernameHoldRepository holds, PendingRegistrationLapse lapse,
+            Tombstones tombstones, CredentialTokens tokens, CredentialLinks links, EmailService email,
             PlatformTransactionManager transactionManager, AuditEmitter audit, Clock clock) {
         this.accounts = accounts;
         this.holds = holds;
+        this.lapse = lapse;
         this.tombstones = tombstones;
         this.tokens = tokens;
         this.links = links;
@@ -122,8 +128,8 @@ public class Registration {
         String canonicalEmail = Identifiers.canonicalEmail(submittedEmail).orElseThrow(InvalidIdentifierException::new);
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         transactions.executeWithoutResult(status -> holds.deleteExpired(now));
-        transactions.execute(status -> deleteLapsed(username, canonicalEmail, now)).ifPresent(lapsed ->
-                audit.emit(AuditEvent.PENDING_REGISTRATION_LAPSED, AccountContext.registrationLapsed(lapsed)));
+        transactions.execute(status -> deleteLapsed(username, canonicalEmail, now)).ifPresent(this::auditLapsed);
+        transactions.execute(status -> deleteLapsedInvite(canonicalEmail, now)).ifPresent(this::auditLapsed);
         Reserved reserved;
         try {
             reserved = transactions.execute(status -> reserve(username, canonicalEmail, now));
@@ -163,19 +169,32 @@ public class Registration {
     }
 
     /**
-     * Deletes the pending registration that has {@code username}, if it is another address's, self-registered, and has
-     * outlived the pending period, and returns its id. Its row is locked first, so an activation of it runs wholly
-     * before this, and then it is no longer pending.
+     * Deletes the pending registration that has {@code username}, if it is another address's and has lapsed, and
+     * returns its id. Its row is locked first, so an activation of it runs wholly before this, and then it is no longer
+     * pending.
      */
     private Optional<UUID> deleteLapsed(String username, String canonicalEmail, Instant now) {
         return accounts.findForUpdateByUsername(username)
                 .filter(account -> !account.getEmail().equals(canonicalEmail))
-                .filter(account -> !now.isBefore(account.getCreatedAt().plus(PENDING_PERIOD)))
-                .filter(this::isSelfRegisteredPending)
-                .map(account -> {
-                    accounts.delete(account);
-                    return account.getId();
-                });
+                .filter(account -> lapse.lapsed(account, now))
+                .map(lapse::delete);
+    }
+
+    /**
+     * Deletes this address's pending registration, if it is a lapsed invite, and returns its id, so the address
+     * registers as a new one: a lapsed invite is not replaced in place, because the invite's role is the
+     * administrator's to choose, never a self-registration's (ADR-006). This address's own self-registration is
+     * renewed by {@link #reserve} instead, whether it has lapsed or not.
+     */
+    private Optional<UUID> deleteLapsedInvite(String canonicalEmail, Instant now) {
+        return accounts.findForUpdateByEmail(canonicalEmail)
+                .filter(account -> !isSelfRegisteredPending(account))
+                .filter(account -> lapse.lapsed(account, now))
+                .map(lapse::delete);
+    }
+
+    private void auditLapsed(UUID lapsed) {
+        audit.emit(AuditEvent.PENDING_REGISTRATION_LAPSED, AccountContext.registrationLapsed(lapsed));
     }
 
     private Reserved reserve(String username, String canonicalEmail, Instant now) {

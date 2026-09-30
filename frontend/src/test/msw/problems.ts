@@ -66,6 +66,7 @@ export const problemFixtures: Readonly<Record<ErrorCode, Problem>> = {
     'Two-admin minimum',
     'The change would leave fewer than two enrolled administrators.',
   ),
+  SERVICE_BUSY: fixture('SERVICE_BUSY', 503, 'Service busy', 'The service is busy. Try again shortly.'),
   INTERNAL_ERROR: fixture('INTERNAL_ERROR', 500, 'Internal error', 'An unexpected error occurred.'),
 }
 

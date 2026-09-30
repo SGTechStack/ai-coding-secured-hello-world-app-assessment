@@ -124,7 +124,7 @@ class RecoveryRunnerProcessIT {
         assertThat(applied.stdout()).contains("Recovery runner: applied.");
         // The web-only startup beans are absent: no seeding, and no reconciliation sweep beside the previewed change.
         for (RunnerProcess.Result run : List.of(dryRun, applied)) {
-            assertThat(run.stdout()).doesNotContain("Administrator bootstrap", "\"session-reconciliation\"");
+            assertThat(run.stdout()).doesNotContain("Administrator bootstrap", "Sessions reconciled at startup.");
         }
         assertThat(sessionsOf(database, ADMIN)).as("the rebound account's sessions ended").isZero();
 
@@ -167,7 +167,7 @@ class RecoveryRunnerProcessIT {
                         "--non-interactive");
 
         // The application started as itself, with its startup sweep; the runner never ran.
-        assertThat(started.stdout()).doesNotContain("Recovery runner").contains("\"session-reconciliation\"");
+        assertThat(started.stdout()).doesNotContain("Recovery runner").contains("Sessions reconciled at startup.");
         assertThat(passwordHash(sharedDatabase)).isEqualTo(before);
     }
 

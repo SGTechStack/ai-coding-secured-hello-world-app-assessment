@@ -425,6 +425,33 @@
     "if" : {
       "properties" : {
         "code" : {
+          "const" : "SERVICE_BUSY"
+        }
+      }
+    },
+    "then" : {
+      "properties" : {
+        "detail" : {
+          "const" : "The service is busy. Try again shortly."
+        },
+        "factor" : false,
+        "reason" : false,
+        "rule" : false,
+        "status" : {
+          "const" : 503
+        },
+        "title" : {
+          "const" : "Service busy"
+        },
+        "type" : {
+          "const" : "tag:securedhello.sg,2026:problem:service-busy"
+        }
+      }
+    }
+  }, {
+    "if" : {
+      "properties" : {
+        "code" : {
           "const" : "INTERNAL_ERROR"
         }
       }
@@ -452,7 +479,7 @@
   "description" : "Generated from sg.securedhello.error.ErrorCode. Do not edit; see error-contract.md.",
   "properties" : {
     "code" : {
-      "enum" : [ "AUTHENTICATION_FAILED", "PASSWORD_CHANGE_REQUIRED", "CSRF_TOKEN_INVALID", "ACCESS_DENIED", "VALIDATION_FAILED", "PASSWORD_REJECTED", "RESET_TOKEN_INVALID", "USER_EXISTS", "TOO_MANY_REQUESTS", "MISSING_FACTOR", "INVALID_FACTOR", "FACTOR_ENROLMENT_REQUIRED", "FACTOR_ALREADY_ENROLLED", "FACTOR_DISABLED", "TWO_ADMIN_INVARIANT", "INTERNAL_ERROR" ]
+      "enum" : [ "AUTHENTICATION_FAILED", "PASSWORD_CHANGE_REQUIRED", "CSRF_TOKEN_INVALID", "ACCESS_DENIED", "VALIDATION_FAILED", "PASSWORD_REJECTED", "RESET_TOKEN_INVALID", "USER_EXISTS", "TOO_MANY_REQUESTS", "MISSING_FACTOR", "INVALID_FACTOR", "FACTOR_ENROLMENT_REQUIRED", "FACTOR_ALREADY_ENROLLED", "FACTOR_DISABLED", "TWO_ADMIN_INVARIANT", "SERVICE_BUSY", "INTERNAL_ERROR" ]
     },
     "detail" : {
       "type" : "string"

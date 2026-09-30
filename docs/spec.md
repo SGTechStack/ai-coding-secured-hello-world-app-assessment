@@ -340,6 +340,7 @@ Further rules for the API surface:
 | `FACTOR_ALREADY_ENROLLED` | 409 | provisioning when a confirmed factor exists |
 | `FACTOR_DISABLED` | 423 | tier-2 disable, on the self-read, the admin entry point and verification (R-MFA-006) |
 | `TWO_ADMIN_INVARIANT` | 409 | the two-admin invariant's refusal of a disable, demote or delete (REJ-050; R-ADM-008) |
+| `SERVICE_BUSY` | 503 | a guarded admin change whose lock set other changes held past the lock timeout: nothing changed, and it always carries an integer `Retry-After` (ADR-048; T-ADM-034) |
 | `INTERNAL_ERROR` | 500 | anything unhandled |
 
 - **The two-admin invariant's refusal is a 409** (REJ-050), `TWO_ADMIN_INVARIANT`: see Further Notes.

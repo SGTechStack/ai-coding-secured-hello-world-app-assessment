@@ -25,12 +25,19 @@ export function authorityRoute(error: unknown, except: readonly ErrorCode[] = []
   return error instanceof ApiError && !except.includes(error.code) ? AUTHORITY_ROUTES[error.code] : undefined
 }
 
+/** The copy for a change refused because other changes held its locks (`SERVICE_BUSY`): nothing changed. */
+export const SERVICE_BUSY_COPY = 'The server is busy with other changes, so nothing was changed. Try again in a moment.'
+
+/** The copy every page shows for a code it has no copy of its own for. */
+const DEFAULT_COPY: Partial<Record<ErrorCode, string>> = { SERVICE_BUSY: SERVICE_BUSY_COPY }
+
 /** The copy for a change whose step-up challenge was dismissed: it was not sent again. */
 export const STEP_UP_CANCELLED = 'Verification was cancelled, so nothing was changed.'
 
 /**
  * A page's failure handling: `fail` follows a code that moves the session elsewhere (into `redirect`), and otherwise
- * shows the page's copy for the code, or `generic`, in `failure`. A dismissed step-up says nothing was changed.
+ * shows the page's copy for the code, or `generic`, in `failure`. A dismissed step-up says nothing was changed, and so
+ * does a `SERVICE_BUSY` refusal the page has no copy for, which also says to try again.
  */
 export function useAuthorityFailure(except: readonly ErrorCode[] = []) {
   const [redirect, setRedirect] = useState<string>()
@@ -43,7 +50,7 @@ export function useAuthorityFailure(except: readonly ErrorCode[] = []) {
     } else if (error instanceof StepUpCancelledError) {
       setFailure(STEP_UP_CANCELLED)
     } else {
-      setFailure((error instanceof ApiError && copy[error.code]) || generic)
+      setFailure((error instanceof ApiError && (copy[error.code] ?? DEFAULT_COPY[error.code])) || generic)
     }
   }
 

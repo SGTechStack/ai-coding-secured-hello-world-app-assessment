@@ -37,6 +37,7 @@ No other member is allowed until the contract declares it, as an extension membe
 | `FACTOR_ALREADY_ENROLLED` | 409 | Second factor already enrolled | A second factor is already enrolled. | provisioning when a confirmed factor exists |
 | `FACTOR_DISABLED` | 423 | Second factor disabled | The second factor is disabled. Contact an administrator. | tier-2 disable, on the self-read, the admin entry point and verification |
 | `TWO_ADMIN_INVARIANT` | 409 | Two-admin minimum | The change would leave fewer than two enrolled administrators. | the two-admin invariant's refusal of a disable, demote or delete |
+| `SERVICE_BUSY` | 503 | Service busy | The service is busy. Try again shortly. | a guarded admin change whose locks other changes held past the lock timeout; always carries an integer Retry-After |
 | `INTERNAL_ERROR` | 500 | Internal error | An unexpected error occurred. | anything unhandled |
 
 ## Extension members

@@ -42,7 +42,7 @@ class AuditReasonCodesTest {
             // PasswordDisableReason: the NIST cap's disable
             "FAILURE_CAP",
             // AdminRefusalReason: row 34
-            "SELF_ACTION", "TWO_ADMIN_INVARIANT",
+            "SELF_ACTION", "TWO_ADMIN_INVARIANT", "LOCK_TIMEOUT",
             // SessionTimeoutReason: row 9
             "ABSOLUTE_TIMEOUT",
             // SessionEvictionReason: row 10

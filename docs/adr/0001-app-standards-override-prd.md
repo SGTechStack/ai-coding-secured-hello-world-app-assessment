@@ -25,7 +25,7 @@ The PRD is the assessment's source of truth, but the organisation's App-Standard
 - An admin role-read endpoint (the admin user list's `role` field) and a role-mutation endpoint (`PATCH /api/admin/users/{id}/role`), covering the Standard's role-management surface even though the app still has only the two fixed roles, User and Admin. `ADMIN` plays the part of the Standard's `USER_MANAGER`; unmatched routes are denied.
 - Structured ECS JSON logging with trace and correlation IDs, a dedicated audit log kept for at least 90 days, masking and log-injection protection (Structured Logging standard).
 - A required-password-change flag (IM8 as-15, ac-6). It is set on the Bootstrap Admin at creation and by an Admin action when compromise is suspected (which also ends that Account's Sessions). Until the password is changed or reset, only `/me`, Password Change, logout and `/csrf` are allowed.
-- Actuator metrics on a non-public management port (IM8 lm-16), `/.well-known/security.txt` (IM8 st-3), and a "Confidential" classification label next to every input field (IM8 dp-8).
+- Actuator metrics on a non-public management port (IM8 lm-16), `/.well-known/security.txt` (IM8 st-3), and a classification label next to every input field giving "Confidential" and the field's sensitivity, "Sensitive High" for passwords and "Sensitive Normal" for usernames and emails (IM8 dp-8).
 
 ## Where the PRD wins over the Standards
 

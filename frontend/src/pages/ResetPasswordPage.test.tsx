@@ -41,13 +41,13 @@ describe('Reset-password screen', () => {
     expect(window.location.hash).toBe('')
   })
 
-  it('shows a Confidential label next to the new-password field', async () => {
+  it('shows a Confidential, Sensitive High label next to the new-password field', async () => {
     renderResetPassword(() => new Response(null, { status: 200 }))
 
     const input = await screen.findByLabelText('New password')
     const field = input.closest('.field') as HTMLElement
-    expect(within(field).getByText('Confidential')).toBeInTheDocument()
-    expect(input).toHaveAccessibleDescription('Confidential')
+    expect(within(field).getByText('Confidential / Sensitive High')).toBeInTheDocument()
+    expect(input).toHaveAccessibleDescription('Confidential / Sensitive High')
     expect(input).toHaveAttribute('type', 'password')
   })
 

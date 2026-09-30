@@ -56,10 +56,18 @@ export function LoginPage() {
       )}
       {auth.state.kind === 'anonymous' && 'loggedOut' in auth.state && <p role="status">You have logged out.</p>}
       <form onSubmit={submit} noValidate>
-        <Field name="username" label="Username" autoComplete="username" value={username} onChange={setUsername} />
+        <Field
+          name="username"
+          label="Username"
+          sensitivity="Sensitive Normal"
+          autoComplete="username"
+          value={username}
+          onChange={setUsername}
+        />
         <Field
           name="password"
           label="Password"
+          sensitivity="Sensitive High"
           type="password"
           autoComplete="current-password"
           value={password}

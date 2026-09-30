@@ -72,6 +72,7 @@ export function ResetPasswordPage() {
         <Field
           name="newPassword"
           label="New password"
+          sensitivity="Sensitive High"
           type="password"
           autoComplete="new-password"
           value={newPassword}

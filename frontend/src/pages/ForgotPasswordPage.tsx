@@ -41,7 +41,15 @@ export function ForgotPasswordPage() {
     <section>
       <h1>Forgot password</h1>
       <form onSubmit={submit} noValidate>
-        <Field name="email" label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} />
+        <Field
+          name="email"
+          label="Email"
+          sensitivity="Sensitive Normal"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={setEmail}
+        />
         {error && <p role="alert">{error}</p>}
         <button type="submit" disabled={submitting}>
           Send reset link

@@ -29,13 +29,13 @@ function fillAndSubmit(email = 'testuser123@test.example.com') {
 }
 
 describe('Forgot-password screen', () => {
-  it('shows a Confidential label next to the email field', () => {
+  it('shows a Confidential, Sensitive Normal label next to the email field', () => {
     renderForgotPassword(() => new Response(null, { status: 202 }))
 
     const input = screen.getByLabelText('Email')
     const field = input.closest('.field') as HTMLElement
-    expect(within(field).getByText('Confidential')).toBeInTheDocument()
-    expect(input).toHaveAccessibleDescription('Confidential')
+    expect(within(field).getByText('Confidential / Sensitive Normal')).toBeInTheDocument()
+    expect(input).toHaveAccessibleDescription('Confidential / Sensitive Normal')
     expect(input).toHaveAttribute('type', 'email')
   })
 

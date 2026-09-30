@@ -44,14 +44,17 @@ async function fillAndSubmit(username = 'testuser123', password = 'Synthetic-Pas
 }
 
 describe('Login screen', () => {
-  it('shows a Confidential label next to every input field', async () => {
+  it('shows a Confidential label with its sensitivity next to every input field', async () => {
     renderApp({})
 
-    for (const label of ['Username', 'Password']) {
+    for (const [label, classification] of [
+      ['Username', 'Confidential / Sensitive Normal'],
+      ['Password', 'Confidential / Sensitive High'],
+    ]) {
       const input = await screen.findByLabelText(label)
       const field = input.closest('.field') as HTMLElement
-      expect(within(field).getByText('Confidential')).toBeInTheDocument()
-      expect(input).toHaveAccessibleDescription('Confidential')
+      expect(within(field).getByText(classification)).toBeInTheDocument()
+      expect(input).toHaveAccessibleDescription(classification)
     }
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password')
   })

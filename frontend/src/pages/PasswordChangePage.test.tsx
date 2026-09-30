@@ -53,14 +53,14 @@ describe('Password Change screen', () => {
     expect(await screen.findByRole('heading', { name: 'Change password' })).toBeInTheDocument()
   })
 
-  it('shows a Confidential label next to every input field', async () => {
+  it('shows a Confidential, Sensitive High label next to every input field', async () => {
     renderApp(() => new Response(null, { status: 200 }))
 
     for (const label of ['Current password', 'New password']) {
       const input = await screen.findByLabelText(label)
       const field = input.closest('.field') as HTMLElement
-      expect(within(field).getByText('Confidential')).toBeInTheDocument()
-      expect(input).toHaveAccessibleDescription('Confidential')
+      expect(within(field).getByText('Confidential / Sensitive High')).toBeInTheDocument()
+      expect(input).toHaveAccessibleDescription('Confidential / Sensitive High')
       expect(input).toHaveAttribute('type', 'password')
     }
   })

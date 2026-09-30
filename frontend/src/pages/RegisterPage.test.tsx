@@ -31,14 +31,18 @@ function fillAndSubmit(
 }
 
 describe('Register screen', () => {
-  it('shows a Confidential label next to every input field', () => {
+  it('shows a Confidential label with its sensitivity next to every input field', () => {
     renderRegister(() => new Response(null, { status: 201 }))
 
-    for (const label of ['Username', 'Email', 'Password']) {
+    for (const [label, classification] of [
+      ['Username', 'Confidential / Sensitive Normal'],
+      ['Email', 'Confidential / Sensitive Normal'],
+      ['Password', 'Confidential / Sensitive High'],
+    ]) {
       const input = screen.getByLabelText(label)
       const field = input.closest('.field') as HTMLElement
-      expect(within(field).getByText('Confidential')).toBeInTheDocument()
-      expect(input).toHaveAccessibleDescription('Confidential')
+      expect(within(field).getByText(classification)).toBeInTheDocument()
+      expect(input).toHaveAccessibleDescription(classification)
     }
   })
 
@@ -106,7 +110,7 @@ describe('Register screen', () => {
     expect(screen.getByText(/Include a special character/)).toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent('The password does not meet the password policy.')
     expect(password).toHaveAttribute('aria-invalid', 'true')
-    expect(password).toHaveAccessibleDescription(/Confidential.*Use at least 12 characters/)
+    expect(password).toHaveAccessibleDescription(/Confidential \/ Sensitive High.*Use at least 12 characters/)
   })
 
   it('marks each field that failed input validation', async () => {

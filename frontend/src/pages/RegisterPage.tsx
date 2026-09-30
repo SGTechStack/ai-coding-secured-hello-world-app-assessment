@@ -86,6 +86,7 @@ export function RegisterPage() {
         <Field
           name="username"
           label="Username"
+          sensitivity="Sensitive Normal"
           autoComplete="username"
           value={values.username}
           errors={fieldErrors(errors.fields.username)}
@@ -94,6 +95,7 @@ export function RegisterPage() {
         <Field
           name="email"
           label="Email"
+          sensitivity="Sensitive Normal"
           type="email"
           autoComplete="email"
           value={values.email}
@@ -103,6 +105,7 @@ export function RegisterPage() {
         <Field
           name="password"
           label="Password"
+          sensitivity="Sensitive High"
           type="password"
           autoComplete="new-password"
           value={values.password}

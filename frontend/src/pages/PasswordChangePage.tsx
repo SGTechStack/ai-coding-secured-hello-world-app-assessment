@@ -72,6 +72,7 @@ export function PasswordChangePage() {
         <Field
           name="currentPassword"
           label="Current password"
+          sensitivity="Sensitive High"
           type="password"
           autoComplete="current-password"
           value={currentPassword}
@@ -80,6 +81,7 @@ export function PasswordChangePage() {
         <Field
           name="newPassword"
           label="New password"
+          sensitivity="Sensitive High"
           type="password"
           autoComplete="new-password"
           value={newPassword}

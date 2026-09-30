@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eds.demo.common.exception.ConflictException;
 import org.eds.demo.common.exception.ForbiddenException;
 import org.eds.demo.common.exception.NotFoundException;
+import org.eds.demo.common.logging.LogSanitizer;
 import org.eds.demo.user.domain.AppUser;
 import org.eds.demo.user.domain.Role;
 import org.eds.demo.user.infrastructure.AppUserRepository;
@@ -59,9 +60,13 @@ public class AccountAdministrationService {
     log.atInfo()
         .addKeyValue(EVENT_KEY, EVENT_ACCOUNT_CREATED)
         .addKeyValue(ACTOR_KEY, actor)
-        .addKeyValue(TARGET_KEY, username)
+        .addKeyValue(TARGET_KEY, LogSanitizer.sanitize(username))
         .addKeyValue(ROLE_KEY, role)
-        .log("Account created: actor={}, target={}, role={}", actor, username, role);
+        .log(
+            "Account created: actor={}, target={}, role={}",
+            actor,
+            LogSanitizer.sanitize(username),
+            role);
     return new CreatedAccount(
         username, role, issued.temporaryPassword(), issued.temporaryPasswordExpiresAt());
   }

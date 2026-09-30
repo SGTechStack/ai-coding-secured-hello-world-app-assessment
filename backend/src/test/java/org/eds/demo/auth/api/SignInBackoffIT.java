@@ -151,6 +151,25 @@ class SignInBackoffIT {
         .doesNotContain(PASSWORD);
   }
 
+  @Test
+  void aRequestSuppliedUsernameCannotForgeLogLines(CapturedOutput output) throws Exception {
+    // JSON escapes decode to a real CR LF inside the username.
+    failure("mallory\\r\\nWARN forged entry", WRONG_PASSWORD, "10.0.8.1");
+
+    assertThat(output.getAll())
+        .contains("username=mallory\\r\\nWARN forged entry")
+        .doesNotContain("mallory\r\n")
+        .doesNotContain("mallory\n");
+  }
+
+  @Test
+  void anOverlongRequestSuppliedUsernameIsTruncatedInTheLog(CapturedOutput output)
+      throws Exception {
+    failure("x".repeat(500), WRONG_PASSWORD, "10.0.8.2");
+
+    assertThat(output.getAll()).doesNotContain("x".repeat(200));
+  }
+
   private String account(String username) {
     appUserRepository.save(
         AppUser.builder()

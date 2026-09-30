@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eds.demo.common.logging.LogSanitizer;
 import org.eds.demo.user.domain.AppUser;
 import org.eds.demo.user.infrastructure.AppUserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -104,8 +105,8 @@ public class SignInService {
     account.ifPresent(found -> inTransaction(found, AppUser::recordSuccessfulSignIn));
     log.atInfo()
         .addKeyValue(EVENT_KEY, EVENT_SUCCESS)
-        .addKeyValue(USERNAME_KEY, username)
-        .log("Sign-in succeeded: username={}", username);
+        .addKeyValue(USERNAME_KEY, LogSanitizer.sanitize(username))
+        .log("Sign-in succeeded: username={}", LogSanitizer.sanitize(username));
     return authentication;
   }
 
@@ -135,11 +136,12 @@ public class SignInService {
   }
 
   private BadCredentialsException refused(String username, String reason) {
+    var safeUsername = LogSanitizer.sanitize(username);
     log.atWarn()
         .addKeyValue(EVENT_KEY, EVENT_FAILURE)
-        .addKeyValue(USERNAME_KEY, username)
+        .addKeyValue(USERNAME_KEY, safeUsername)
         .addKeyValue(REASON_KEY, reason)
-        .log("Sign-in failed: username={}, reason={}", username, reason);
+        .log("Sign-in failed: username={}, reason={}", safeUsername, reason);
     return new BadCredentialsException("Invalid username or password");
   }
 }

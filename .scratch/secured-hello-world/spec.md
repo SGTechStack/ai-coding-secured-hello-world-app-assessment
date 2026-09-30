@@ -199,13 +199,19 @@ PRD — each ticket is a full vertical slice (schema → API → UI → tests) r
 or endpoint, with the IM8-driven controls folded in as acceptance criteria (see the waiver register
 above for the handful that were trimmed to fit rather than fully built out).
 
-| # | Ticket | Blocked by |
-| --- | --- | --- |
-| 01 | App skeleton, security baseline & registration | None |
-| 02 | Login, session, logout & protected greeting | 01 |
-| 03 | Brute-force protection: account lockout & IP throttling | 02 |
-| 04 | Password reset (request & confirm) | 01, 02 |
-| 05 | Admin user management (bootstrap, list, enable/disable, role change, delete) | 02 |
+| # | Ticket | Blocked by | Status |
+| --- | --- | --- | --- |
+| 01 | App skeleton, security baseline & registration | None | done |
+| 02 | Login, session, logout & protected greeting | 01 | done |
+| 03 | Brute-force protection: account lockout & IP throttling | 02 | done |
+| 04 | Password reset (request & confirm) | 01, 02 | done |
+| 05 | Admin user management (bootstrap, list, enable/disable, role change, delete) | 02 | done |
+
+All 5 tickets are implemented, tested, and merged to `chnglipkuang` (see each ticket file's own
+`## Comments` section in [`issues/`](issues/) for the exact commits). 27 backend integration tests
+pass; the full register → login → hello → logout, password-reset, lockout/throttle, and admin
+bootstrap → forced-password-change → user-management flows were also verified against a real
+running server, not just MockMvc.
 
 ## Dependency shape
 

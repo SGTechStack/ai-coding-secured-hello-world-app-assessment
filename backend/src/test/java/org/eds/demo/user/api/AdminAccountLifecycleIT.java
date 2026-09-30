@@ -123,6 +123,17 @@ class AdminAccountLifecycleIT {
   }
 
   @Test
+  void settingYourOwnRoleToTheRoleYouAlreadyHoldKeepsYourSessions() throws Exception {
+    var self = account(ADMIN_ACTOR, Role.ADMIN);
+    var session = signIn(ADMIN_ACTOR);
+
+    mockMvc.perform(setRole(self, "ADMIN")).andExpect(status().isNoContent());
+
+    assertThat(sessions.findByPrincipalName(ADMIN_ACTOR)).isNotEmpty();
+    mockMvc.perform(get("/api/hello").cookie(session)).andExpect(status().isOk());
+  }
+
+  @Test
   void changingRoleEndsTheAccountsSessionsSoTheOldAuthoritiesDoNotLinger() throws Exception {
     var target = account("to-demote", Role.USER_MANAGER);
     var session = signIn("to-demote");

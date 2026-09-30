@@ -1,6 +1,7 @@
 package org.eds.demo.user.application;
 
 import java.util.Comparator;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +56,11 @@ public class AccountLifecycleService {
   @Transactional
   public void changeRole(String actor, UUID id, Role role) {
     var target = find(id);
+    if (target.getRoles().equals(Set.of(role))) {
+      // Nothing changes, so no session holds stale authorities; ending the actor's own would
+      // sign them out for no reason.
+      return;
+    }
     if (role != Role.ADMIN) {
       refuseSelf(actor, target, "demote");
     }

@@ -1,0 +1,70 @@
+{
+  "issue": {
+    "reference": ".scratch/secured-hello-world/issues/16-readme-deployment-notes.md",
+    "slug": "readme-deployment-notes",
+    "goal": "The README tells an operator everything a real deployment must add around the app and every Standard/IM8 deviation being accepted; the Postgres and MySQL Flyway migrations are proven against real databases with ddl-auto=validate; every property the README names is one the app reads, and a clean checkout starts both apps in dev"
+  },
+  "detailed_kb_evidence": false,
+  "implementer": {
+    "updates": []
+  },
+  "reviewer": {
+    "updates": [
+      {
+        "round": 1,
+        "kb_lanes": [],
+        "status": "completed",
+        "kb_queries": 0,
+        "changed_files": [
+          "README.md",
+          "backend/pom.xml",
+          "backend/src/test/java/com/example/securedhello/NonH2MigrationTest.java"
+        ],
+        "findings": [
+          {
+            "evidence_id": "readme-node-floor-too-low",
+            "location": "README.md, Requirements section (new line: '- **Node.js 20 or later** and npm.')",
+            "violation": "KB unavailable. Reviewer finding. The stated Node floor is below what the frontend toolchain actually accepts, and the line is new in this change, so criterion 3 ('following the README from a clean checkout starts both applications in dev') rests on it. Installed engines ranges: vitest 5.0.2 declares node '^22.12.0 || ^24.0.0 || >=26.0.0' -- Node 20 is outside it entirely, so the README's own `cd frontend && npm test` command is unsupported on the version the README tells an operator is enough; vite 8.3.1, oxlint 1.86.0 and @vitejs/plugin-react 6.1.1 declare '^20.19.0 || >=22.12.0', so Node 20.0-20.18 and all of 21.x are outside every tool's range, and 23.x/25.x are outside vitest's. The implementer's clean-checkout verification ran on this machine's Node 26.10.0, which satisfies every range, so the floor was never exercised.",
+            "proposed": "Raise the stated requirement to what the toolchain declares -- e.g. '**Node.js 22.12 or later** (an even-numbered LTS: 22.12+, 24 or 26; the toolchain does not support Node 20 or the odd-numbered releases)' -- or, if Node 20 support is intended, pin a vitest version whose engines range includes it. One-line documentation fix; no code change.",
+            "status": "Resolved"
+          }
+        ],
+        "decisions": [],
+        "comparisons": []
+      },
+      {
+        "round": 2,
+        "kb_lanes": [],
+        "status": "completed",
+        "kb_queries": 0,
+        "changed_files": [
+          "README.md"
+        ],
+        "findings": [],
+        "decisions": [],
+        "comparisons": [
+          {
+            "evidence_id": "readme-node-floor-too-low",
+            "concern": "README.md Requirements section, stated Node range",
+            "result": "Compliant: resolved, and the correction is stronger than the reviewer's own proposal. The new text states 'Node.js on an even-numbered line, recent patch: 22.22.2+, 24.15+ or 26+', names it as the intersection of declared engines.node ranges, and warns that npm does not enforce engines by default so an unsupported version fails later inside npm test / npm run dev rather than at install. Reviewer re-derived the intersection independently rather than trusting the implementer's sweep: an own script walked frontend/node_modules (including transitives), found the same 76 packages declaring engines.node, and tested candidates with npm's bundled semver. Verdicts reproduce exactly, including both boundaries -- FAIL 20.19.5, 21.7.3, 22.12.0, 22.22.0, 22.22.1, 23.11.1, 24.0.0, 24.14.0, 25.5.0; OK 22.22.2, 24.15.0, 26.0.0, 26.10.0. The binding constraint is jsdom@30.1.1 with @asamuzakjp/css-color, @asamuzakjp/dom-selector and w3c-xmlserializer@6.0.0, all '^22.22.2 || ^24.15.0 || >=26.0.0'; react-router@8.4.0 '>=22.22.0' is real but looser at the 22.x boundary. The reviewer's own suggested floor of 22.12 would have been wrong, which the implementer caught. npm config get engine-strict returns false on this machine, so the non-enforcement warning is accurate too."
+          },
+          {
+            "evidence_id": "nit-forward-headers-native-vs-framework",
+            "concern": "README.md section 6, reverse-proxy guidance",
+            "result": "Compliant: nit taken and the new text is accurate on every checkable point. It now prescribes native only, with sub-bullets explaining that framework (ForwardedHeaderFilter) has no trusted-proxy notion and that server.tomcat.remoteip.internal-proxies must be set for a proxy outside a private range. Verified against Boot's own configuration metadata in spring-boot-tomcat-4.1.1.jar: the property name is exactly server.tomcat.remoteip.internal-proxies, and its default is '192.168.0.0/16, 172.16.0.0/12, 169.254.0.0/16, fc00::/7, 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, fe80::/10, ::1/128' -- the README's nine-entry list is that default exactly, with 169.254.0.0/16 given as 'link-local' and ::1/128 as '::1'. TomcatWebServerFactoryCustomizer references NATIVE, RemoteIpValve, setInternalProxies, setRemoteIpHeader and setTrustedProxies, so the mechanism claim holds; X-Forwarded-For is a string constant in RemoteIpValve (tomcat-embed-core-11.0.24), confirming native alone suffices because Boot leaves remote-ip-header unset (metadata default None) and the valve's own default applies. The 'fails the check silently, no error is logged' claim also holds: the valve's only message keys are invalidRemoteAddress / invalidHostHeader / invalidPortHeader, none for a non-matching peer. The 'overwrite rather than append' instruction is the right one, since the valve walks X-Forwarded-For right to left past internal proxies and would otherwise reach a client-supplied value."
+          },
+          {
+            "evidence_id": "nit-csp-same-set-claim",
+            "concern": "README.md section 9, 'the API already sends this set' claim vs SecurityConfig",
+            "result": "Compliant: nit taken, and the strengthened claim is exact. The README now says the API sends the same set 'with one difference: its CSP is default-src 'self'; object-src 'none' and has no connect-src, because the API serves no HTML', attributing connect-src to the HTML-serving origin. Checked character by character against SecurityConfig: the CSP string matches line 126 exactly, and the Permissions-Policy line in the README block is identical to the PERMISSIONS_POLICY constant at lines 49-51 (twelve directives, same order). HSTS max-age=31536000 with includeSubDomains, X-Frame-Options DENY and X-Content-Type-Options nosniff were confirmed in round 1 and are unchanged, so 'this set' is true for all five headers."
+          },
+          {
+            "evidence_id": "nit-tests-block-missing-migrations-profile",
+            "concern": "README.md Tests section, opt-in commands",
+            "result": "Compliant: nit taken. The opt-in block is now three commands with the reason each is opt-in (an NVD API key, the npm registry, a Docker daemon) and includes ./mvnw -P migrations test -Dtest=NonH2MigrationTest, cross-referenced to section 10 with guidance to run it after any migration or entity change. The per-command reasons are individually correct, the command itself was executed green by the reviewer in round 1 and the pom is unchanged since, and all eight of the README's in-page anchors resolve against its own headings, including the new #10-the-database reference."
+          }
+        ]
+      }
+    ]
+  }
+}

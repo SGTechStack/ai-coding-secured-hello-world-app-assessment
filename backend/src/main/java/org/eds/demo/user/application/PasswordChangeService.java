@@ -17,6 +17,8 @@ public class PasswordChangeService {
   /** Audit event name, stable so log queries can filter on it. */
   private static final String EVENT_PASSWORD_CHANGED = "password_changed";
 
+  private static final String MUST_DIFFER_MESSAGE = "New password must differ from the current one";
+
   private final AppUserRepository appUserRepository;
   private final PasswordEncoder passwordEncoder;
   private final AccountSessions accountSessions;
@@ -35,7 +37,8 @@ public class PasswordChangeService {
    * sessions. The length policy is enforced by request validation; a mismatch is refused here so it
    * does not depend on the form.
    *
-   * @throws BadRequestException when the two entries differ; nothing is changed
+   * @throws BadRequestException when the two entries differ, or the new password equals the current
+   *     one (a Temporary Password must actually be replaced); nothing is changed
    */
   @Transactional
   public void changePassword(
@@ -44,6 +47,9 @@ public class PasswordChangeService {
       throw new BadRequestException("Password confirmation does not match");
     }
     var account = appUserRepository.findByUsername(username).orElseThrow();
+    if (passwordEncoder.matches(newPassword, account.getPasswordHash())) {
+      throw new BadRequestException(MUST_DIFFER_MESSAGE);
+    }
     account.changePassword(passwordEncoder.encode(newPassword));
     appUserRepository.save(account);
     accountSessions.endAllSessionsExcept(username, currentSessionId);

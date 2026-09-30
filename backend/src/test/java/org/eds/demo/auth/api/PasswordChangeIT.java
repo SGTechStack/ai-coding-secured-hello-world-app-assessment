@@ -124,6 +124,19 @@ class PasswordChangeIT {
   }
 
   @Test
+  void newPasswordIdenticalToTheCurrentOneIsRejectedAndChangesNothing() throws Exception {
+    account("recycler", Role.USER);
+    var session = signIn("recycler", TEMP_PASSWORD);
+
+    mockMvc
+        .perform(changePassword(session, TEMP_PASSWORD, TEMP_PASSWORD))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.detail").value("New password must differ from the current one"));
+
+    assertUnchanged("recycler", session);
+  }
+
+  @Test
   void weakPasswordIsRejectedAndChangesNothing() throws Exception {
     account("weakling", Role.USER);
     var session = signIn("weakling", TEMP_PASSWORD);

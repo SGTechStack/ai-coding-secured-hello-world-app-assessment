@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+    <!--
+        Suppress Checkstyle violations in generated sources.
+        Add more <suppress> entries here as needed, e.g.:
+
+        <suppress files="[\\/]generated[\\/]" checks=".*"/>
+        <suppress files="SomeSpecificFile\.java" checks="MagicNumber"/>
+    -->
+</suppressions>

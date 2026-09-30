@@ -1,0 +1,54 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+# Ignore local VS Code files by default, but keep shared workspace settings.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Project files
+HELP.md
+log.json*
+# Local OIDC client-assertion private key (ADR-DEMO-BE-0012) — never commit
+*.jwk.json
+.local-assertion-jwk.json
+# Local dev TLS material (mkcert) for the OIDC vanity host — never commit
+*.p12
+*-key.pem
+*.local.pem
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+logs/
+# Local file-based H2 database (local profile)
+data/

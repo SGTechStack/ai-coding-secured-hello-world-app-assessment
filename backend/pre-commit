@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Format only staged Java files with Spotless before commit.
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACMR -- '*.java')"
+
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+# spotless-maven-plugin requires absolute paths for -DspotlessFiles
+SPOTLESS_FILES="$(echo "$STAGED_FILES" | awk -v root="$REPO_ROOT" '{print root "/" $0}' | paste -sd, -)"
+
+if [ -f "./mvnw" ]; then
+  ./mvnw -q spotless:apply -DspotlessFiles="$SPOTLESS_FILES"
+elif [ -f "./mvnw.cmd" ]; then
+  ./mvnw.cmd -q spotless:apply -DspotlessFiles="$SPOTLESS_FILES"
+else
+  echo "mvnw/mvnw.cmd not found. Cannot run Spotless." >&2
+  exit 1
+fi
+
+while IFS= read -r file; do
+  [ -f "$file" ] && git add -- "$file"
+done <<< "$STAGED_FILES"
+
+# Abort if Spotless reverted all staged changes back to HEAD (e.g. only
+# formatting violations were staged and nothing new remains to commit).
+if git diff --cached --quiet; then
+  echo "Pre-commit: Spotless corrected all staged Java files back to their" >&2
+  echo "HEAD state. Nothing left to commit — aborting." >&2
+  echo "Tip: re-stage your changes after reviewing the Spotless corrections." >&2
+  exit 1
+fi

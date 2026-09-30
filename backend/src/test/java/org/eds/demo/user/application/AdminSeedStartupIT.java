@@ -71,6 +71,9 @@ class AdminSeedStartupIT {
           "--management.server.port=0",
           database,
           "--spring.jpa.hibernate.ddl-auto=update",
+          // The local profile defaults a password; blank it so the first start seeds no admin.
+          "--app.admin.password=",
+          "--app.admin.password-required=false",
         };
     try (var first =
         new SpringApplicationBuilder(Application.class)

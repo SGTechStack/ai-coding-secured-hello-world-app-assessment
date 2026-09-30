@@ -13,6 +13,7 @@ import static sg.securedhello.audit.AuditKey.USER_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.USER_ID;
 import static sg.securedhello.audit.AuditKey.USER_TARGET_COUNT;
 import static sg.securedhello.audit.AuditKey.USER_TARGET_ID;
+import static sg.securedhello.audit.AuditKey.USER_TARGET_UNLOCK_REASON;
 import static sg.securedhello.audit.AuditRowDefinition.row;
 
 import org.slf4j.event.Level;
@@ -86,8 +87,8 @@ public enum AuditEvent {
 
     /**
      * Row 4: a password lock was cleared. The lift is lazy, with no scheduler, so it is observed where the lock is
-     * cleared: the next sign-in that finds it lifted, or a reset redemption that clears it (ADR-009); admin unlock
-     * adds its reason.
+     * cleared: the next sign-in that finds it lifted, or a reset redemption that clears it (ADR-009). An admin unlock
+     * writes row 32 instead, which names the administrator and carries their reason.
      */
     LOCKOUT_CLEARED(row("user-authentication", "Account lock cleared.")
             .type("change")
@@ -292,6 +293,34 @@ public enum AuditEvent {
             .level(Level.WARN, Severity.MEDIUM)
             .reasons(AdminRefusalReason.class)
             .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 27: an administrator invited an account, a pending registration whose activation token was returned to them
+     * once (ADR-006). The row never carries the token.
+     */
+    ADMIN_USER_INVITED(row("user-provisioning", "Account invited.")
+            .type("creation")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 18, admin issuance: an administrator was returned a password-reset token for an account, whose sessions end
+     * after commit (ADR-006; ADR-037). It clears no lock (REJ-016). The row never carries the token. It is the detector
+     * of one admin taking over another (R-ADM-009).
+     */
+    ADMIN_RESET_ISSUED(row("password-reset", "Password reset token issued by an administrator.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 32: an administrator unlocked an account, clearing its password lockout and its tier-1 factor lock, never
+     * tier 2 (REJ-072), for a closed reason in {@code user.target.unlock_reason} (REJ-028).
+     */
+    ADMIN_USER_UNLOCKED(row("user-administration", "Account unlocked.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID, USER_TARGET_UNLOCK_REASON)
             .build()),
 
     /**

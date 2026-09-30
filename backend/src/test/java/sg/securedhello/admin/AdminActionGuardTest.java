@@ -39,12 +39,30 @@ class AdminActionGuardTest {
     }
 
     @ParameterizedTest
-    @EnumSource(Mutation.class)
+    @EnumSource(value = Mutation.class, mode = EnumSource.Mode.EXCLUDE, names = "PASSWORD_RESET")
     void anAdminActingOnTheirOwnAccountIsRefusedWhateverTheCount(Mutation mutation) {
         List<Standing> lockSet = enrolledAdmins(5, new ArrayList<>());
 
         assertThat(AdminActionGuard.decide(mutation, ACTOR, ACTOR, lockSet))
                 .contains(AdminRefusalReason.SELF_ACTION);
+    }
+
+    /** ADR-006: an administrator resetting their own password is legitimate, so no self-action rule applies to it. */
+    @Test
+    void anAdminIssuingAResetForTheirOwnAccountIsAllowedWhateverTheCount() {
+        assertThat(AdminActionGuard.decide(Mutation.PASSWORD_RESET, ACTOR, ACTOR, enrolledAdmins(1, new ArrayList<>())))
+                .isEmpty();
+        assertThat(AdminActionGuard.decide(Mutation.PASSWORD_RESET, ACTOR, ACTOR, enrolledAdmins(5, new ArrayList<>())))
+                .isEmpty();
+    }
+
+    @Test
+    void neitherUnlockNorResetCanRemoveAnAdminSoTheInvariantNeverRefusesThem() {
+        List<UUID> others = new ArrayList<>();
+        List<Standing> lockSet = enrolledAdmins(1, others);
+
+        assertThat(AdminActionGuard.decide(Mutation.UNLOCK, ACTOR, others.get(0), lockSet)).isEmpty();
+        assertThat(AdminActionGuard.decide(Mutation.PASSWORD_RESET, ACTOR, others.get(0), lockSet)).isEmpty();
     }
 
     @Test

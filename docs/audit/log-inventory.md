@@ -52,6 +52,9 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | ADMIN_USER_ENABLED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account enabled. |
 | ADMIN_USER_DISABLED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account disabled. |
 | ADMIN_ACTION_REFUSED | `user-administration` | `error` | failure | WARN | medium | yes | per event | `SELF_ACTION`, `TWO_ADMIN_INVARIANT` | `user.id`, `user.target.id` | — | Administrative action refused. |
+| ADMIN_USER_INVITED | `user-provisioning` | `creation` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account invited. |
+| ADMIN_RESET_ISSUED | `password-reset` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Password reset token issued by an administrator. |
+| ADMIN_USER_UNLOCKED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id`, `user.target.unlock_reason` | — | Account unlocked. |
 | TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |
 | KEYED_ROWS_TRUNCATED | `access-control` | `denied` | failure | WARN | high | no | per event | `SOURCE_CAP_REACHED`, `USER_CAP_REACHED` | `events.untracked_count`, `labels.truncated_rows` | `source.distinct_count`, `user.distinct_count` | Keyed audit rows truncated. |

@@ -45,7 +45,7 @@ public final class E2eBackend {
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
             .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
-                    "golden-path", "disable-admin", "disable-user").stream()
+                    "golden-path", "disable-admin", "disable-user", "invite-admin").stream()
                     .map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
@@ -101,6 +101,12 @@ public final class E2eBackend {
                 // The disable-admin administrators: enrolled with a known secret, so the spec can answer the challenge.
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-disable-admin'");
                 jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-disable-admin'", UUID.class)
+                        .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
+                                + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
+                                cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));
+                // The invite-admin administrators: enrolled with the same known secret, for e2e/admin-invite.spec.ts.
+                jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-invite-admin'");
+                jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-invite-admin'", UUID.class)
                         .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
                                 + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
                                 cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));

@@ -38,7 +38,9 @@ public enum AuditKey {
     /** On a truncation row: the occurrences from keys beyond the cap, exactly (ADR-019; REJ-079). */
     EVENTS_UNTRACKED_COUNT("events.untracked_count"),
     /** On a truncation row: which rows had occurrences beyond the cap, by event name. */
-    TRUNCATED_ROWS("labels.truncated_rows");
+    TRUNCATED_ROWS("labels.truncated_rows"),
+    /** Why an administrator unlocked an account: a closed {@link UnlockReason} (a custom field, REJ-028; R-AUD-002). */
+    USER_TARGET_UNLOCK_REASON("user.target.unlock_reason");
 
     private final String field;
 

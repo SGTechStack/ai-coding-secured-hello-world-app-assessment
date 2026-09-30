@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@components/ui/table';
 import { FieldErrors } from '@features/auth/field-errors';
 import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
+import { revalidateBlurError } from '@lib/form';
 import { formatDate, formatTimestamp } from '@lib/locale';
 import { ActionTooltip } from './action-tooltip';
 import { AccountRoleSelect, AccountRowActions } from './account-row-actions';
@@ -110,7 +111,6 @@ function CreateAccountForm({
       onBlur: createAccountSchema,
       onChangeAsyncDebounceMs: VALIDATION_DEBOUNCE_MS,
       onChangeAsync: createAccountSchema,
-      onSubmit: createAccountSchema,
     },
     onSubmit: async ({ value }) => {
       onStart();
@@ -137,7 +137,7 @@ function CreateAccountForm({
         </Alert>
       )}
 
-      <form.Field name="username">
+      <form.Field name="username" listeners={{ onChange: revalidateBlurError }}>
         {(field) => (
           <div className="flex flex-col gap-2">
             <Label htmlFor={field.name}>Username</Label>

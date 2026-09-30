@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/card';
 import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
 import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
+import { revalidateBlurError } from '@lib/form';
 import { changePasswordSchema } from './auth.schema';
 import { changePasswordErrorMessage, useChangePassword } from './auth.queries';
 import { FieldErrors } from './field-errors';
@@ -21,7 +22,6 @@ export function ChangePasswordPage() {
       onBlur: changePasswordSchema,
       onChangeAsyncDebounceMs: VALIDATION_DEBOUNCE_MS,
       onChangeAsync: changePasswordSchema,
-      onSubmit: changePasswordSchema,
     },
     onSubmit: async ({ value }) => {
       try {
@@ -54,7 +54,7 @@ export function ChangePasswordPage() {
               </Alert>
             )}
 
-            <form.Field name="newPassword">
+            <form.Field name="newPassword" listeners={{ onChange: revalidateBlurError }}>
               {(field) => (
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={field.name}>New password</Label>
@@ -72,7 +72,7 @@ export function ChangePasswordPage() {
               )}
             </form.Field>
 
-            <form.Field name="confirmPassword">
+            <form.Field name="confirmPassword" listeners={{ onChange: revalidateBlurError }}>
               {(field) => (
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={field.name}>Confirm new password</Label>

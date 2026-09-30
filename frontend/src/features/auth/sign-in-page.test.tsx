@@ -127,4 +127,27 @@ describe('SignInPage', () => {
     expect(screen.getByText('Enter your password')).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('clears the required-field message once the field is filled in', async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByText('Enter your password')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Password'), 'secret');
+
+    await waitFor(() => expect(screen.queryByText('Enter your password')).not.toBeInTheDocument());
+  });
+
+  it('clears a required-field message shown on blur once the field is filled in', async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText('Password'));
+    await user.tab();
+    expect(await screen.findByText('Enter your password')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Password'), 'secret');
+
+    await waitFor(() => expect(screen.queryByText('Enter your password')).not.toBeInTheDocument());
+  });
 });

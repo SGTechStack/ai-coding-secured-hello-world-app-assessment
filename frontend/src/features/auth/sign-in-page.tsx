@@ -7,6 +7,7 @@ import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
 import { RETURN_TO_KEY } from '@lib/auth';
 import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
+import { revalidateBlurError } from '@lib/form';
 import { signInSchema } from './auth.schema';
 import { FieldErrors } from './field-errors';
 import { signInErrorMessage, useSignIn } from './auth.queries';
@@ -21,7 +22,6 @@ export function SignInPage() {
       onBlur: signInSchema,
       onChangeAsyncDebounceMs: VALIDATION_DEBOUNCE_MS,
       onChangeAsync: signInSchema,
-      onSubmit: signInSchema,
     },
     onSubmit: async ({ value }) => {
       let result;
@@ -63,7 +63,7 @@ export function SignInPage() {
               </Alert>
             )}
 
-            <form.Field name="username">
+            <form.Field name="username" listeners={{ onChange: revalidateBlurError }}>
               {(field) => (
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={field.name}>Username</Label>
@@ -80,7 +80,7 @@ export function SignInPage() {
               )}
             </form.Field>
 
-            <form.Field name="password">
+            <form.Field name="password" listeners={{ onChange: revalidateBlurError }}>
               {(field) => (
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={field.name}>Password</Label>

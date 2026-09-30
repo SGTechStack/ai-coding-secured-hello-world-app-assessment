@@ -1,6 +1,7 @@
 package sg.securedhello.session;
 
 import org.springframework.beans.factory.BeanClassLoaderAware;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.PropertyMapper;
 import org.springframework.boot.web.server.Cookie;
 import org.springframework.boot.web.server.autoconfigure.ServerProperties;
@@ -33,9 +34,10 @@ public class SessionConfig implements BeanClassLoaderAware {
      * The session cookie, from {@code server.servlet.session.cookie.*}. It must be explicit: with the resolver below,
      * which is not a {@code CookieHttpSessionIdResolver}, Boot stops creating its own serializer, and every cookie
      * property would silently stop applying (REJ-083; T-SES-031). {@code max-age} is deliberately not mapped: the
-     * cookie never persists (REJ-008).
+     * cookie never persists (REJ-008). Web only, as is the resolver: the recovery runner has no web server (ADR-072).
      */
     @Bean
+    @ConditionalOnWebApplication
     CookieSerializer cookieSerializer(ServerProperties serverProperties) {
         Cookie cookie = serverProperties.getServlet().getSession().getCookie();
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
@@ -52,6 +54,7 @@ public class SessionConfig implements BeanClassLoaderAware {
 
     /** Only the first session cookie is honoured (R-SES-007). */
     @Bean
+    @ConditionalOnWebApplication
     HttpSessionIdResolver httpSessionIdResolver(CookieSerializer cookieSerializer) {
         return new FirstSessionCookieResolver(cookieSerializer);
     }

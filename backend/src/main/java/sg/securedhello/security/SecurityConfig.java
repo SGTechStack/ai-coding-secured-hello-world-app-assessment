@@ -5,6 +5,7 @@ import java.time.Duration;
 
 import jakarta.servlet.DispatcherType;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
@@ -71,7 +72,9 @@ public class SecurityConfig {
     /** Role-definition paths: refused to everyone, including an admin (ADR-043; T-ADM-020). */
     static final String ROLE_DEFINITION_PATHS = "/api/admin/roles/**";
 
+    /** Web only: the recovery runner runs the same context with no web server (ADR-072). */
     @Bean
+    @ConditionalOnWebApplication
     SecurityFilterChain securityFilterChain(HttpSecurity http, AuthorizationMatrix matrix,
             AuthenticationEntryPoint problemAuthenticationEntryPoint, AccessDeniedHandler problemAccessDeniedHandler,
             SessionRepository<?> sessionRepository, OriginsProperties origins, ProblemDetailWriter writer,

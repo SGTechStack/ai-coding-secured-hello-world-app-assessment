@@ -92,10 +92,20 @@ public class AuthenticableAdmins implements MeterBinder {
 
     /** How many admins are authenticable now. */
     public long count() {
+        return standings().stream().filter(Standing::authenticable).count();
+    }
+
+    /**
+     * How many admins are enrolled now, the count the two-admin invariant holds ({@link Standing#enrolledAdmin()}),
+     * read without a lock. The recovery runner, which bypasses the guard, audits it before and after a run (ADR-072).
+     */
+    public long enrolledCount() {
+        return standings().stream().filter(Standing::enrolledAdmin).count();
+    }
+
+    private List<Standing> standings() {
         return jdbc.query(ADMINS, (rs, row) -> UserColumns.of(rs).standing(rs.getObject("factor_user_id") != null,
-                        rs.getObject("factor_disabled_at") != null)).stream()
-                .filter(Standing::authenticable)
-                .count();
+                rs.getObject("factor_disabled_at") != null));
     }
 
     /**

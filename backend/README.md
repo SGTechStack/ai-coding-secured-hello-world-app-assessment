@@ -157,6 +157,46 @@ An unchanged seed password expires 30 days after the first start: sign-in then f
 The issuer the app shows beside the account is `app.mfa.totp.issuer`, `Secured Hello World` in `application.yml`; it
 is required and may not be blank. User administration is not built yet.
 
+### Recovering an account with the recovery runner
+
+When no administrator can sign in (a lost password or authenticator, the 100-failure cap, a tier-2 factor disable),
+the operator recovers offline with the application jar itself (ADR-072). It is a planned outage: **stop the
+application first**. While it runs the H2 file is locked, and the runner refuses.
+
+1. Build the jar (`mvn -f backend/pom.xml package -Ddependency-check.skip=true` locally) and use the same environment
+   variables, profile and datasource as the application: the runner starts the same context, so the same startup
+   checks apply. It never migrates, never seeds, and opens only an existing database file.
+2. Dry run, which changes nothing and prints a digest of the account state:
+
+   ```sh
+   java -jar backend/target/secured-hello-world-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev \
+     --rebind --scope=password --username=demo-admin --operator=<your staff id>
+   ```
+
+   `--scope` is `password`, `totp` or `both`, never implied. `totp` deletes the factor so the admin enrols again.
+   `--batch=<file>` (one username per line, at most 500) instead of `--username` invalidates passwords and mints
+   nothing: each account then recovers through a password reset.
+3. Compare the printed database path, schema version and file time with the deployed database, then apply with the
+   digest and a reason. A stale or wrong digest is refused, so the same command never fires twice:
+
+   ```sh
+   java -jar backend/target/secured-hello-world-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev \
+     --rebind --scope=password --username=demo-admin --operator=<your staff id> \
+     --confirm=<digest> --reason="lost authenticator"
+   ```
+
+   For `password` scope with `--username`, the runner prompts for the new password without echoing it. With no
+   terminal, pass `--non-interactive` and pipe the password as the first line of stdin. A password is never an
+   argument: `--password` is refused. The password must pass the policy, and the account must change it at its next
+   sign-in, within 30 days.
+4. Restart the application. The runner's dry-run, intent and outcome rows are in the audit file, with the enrolled-admin
+   count before and after; it bypasses the two-admin guard on purpose, so zero after is possible and is the alert.
+
+Exit status: `0` done (or a dry run), `1` the context did not start (missing file, database in use, other schema
+version, refused configuration), `2` a refused invocation, `3` refused (account state, digest, no password), `4` the
+apply failed and rolled back, `5` an unexpected failure after start: check the audit file for an intent row with no
+outcome row.
+
 ### The fixture backend
 
 To demo sign-in without registering, use the fixture backend: it creates the accounts and needs none of the variables

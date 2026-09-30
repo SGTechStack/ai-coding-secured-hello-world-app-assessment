@@ -44,13 +44,18 @@ public class EcsLogFormatter extends JsonWriterStructuredLogFormatter<ILoggingEv
                 log.add("level", ILoggingEvent::getLevel);
                 log.add("logger", ILoggingEvent::getLoggerName);
             });
-            members.add("process").usingMembers(process -> {
-                process.add("pid", environment.getProperty("spring.application.pid", Long.class)).whenNotNull();
-                process.add("thread").usingMembers(thread -> thread.add("name", ILoggingEvent::getThreadName));
-            });
             ElasticCommonSchemaProperties.get(environment).jsonMembers(members);
             members.add("message", ILoggingEvent::getFormattedMessage);
-            members.add().usingPairs(contextPairs.nested(pairs -> pairs.add(EcsLogFormatter::contextFields)));
+            // process.* goes through the nested pairs, so an audit row's process.real_user.name joins the same object.
+            Long pid = environment.getProperty("spring.application.pid", Long.class);
+            members.add().usingPairs(contextPairs.nested(pairs -> pairs.add((ILoggingEvent event,
+                    BiConsumer<String, Object> fields) -> {
+                if (pid != null) {
+                    fields.accept("process.pid", pid);
+                }
+                fields.accept("process.thread.name", event.getThreadName());
+                contextFields(event, fields);
+            })));
             members.add().whenNotNull(EcsLogFormatter::reportableThrowable).usingMembers(throwable -> throwable
                     .add("error").usingMembers(error -> {
                         error.add("type", EcsLogFormatter::reportableThrowable).as(IThrowableProxy::getClassName);

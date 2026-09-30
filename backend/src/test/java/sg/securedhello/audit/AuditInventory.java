@@ -36,7 +36,7 @@ final class AuditInventory {
 
                 ## Destinations
 
-                Every audit row goes to both destinations (ADR-056; R-AUD-037).
+                Every audit row goes to both destinations (ADR-056; R-AUD-037); a recovery-runner run adds a third.
 
                 | Destination | Format | Retention | Who can read |
                 |---|---|---|---|
@@ -48,6 +48,12 @@ final class AuditInventory {
                 | Standard output, with every other log line | ECS NDJSON, one event per line | None in the \
                 application; whatever collects stdout (R-AUD-013). | Anyone who can read the process's console, \
                 journal or container log (R-AUD-012). |
+                | The recovery runner's standard output: its terminal, or the journal or job log it is launched \
+                under (R-AUD-034) | The runner's audit rows, as above, and its plain-text operator lines: the \
+                digest, account UUIDs, database path, schema version and file time. Never a password (ADR-073; \
+                T-AUD-027). The runner's rows also reach the audit file once its checks pass (ADR-072). | Whatever \
+                captures the runner's launch. | Anyone who can read the operator's terminal or the job log; the \
+                deployer records who (R-AUD-034). |
 
                 ## Fields
 

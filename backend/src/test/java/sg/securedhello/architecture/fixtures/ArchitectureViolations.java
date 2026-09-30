@@ -447,4 +447,11 @@ public final class ArchitectureViolations {
             removal.remove(UUID.randomUUID());
         }
     }
+
+    /** Detects a terminal by {@code System.console()} nullness, as the runner must not (ADR-073). */
+    public static final class DetectsATerminal {
+        boolean interactive() {
+            return System.console() != null;
+        }
+    }
 }

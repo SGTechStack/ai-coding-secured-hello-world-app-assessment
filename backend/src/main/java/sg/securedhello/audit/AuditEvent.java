@@ -2,11 +2,14 @@ package sg.securedhello.audit;
 
 import static sg.securedhello.audit.AuditKey.ACTIVE_PROFILES;
 import static sg.securedhello.audit.AuditKey.AUDIT_LOGGERS;
+import static sg.securedhello.audit.AuditKey.ENROLLED_ADMINS_AFTER;
 import static sg.securedhello.audit.AuditKey.EVENTS_UNTRACKED_COUNT;
 import static sg.securedhello.audit.AuditKey.HOST_IP;
 import static sg.securedhello.audit.AuditKey.HOST_NAME;
 import static sg.securedhello.audit.AuditKey.IPV6_PREFIX_LENGTH;
 import static sg.securedhello.audit.AuditKey.KEY_FINGERPRINTS;
+import static sg.securedhello.audit.AuditKey.PROCESS_REAL_USER;
+import static sg.securedhello.audit.AuditKey.RUNNER_REASON;
 import static sg.securedhello.audit.AuditKey.SOURCE_DISTINCT_COUNT;
 import static sg.securedhello.audit.AuditKey.TRUNCATED_ROWS;
 import static sg.securedhello.audit.AuditKey.USER_DISTINCT_COUNT;
@@ -369,6 +372,53 @@ public enum AuditEvent {
     SHED_EPISODE_CLEARED(row("access-control", "Anonymous-session shedding cleared.")
             .type("change")
             .scope(Scope.PROCESS)
+            .build()),
+
+    /**
+     * The recovery runner's dry run (ADR-074; REJ-090): the digest it printed, over the state it would change. Nothing
+     * changed. A separate row, so a preview by one operator and an apply by another is visible.
+     */
+    RECOVERY_PLANNED(row("user-administration", "Recovery runner dry run.")
+            .type("info")
+            .level(Level.WARN, Severity.MEDIUM)
+            .scope(Scope.PROCESS)
+            .required(RecoveryRunContext.COMMON_KEYS)
+            .optional(PROCESS_REAL_USER, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * The recovery runner's intent row (REJ-090; R-RUN-010): its checks passed and its transaction is about to open.
+     * It asserts no change, so its outcome is {@code unknown}; one with no outcome row after it is a run that died.
+     */
+    RECOVERY_STARTED(row("user-administration", "Recovery runner apply started.")
+            .type("change")
+            .outcome(Outcome.UNKNOWN)
+            .level(Level.WARN, Severity.HIGH)
+            .scope(Scope.PROCESS)
+            .required(RecoveryRunContext.COMMON_KEYS).required(RUNNER_REASON)
+            .optional(PROCESS_REAL_USER, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * The recovery runner's outcome row after commit (REJ-090): a break-glass change, outside {@code AdminActionGuard},
+     * so it carries the enrolled-admin count before and after; a transition to zero is the alert (ADR-072; ADR-048).
+     */
+    RECOVERY_COMPLETED(row("user-administration", "Recovery runner apply completed.")
+            .type("change")
+            .level(Level.WARN, Severity.CRITICAL)
+            .scope(Scope.PROCESS)
+            .required(RecoveryRunContext.COMMON_KEYS).required(RUNNER_REASON, ENROLLED_ADMINS_AFTER)
+            .optional(PROCESS_REAL_USER, USER_TARGET_ID)
+            .build()),
+
+    /** The recovery runner's outcome row after rollback (REJ-090): nothing changed. */
+    RECOVERY_FAILED(row("user-administration", "Recovery runner apply failed.")
+            .type("change")
+            .outcome(Outcome.FAILURE)
+            .level(Level.ERROR, Severity.HIGH)
+            .scope(Scope.PROCESS)
+            .required(RecoveryRunContext.COMMON_KEYS).required(RUNNER_REASON, ENROLLED_ADMINS_AFTER)
+            .optional(PROCESS_REAL_USER, USER_TARGET_ID)
             .build()),
 
     /** Row 44: the application context is closing. */

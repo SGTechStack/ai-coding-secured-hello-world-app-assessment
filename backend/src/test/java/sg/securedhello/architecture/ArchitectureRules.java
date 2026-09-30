@@ -193,11 +193,30 @@ final class ArchitectureRules {
             .orShould().callMethod(Tombstones.class, "deleteLeavingTombstone", UserAccount.class, UUID.class)
             .because("a role change or delete runs under AdminActionGuard's lock set and checks (ADR-048)");
 
-    /** T-ADM-014: only the guarded service removes a TOTP factor, so a factor reset runs under the guard (ADR-049). */
+    /** The offline recovery runner, which bypasses the guard by design (ADR-072); package-private, so named. */
+    static final String RECOVERY_RUNNER = "sg.securedhello.recovery.RecoveryRunner";
+
+    /**
+     * T-ADM-014: only the guarded service removes a TOTP factor, so a factor reset runs under the guard (ADR-049). The
+     * one other caller is the offline recovery runner, the deliberate break-glass bypass (ADR-072).
+     */
     static final ArchRule ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS = noClasses()
-            .that().doNotBelongToAnyOf(AdminActions.class)
+            .that().doNotBelongToAnyOf(AdminActions.class).and().doNotHaveFullyQualifiedName(RECOVERY_RUNNER)
             .should().callMethod(TotpFactorRemoval.class, "remove", UUID.class)
             .because("a factor reset runs under AdminActionGuard's lock set and actor-not-subject check (ADR-049)");
+
+    /** The runner's password source, the one place that may prompt on the console (ADR-073). */
+    static final String OPERATOR_PASSWORD = "sg.securedhello.recovery.OperatorPassword";
+
+    /**
+     * T-RUN-012: only the runner's password source calls {@code System.console()}, and only to prompt: no other main
+     * code can choose a mode or detect a terminal by its nullness, which changes meaning on JDK 22 (ADR-073).
+     */
+    static final ArchRule ONLY_THE_OPERATOR_PASSWORD_READS_THE_CONSOLE = noClasses()
+            .that().doNotHaveFullyQualifiedName(OPERATOR_PASSWORD)
+            .should().callMethod(System.class, "console")
+            .because("the runner's mode is the explicit --non-interactive flag, never System.console() nullness"
+                    + " (ADR-073; JDK-8308591)");
 
     /** REJ-008: no remember-me; the browser-session cookie is the only session lifetime on the client. */
     static final ArchRule NO_REMEMBER_ME = noClasses()

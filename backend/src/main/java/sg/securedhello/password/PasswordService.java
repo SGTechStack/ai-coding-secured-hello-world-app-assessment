@@ -76,8 +76,8 @@ public class PasswordService {
      * Sets the account's password as a <em>forced-change credential</em> (ADR-046): exactly as {@link #setPassword},
      * then the account's {@code force_password_change} flag is set and {@code credential_issued_at} stamped with the
      * current time, so the holder must change it before anything else and it expires 30 days after issue. The
-     * issuances that call this are the bootstrap seed (ADR-047) and, later, the recovery runner; an admin re-enable
-     * re-issues the current password through {@link #issueForcedChangeCredential(UUID)}.
+     * issuances that call this are the bootstrap seed (ADR-047) and the recovery runner's single form (ADR-073); an
+     * admin re-enable re-issues the current password through {@link #issueForcedChangeCredential(UUID)}.
      *
      * @throws PasswordRejectedException if a rule refuses it; the transaction rolls back and nothing changes
      * @throws IllegalArgumentException  if no account has {@code accountId}
@@ -103,6 +103,22 @@ public class PasswordService {
         if (current != null) {
             account.issueCredential(current, clock.instant());
         }
+    }
+
+    /**
+     * Invalidates the account's password, for the recovery runner's batch form, which mints nothing (ADR-073): the
+     * credential column and any forced change are cleared, so no password signs in, and the pending reset tokens are
+     * cancelled. The account recovers through the normal reset flow, whose redemption sets a new password. The
+     * retained history stays, so the old password cannot simply be set back.
+     *
+     * @throws IllegalArgumentException if no account has {@code accountId}
+     */
+    @Transactional
+    public void invalidate(UUID accountId) {
+        UserAccount account = accounts.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("No account " + accountId));
+        account.revokeCredential();
+        tokens.deletePending(accountId, CredentialTokenType.PASSWORD_RESET);
     }
 
     /**

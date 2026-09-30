@@ -18,6 +18,7 @@ import static sg.securedhello.architecture.ArchitectureRules.NO_SLICE_ON_PROVING
 import static sg.securedhello.architecture.ArchitectureRules.NO_THROWABLE_ON_AUDIT_ROWS;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVICE_ENCODES;
 import static sg.securedhello.architecture.ArchitectureRules.ONLY_PASSWORD_SERVICE_WRITES_THE_CREDENTIAL;
+import static sg.securedhello.architecture.ArchitectureRules.ONLY_THE_OPERATOR_PASSWORD_READS_THE_CONSOLE;
 import static sg.securedhello.architecture.ArchitectureRules.RESET_PATHS_AVOID_THE_AUTHENTICATION_MANAGER;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -130,6 +131,16 @@ class ArchitectureTest {
                 .anyMatch(call -> call.getName().equals("deleteLeavingTombstone"))
                 .anyMatch(call -> call.getName().equals("remove")
                         && call.getTargetOwner().isEquivalentTo(TotpFactorRemoval.class));
+    }
+
+    @Test
+    @Proves("T-RUN-012")
+    void onlyTheRunnersPasswordSourceReadsTheConsole() {
+        ONLY_THE_OPERATOR_PASSWORD_READS_THE_CONSOLE.check(MAIN);
+        // Not vacuous: the one allowed caller does prompt on the console.
+        assertThat(MAIN.get(ArchitectureRules.OPERATOR_PASSWORD).getMethodCallsFromSelf())
+                .anyMatch(call -> call.getName().equals("console")
+                        && call.getTargetOwner().isEquivalentTo(System.class));
     }
 
     /** The ticket's credential-column rule; T-CRED-005 names only the {@code encode()} half. */

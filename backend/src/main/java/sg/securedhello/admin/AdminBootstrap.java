@@ -35,7 +35,9 @@ import sg.securedhello.user.UserAccountRepository;
  *       through {@link PasswordService#issueForcedChangeCredential}: {@code force_password_change} set and
  *       {@code credential_issued_at} stamped, so it expires 30 days after issue if unused (ADR-046).</li>
  * </ul>
- * The seed has no mailbox: its address is {@code <username>@}{@value #SEED_EMAIL_DOMAIN}, a reserved,
+ * The offline recovery runner never seeds: it starts the same context without this bean (ADR-072; T-RUN-007).
+ *
+ * <p>The seed has no mailbox: its address is {@code <username>@}{@value #SEED_EMAIL_DOMAIN}, a reserved,
  * never-deliverable domain (RFC 2606), which only fills the mandatory, unique {@code email} column.
  */
 @Component

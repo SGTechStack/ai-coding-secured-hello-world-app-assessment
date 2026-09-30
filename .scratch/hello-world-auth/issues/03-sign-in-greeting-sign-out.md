@@ -6,13 +6,13 @@
 
 **Status:** ready-for-agent
 
-- [ ] Correct credentials create a session, regenerate the session id and reset the failed-attempt counter
-- [ ] Unknown username, wrong password and disabled Account return an identical generic error
-- [ ] Sign-in and sign-out require the CSRF token; the template's CSRF exemption for both is removed
-- [ ] `GET /api/hello` returns "Hello, <username>" when authenticated and 401 otherwise
-- [ ] A session cookie replayed after sign-out is rejected as unauthenticated
-- [ ] The local stand-in login and auto-provisioning of unknown usernames no longer exist
-- [ ] Audit lines for sign-in success and failure, with no password logged
-- [ ] The SPA has a sign-in page and shows the greeting; generated API client and OpenAPI docs are regenerated as documented
-- [ ] Integration tests cover success, wrong password, unknown username, disabled Account, CSRF required and logout replay; frontend tests cover the sign-in form
-- [ ] Backend and frontend verify pass
+- [x] Correct credentials create a session, regenerate the session id and reset the failed-attempt counter
+- [x] Unknown username, wrong password and disabled Account return an identical generic error
+- [x] Sign-in and sign-out require the CSRF token; the template's CSRF exemption for both is removed
+- [x] `GET /api/hello` returns "Hello, <username>" when authenticated and 401 otherwise
+- [x] A session cookie replayed after sign-out is rejected as unauthenticated
+- [x] The local stand-in login and auto-provisioning of unknown usernames no longer exist
+- [x] Audit lines for sign-in success and failure, with no password logged
+- [x] The SPA has a sign-in page and shows the greeting; generated API client and OpenAPI docs are regenerated as documented
+- [x] Integration tests cover success, wrong password, unknown username, disabled Account, CSRF required and logout replay; frontend tests cover the sign-in form
+- [x] Backend and frontend verify pass

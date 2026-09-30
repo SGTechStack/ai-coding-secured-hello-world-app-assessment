@@ -1,0 +1,81 @@
+.admin-page {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 55%, #ffffff 100%);
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 4vw, 1.6rem);
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-banner {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 600;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-actions button {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.4rem;
+  background: #f8fafc;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.admin-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.admin-confirm-delete {
+  display: flex;
+  gap: 0.4rem;
+}

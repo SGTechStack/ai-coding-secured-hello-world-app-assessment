@@ -17,6 +17,7 @@ export const ACCOUNT_ROLES = [
 export type AccountRole = (typeof ACCOUNT_ROLES)[number];
 
 export type AccountSummary = {
+  id: string;
   username: string;
   role: string;
   enabled: boolean;

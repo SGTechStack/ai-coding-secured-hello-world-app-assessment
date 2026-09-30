@@ -7,17 +7,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.eds.demo.common.AppErrorController;
 import org.eds.demo.common.WebSpaController;
 import org.eds.demo.common.WebSpaCsrfTokenRequestHandler;
+import org.eds.demo.user.application.AppUserDetailsService;
 import org.eds.demo.user.domain.Role;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 
@@ -56,6 +63,9 @@ class SecurityConfiguration {
     WebSpaController.SITE_ROOT,
     WebSpaController.SIGN_IN_PATH,
     WebSpaController.SIGN_IN_PATH + "/**",
+    // The SPA sign-in page and the built assets it needs must load before anyone is signed in.
+    WebSpaController.SPA_SIGN_IN_PATH,
+    WebSpaController.SPA_ROOT + "/assets/**",
     LOGIN_URL,
     AppErrorController.ERROR_URL,
     AppErrorController.NOT_FOUND_PAGE,
@@ -166,7 +176,8 @@ class SecurityConfiguration {
       throws Exception {
     var chain =
         withContentSecurityPolicy(
-            withFormLogin(withSpaCsrf(http)), appProperties.security().csp().policyDirectives());
+            withSignInAndSignOut(withSpaCsrf(http)),
+            appProperties.security().csp().policyDirectives());
     if (customizer.isPresent()) {
       customizer.get().customize(chain);
     }
@@ -200,20 +211,37 @@ class SecurityConfiguration {
                 .authenticationEntryPoint(SecurityProblemDetailHandlers.problemDetailEntryPoint()));
   }
 
-  static HttpSecurity withFormLogin(HttpSecurity http) throws Exception {
-    return http.formLogin(
-            formLogin -> {
-              formLogin.defaultSuccessUrl(WebSpaController.SPA_ROOT, true);
-              formLogin.loginProcessingUrl(LOGIN_URL);
-            })
+  /**
+   * Sign-in is a JSON endpoint ({@code SignInController}), so there is no form login.
+   * Unauthenticated page requests are redirected to the SPA sign-in page; sign-out ends the server
+   * session and answers 204 with no redirect.
+   */
+  static HttpSecurity withSignInAndSignOut(HttpSecurity http) throws Exception {
+    return http.exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(
+                    new LoginUrlAuthenticationEntryPoint(WebSpaController.SPA_SIGN_IN_PATH)))
         .logout(
-            logout -> logout.logoutUrl(LOGOUT_URL).logoutSuccessUrl(WebSpaController.SITE_ROOT));
+            logout ->
+                logout
+                    .logoutUrl(LOGOUT_URL)
+                    .logoutSuccessHandler(
+                        new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)));
   }
 
   static HttpSecurity withContentSecurityPolicy(HttpSecurity http, String policyDirectives)
       throws Exception {
     return http.headers(
         headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(policyDirectives)));
+  }
+
+  /** Checks submitted credentials against the stored delegating-encoder hash. */
+  @Bean
+  AuthenticationManager authenticationManager(
+      AppUserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+    var provider = new DaoAuthenticationProvider(userDetailsService);
+    provider.setPasswordEncoder(passwordEncoder);
+    return new ProviderManager(provider);
   }
 
   @Bean

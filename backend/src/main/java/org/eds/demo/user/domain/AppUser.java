@@ -111,6 +111,12 @@ public class AppUser extends BaseAuditableEntity {
     this.passwordHash = passwordHash;
   }
 
+  /** A correct sign-in clears the failed-attempt counter and any backoff. */
+  public void recordSuccessfulSignIn() {
+    this.failedLoginAttempts = 0;
+    this.lockedUntil = null;
+  }
+
   public void updateEmail(String email) {
     this.email = (email != null && !email.isBlank()) ? email.trim() : null;
   }

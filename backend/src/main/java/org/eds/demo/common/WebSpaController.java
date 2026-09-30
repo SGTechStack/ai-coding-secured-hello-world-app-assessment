@@ -13,6 +13,9 @@ public class WebSpaController {
   public static final String SPA_ROOT = "/app";
   public static final String SIGN_IN_PATH = "/welcome";
 
+  /** SPA route holding the sign-in form; public, unlike the rest of {@code /app/**}. */
+  public static final String SPA_SIGN_IN_PATH = SPA_ROOT + "/sign-in";
+
   @GetMapping(SITE_ROOT)
   public String redirectToApp(Authentication authentication) {
     if (authentication != null

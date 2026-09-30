@@ -8,24 +8,19 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Local-profile deltas for the API and application security chains.
+ * Local-profile deltas for the API security chain and the H2 console.
  *
- * <p>Both beans implement the customizer interfaces declared in {@link SecurityConfiguration}. They
- * are injected into the base chains as {@code Optional} parameters — the base chains always own
+ * <p>The customizer bean implements the interface declared in {@link SecurityConfiguration}. It is
+ * injected into the base chains as an {@code Optional} parameter — the base chains always own
  * construction and the final {@code anyRequest()} rule, so local additions cannot accidentally drop
- * shared security rules.
+ * shared security rules. The application chain has no local delta: sign-in and sign-out behave the
+ * same in every profile.
  *
  * <p>Local-specific additions:
  *
  * <ul>
- *   <li>{@code /api/login-options} is permit-all (used by the mock login page).
  *   <li>HTTP Basic is enabled on the API chain; CSRF is disabled there to allow {@code curl} calls
  *       without a token.
- *   <li>{@code /local-mock-login.html} is permit-all.
- *   <li>CSRF is ignored for {@code /login} and {@code /logout}.
- *   <li>Form login uses an explicit login page at {@code /login}.
- *   <li>{@code /internal/**} is permit-all; the {@link
- *       org.eds.demo.config.internal.InternalPreAuthFilter} still runs so headers are honoured.
  *   <li>{@code /h2-console/**} gets its own filter chain (see {@link
  *       #h2ConsoleSecurityFilterChain}) so its relaxed CSP and framing rules don't leak into the
  *       SPA catch-all chain.
@@ -36,10 +31,6 @@ import org.springframework.security.web.SecurityFilterChain;
 class LocalSecurityConfiguration {
 
   private static final String H2_CONSOLE_ALL = "/h2-console/**";
-
-  private static final String[] UNSAFE_PUBLIC_ROUTES = {
-    LocalMockLoginController.LOGIN_PAGE, "/local-mock-login.js"
-  };
 
   /**
    * Dedicated chain for the H2 console, matched only on {@code /h2-console/**}. The console renders
@@ -69,31 +60,10 @@ class LocalSecurityConfiguration {
   @Bean
   SecurityConfiguration.ApiChainCustomizer apiChainCustomizer() {
     return http ->
-        http.authorizeHttpRequests(
-                authorize ->
-                    authorize
-                        .requestMatchers(LocalMockLoginController.LOGIN_OPTIONS_URL)
-                        .permitAll())
-            .httpBasic(
+        http.httpBasic(
                 basic ->
                     basic.authenticationEntryPoint(
                         SecurityProblemDetailHandlers.problemDetailEntryPoint()))
             .csrf(csrf -> csrf.disable());
-  }
-
-  /**
-   * Adds the mock login page as a permit-all route, ignores CSRF for login/logout, and sets an
-   * explicit login page. Applied before {@code anyRequest().authenticated()} in the base chain.
-   */
-  @Bean
-  SecurityConfiguration.ApplicationChainCustomizer applicationChainCustomizer() {
-    return http ->
-        http.csrf(
-                csrf ->
-                    csrf.ignoringRequestMatchers(
-                        SecurityConfiguration.LOGIN_URL, SecurityConfiguration.LOGOUT_URL))
-            .authorizeHttpRequests(
-                authorize -> authorize.requestMatchers(UNSAFE_PUBLIC_ROUTES).permitAll())
-            .formLogin(formLogin -> formLogin.loginPage(SecurityConfiguration.LOGIN_URL));
   }
 }

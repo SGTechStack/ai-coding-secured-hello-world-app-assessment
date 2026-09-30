@@ -302,3 +302,75 @@ export const useCreateAccount = <TError = unknown, TContext = unknown>(
 ): UseMutationResult<Awaited<ReturnType<typeof createAccount>>, TError, CreateAccountMutationVariables, TContext> => {
   return useMutation(getCreateAccountMutationOptions(options), queryClient);
 };
+export type resetPasswordResponse200 = {
+  data: CreatedAccountResponse;
+  status: 200;
+};
+
+export type resetPasswordResponseSuccess = resetPasswordResponse200 & {
+  headers: Headers;
+};
+export type resetPasswordResponse = resetPasswordResponseSuccess;
+
+export const getResetPasswordUrl = (id: string) => {
+  return `/admin/api/users/${id}/reset-password`;
+};
+
+export const resetPassword = async (
+  id: string,
+  options?: Parameters<typeof orvalFetch>[1],
+): Promise<resetPasswordResponse> => {
+  return orvalFetch<resetPasswordResponse>(getResetPasswordUrl(id), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getResetPasswordMutationKey = () => ['resetPassword'] as const;
+
+export const getResetPasswordMutationOptions = <TError = unknown, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resetPassword>>,
+    TError,
+    ResetPasswordMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof orvalFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof resetPassword>>, TError, ResetPasswordMutationVariables, TContext> => {
+  const mutationKey = getResetPasswordMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetPassword>>, ResetPasswordMutationVariables> = (
+    props,
+  ) => {
+    const { id } = props ?? {};
+
+    return resetPassword(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResetPasswordMutationResult = NonNullable<Awaited<ReturnType<typeof resetPassword>>>;
+
+export type ResetPasswordMutationError = unknown;
+export type ResetPasswordMutationVariables = { id: string };
+
+export const useResetPassword = <TError = unknown, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof resetPassword>>,
+      TError,
+      ResetPasswordMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof orvalFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof resetPassword>>, TError, ResetPasswordMutationVariables, TContext> => {
+  return useMutation(getResetPasswordMutationOptions(options), queryClient);
+};

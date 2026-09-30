@@ -46,6 +46,7 @@ export const AccountSummaryResponseRole = {
 } as const;
 
 export interface AccountSummaryResponse {
+  id: string;
   username: string;
   role: AccountSummaryResponseRole;
   enabled: boolean;

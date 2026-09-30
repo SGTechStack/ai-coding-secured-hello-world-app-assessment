@@ -70,9 +70,36 @@
 			<artifactId>micrometer-tracing-bridge-brave</artifactId>
 		</dependency>
 
+		<!--
+		Flyway 10 split per-vendor support out of flyway-core, and the JDBC drivers ship with the
+		application because the deployment picks the vendor. H2 is dev and tests; Postgres is the
+		production target; the MySQL migration set is maintained too. Without the matching
+		flyway-* module Flyway refuses the connection outright ("Unsupported Database"), which is
+		what NonH2MigrationTest exists to catch.
+		-->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
@@ -112,6 +139,20 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!--
+			NonH2MigrationTest needs the Testcontainers and JDBC-driver dependencies that only the
+			`migrations` profile brings in, so the ordinary build does not compile it and does not
+			download them. The profile puts both back.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<testExcludes>
+						<testExclude>**/NonH2MigrationTest.java</testExclude>
+					</testExcludes>
+				</configuration>
 			</plugin>
 			<!-- Every test context writes its logs to the same files, which the log-capture seam reads. -->
 			<plugin>
@@ -182,6 +223,41 @@
 	</build>
 
 	<profiles>
+		<!--
+		Non-H2 migrations: `mvn -P migrations test -Dtest=NonH2MigrationTest` runs the Postgres and
+		MySQL migration sets against a real Postgres and a real MySQL in throwaway containers, with
+		Hibernate's ddl-auto=validate proving the schema still matches the entities. Kept out of the
+		default build because it needs a Docker daemon and pulls two database images, which the
+		ordinary `mvn verify` must not depend on. The README's deployment checklist requires a green
+		run before any deployment targeting either vendor.
+		-->
+		<profile>
+			<id>migrations</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.testcontainers</groupId>
+					<artifactId>testcontainers-postgresql</artifactId>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.testcontainers</groupId>
+					<artifactId>testcontainers-mysql</artifactId>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<configuration>
+							<!-- Compile the test the default build excludes; its dependencies are above. -->
+							<testExcludes combine.self="override"/>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 		<!--
 		Dependency scan: `mvn -P security verify` runs OWASP Dependency-Check over the compile and
 		runtime dependencies and fails the build on a critical CVE. Kept out of the default build

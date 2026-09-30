@@ -5,6 +5,9 @@ import java.util.Optional;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
+import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 import com.github.benmanes.caffeine.cache.Policy.FixedExpiration;
 import com.github.benmanes.caffeine.cache.Ticker;
 
@@ -32,7 +35,10 @@ import sg.securedhello.security.source.SourceKey;
  * early would bypass the control rather than save memory, so a set's size bound is far above anything admission lets
  * it reach.
  */
-public final class LockoutCardinality {
+public final class LockoutCardinality implements MeterBinder {
+
+    /** The per-source sets' cache name on {@code cache.*} meters. */
+    public static final String CACHE = "lockout-cardinality";
 
     /** Members held per source: admission stops non-members at {@code k}, so only races go past it. */
     static final long MEMBERS_PER_SOURCE = 1_000;
@@ -47,7 +53,13 @@ public final class LockoutCardinality {
         this.window = properties.window();
         this.ticker = ticker;
         this.sources = Caffeine.newBuilder().ticker(ticker).expireAfterAccess(window)
-                .maximumSize(AuthRateLimiter.MAXIMUM_KEYS).build();
+                .maximumSize(AuthRateLimiter.MAXIMUM_KEYS).recordStats().build();
+    }
+
+    /** Publishes the per-source set map's statistics as {@code cache.*} meters (IM8 lm-16; T-OBS-001). */
+    @Override
+    public void bindTo(MeterRegistry registry) {
+        CaffeineCacheMetrics.monitor(registry, sources, CACHE);
     }
 
     /**

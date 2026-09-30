@@ -2,6 +2,7 @@ package sg.securedhello.security;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.http.HttpMethod;
@@ -50,6 +51,21 @@ final class AdminFactorRules {
     /** Whether {@code route} is on the admin surface, {@code /api/admin/**}, which requires the factor. */
     private static boolean covers(Route route) {
         return route.path().equals(ADMIN_SURFACE) || route.path().startsWith(ADMIN_SURFACE + "/");
+    }
+
+    /**
+     * Refuses startup unless the matrix gives the admin surface both rule sets, at least one read ({@code GET}) row and
+     * one mutation row (ADR-026; T-CFG-018). Either set empty would leave that half of the surface to the final
+     * {@code denyAll()} with no configuration error to show for it.
+     */
+    static void requireBothRuleSets(Collection<Route> routes) {
+        boolean reads = routes.stream().anyMatch(route -> covers(route) && HttpMethod.GET.equals(route.method()));
+        boolean mutations = routes.stream().anyMatch(route -> covers(route) && !HttpMethod.GET.equals(route.method()));
+        if (!reads || !mutations) {
+            throw new IllegalStateException("Startup refused: the admin factor rules need at least one read and one "
+                    + "mutation row on " + ADMIN_SURFACE + "/** (ADR-026); reads=" + reads
+                    + ", mutations=" + mutations);
+        }
     }
 
     /**

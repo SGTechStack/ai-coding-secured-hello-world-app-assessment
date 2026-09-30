@@ -10,6 +10,9 @@ frontend/test-results/
 frontend/playwright-report/
 frontend/blob-report/
 
+# Local secrets the backend imports (optional:file:./.env); never committed (ADR-062)
+.env
+
 # H2 database files
 *.mv.db
 *.trace.db

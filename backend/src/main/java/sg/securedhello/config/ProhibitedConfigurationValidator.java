@@ -15,10 +15,13 @@ import org.springframework.boot.context.properties.source.ConfigurationPropertyS
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.context.properties.source.IterableConfigurationPropertySource;
 import org.springframework.boot.env.OriginTrackedMapPropertySource;
+import org.springframework.boot.origin.Origin;
+import org.springframework.boot.origin.TextResourceOrigin;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ClassUtils;
 
@@ -45,7 +48,12 @@ import org.springframework.util.ClassUtils;
  *   <li>with OTLP metrics export enabled, a collector URL that is not https (ADR-061; T-CFG-042). There is no
  *       {@code dev} exemption: export is opt-in through the {@code otlp} profile, and no precedent exempts dev;</li>
  *   <li>any clustering property: a shared session or limiter store, which the in-memory, single-instance rate
- *       limiter cannot follow (REJ-018; R-RL-006; T-CFG-029).</li>
+ *       limiter cannot follow (REJ-018; R-RL-006; T-CFG-029);</li>
+ *   <li>Spring Session's schema initialisation set to anything but {@code never} (REJ-040; T-CFG-027);</li>
+ *   <li>{@code show-values} on the env or configprops endpoint set to anything but {@code never} (R-OBS-011;
+ *       T-CFG-028);</li>
+ *   <li>a secret whose value comes from a configuration file on the classpath, that is, committed with the build
+ *       (IM8 as-8; R-CFG-006; T-CFG-030).</li>
  * </ul>
  * Every refusal is collected and reported together. Messages name properties, never their values.
  */
@@ -88,6 +96,21 @@ public class ProhibitedConfigurationValidator implements BeanFactoryPostProcesso
 
     /** H2 is a runtime dependency, so its server class is named, not linked. */
     static final String H2_SERVER = "org.h2.tools.Server";
+
+    /** Spring Session's own schema initialisation, which must stay off: V7 owns the tables (REJ-040; ADR-030). */
+    static final String SESSION_SCHEMA_INITIALIZATION = "spring.session.jdbc.initialize-schema";
+
+    /** Actuator value masking, which may never be loosened above {@code never} (R-OBS-011). */
+    static final List<String> SHOW_VALUES = List.of("management.endpoint.env.show-values",
+            "management.endpoint.configprops.show-values");
+
+    /**
+     * Every secret, by property name or prefix (ADR-062): the three keys, the retired TOTP keys, the admin seed
+     * credential and the OTLP export headers, which carry the collector's credential.
+     */
+    static final List<String> SECRET_PROPERTIES = List.of(SecretsConfig.TOTP_KEY, SecretsConfig.RETIRED_TOTP_KEYS,
+            SecretsConfig.TOMBSTONE_KEY, SecretsConfig.LOG_KEY, "app.admin.username", "app.admin.password",
+            "management.otlp.metrics.export.headers");
 
     private ConfigurableEnvironment environment;
 
@@ -139,7 +162,50 @@ public class ProhibitedConfigurationValidator implements BeanFactoryPostProcesso
             violations.add(RequiredPropertiesPostProcessor.OTLP_METRICS_URL + " is not an https URL; metrics must "
                     + "not leave in clear (ADR-061)");
         }
+        String sessionSchema = trimmed(environment.getProperty(SESSION_SCHEMA_INITIALIZATION));
+        if (sessionSchema != null && !"never".equalsIgnoreCase(sessionSchema)) {
+            violations.add(SESSION_SCHEMA_INITIALIZATION + " is not never; V7 owns the session tables (REJ-040)");
+        }
+        SHOW_VALUES.stream().filter(property -> {
+            String value = trimmed(environment.getProperty(property));
+            return value != null && !"never".equalsIgnoreCase(value);
+        }).forEach(property -> violations.add(property + " is not never; actuator values stay masked (R-OBS-011)"));
+        secretsFromClasspathFiles(environment).forEach(secret -> violations.add(secret + " comes from a committed "
+                + "configuration file; supply it from a mounted secret or the environment (IM8 as-8; R-CFG-006)"));
         return violations;
+    }
+
+    /**
+     * Every secret set by a configuration file on the classpath, which is committed with the build. A mounted file or
+     * the environment is where a secret belongs (ADR-062).
+     */
+    private static Set<String> secretsFromClasspathFiles(ConfigurableEnvironment environment) {
+        Set<String> found = new TreeSet<>();
+        for (PropertySource<?> source : environment.getPropertySources()) {
+            if (source instanceof OriginTrackedMapPropertySource file) {
+                for (String name : file.getPropertyNames()) {
+                    SECRET_PROPERTIES.stream()
+                            .filter(secret -> isOrUnder(secret, name) && fromClasspath(file.getOrigin(name)))
+                            .forEach(found::add);
+                }
+            }
+        }
+        return found;
+    }
+
+    private static boolean isOrUnder(String secret, String name) {
+        ConfigurationPropertyName root = ConfigurationPropertyName.of(secret);
+        ConfigurationPropertyName candidate = ConfigurationPropertyName.adapt(name, '.');
+        return root.equals(candidate) || root.isAncestorOf(candidate);
+    }
+
+    private static boolean fromClasspath(Origin origin) {
+        for (Origin at = origin; at != null; at = at.getParent()) {
+            if (at instanceof TextResourceOrigin text && text.getResource() instanceof ClassPathResource) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Whether the set {@code url} is a well-formed URL with an https scheme, in any letter case, and a host. */

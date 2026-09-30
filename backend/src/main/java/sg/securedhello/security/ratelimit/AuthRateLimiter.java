@@ -14,6 +14,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Ticker;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
+import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -53,7 +56,11 @@ import sg.securedhello.security.source.SourceKey;
  * </ol>
  * Then add the row to the {@code RateLimitBindingTest} table (T-RL-010).
  */
-public final class AuthRateLimiter {
+public final class AuthRateLimiter implements MeterBinder {
+
+    /** The bucket maps' cache names on {@code cache.*} meters; a budget row's family is tagged with its row. */
+    public static final String BUCKETS_CACHE = "rate-limit-buckets";
+    public static final String MISSES_CACHE = "rate-limit-session-misses";
 
     /** Keys held per row, and per-source miss buckets held; a bound on memory, not on any client. */
     static final long MAXIMUM_KEYS = 10_000;
@@ -139,7 +146,16 @@ public final class AuthRateLimiter {
      * completely, so an expired entry and a fresh one are the same bucket.
      */
     private static <V> Cache<String, V> cache(Ticker ticker, Duration idle) {
-        return Caffeine.newBuilder().ticker(ticker).expireAfterAccess(idle).maximumSize(MAXIMUM_KEYS).build();
+        return Caffeine.newBuilder().ticker(ticker).expireAfterAccess(idle).maximumSize(MAXIMUM_KEYS).recordStats()
+                .build();
+    }
+
+    /** Publishes each bucket map's statistics as {@code cache.*} meters (IM8 lm-16; T-OBS-001). */
+    @Override
+    public void bindTo(MeterRegistry registry) {
+        families.forEach((limit, family) -> CaffeineCacheMetrics.monitor(registry, family.buckets(), BUCKETS_CACHE,
+                "rate_limit", limit.name()));
+        CaffeineCacheMetrics.monitor(registry, misses, MISSES_CACHE);
     }
 
     /** {@code Retry-After}: whole seconds, rounded up, never 0. */

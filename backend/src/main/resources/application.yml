@@ -4,6 +4,13 @@ server:
   # Explicit, so cloud-platform detection never installs a RemoteIpValve with Tomcat's RFC 1918 default. The only
   # forwarded-header trust is the one derived from app.security.client-ip (REJ-015; R-RL-007).
   forward-headers-strategy: none
+  # The request thread pool is pinned, and its saturation is metered: Tomcat publishes its thread meters only with its
+  # MBean registry on (TM-07; R-RL-005). Hikari meters its pool by default.
+  tomcat:
+    threads:
+      max: 200
+    mbeanregistry:
+      enabled: true
   servlet:
     session:
       # The one cookie (ADR-058; REJ-061): SameSite=Strict, not the governing standard's Lax, by decision. No Domain and
@@ -18,6 +25,12 @@ server:
 spring:
   application:
     name: secured-hello-world
+  # Secrets come from the environment or from files mounted under /run/secrets, never from a committed file (ADR-062;
+  # R-CFG-013). A local .env file, never committed, is read first, so a mounted secret file wins over it (T-CFG-021).
+  config:
+    import:
+      - "optional:file:./.env[.properties]"
+      - "optional:configtree:/run/secrets/"
   datasource:
     # H2 file mode only; LOCK_TIMEOUT is pinned on the URL and FILE_LOCK=NO is prohibited.
     url: jdbc:h2:file:./data/secured-hello;LOCK_TIMEOUT=1000
@@ -50,6 +63,11 @@ spring:
 
 app:
   security:
+    # The role set, the source of truth (ADR-042): two roles, one per user. The seeded roles table must hold exactly
+    # these; startup refuses a duplicate or a disagreement (RoleDefinitions).
+    roles:
+      - USER
+      - ADMIN
     password:
       bcrypt-strength: 12
       # The policy PasswordService runs on every password set (ADR-002; ADR-003; ADR-005; REJ-007).
@@ -283,3 +301,5 @@ logging:
       service:
         name: secured-hello-world
         version: "@project.version@"
+        # service.environment on every line (LOG §5:347); the dev profile overrides it.
+        environment: production

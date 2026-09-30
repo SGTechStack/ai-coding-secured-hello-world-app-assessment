@@ -72,6 +72,13 @@ public class SecurityConfig {
     /** Role-definition paths: refused to everyone, including an admin (ADR-043; T-ADM-020). */
     static final String ROLE_DEFINITION_PATHS = "/api/admin/roles/**";
 
+    /**
+     * The API's own Content-Security-Policy, distinct from the document policy (R-HDR-010; T-HDR-002). A JSON-only
+     * origin loads nothing and may be framed by nothing; the header is defence in depth, not document-CSP evidence
+     * (R-HDR-004).
+     */
+    static final String API_CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'";
+
     /** Web only: the recovery runner runs the same context with no web server (ADR-072). */
     @Bean
     @ConditionalOnWebApplication
@@ -88,12 +95,17 @@ public class SecurityConfig {
         // Sign-in, the concurrent-session filter and sign-out (ADR-038); the login composite rotates the CSRF token.
         signIn.configure(http, csrfTokens, csrfHandler, idleWindow);
         CorsConfiguration cors = CorsPolicy.configuration(origins);
+        AdminFactorRules.requireBothRuleSets(matrix.rolesByRoute().keySet());
         AdminFactorRules adminFactorRules = new AdminFactorRules(lifetime.absolute(), clock);
         return http
                 .addFilterBefore(new SourceRateLimitFilter(limiter, sourceKeys, sessionIds, audit, writer,
                         (request, response) -> CorsPolicy.allowOrigin(cors, request, response)),
                         SecurityContextHolderFilter.class)
                 .addFilter(CorsPolicy.filter(cors, writer))
+                // Spring Security's default header set (HSTS on secure requests only, nosniff, X-Frame-Options DENY)
+                // plus the API policy.
+                .headers(headers -> headers.contentSecurityPolicy(csp -> csp
+                        .policyDirectives(API_CONTENT_SECURITY_POLICY)))
                 // After CorsFilter and HeaderWriterFilter, so its 401 carries the SPA's CORS headers and the security
                 // headers; still before CsrfFilter (ADR-038). Added first, so it runs before the body cap.
                 .addFilterAfter(new AbsoluteLifetimeFilter(idleWindow, lifetime.absolute(), clock, writer),

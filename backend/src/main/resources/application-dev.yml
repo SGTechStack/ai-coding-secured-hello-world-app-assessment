@@ -12,3 +12,8 @@ server:
 logging:
   level:
     sg.securedhello.email.ResetLinkLogger: DEBUG
+  # service.environment on every log line (LOG §5:347).
+  structured:
+    ecs:
+      service:
+        environment: dev

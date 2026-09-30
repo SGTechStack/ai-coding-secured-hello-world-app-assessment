@@ -8,6 +8,10 @@
   (LOG §3.1; R-AUD-037). Never switch its additivity off: T-AUD-044 fails if the stdout copy goes.
 -->
 <configuration>
+    <!-- An appender that cannot write (the audit file included) is an ERROR status: this listener writes it to stderr
+         and counts it on logging.failures, and the request carries on (LOG §5:375; T-AUD-031). -->
+    <statusListener class="sg.securedhello.logging.AppenderFailureStatusListener"/>
+
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
     <springProperty name="AUDIT_DIRECTORY" source="app.audit.directory" defaultValue="logs"/>

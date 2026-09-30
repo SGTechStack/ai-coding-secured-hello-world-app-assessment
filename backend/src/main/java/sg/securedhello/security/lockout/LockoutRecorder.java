@@ -7,7 +7,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
@@ -52,6 +55,8 @@ import sg.securedhello.user.UserAccountRepository;
  */
 final class LockoutRecorder {
 
+    private static final Logger log = LoggerFactory.getLogger(LockoutRecorder.class);
+
     private final UserAccountRepository accounts;
     private final TransactionTemplate transactions;
     private final LockoutCounter counter;
@@ -76,10 +81,18 @@ final class LockoutRecorder {
         String username = event.getAuthentication().getName();
         // The columns are TIMESTAMP(6): count on the stored precision, so a window compares what was written.
         Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
-        Optional<Counted> counted = transactions.execute(status -> accounts.findForUpdateByUsername(username)
-                .filter(account -> account.getPasswordHash() != null)
-                .map(account -> count(account, counter.failure(account.getLockoutState(), now)))
-                .map(result -> endSessionsIfRestricted(username, result)));
+        Optional<Counted> counted;
+        try {
+            counted = transactions.execute(status -> accounts.findForUpdateByUsername(username)
+                    .filter(account -> account.getPasswordHash() != null)
+                    .map(account -> count(account, counter.failure(account.getLockoutState(), now)))
+                    .map(result -> endSessionsIfRestricted(username, result)));
+        } catch (PessimisticLockingFailureException timedOut) {
+            // Fail open on counting only (Std §3.2:247; T-AUTH-016): the sign-in has already failed and still gets the
+            // uniform 401; this one failure goes uncounted rather than turning the refusal into a 500.
+            log.warn("A wrong-password failure was not counted: the account row lock was not granted in time");
+            return;
+        }
         counted.ifPresent(result -> {
             report(result);
             if (result.outcome().locked()) {

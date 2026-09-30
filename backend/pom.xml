@@ -190,6 +190,8 @@
                         <register.compliance.path>${register.compliance.path}</register.compliance.path>
                         <register.handover.path>${register.handover.path}</register.handover.path>
                         <register.regenerate>${register.regenerate}</register.regenerate>
+                        <!-- The repackaged jar, which the build-artefact check opens (T-BLD-004). -->
+                        <build.jar.path>${project.build.directory}/${project.build.finalName}.jar</build.jar.path>
                         <app.audit.directory>${project.build.directory}/audit-logs</app.audit.directory>
                     </systemPropertyVariables>
                 </configuration>

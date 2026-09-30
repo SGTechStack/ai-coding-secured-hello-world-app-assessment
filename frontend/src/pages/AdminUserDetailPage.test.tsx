@@ -122,19 +122,4 @@ describe('/admin/users/:id enable and disable', () => {
     expect(await screen.findByText('This account cannot be changed from here.')).toHaveAttribute('role', 'alert')
     expect(router.state.location.pathname).toBe(`/admin/users/${bob.id}`)
   })
-
-  it('a factor too old for a change sends the session to the challenge', async () => {
-    server.use(
-      http.put(apiUrl('/api/admin/users/:id/enabled'), () =>
-        problemResponse('MISSING_FACTOR', `/api/admin/users/${bob.id}/enabled`, { factor: 'TOTP', reason: 'EXPIRED' }),
-      ),
-    )
-    const { router } = renderApp(`/admin/users/${bob.id}`)
-    const user = userEvent.setup()
-
-    await user.click(await screen.findByRole('button', { name: 'Disable account' }))
-
-    expect(await screen.findByRole('heading', { name: 'TOTP Verification' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/verify')
-  })
 })

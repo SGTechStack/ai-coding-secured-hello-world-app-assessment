@@ -115,7 +115,14 @@ function EnabledControl({ user }: { user: AdminUser }) {
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <Button type="button" variant={user.enabled ? 'destructive' : 'default'} onClick={onToggle} disabled={pending}>
+        {/* Focusable while disabled, so focus can return here when a step-up challenge closes (T-FE-007). */}
+        <Button
+          type="button"
+          variant={user.enabled ? 'destructive' : 'default'}
+          onClick={onToggle}
+          disabled={pending}
+          focusableWhenDisabled
+        >
           {user.enabled ? 'Disable account' : 'Enable account'}
         </Button>
       </div>

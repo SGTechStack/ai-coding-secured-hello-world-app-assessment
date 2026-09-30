@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ApiError, type ErrorCode } from '@/lib/api/errors'
+import { StepUpCancelledError } from '@/lib/api/stepUp'
 import { FACTOR_DISABLED_ROUTE } from '@/lib/auth/session'
 
 /**
@@ -24,9 +25,12 @@ export function authorityRoute(error: unknown, except: readonly ErrorCode[] = []
   return error instanceof ApiError && !except.includes(error.code) ? AUTHORITY_ROUTES[error.code] : undefined
 }
 
+/** The copy for a change whose step-up challenge was dismissed: it was not sent again. */
+export const STEP_UP_CANCELLED = 'Verification was cancelled, so nothing was changed.'
+
 /**
  * A page's failure handling: `fail` follows a code that moves the session elsewhere (into `redirect`), and otherwise
- * shows the page's copy for the code, or `generic`, in `failure`.
+ * shows the page's copy for the code, or `generic`, in `failure`. A dismissed step-up says nothing was changed.
  */
 export function useAuthorityFailure(except: readonly ErrorCode[] = []) {
   const [redirect, setRedirect] = useState<string>()
@@ -36,6 +40,8 @@ export function useAuthorityFailure(except: readonly ErrorCode[] = []) {
     const route = authorityRoute(error, except)
     if (route) {
       setRedirect(route)
+    } else if (error instanceof StepUpCancelledError) {
+      setFailure(STEP_UP_CANCELLED)
     } else {
       setFailure((error instanceof ApiError && copy[error.code]) || generic)
     }

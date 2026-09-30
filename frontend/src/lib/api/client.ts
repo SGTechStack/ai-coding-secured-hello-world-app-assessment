@@ -1,4 +1,5 @@
 import { ApiError, isProblem, retryAfterSeconds, UnexpectedResponseError } from './errors'
+import { awaitStepUp } from './stepUp'
 
 /**
  * The headers every API request carries. The server's entry point is configured against exactly this `Accept`
@@ -60,11 +61,30 @@ export interface ApiFetchOptions {
  * An unsafe request carries the CSRF token, fetched lazily (ADR-040). If the server still answers
  * `CSRF_TOKEN_INVALID`, the token is fetched again and the request retried once, silently; a second refusal is
  * returned to the caller. A caller that must not be retried passes `{ csrfRetry: false }`.
+ *
+ * An unsafe request refused with `MISSING_FACTOR` joins the step-up queue while a challenge is mounted: it waits for
+ * the one step-up, then is replayed once, or rejects without a replay if the challenge is dismissed (spec, Frontend).
  */
 export async function apiFetch<T>(path: string, init: RequestInit = {}, options: ApiFetchOptions = {}): Promise<T> {
   if (SAFE_METHODS.has((init.method ?? 'GET').toUpperCase())) {
     return send<T>(path, init)
   }
+  try {
+    return await sendUnsafe<T>(path, init, options)
+  } catch (error) {
+    const stepUp = error instanceof ApiError && error.code === 'MISSING_FACTOR' ? awaitStepUp() : undefined
+    if (!stepUp) {
+      throw error
+    }
+    // A dismissed challenge rejects here, so nothing is replayed. After a verified code the token has already been
+    // fetched again, and the request is replayed once: a second refusal is the caller's.
+    await stepUp
+    return sendUnsafe<T>(path, init, options)
+  }
+}
+
+/** An unsafe request with the CSRF token, and the one silent retry on `CSRF_TOKEN_INVALID`. */
+async function sendUnsafe<T>(path: string, init: RequestInit, options: ApiFetchOptions): Promise<T> {
   try {
     return await send<T>(path, withToken(init, await bootstrapCsrf()))
   } catch (error) {

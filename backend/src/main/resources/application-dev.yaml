@@ -1,0 +1,36 @@
+# Local development profile (HTTP on localhost, in-memory H2, seeded admin).
+spring:
+  datasource:
+    url: jdbc:h2:mem:hello;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+
+app:
+  security:
+    # Local dev runs over plain HTTP, so the Secure flag would prevent the browser
+    # from sending the cookie at all. Documented, accepted gap for dev only.
+    cookie-secure: false
+    allowed-origins:
+      - http://localhost:3000
+      - http://127.0.0.1:3000
+  password-reset:
+    reset-url-base: http://localhost:3000/reset-password
+  admin:
+    username: admin
+    email: admin@example.com
+    password: ChangeMe-Secure-2026!
+
+logging:
+  level:
+    com.example.hello: DEBUG

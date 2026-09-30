@@ -1,0 +1,59 @@
+# Base configuration: production-safe defaults. Profile files override for dev/test.
+# No default profile is set on purpose: a packaged jar started without
+# --spring.profiles.active=dev runs with these hardened settings.
+spring:
+  application:
+    name: secured-hello-world
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Production deployments are expected to manage the schema with migrations
+      # (Flyway/Liquibase) and only validate here. The dev/test profiles generate it.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+server:
+  port: 8080
+  # Honour X-Forwarded-* from a trusted reverse proxy so client IPs and HTTPS
+  # detection (Secure cookies, HSTS) are correct behind TLS termination.
+  forward-headers-strategy: native
+  error:
+    include-stacktrace: never
+    include-message: never
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+app:
+  security:
+    cookie-secure: true
+    cookie-same-site: Lax
+    session-timeout: PT30M
+    # allowed-origins is intentionally absent here (defaults to an empty list =
+    # no cross-origin access). Set it per environment, e.g. APP_SECURITY_ALLOWED_ORIGINS_0.
+    login:
+      max-failed-attempts: 5
+      lockout-duration: PT15M
+      ip-max-failures: 20
+      ip-window: PT15M
+  password-reset:
+    token-ttl: PT20M
+    reset-url-base: https://example.invalid/reset-password
+  admin:
+    # Must be supplied via environment (APP_ADMIN_USERNAME, APP_ADMIN_EMAIL,
+    # APP_ADMIN_PASSWORD) on first start against a fresh database.
+    username: ""
+    email: ""
+    password: ""
+
+logging:
+  level:
+    root: INFO
+    AUDIT: INFO
+    org.springframework.security: WARN

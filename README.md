@@ -76,6 +76,21 @@ git push -u origin janedoe
 Continue committing to your branch as you make progress. Keep all of your work
 on your own branch.
 
+## Implementation (branch `victorcheong`)
+
+```text
+.
+├── backend/     # Spring Boot 4 API — session-cookie auth, CSRF, lockout, password reset, admin
+├── frontend/    # React 19 + Vite SPA on http://localhost:3000
+├── docs/        # RUNNING.md (start here), api.md, architecture.md, ADRs, acceptance checklist
+├── artifacts/   # planning artifacts: stories DAG, dev report, per-story issue files
+└── prd/         # the PRD and its structured stories YAML
+```
+
+**To run it:** see [`docs/RUNNING.md`](docs/RUNNING.md) — in short, `backend\mvnw.cmd spring-boot:run`
+in one terminal and `npm install && npm run dev` inside `frontend/` in another, then open
+<http://localhost:3000>. Dev admin login: `admin` / `ChangeMe-Secure-2026!`.
+
 ## Rules Summary
 
 - Read the PRD first — it is the source of truth.

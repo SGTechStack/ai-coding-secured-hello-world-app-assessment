@@ -1,0 +1,20 @@
+{
+  "role": "dev",
+  "project_name": "Secured Hello World Auth App",
+  "model": "claude-fable-5-1",
+  "prompt_version": "1",
+  "project_type": "web_fullstack",
+  "stories_path": "c:/Users/vcjw9/Documents/ai-coding-secured-hello-world-app-assessment/prd/assessment-prd.stories.yaml",
+  "mode": "fresh",
+  "known_constraints": [
+    "Session-cookie auth (Spring Session) is the primary mechanism; JWT is documented only.",
+    "Registration (story 1) must land before login (story 2) because login needs the users schema.",
+    "Admin bootstrap (story 12) must land before any admin story (8-11) can be exercised end-to-end.",
+    "Password reset confirm (story 7) needs the session store (INFRA-BE-02) to invalidate sessions."
+  ],
+  "team_size": 1,
+  "max_concurrent_mappers": 20,
+  "max_batch_attempts": 3,
+  "monorepo": true,
+  "_note": "Hand-authored. The orchestrator.py driver was not executed (no shell access in the authoring session); project-dag.json and dev-report.md were derived manually by following configs/backwards-mapping-rules.md and the foundation templates."
+}

@@ -1,0 +1,29 @@
+# Shared
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Java / Maven
+backend/target/
+*.class
+
+# Node / Vite
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+*.tsbuildinfo
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+
+# Local agent tooling
+.claude/

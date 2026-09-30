@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,8 +32,9 @@ import com.example.securedhello.web.ProblemResponses;
  * require the Admin role. Viewing the list is audited, because it exposes every Account's email.
  * Disabling an Account or changing its role ends every Session of the target Account at once, so
  * the change takes effect immediately; re-enabling does not end Sessions or clear the
- * required-password-change flag (ADR 0001). The self-action guard and the last-Admin rule are
- * enforced by the service; a rejected attempt is audited here at WARN as {@code user-administration}.
+ * required-password-change flag (ADR 0001). Unlocking clears the lock and failure counter without
+ * touching Sessions. The self-action guard and the last-Admin rule are enforced by the service; a
+ * rejected attempt is audited here at WARN as {@code user-administration}.
  */
 @RestController
 @RequestMapping("${app.api.base-path}/admin/users")
@@ -97,6 +99,18 @@ class AccountAdministrationController {
 			.userId(principal.accountId())
 			.targetUserId(id)
 			.change("role", change.before(), change.after())
+			.request(request));
+		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/{id}/unlock")
+	ResponseEntity<Void> unlock(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal principal,
+			HttpServletRequest request) {
+		AccountUnlockChange change = administration.unlock(principal.accountId(), id);
+		auditLog.record(AuditEvent.success(AuditAction.USER_ADMINISTRATION)
+			.userId(principal.accountId())
+			.targetUserId(id)
+			.change("locked", change.before(), false)
 			.request(request));
 		return ResponseEntity.ok().build();
 	}

@@ -77,6 +77,25 @@ class AccountAdministrationService {
 		return new AccountRoleChange(before, role);
 	}
 
+	/**
+	 * Lifts a Lock on an Account, clearing {@code locked_until} and the failure counter so a fresh
+	 * threshold of wrong passwords is needed to lock it again. Not subject to the last-Admin rule: an
+	 * unlock never changes {@code enabled} or the role. Idempotent: unlocking an Account that is not
+	 * currently Locked still succeeds.
+	 * @throws AccountNotFoundException when {@code targetId} is not an Account
+	 * @throws SelfActionForbiddenException when the acting Admin targets their own Account, so a
+	 *         hijacked admin Session can't lift a lock that is protecting it
+	 */
+	@PreAuthorize("hasRole('ADMIN')")
+	@Transactional
+	AccountUnlockChange unlock(UUID actingAdminId, UUID targetId) {
+		guardSelfAction(actingAdminId, targetId);
+		Account target = accounts.findForUpdateById(targetId).orElseThrow(AccountNotFoundException::new);
+		boolean before = target.isLocked(clock.instant());
+		target.unlock();
+		return new AccountUnlockChange(before);
+	}
+
 	private static void guardSelfAction(UUID actingAdminId, UUID targetId) {
 		if (actingAdminId.equals(targetId)) {
 			throw new SelfActionForbiddenException(targetId);

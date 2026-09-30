@@ -171,6 +171,60 @@ describe('admin users screen', () => {
     await waitFor(() => expect(screen.getAllByRole('button', { name: 'Make User' })).toHaveLength(2))
   })
 
+  it('offers Unlock only for a Locked Account, and it clears after a successful unlock', async () => {
+    const target = accounts[1]
+    let unlocked = false
+    const listRoute: Route = () =>
+      json(
+        200,
+        accounts.map((account) => (account.id === target.id ? { ...account, locked: !unlocked } : account)),
+      )
+    renderApp(adminAccount, '/admin/users', listRoute, {
+      [`POST /admin/users/${target.id}/unlock`]: () => {
+        unlocked = true
+        return new Response(null, { status: 200 })
+      },
+    })
+    await screen.findAllByRole('row')
+    expect(screen.queryByRole('button', { name: 'Unlock' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Unlock' })).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Unlock' })).not.toBeInTheDocument())
+  })
+
+  it('shows a clear message when an Admin cannot unlock their own Account', async () => {
+    const target = accounts[0]
+    renderApp(
+      adminAccount,
+      '/admin/users',
+      () =>
+        json(200, [
+          { ...target, locked: true },
+          { ...accounts[1], locked: false },
+        ]),
+      {
+        [`POST /admin/users/${target.id}/unlock`]: () => problem(403, 'self_action_forbidden'),
+      },
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Unlock' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('cannot perform this action on their own Account')
+  })
+
+  it('shows a clear message when unlocking an unknown Account', async () => {
+    const target = accounts[1]
+    renderApp(adminAccount, '/admin/users', undefined, {
+      [`POST /admin/users/${target.id}/unlock`]: () => problem(404, 'not_found'),
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Unlock' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('no longer exists')
+  })
+
   it('shows a clear message when the server refuses a self-action', async () => {
     const target = accounts[0]
     renderApp(adminAccount, '/admin/users', undefined, {

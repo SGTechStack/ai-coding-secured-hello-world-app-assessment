@@ -50,6 +50,11 @@ export async function changeRole(id: string, role: 'USER' | 'ADMIN'): Promise<Ad
   )
 }
 
+/** Lifts a Lock on an Account, so its holder can log in at once with the correct password. */
+export async function unlock(id: string): Promise<AdminActionResult> {
+  return toActionResult(await apiRequest(`/admin/users/${id}/unlock`, { method: 'POST' }))
+}
+
 function toActionResult(result: ApiResult<unknown>): AdminActionResult {
   if (result.ok) return { ok: true }
   const code = result.problem?.code

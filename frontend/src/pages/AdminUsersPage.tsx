@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { changeRole, listAccounts, setEnabled, type AdminAccount, type AdminActionResult } from '../api/admin'
+import { changeRole, listAccounts, setEnabled, unlock, type AdminAccount, type AdminActionResult } from '../api/admin'
 
 type State =
   { kind: 'loading' } | { kind: 'loaded'; accounts: AdminAccount[] } | { kind: 'forbidden' } | { kind: 'error' }
@@ -62,6 +62,7 @@ export function AdminUsersPage() {
           busyId={busyId}
           onSetEnabled={(id, enabled) => runAction(id, () => setEnabled(id, enabled))}
           onChangeRole={(id, role) => runAction(id, () => changeRole(id, role))}
+          onUnlock={(id) => runAction(id, () => unlock(id))}
         />
       )}
       <p>
@@ -76,11 +77,13 @@ function AccountTable({
   busyId,
   onSetEnabled,
   onChangeRole,
+  onUnlock,
 }: {
   accounts: AdminAccount[]
   busyId: string | null
   onSetEnabled: (id: string, enabled: boolean) => void
   onChangeRole: (id: string, role: 'USER' | 'ADMIN') => void
+  onUnlock: (id: string) => void
 }) {
   return (
     <div className="table-scroll">
@@ -116,7 +119,12 @@ function AccountTable({
                   </button>{' '}
                   <button type="button" disabled={busy} onClick={() => onChangeRole(account.id, otherRole)}>
                     {account.role === 'ADMIN' ? 'Make User' : 'Make Admin'}
-                  </button>
+                  </button>{' '}
+                  {account.locked && (
+                    <button type="button" disabled={busy} onClick={() => onUnlock(account.id)}>
+                      Unlock
+                    </button>
+                  )}
                 </td>
               </tr>
             )

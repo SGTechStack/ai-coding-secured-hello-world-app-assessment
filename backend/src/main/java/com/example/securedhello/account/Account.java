@@ -146,4 +146,14 @@ public class Account {
 		lockedUntil = null;
 	}
 
+	/**
+	 * An Admin lifts a Lock, so the holder can log in at once with the correct password, and a fresh
+	 * threshold of wrong passwords is needed to lock the Account again. Safe to call on an Account that
+	 * is not currently Locked.
+	 */
+	void unlock() {
+		failedLoginAttempts = 0;
+		lockedUntil = null;
+	}
+
 }

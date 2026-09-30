@@ -22,6 +22,7 @@ import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -86,7 +87,15 @@ class SecurityConfig {
 			AuditLog auditLog, CsrfTokenRepository csrfTokenRepository, SessionControl sessionControl,
 			RequiredPasswordChangeFilter requiredPasswordChange) throws Exception {
 		http.cors((c) -> c.configurationSource(corsConfigurationSource(api, cors)))
-			.csrf((csrf) -> csrf.csrfTokenRepository(csrfTokenRepository))
+			.csrf((csrf) -> csrf.csrfTokenRepository(csrfTokenRepository)
+				// The one CSRF-exempt endpoint (ADR 0002). It is public, needs no Session, changes no
+				// Account state, and only moves a counter whose tag values are a fixed enum, so a forged
+				// report can do nothing a caller could not do directly; it is rate-limited per client
+				// address instead. The exemption exists to stop the SPA bootstrapping a CSRF token on
+				// every page load, which would make the server persist a Session for every Visitor and
+				// crawler before any interaction.
+				.ignoringRequestMatchers(
+						PathPatternRequestMatcher.pathPattern(HttpMethod.POST, api.path("/client-events"))))
 			// Size check runs before CSRF, authorization and every controller.
 			.addFilterBefore(new RequestBodyLimitFilter(api.maxRequestBodyBytes()), CsrfFilter.class)
 			// Idle and absolute Session timeouts, once the Session's authentication is loaded.
@@ -99,7 +108,9 @@ class SecurityConfig {
 			.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/csrf")).permitAll()
 			.requestMatchers(HttpMethod.POST, api.path("/register"), api.path("/login"),
-					api.path("/password-reset/request"), api.path("/password-reset/confirm")).permitAll()
+					api.path("/password-reset/request"), api.path("/password-reset/confirm"),
+					// The SPA reports its own errors and load timings; a page can fail before any login.
+					api.path("/client-events")).permitAll()
 			.requestMatchers(HttpMethod.GET, api.path("/hello"), api.path("/me")).authenticated()
 			.requestMatchers(HttpMethod.POST, api.path("/logout")).authenticated()
 			.requestMatchers(HttpMethod.PATCH, api.path("/me/password")).authenticated()

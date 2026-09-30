@@ -69,8 +69,11 @@ class AuditLogTest {
 			assertThat(capture.application(hasField("event.action", "application-startup"))).isEmpty();
 		}
 
+		// Once only: the Actuator management port runs in a child context that also closes.
 		assertThat(capture.application(hasField("message", "Application stopping"))).hasSize(1);
-		JsonNode shutdownAudit = capture.awaitAudit(hasField("event.action", "application-shutdown")).get(0);
+		List<JsonNode> shutdownAudits = capture.awaitAudit(hasField("event.action", "application-shutdown"));
+		assertThat(shutdownAudits).hasSize(1);
+		JsonNode shutdownAudit = shutdownAudits.get(0);
 		assertThat(field(shutdownAudit, "log.level")).isEqualTo("INFO");
 		assertThat(field(shutdownAudit, "trace.id")).isNotBlank();
 	}

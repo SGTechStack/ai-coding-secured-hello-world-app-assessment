@@ -27,7 +27,8 @@ import com.example.securedhello.web.ProblemResponses;
  * Enforces a Required Password Change: while the authenticated Account's
  * {@code password_change_required} is set, every request is refused with 403
  * {@code password_change_required} except the four that let the holder see who they are, choose a new
- * password, get a CSRF token for that request, and log out. There is no grace period (ADR 0001).
+ * password, get a CSRF token for that request, and log out — and the public client-event report, which
+ * says nothing about the Account. There is no grace period (ADR 0001).
  * <p>
  * Placed after authentication and authorization in the API filter chain, so an unauthenticated or
  * unauthorized request still gets its usual 401 or 403 and this refusal never reveals that an
@@ -54,7 +55,12 @@ public class RequiredPasswordChangeFilter extends OncePerRequestFilter {
 				PathPatternRequestMatcher.pathPattern(HttpMethod.GET, api.path("/me")),
 				PathPatternRequestMatcher.pathPattern(HttpMethod.PATCH, api.path("/me/password")),
 				PathPatternRequestMatcher.pathPattern(HttpMethod.POST, api.path("/logout")),
-				PathPatternRequestMatcher.pathPattern(HttpMethod.GET, api.path("/csrf"))));
+				PathPatternRequestMatcher.pathPattern(HttpMethod.GET, api.path("/csrf")),
+				// Defence in depth for a caller that does send a session cookie: the report is already
+				// public and carries nothing about the Account, so refusing it would widen no control and
+				// would only write an enforcement event, diluting a real security signal. The SPA itself
+				// sends no credentials (ADR 0002), so its reports never reach this matcher at all.
+				PathPatternRequestMatcher.pathPattern(HttpMethod.POST, api.path("/client-events"))));
 	}
 
 	@Override

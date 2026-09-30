@@ -7,6 +7,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
@@ -25,7 +26,9 @@ import com.example.securedhello.config.SessionProperties;
  * Startup and shutdown events. Once the app is ready it logs the host, active profiles and key
  * non-secret settings (service metadata is on every line), and audits {@code application-startup}.
  * Never logs credentials, connection strings or database names. A shutdown event and an
- * {@code application-shutdown} audit event are emitted when the context closes.
+ * {@code application-shutdown} audit event are emitted when the application's own context closes —
+ * once, even though Spring Boot runs the Actuator management port in a child context whose own close
+ * event propagates up to this listener.
  */
 @Component
 class ApplicationLifecycleLogger {
@@ -46,9 +49,11 @@ class ApplicationLifecycleLogger {
 
 	private final AuditLog auditLog;
 
+	private final ApplicationContext applicationContext;
+
 	ApplicationLifecycleLogger(Environment environment, ApiProperties api, SessionProperties session,
 			LockoutProperties lockout, RateLimitProperties rateLimit, IpThrottleProperties ipThrottle,
-			AuditLog auditLog) {
+			AuditLog auditLog, ApplicationContext applicationContext) {
 		this.environment = environment;
 		this.api = api;
 		this.session = session;
@@ -56,6 +61,7 @@ class ApplicationLifecycleLogger {
 		this.rateLimit = rateLimit;
 		this.ipThrottle = ipThrottle;
 		this.auditLog = auditLog;
+		this.applicationContext = applicationContext;
 	}
 
 	@EventListener(ApplicationReadyEvent.class)
@@ -86,7 +92,12 @@ class ApplicationLifecycleLogger {
 	}
 
 	@EventListener(ContextClosedEvent.class)
-	void stopping() {
+	void stopping(ContextClosedEvent event) {
+		// Closing the management port's child context publishes its own event, which propagates up to
+		// this listener; only the application's own context closing means the application is stopping.
+		if (event.getApplicationContext() != this.applicationContext) {
+			return;
+		}
 		log.atInfo().log("Application stopping");
 		auditLog.record(AuditEvent.success(AuditAction.APPLICATION_SHUTDOWN));
 	}

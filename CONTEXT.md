@@ -62,3 +62,9 @@ _Avoid_: Forced reset, password expiry
 **IP Throttle**:
 A temporary block on login attempts from one source address after repeated failures across any usernames. Independent of Locked.
 _Avoid_: Rate limit (when meaning this specifically), IP ban
+
+## Operations
+
+**Client Event**:
+One thing the SPA reports about itself to the operator — a render error, an uncaught error, an unhandled rejection, or a page-load timing. A Client Event carries only a fixed `kind` from that closed set, the SPA path it happened on (bounded in length and character set, so never a query string or fragment), and, for a timing, a bounded `durationMs`. It never carries a message, a stack trace, an identifier or anything a person typed: the `kind` is the whole description. Do not widen it.
+_Avoid_: Telemetry event, analytics event, client log

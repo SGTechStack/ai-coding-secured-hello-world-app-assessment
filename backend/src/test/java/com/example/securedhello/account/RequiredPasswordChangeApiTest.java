@@ -115,6 +115,21 @@ class RequiredPasswordChangeApiTest {
 	}
 
 	@Test
+	void reportingABrowserErrorWorksWhileAPasswordChangeIsRequiredAndIsNotAudited() throws Exception {
+		Cookie session = loggedIn(ADMIN, ADMIN_PASSWORD, true);
+		LogCapture capture = LogCapture.start();
+
+		// Public, and it says nothing about the Account, so refusing it would widen no control — it would
+		// only write an enforcement event per page load and dilute a real security signal.
+		mvc.perform(post("/api/client-events").cookie(session)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"kind\":\"RENDER_ERROR\",\"path\":\"/password-change\"}"))
+			.andExpect(status().isNoContent());
+
+		assertThat(capture.audit(hasField("event.action", ENFORCEMENT))).isEmpty();
+	}
+
+	@Test
 	void logoutWorksWhileAPasswordChangeIsRequired() throws Exception {
 		Cookie session = loggedIn(ADMIN, ADMIN_PASSWORD, true);
 

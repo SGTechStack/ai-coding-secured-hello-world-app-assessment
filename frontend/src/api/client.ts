@@ -1,6 +1,10 @@
 /**
- * The SPA's only way to reach the API. Every call is cross-origin and sends credentials, and every
+ * How the SPA reaches the API. Every call is cross-origin and sends credentials, and every
  * state-changing call carries the Session-bound CSRF token from GET /api/csrf (ADR 0002).
+ *
+ * The one exception is `POST /api/client-events`, which `telemetry.ts` sends itself, without
+ * credentials and without a token: fetching one would make the server create a Session for every
+ * Visitor before any interaction (ADR 0002 records the exemption).
  */
 
 const API_BASE = `${import.meta.env.VITE_API_ORIGIN}/api`

@@ -23,6 +23,8 @@ public class RateLimiters {
 
 	private final RateLimiter resetConfirm;
 
+	private final RateLimiter clientEvents;
+
 	RateLimiters(RateLimitProperties properties, Clock clock) {
 		this.login = new RateLimiter(properties.login().capacity(), properties.login().period(), clock, false);
 		this.registration = new RateLimiter(properties.registration().capacity(), properties.registration().period(),
@@ -32,6 +34,8 @@ public class RateLimiters {
 		this.resetRequestByIp = new RateLimiter(properties.resetRequestIp().capacity(),
 				properties.resetRequestIp().period(), clock, true);
 		this.resetConfirm = new RateLimiter(properties.resetConfirm().capacity(), properties.resetConfirm().period(),
+				clock, true);
+		this.clientEvents = new RateLimiter(properties.clientEvents().capacity(), properties.clientEvents().period(),
 				clock, true);
 	}
 
@@ -60,6 +64,11 @@ public class RateLimiters {
 		return resetConfirm;
 	}
 
+	/** Reports the SPA sends about itself, keyed by direct client address. */
+	public RateLimiter clientEvents() {
+		return clientEvents;
+	}
+
 	/** Empties every limiter. For tests only: lets each test start with full buckets. */
 	public void resetAll() {
 		login.reset();
@@ -67,6 +76,7 @@ public class RateLimiters {
 		resetRequestByEmail.reset();
 		resetRequestByIp.reset();
 		resetConfirm.reset();
+		clientEvents.reset();
 	}
 
 }

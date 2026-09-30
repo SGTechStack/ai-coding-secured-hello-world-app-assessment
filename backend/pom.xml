@@ -17,11 +17,24 @@
 		<java.version>21</java.version>
 		<jacoco.version>0.8.15</jacoco.version>
 		<coverage.minimum>0.80</coverage.minimum>
+		<dependency-check.version>13.0.0</dependency-check.version>
+		<!-- CVSS v3 9.0 and above is Critical: those fail the security profile's build. -->
+		<critical.cvss>9</critical.cvss>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-h2console</artifactId>
+		</dependency>
+		<!-- health and prometheus on a separate management port (story 111); never routed publicly. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -167,5 +180,59 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+		Dependency scan: `mvn -P security verify` runs OWASP Dependency-Check over the compile and
+		runtime dependencies and fails the build on a critical CVE. Kept out of the default build
+		because the scan needs the NVD data, which the ordinary `mvn verify` must not depend on. Export
+		an NVD API key as NVD_API_KEY before running it. Wiring the scan into CI is out of scope
+		(ADR 0001).
+		-->
+		<profile>
+			<id>security</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.owasp</groupId>
+						<artifactId>dependency-check-maven</artifactId>
+						<version>${dependency-check.version}</version>
+						<configuration>
+							<failBuildOnCVSS>${critical.cvss}</failBuildOnCVSS>
+							<!--
+							The NVD refuses the data download without an API key, so the scan needs one
+							in NVD_API_KEY. The plugin reads the variable itself, keeping the key out of
+							this file and out of any Maven property that debug logging could print
+							(GHSA-qqhq-8r2c-c3f5). With no key the scan fails the build rather than
+							reporting a clean result it has no data for.
+							-->
+							<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+							<!-- Re-use the downloaded NVD data for a day, so repeated local runs are quick. -->
+							<nvdValidForHours>24</nvdValidForHours>
+							<formats>
+								<format>HTML</format>
+								<format>JSON</format>
+							</formats>
+							<!-- Test-only dependencies are never shipped, so they are not scanned. -->
+							<skipTestScope>true</skipTestScope>
+							<!-- Empty today: a reviewed false positive goes here instead of blocking the scan. -->
+							<suppressionFiles>
+								<suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+							</suppressionFiles>
+						</configuration>
+						<executions>
+							<execution>
+								<id>critical-cve-check</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>check</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

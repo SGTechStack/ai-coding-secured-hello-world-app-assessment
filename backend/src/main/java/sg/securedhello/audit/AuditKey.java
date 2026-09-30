@@ -22,6 +22,10 @@ public enum AuditKey {
     KEY_FINGERPRINTS("labels.key_fingerprints"),
     /** The effective level of each audit-relevant logger (ADR-057). */
     AUDIT_LOGGERS("labels.audit_loggers"),
+    /** On the reconciliation row: the sessions the startup sweep ended (ADR-039). */
+    SESSIONS_ENDED_COUNT("session.ended_count"),
+    /** On the reconciliation row: {@code <trigger>=<accounts>} for every trigger the sweep reconciles (ADR-039). */
+    RECONCILED_ACCOUNTS("labels.reconciled_accounts"),
     /**
      * The account the row is about, by its UUID; never a username or email (ADR-054). On a failed login it is written
      * only when the account resolves, and set explicitly by the caller, never from MDC (REJ-042; R-AUD-007).

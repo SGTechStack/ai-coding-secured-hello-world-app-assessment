@@ -273,6 +273,9 @@
                             <param>sg.securedhello.*EmitterKeyValidat*</param>
                             <!-- Anonymous-session shed lines, bands and dwell (ADR-041). -->
                             <param>sg.securedhello.*ShedEpisode*</param>
+                            <!-- The startup reconciliation sweep: its triggers and the sweep (ADR-039). -->
+                            <param>sg.securedhello.*Reconciliation*</param>
+                            <param>sg.securedhello.*SessionTerminationService*</param>
                         </targetClasses>
                         <!-- Until those classes exist there is nothing to mutate; that alone must not fail. -->
                         <failWhenNoMutations>false</failWhenNoMutations>

@@ -27,6 +27,8 @@ import com.example.securedhello.credential.PasswordHistoryException;
 import com.example.securedhello.credential.PasswordPolicyException;
 import com.example.securedhello.logging.CorrelationFilter;
 import com.example.securedhello.notification.EmailService;
+import com.example.securedhello.ratelimit.ClientAddressLimit;
+import com.example.securedhello.ratelimit.RateLimitedByClientAddress;
 import com.example.securedhello.ratelimit.RateLimiters;
 import com.example.securedhello.security.SessionControl;
 import com.example.securedhello.web.ErrorCategory;
@@ -85,11 +87,15 @@ class PasswordResetController {
 		this.passwordResetExecutor = passwordResetExecutor;
 	}
 
+	/**
+	 * The per-address limit is acquired before the body is validated, so a malformed request spends
+	 * quota too (issue 18); the per-email limit needs the validated email, so it runs here.
+	 */
 	@PostMapping("/password-reset/request")
+	@RateLimitedByClientAddress(ClientAddressLimit.RESET_REQUEST)
 	ResponseEntity<ResetAccepted> request(@Valid @RequestBody ResetRequest body, HttpServletRequest request) {
 		String email = body.email().toLowerCase(Locale.ROOT);
 		rateLimiters.resetRequestByEmail().acquire(email);
-		rateLimiters.resetRequestByIp().acquire(request.getRemoteAddr());
 		String httpMethod = request.getMethod();
 		String urlPath = CorrelationFilter.urlPath(request);
 		passwordResetExecutor.execute(() -> issueSafely(email, httpMethod, urlPath));
@@ -116,10 +122,11 @@ class PasswordResetController {
 		}
 	}
 
+	/** Rate-limited before the body is validated, so a malformed confirmation spends quota too (issue 18). */
 	@PostMapping("/password-reset/confirm")
+	@RateLimitedByClientAddress(ClientAddressLimit.RESET_CONFIRM)
 	ResponseEntity<Void> confirm(@Valid @RequestBody ResetConfirmRequest body, HttpServletRequest request,
 			HttpServletResponse response) {
-		rateLimiters.resetConfirm().acquire(request.getRemoteAddr());
 		PasswordResetService.ConfirmedReset confirmed = passwordReset.confirm(body.token(), body.newPassword(),
 				request.getMethod(), CorrelationFilter.urlPath(request));
 		sessionControl.endAll(confirmed.accountId(), PASSWORD_RESET, request, response);

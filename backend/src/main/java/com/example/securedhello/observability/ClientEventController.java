@@ -1,6 +1,5 @@
 package com.example.securedhello.observability;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
@@ -14,7 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.securedhello.ratelimit.RateLimiters;
+import com.example.securedhello.ratelimit.ClientAddressLimit;
+import com.example.securedhello.ratelimit.RateLimitedByClientAddress;
 
 /**
  * {@code POST /client-events}: the SPA tells the operator that something failed in the browser, or how
@@ -60,16 +60,14 @@ class ClientEventController {
 
 	private final ClientEventRecorder recorder;
 
-	private final RateLimiters rateLimiters;
-
-	ClientEventController(ClientEventRecorder recorder, RateLimiters rateLimiters) {
+	ClientEventController(ClientEventRecorder recorder) {
 		this.recorder = recorder;
-		this.rateLimiters = rateLimiters;
 	}
 
+	/** Rate-limited before the body is validated, so a malformed report spends quota too (issue 18). */
 	@PostMapping("/client-events")
-	ResponseEntity<Void> report(@Valid @RequestBody ClientEventRequest body, HttpServletRequest request) {
-		this.rateLimiters.clientEvents().acquire(request.getRemoteAddr());
+	@RateLimitedByClientAddress(ClientAddressLimit.CLIENT_EVENTS)
+	ResponseEntity<Void> report(@Valid @RequestBody ClientEventRequest body) {
 		this.recorder.record(body.kind(), body.path(), body.durationMs());
 		return ResponseEntity.noContent().build();
 	}

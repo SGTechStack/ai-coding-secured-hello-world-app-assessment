@@ -32,7 +32,10 @@ info:
     the handler chain that would shape a problem body. It carries no `code`.
 
     **Rate limits.** `429` carries `Retry-After` in seconds. The body never says which limit was hit
-    or on what key, so a caller cannot use it to probe whether an Account or an address exists.
+    or on what key, so a caller cannot use it to probe whether an Account or an address exists. A
+    per-address limit (registration, both password-reset calls, client events) is counted before the
+    body is validated, so a malformed body spends quota too and, once it is spent, gets `429` rather
+    than `400`.
 
     **What this API never discloses.** A failed login, a taken username or email, and a password-reset
     request for an unknown address are all answered identically to their successful-lookup

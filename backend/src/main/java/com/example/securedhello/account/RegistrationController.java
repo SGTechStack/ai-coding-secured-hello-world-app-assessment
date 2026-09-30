@@ -22,13 +22,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
-import com.example.securedhello.ratelimit.RateLimiters;
+import com.example.securedhello.ratelimit.ClientAddressLimit;
+import com.example.securedhello.ratelimit.RateLimitedByClientAddress;
 import com.example.securedhello.web.ProblemResponses;
 
 /**
  * {@code POST /register}: a Visitor creates an Account. Input formats are checked before any
  * business logic; a {@code role} in the body is not a field here, so it is ignored. Registrations are
- * rate-limited per direct client address; beyond the limit the global handler answers 429.
+ * rate-limited per direct client address, before the body is bound; beyond the limit the global
+ * handler answers 429.
  */
 @RestController
 @RequestMapping("${app.api.base-path}")
@@ -47,17 +49,15 @@ class RegistrationController {
 
 	private final AuditLog auditLog;
 
-	private final RateLimiters rateLimiters;
-
-	RegistrationController(RegistrationService registration, AuditLog auditLog, RateLimiters rateLimiters) {
+	RegistrationController(RegistrationService registration, AuditLog auditLog) {
 		this.registration = registration;
 		this.auditLog = auditLog;
-		this.rateLimiters = rateLimiters;
 	}
 
+	/** Rate-limited before the body is validated, so a malformed registration spends quota too (issue 18). */
 	@PostMapping("/register")
+	@RateLimitedByClientAddress(ClientAddressLimit.REGISTRATION)
 	ResponseEntity<Void> register(@Valid @RequestBody RegistrationRequest body, HttpServletRequest request) {
-		rateLimiters.registration().acquire(request.getRemoteAddr());
 		UUID accountId = registration.register(body.username(), body.email(), body.password());
 		auditLog.record(AuditEvent.success(AuditAction.USER_PROVISIONING).userId(accountId).request(request));
 		return ResponseEntity.status(HttpStatus.CREATED).build();

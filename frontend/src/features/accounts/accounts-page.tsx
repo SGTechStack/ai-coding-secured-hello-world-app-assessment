@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@components/ui/card';
 import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@components/ui/table';
+import { FieldErrors } from '@features/auth/field-errors';
 import { VALIDATION_DEBOUNCE_MS } from '@lib/constants';
 import { formatDate, formatTimestamp } from '@lib/locale';
 import { AccountRowActions } from './account-row-actions';
@@ -247,13 +248,4 @@ function ResetResult({ reset }: { reset: CreatedAccount }) {
       </AlertDescription>
     </Alert>
   );
-}
-
-function FieldErrors({ errors }: { errors: ReadonlyArray<{ message: string } | undefined> }) {
-  const messages = [...new Set(errors.map((error) => error?.message).filter(Boolean))];
-  return messages.map((message) => (
-    <p key={message} className="text-danger text-sm">
-      {message}
-    </p>
-  ));
 }

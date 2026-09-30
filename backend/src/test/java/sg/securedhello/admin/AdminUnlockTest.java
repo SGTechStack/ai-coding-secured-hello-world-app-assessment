@@ -206,8 +206,13 @@ class AdminUnlockTest extends CtxDefaultTest {
     @Proves({"T-ADM-036", "T-LCK-005"})
     void theSignInStatusShowsEveryLockAndAnUnlockClearsTheTrustedDevicesLocksToo() throws Exception {
         Account target = accounts.withRole("ADMIN");
-        factors.enrol(target);
-        Cookie device = DeviceCookies.earn(mockMvc, "198.51.100.36", target);
+        byte[] secret = factors.enrol(target);
+        // An administrator's browser is trusted at the verified code, not at the password (ADR-075).
+        CsrfSession signedIn = SignedIn.refreshed(mockMvc, DeviceCookies.login(mockMvc, "198.51.100.36", null,
+                target.username(), target.password()).getResponse().getCookie("SESSION"));
+        Cookie device = TotpFactors.verify(mockMvc, signedIn, factors.code(secret)).andReturn().getResponse()
+                .getCookie(DeviceCookies.NAME);
+        assertThat(device).as("device cookie").isNotNull();
         lockPassword(target);
         lockFactor(target);
         Instant until = accounts.lockoutState(target).lockedUntil();

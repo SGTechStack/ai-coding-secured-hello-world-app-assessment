@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import sg.securedhello.security.source.DeviceClaim;
@@ -106,12 +107,12 @@ public final class TrustedDevices {
      * the success still stands with no cookie.
      */
     public void trust(UUID userId, HttpServletRequest request, HttpServletResponse response) {
-        if (claim(request).filter(held -> held.userId().equals(userId)).isPresent()) {
-            return;
-        }
         try {
+            if (claim(request).filter(held -> held.userId().equals(userId)).isPresent()) {
+                return;
+            }
             issue(userId, response);
-        } catch (DataAccessException | NoSuchElementException notIssued) {
+        } catch (DataAccessException | TransactionException | NoSuchElementException notIssued) {
             log.warn("A trusted device was not issued: {}", notIssued.getClass().getSimpleName());
         }
     }

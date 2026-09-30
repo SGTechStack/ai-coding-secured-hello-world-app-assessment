@@ -283,8 +283,13 @@ class PasswordManagementIT extends AbstractIntegrationTest {
   @DisplayName("confirm sets the new password, clears the flag and kills every session")
   void confirmCompletesTheFlow() {
     ApiClient admin = adminSession();
-    register("confirmer", "lantern quiet field");
+    ApiClient victim = register("confirmer", "lantern quiet field");
     var user = userRepository.findByUsername("confirmer").orElseThrow();
+    // A session that is live BEFORE the reset, so "invalidates all existing sessions" has something
+    // to invalidate. Without this the criterion is untestable and the assertion below is vacuous --
+    // which is what this test was before: its name claimed the session kill and its body never
+    // checked it (prd:78, Story 7).
+    assertThat(victim.get("/currentUser").getStatusCode()).isEqualTo(HttpStatus.OK);
 
     admin.fetchCsrf();
     String token =
@@ -305,10 +310,37 @@ class PasswordManagementIT extends AbstractIntegrationTest {
 
     assertThat(userRepository.findByUsername("confirmer").orElseThrow().isRequirePasswordChange())
         .isFalse();
+    // The session that was live before the reset is now dead. PRD Story 7 requires this explicitly,
+    // and it is the half a "the new password works" assertion cannot reach: a reset that set the
+    // password without revoking sessions would pass every other assertion in this test.
+    assertThat(victim.get("/currentUser").getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     assertThat(new ApiClient(port).login("confirmer", "amber tunnel window").getStatusCode())
         .isEqualTo(HttpStatus.OK);
     assertThat(new ApiClient(port).login("confirmer", "lantern quiet field").getStatusCode())
         .isEqualTo(HttpStatus.UNAUTHORIZED);
+  }
+
+  @Test
+  @DisplayName("a reset request's response time is bounded below, for registered and unregistered alike")
+  void resetRequestTimingIsBounded() {
+    // Std:247 says "response timing". The floor is a PARTIAL discharge and this test claims exactly
+    // that and no more: it asserts the configured lower bound is honoured, NOT that the handling is
+    // constant-time. Anything stronger would be a claim the implementation does not support.
+    register("timed", "lantern quiet field");
+
+    for (String email : List.of("timed@example.com", "nobody-at-all@example.com")) {
+      ApiClient client = new ApiClient(port);
+      client.fetchCsrf();
+      long startNanos = System.nanoTime();
+      ResponseEntity<String> response =
+          client.post("/auth/password-reset/request", "{\"email\":\"" + email + "\"}");
+      Duration elapsed = Duration.ofNanos(System.nanoTime() - startNanos);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+      assertThat(elapsed)
+          .as("the configured 250ms floor must apply to %s", email)
+          .isGreaterThanOrEqualTo(Duration.ofMillis(250));
+    }
   }
 
   @Test

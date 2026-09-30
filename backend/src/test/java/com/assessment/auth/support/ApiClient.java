@@ -224,6 +224,22 @@ public class ApiClient {
     return this;
   }
 
+  /**
+   * Adopts another client's session cookie and CSRF token, so several clients can act on one session.
+   *
+   * <p>For the concurrent case only, and it is needed rather than convenient. The CSRF repository is
+   * session-bound, so parallel requests must all carry the <em>same</em> session cookie or they fail
+   * CSRF before reaching what the test is about. One {@code ApiClient} cannot serve them: its cookie
+   * jar is a plain map and concurrent writes to it would be the flakiness, not the subject. So each
+   * thread gets its own client sharing one session's credentials.
+   */
+  public ApiClient sharingSessionWith(ApiClient other) {
+    this.cookies.putAll(other.cookies);
+    this.csrfToken = other.csrfToken;
+    this.csrfHeaderName = other.csrfHeaderName;
+    return this;
+  }
+
   // ---------------------------------------------------------------- tiny JSON helpers
 
   /**

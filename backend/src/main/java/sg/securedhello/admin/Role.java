@@ -1,7 +1,5 @@
 package sg.securedhello.admin;
 
-import java.util.Arrays;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 /**
@@ -26,7 +24,7 @@ public enum Role {
      */
     @JsonCreator
     static Role named(String name) {
-        return Arrays.stream(values()).filter(role -> role.name().equals(name)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("No role is named " + name));
+        // A delegating creator, so Jackson never falls back to its default enum binding, which accepts ordinals.
+        return valueOf(name);
     }
 }

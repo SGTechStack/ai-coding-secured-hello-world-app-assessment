@@ -39,10 +39,9 @@ import sg.securedhello.user.UserAccountRepository;
  *   <li>attach the audit file and write the intent row, then apply everything in one transaction
  *       ({@link RecoveryApplier}), then write the outcome row (REJ-090; R-RUN-010).</li>
  * </ol>
- * It bypasses {@code AdminActionGuard} on purpose: {@code both} must be able to take the system to zero enrolled
- * admins, which is what break-glass means, and with the application stopped there is no concurrent guard to race and
- * no signed-in actor for the self-action check. The guard's count, the enrolled admins, is audited before and after
- * instead, and a transition to zero is the alert (ADR-072; ADR-048).
+ * The apply bypasses {@code AdminActionGuard} on purpose ({@link RecoveryApplier}): with the application stopped there
+ * is no concurrent guard to race and no signed-in actor for the self-action check. The guard's count, the enrolled
+ * admins, is audited before and after instead, and a transition to zero is the alert (ADR-072; ADR-048).
  *
  * <p>The operator's output is {@link RecoveryReport}'s. No secret is written to any stream (T-AUD-027).
  */

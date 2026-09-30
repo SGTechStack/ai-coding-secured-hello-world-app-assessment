@@ -361,6 +361,19 @@ class RecoveryRunnerTest extends CtxDefaultTest {
     }
 
     @Test
+    void aBatchFileSavedWithAByteOrderMarkNamesItsFirstAccountUnchanged(@TempDir Path directory) throws IOException {
+        Account first = accounts.user();
+        Account second = accounts.user();
+        Path input = Files.writeString(directory.resolve("bom.txt"),
+                "﻿" + first.username() + "\n" + second.username() + "\n");
+
+        Run planned = dryRun("password", "--batch=" + input);
+
+        assertThat(planned.status()).as(planned.err()).isZero();
+        assertThat(planned.out()).contains(first.id().toString(), second.id().toString());
+    }
+
+    @Test
     void aBatchOverItsCapOrNamingAnInadmissibleAccountIsRefusedAsAWhole(@TempDir Path directory)
             throws IOException {
         Account kept = accounts.user();

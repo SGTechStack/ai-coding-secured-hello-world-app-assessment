@@ -37,7 +37,6 @@ import sg.securedhello.testsupport.SignedIn;
  */
 class LockoutCardinalityTest extends CtxBudgetTest {
 
-
     @Autowired
     private LockoutCardinalityProperties cardinality;
 

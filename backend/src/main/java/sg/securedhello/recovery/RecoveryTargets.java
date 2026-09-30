@@ -69,7 +69,7 @@ final class RecoveryTargets {
         byte[] input = batchInput(invocation.batch());
         // Canonical before the duplicate check, so two spellings of one account cannot both pass (ADR-045).
         List<String> usernames = new String(input, StandardCharsets.UTF_8).lines().map(String::strip)
-                .map(line -> line.startsWith("﻿") ? line.substring(1) : line)
+                .map(line -> line.startsWith("\uFEFF") ? line.substring(1) : line)
                 .filter(line -> !line.isEmpty()).map(Identifiers::canonical).toList();
         if (usernames.isEmpty() || usernames.size() > RecoveryRunner.BATCH_CAP) {
             throw new RecoveryRefusedException("the batch file must name 1 to " + RecoveryRunner.BATCH_CAP

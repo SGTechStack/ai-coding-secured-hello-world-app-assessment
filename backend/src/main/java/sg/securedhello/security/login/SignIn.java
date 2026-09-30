@@ -267,6 +267,7 @@ public final class SignIn {
         @Override
         protected void allowableSessionsExceeded(List<SessionInformation> sessions, int allowableSessions,
                 SessionRegistry registry) {
+            // A mutable list: the framework sorts it in place to pick the least recently used sessions.
             super.allowableSessionsExceeded(sessions.stream().map(Displaced::new)
                     .collect(Collectors.toCollection(ArrayList::new)), allowableSessions, registry);
         }

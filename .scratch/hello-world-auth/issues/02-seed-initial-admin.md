@@ -6,9 +6,9 @@
 
 **Status:** ready-for-agent
 
-- [ ] With no `ADMIN` Account, startup creates one with a hashed password, enabled, and no forced password change
-- [ ] With an `ADMIN` Account present, restart creates no duplicate
-- [ ] Cloud profile with no admin and no configured password fails startup with a clear message
-- [ ] No default or hard-coded password exists in code or committed config; secrets stay out of the repo
-- [ ] The seed's password is never logged
-- [ ] Integration tests cover seeds-once, no-duplicate and fails-without-password
+- [x] With no `ADMIN` Account, startup creates one with a hashed password, enabled, and no forced password change
+- [x] With an `ADMIN` Account present, restart creates no duplicate
+- [x] Cloud profile with no admin and no configured password fails startup with a clear message
+- [x] No default or hard-coded password exists in code or committed config; secrets stay out of the repo
+- [x] The seed's password is never logged
+- [x] Integration tests cover seeds-once, no-duplicate and fails-without-password

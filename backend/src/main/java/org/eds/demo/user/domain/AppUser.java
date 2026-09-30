@@ -106,6 +106,11 @@ public class AppUser extends BaseAuditableEntity {
     return user;
   }
 
+  /** Stores a hash produced by the delegating encoder; never pass a plaintext password. */
+  public void updatePasswordHash(String passwordHash) {
+    this.passwordHash = passwordHash;
+  }
+
   public void updateEmail(String email) {
     this.email = (email != null && !email.isBlank()) ? email.trim() : null;
   }

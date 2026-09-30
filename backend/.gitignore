@@ -52,3 +52,6 @@ target/
 logs/
 # Local file-based H2 database (local profile)
 data/
+
+# Local-only secrets (e.g. app.admin.password); never commit
+/config/

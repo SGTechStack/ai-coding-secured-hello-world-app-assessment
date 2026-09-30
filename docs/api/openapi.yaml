@@ -1,0 +1,1211 @@
+openapi: 3.1.0
+
+info:
+  title: Secured Hello World API
+  version: 0.0.1-SNAPSHOT
+  summary: Username/password account lifecycle — registration, login, password recovery and Admin account management.
+  description: |
+    The HTTP contract of the Secured Hello World backend. Hand-written and verified against the
+    running application by `OpenApiDocumentTest`, which fails if an endpoint exists here but not in
+    the application, or the other way round (issue 17). It is a repository artifact: the application
+    serves no API-description endpoint, so there is nothing to fetch at runtime.
+
+    **Paths.** Every path below is the shipped default. The prefix is `app.api.base-path` (`/api`), so
+    a deployment that changes it moves every path with it.
+
+    **Errors.** Every error body is an RFC 9457 `application/problem+json` ProblemDetail carrying a
+    stable snake_case `code`. Integrators must branch on `code`, never on `detail`, which is prose and
+    may be reworded. Each operation lists the codes it can return. Four more can reach any operation
+    and are not repeated per operation:
+
+      - `400` `request_too_large` — the body exceeded `app.api.max-request-body-bytes` (16384 by
+        default). Enforced by a filter ahead of CSRF, authentication and every controller, so it
+        applies to operations that take no body as well.
+      - `400` `validation` — the body was not the expected JSON.
+      - `405` `method_not_allowed` and `415` `unsupported_media_type`.
+
+    Unknown JSON properties are ignored rather than rejected, so a field this document does not
+    declare is dropped before the handler sees it and never reaches a log or an audit event.
+
+    **The one error that is not a ProblemDetail.** A request from an origin outside
+    `app.cors.allowed-origins` is rejected by the CORS filter with `403` and a plain-text body, before
+    the handler chain that would shape a problem body. It carries no `code`.
+
+    **Rate limits.** `429` carries `Retry-After` in seconds. The body never says which limit was hit
+    or on what key, so a caller cannot use it to probe whether an Account or an address exists.
+
+    **What this API never discloses.** A failed login, a taken username or email, and a password-reset
+    request for an unknown address are all answered identically to their successful-lookup
+    counterparts. Treat the uniformity as deliberate: do not build a caller that infers existence from
+    a status, a code or a response time.
+
+servers:
+  - url: "{origin}"
+    description: The origin the API is served from. TLS 1.2 or better outside the `dev` profile.
+    variables:
+      origin:
+        default: http://localhost:8080
+        description: Scheme, host and port only; the paths below already carry the `/api` prefix.
+
+tags:
+  - name: Bootstrap
+    description: What the SPA fetches before it can send anything.
+  - name: Registration
+    description: Creating an Account.
+  - name: Authentication
+    description: Starting and ending a Session.
+  - name: Own account
+    description: What a logged-in Account holder may see and change about themselves.
+  - name: Password recovery
+    description: Setting a new password without knowing the old one.
+  - name: Account administration
+    description: Admin-only management of other Accounts.
+  - name: Operations
+    description: What the SPA reports about itself.
+
+security:
+  - sessionCookie: []
+    csrfToken: []
+
+paths:
+
+  /api/csrf:
+    get:
+      tags: [Bootstrap]
+      operationId: bootstrapCsrfToken
+      summary: Start a Session and get its CSRF token
+      description: |
+        The first call any client makes. It creates the Session if the request carries none, returns
+        the token bound to it, and sets the `SESSION` cookie. The response is `no-store`: the token
+        must never be cached.
+
+        A token lives for the life of its Session and is not single-use per request, but Spring issues
+        a new one at login and at logout, so a token obtained before either is rejected afterwards and
+        must be fetched again (ADR 0002).
+      security: []
+      responses:
+        "200":
+          description: The token and the header to send it in.
+          headers:
+            Set-Cookie:
+              description: The `SESSION` cookie, when the request carried no Session.
+              schema:
+                type: string
+            Cache-Control:
+              description: Always `no-store`.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsrfToken"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/register:
+    post:
+      tags: [Registration]
+      operationId: register
+      summary: Create an Account
+      description: |
+        Creates an enabled Account with the `USER` role. A `role` property in the body is ignored, so
+        registration can never grant `ADMIN`.
+
+        A taken username and a taken email give the same `user_exist` error, so neither is disclosed.
+        A username belonging to a Deleted Account is taken for good — its tombstone keeps it — while
+        that Account's email may be reused (ADR 0001).
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrationRequest"
+      responses:
+        "201":
+          description: The Account was created. The body is empty; the holder logs in to obtain a Session.
+        "400":
+          description: |
+            Either the username or email format is wrong (`validation`, with `fields`), the password
+            breaks the Credential policy (`password_policy`, with `violations`), or the username or
+            email is already taken (`user_exist`).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                validation:
+                  $ref: "#/components/examples/ValidationProblem"
+                password_policy:
+                  $ref: "#/components/examples/PasswordPolicyProblem"
+                user_exist:
+                  summary: The username or email is taken (which one is never said)
+                  value:
+                    type: "about:blank"
+                    title: Bad Request
+                    status: 400
+                    detail: user exist
+                    code: user_exist
+        "403":
+          $ref: "#/components/responses/CsrfInvalid"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      summary: Start a Session
+      description: |
+        On success the Session is replaced with a fresh one, so the `SESSION` cookie and the CSRF token
+        both change: fetch `/api/csrf` again afterwards. An Account has at most one Session, so a
+        second login ends the first.
+
+        An unknown username, a wrong password, a Locked Account and a Disabled Account are one and the
+        same `401 authentication_failed`. Repeated wrong passwords make the Account Locked and email
+        its holder; repeated failures from one address throttle that address. Both surface as `429`.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: |
+            Logged in. Check `passwordChangeRequired`: when it is true the Session may do nothing but
+            read `/api/me`, change the password and log out.
+          headers:
+            Set-Cookie:
+              description: The new Session's `SESSION` cookie.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnAccount"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          description: |
+            `authentication_failed`. One body for every cause, so it never reveals whether the username
+            exists or the Account is Locked or Disabled. Any Session the request carried is ended.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                type: "about:blank"
+                title: Unauthorized
+                status: 401
+                detail: The username or password is incorrect.
+                code: authentication_failed
+        "403":
+          $ref: "#/components/responses/CsrfInvalid"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: End the current Session
+      description: |
+        Ends the Session and asks the browser to clear what it holds for the origin. CSRF protection
+        stays on, so logging out on an expired Session is `401` or `403`; treat either as already
+        logged out (ADR 0002).
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Logged out.
+          headers:
+            Clear-Site-Data:
+              description: Always `"cache","cookies","storage"`.
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/CsrfInvalid"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/hello:
+    get:
+      tags: [Own account]
+      operationId: hello
+      summary: Greet the logged-in holder
+      description: |
+        Plain text, never HTML, so the greeting cannot carry markup into a client. The holder is taken
+        from the Session; there is no way to ask for anyone else's greeting.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: The greeting.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Hello, alice
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/PasswordChangeRequired"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/me:
+    get:
+      tags: [Own account]
+      operationId: ownAccount
+      summary: Read the caller's own Account
+      description: |
+        Reachable during a Required Password Change, so a client can read `passwordChangeRequired` and
+        route the holder to the change screen. If the Account has since been deleted the Session is
+        ended and the answer is `401`.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: The caller's own Account. Never carries a password hash or Password History.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnAccount"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/me/password:
+    patch:
+      tags: [Own account]
+      operationId: changeOwnPassword
+      summary: Change the caller's own password
+      description: |
+        The Account is taken from the Session, never from the request. On success every Session of the
+        Account ends, the request's own included, so the holder logs in again with the new password;
+        the holder is emailed, and a Required Password Change is cleared.
+
+        A wrong current password counts toward lockout exactly as a failed login does, so repeating it
+        locks the Account and emails its holder. A Locked Account gets the same
+        `current_password_invalid` answer as a wrong password.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChangeRequest"
+      responses:
+        "200":
+          description: Changed. Every Session of the Account is now ended, including this one.
+        "400":
+          description: |
+            `current_password_invalid` (also the answer when the Account is Locked), `password_policy`
+            with `violations`, `password_history` when the new password is one of the last
+            `app.credential.history-length` (3 by default), or `validation` for a missing field.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                current_password_invalid:
+                  summary: The current password was wrong; the attempt counts toward lockout
+                  value:
+                    type: "about:blank"
+                    title: Bad Request
+                    status: 400
+                    detail: The current password is incorrect.
+                    code: current_password_invalid
+                password_policy:
+                  $ref: "#/components/examples/PasswordPolicyProblem"
+                password_history:
+                  $ref: "#/components/examples/PasswordHistoryProblem"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/CsrfInvalid"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/password-reset/request:
+    post:
+      tags: [Password recovery]
+      operationId: requestPasswordReset
+      summary: Ask for a password-reset link
+      description: |
+        Always `202` with the same body, whether or not the address belongs to an Account, and answered
+        before any lookup: the Reset Token and the email are issued on a background executor so the
+        response time does not depend on whether the Account exists or is enabled. A caller cannot use
+        this endpoint to discover registered addresses.
+
+        The `429` is the exception, and it is deliberate: it depends only on the address supplied and
+        the client address, never on any Account.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "202":
+          description: Accepted. Says nothing about whether an Account exists for the address.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PasswordResetAccepted"
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "403":
+          $ref: "#/components/responses/CsrfInvalid"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/password-reset/confirm:
+    post:
+      tags: [Password recovery]
+      operationId: confirmPasswordReset
+      summary: Set a new password with a Reset Token
+      description: |
+        Redeems a single-use Reset Token (valid for `app.password-reset.token-expiry`, 30 minutes by
+        default) and sets the new password. Every Session of the Account ends and the holder is
+        emailed. A Required Password Change is cleared; an active lock is deliberately left in place.
+
+        An expired, unknown, already-redeemed or malformed token is one and the same `token_invalid`.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetConfirmRequest"
+      responses:
+        "200":
+          description: The password was set. Every Session of the Account is now ended.
+        "400":
+          description: |
+            `token_invalid`, `password_policy` with `violations`, `password_history`, or `validation`
+            for a missing field.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              examples:
+                token_invalid:
+                  summary: Expired, unknown, already redeemed or malformed — never distinguished
+                  value:
+                    type: "about:blank"
+                    title: Bad Request
+                    status: 400
+                    detail: password reset token expired or invalid
+                    code: token_invalid
+                password_policy:
+                  $ref: "#/components/examples/PasswordPolicyProblem"
+                password_history:
+                  $ref: "#/components/examples/PasswordHistoryProblem"
+        "403":
+          $ref: "#/components/responses/CsrfInvalid"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/client-events:
+    post:
+      tags: [Operations]
+      operationId: reportClientEvent
+      summary: Report a browser error or a page-load timing
+      description: |
+        The one endpoint exempt from CSRF, and the only one that needs no credential of any kind: a page
+        can fail before anyone has logged in, and requiring a token would make the server persist a
+        Session for every visitor and crawler that merely loaded a page (ADR 0002). Send it without
+        credentials — a `SESSION` cookie here buys nothing and only creates a Session row.
+
+        The body is deliberately too narrow to carry user data: a `kind` from a fixed set, a path in the
+        SPA's own shape, and a duration. There is no field for a message, a stack trace or an
+        identifier, and a query string or fragment is rejected because that is where a Reset Token
+        travels. Do not widen it.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientEventRequest"
+      responses:
+        "204":
+          description: Recorded. The body is empty.
+        "400":
+          description: |
+            `validation`. An unknown `kind`, a `path` outside the permitted shape, a `durationMs` on an
+            error kind, or a missing `durationMs` on a timed kind.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                type: "about:blank"
+                title: Bad Request
+                status: 400
+                detail: The request is invalid.
+                code: validation
+                fields: [path]
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/users:
+    get:
+      tags: [Account administration]
+      operationId: listAccounts
+      summary: List every Account
+      description: |
+        Admin only. Every call is audited, because the list exposes every Account's email address.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Every Account. Never carries a password hash or Password History.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminAccountView"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/AdminForbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/users/{id}/enabled:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    patch:
+      tags: [Account administration]
+      operationId: setAccountEnabled
+      summary: Enable or disable an Account
+      description: |
+        Admin only. Disabling ends every Session of the target at once, so it takes effect immediately.
+        Re-enabling deliberately does not end Sessions and does not clear a Required Password Change
+        (ADR 0001).
+
+        An Admin can never target their own Account, and the change may not leave the system with no
+        enabled Admin.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnabledRequest"
+      responses:
+        "200":
+          description: Applied. Already being in the requested state is not an error.
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/AdminActionForbidden"
+        "404":
+          $ref: "#/components/responses/AccountNotFound"
+        "409":
+          $ref: "#/components/responses/LastAdmin"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/users/{id}/role:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    patch:
+      tags: [Account administration]
+      operationId: changeAccountRole
+      summary: Change an Account's role
+      description: |
+        Admin only. Ends every Session of the target, so the new role is in force at once rather than
+        whenever the target next logs in.
+
+        An Admin can never target their own Account, and the change may not leave the system with no
+        enabled Admin.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoleRequest"
+      responses:
+        "200":
+          description: Applied. Already holding the requested role is not an error.
+        "400":
+          $ref: "#/components/responses/ValidationProblem"
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/AdminActionForbidden"
+        "404":
+          $ref: "#/components/responses/AccountNotFound"
+        "409":
+          $ref: "#/components/responses/LastAdmin"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/users/{id}/unlock:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    post:
+      tags: [Account administration]
+      operationId: unlockAccount
+      summary: Clear an Account's lock
+      description: |
+        Admin only. Clears the lock and the failed-attempt counter, so the holder can log in again
+        without waiting out the lockout period. Sessions are untouched. An Account that is not Locked
+        is not an error.
+
+        An Admin can never target their own Account: an Admin locked out of their own Account cannot
+        unlock it themselves.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: The Account is not Locked and its failure counter is reset.
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/AdminActionForbidden"
+        "404":
+          $ref: "#/components/responses/AccountNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/users/{id}/require-password-change:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    post:
+      tags: [Account administration]
+      operationId: requireAccountPasswordChange
+      summary: Require an Account to change its password
+      description: |
+        Admin only, for a suspected compromise. Ends every Session of the target at once and confines
+        it, at its next login, to reading its own Account, changing its password and logging out. The
+        flag is cleared by a Password Change or a password reset.
+
+        Unlike the other actions here, an Admin **may** target their own Account — with the intended
+        consequence that their own Session ends too. There is no last-Admin guard, because the Account
+        keeps its role.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "200":
+          description: Applied. The target's Sessions are ended. Already being flagged is not an error.
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/AdminWriteForbidden"
+        "404":
+          $ref: "#/components/responses/AccountNotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/users/{id}:
+    parameters:
+      - $ref: "#/components/parameters/AccountId"
+    delete:
+      tags: [Account administration]
+      operationId: deleteAccount
+      summary: Delete an Account, leaving a tombstone
+      description: |
+        Admin only. In one transaction it writes a tombstone and removes the Account with its Reset
+        Tokens and Password History; the target's Sessions then end, so the holder is logged out at
+        once. The tombstone keeps the username for good, so it can never be registered again, while the
+        email may be reused (ADR 0001).
+
+        Deletion is not reversible and a second call returns `404`. An Admin can never delete their own
+        Account, and a deletion may not leave the system with no enabled Admin.
+      security:
+        - sessionCookie: []
+          csrfToken: []
+      responses:
+        "204":
+          description: Deleted. The body is empty.
+        "401":
+          $ref: "#/components/responses/AuthenticationRequired"
+        "403":
+          $ref: "#/components/responses/AdminActionForbidden"
+        "404":
+          $ref: "#/components/responses/AccountNotFound"
+        "409":
+          $ref: "#/components/responses/LastAdmin"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+
+  securitySchemes:
+
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: SESSION
+      description: |
+        The server-side Session. `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` everywhere except
+        the `dev` profile — so it is never readable by script. Set by `GET /api/csrf` and replaced on
+        login, which is why the cookie must be re-read after logging in.
+
+        An Account has at most one Session (`app.session.max-concurrent-per-account`), so logging in
+        again ends the previous one. A Session expires after `app.session.idle-timeout` (15 minutes)
+        without use, and after `app.session.absolute-timeout` (8 hours) regardless of use.
+
+        Operations that list this scheme and are not under `/api/admin` need only *some* Session. The
+        public ones — registration, login and both password-reset calls — need it because the CSRF
+        token lives inside the Session, so an anonymous Session is enough; the others need an
+        authenticated one. Everything under `/api/admin` additionally requires the `ADMIN` role.
+
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-TOKEN
+      description: |
+        The CSRF token of the Session named by the `SESSION` cookie, fetched from `GET /api/csrf` and
+        sent in this header. It is never delivered in a JS-readable cookie: the double-submit-cookie
+        pattern is prohibited here and must not be introduced (ADR 0002).
+
+        Required on every state-changing request — including logout — with the single exception of
+        `POST /api/client-events`. A missing or wrong token is `403 csrf_invalid`. A token is valid for
+        the life of its Session, but login and logout each issue a new one, so re-fetch after either.
+
+        Send it as a header, not a form field: request bodies are JSON throughout, and a form-encoded
+        body will fail CSRF.
+
+  parameters:
+
+    AccountId:
+      name: id
+      in: path
+      required: true
+      description: The target Account's system-generated UUID.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+
+    ProblemDetail:
+      type: object
+      description: |
+        RFC 9457 problem body, sent as `application/problem+json`. `code` is the stable, machine-readable
+        discriminator; branch on it. `detail` is human prose and may be reworded without notice. An
+        unexpected server fault is always the same opaque `internal_error`, and never carries a message,
+        a class name, SQL or a stack trace.
+      required: [type, title, status, detail, code]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: Always `about:blank`; this API defines no problem-type URIs.
+          examples: ["about:blank"]
+        title:
+          type: string
+          description: The status reason phrase.
+        status:
+          type: integer
+          description: Repeats the HTTP status code.
+        detail:
+          type: string
+          description: Human-readable prose. Never branch on it.
+        instance:
+          type: string
+          format: uri-reference
+          description: Present on problems Spring MVC itself produced.
+        code:
+          type: string
+          description: The stable error code.
+          enum:
+            - validation
+            - request_too_large
+            - user_exist
+            - password_policy
+            - password_history
+            - current_password_invalid
+            - token_invalid
+            - authentication_failed
+            - authentication_required
+            - csrf_invalid
+            - access_denied
+            - password_change_required
+            - self_action_forbidden
+            - not_found
+            - method_not_allowed
+            - last_admin
+            - unsupported_media_type
+            - too_many_requests
+            - request_error
+            - internal_error
+        fields:
+          type: array
+          description: On `validation`, the names of the failing fields — never their values.
+          items:
+            type: string
+        violations:
+          type: array
+          description: On `password_policy`, every Credential policy rule the password broke.
+          items:
+            type: string
+            enum: [min_length, max_length, max_bytes, uppercase, lowercase, digit, special, common_password]
+
+    CsrfToken:
+      type: object
+      required: [headerName, token]
+      properties:
+        headerName:
+          type: string
+          description: The header to send the token in. Always `X-CSRF-TOKEN`.
+          examples: [X-CSRF-TOKEN]
+        token:
+          type: string
+          description: The token bound to this Session. Treat it as a secret and never log it.
+
+    OwnAccount:
+      type: object
+      description: The caller's own Account. Never carries credential material.
+      required: [id, username, email, role, passwordChangeRequired]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/Role"
+        passwordChangeRequired:
+          type: boolean
+          description: |
+            While true the Session may only read `/api/me`, change the password and log out. Everything
+            else is `403 password_change_required`.
+
+    AdminAccountView:
+      type: object
+      description: One row of the Admin Account list. Never carries a password hash or Password History.
+      required: [id, username, email, role, enabled, locked, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: "#/components/schemas/Role"
+        enabled:
+          type: boolean
+          description: Whether an Admin permits the Account to log in.
+        locked:
+          type: boolean
+          description: Whether the Account is Locked *now*; a lock whose period has passed reads as false.
+        createdAt:
+          type: string
+          format: date-time
+
+    Role:
+      type: string
+      description: The two fixed roles (ADR 0001). `ADMIN` may manage other Accounts.
+      enum: [USER, ADMIN]
+
+    Password:
+      type: string
+      format: password
+      description: |
+        Checked only by the Credential policy, so every rule it breaks comes back as a
+        `password_policy` violation rather than a `validation` field error. At least
+        `app.credential.min-length` (12) and at most 64 characters and 72 bytes, with an upper-case
+        letter, a lower-case letter, a digit and a special character, and not on the common-password
+        list.
+      minLength: 12
+      maxLength: 64
+
+    RegistrationRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          description: 3 to 32 letters and digits only. Case-sensitive and unique across live Accounts and tombstones.
+          pattern: "^[A-Za-z0-9]{3,32}$"
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          $ref: "#/components/schemas/Password"
+
+    LoginRequest:
+      type: object
+      description: |
+        Capped before any business logic, and not format-checked: a malformed username simply matches no
+        Account, which is answered exactly like a wrong password.
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          maxLength: 32
+        password:
+          type: string
+          format: password
+          maxLength: 64
+
+    PasswordChangeRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          description: A wrong value counts toward lockout exactly as a failed login does.
+        newPassword:
+          $ref: "#/components/schemas/Password"
+
+    PasswordResetRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Matched case-insensitively. Whether it belongs to an Account is never disclosed.
+
+    PasswordResetConfirmRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          description: |
+            The single-use Reset Token from the emailed link. Keep it out of logs, referrers and
+            analytics: it is enough on its own to take over the Account until it expires.
+        newPassword:
+          $ref: "#/components/schemas/Password"
+
+    PasswordResetAccepted:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: The same sentence for every request, whether or not the address is registered.
+          examples: ["If an Account exists for that email, a reset link has been sent."]
+
+    EnabledRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    RoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          $ref: "#/components/schemas/Role"
+
+    ClientEventRequest:
+      type: object
+      description: |
+        One Client Event. The `kind` is the whole description of what happened: there is deliberately no
+        field for a message, a stack trace, an identifier or anything a person typed.
+      required: [kind, path]
+      properties:
+        kind:
+          type: string
+          description: |
+            An error kind (`RENDER_ERROR`, `UNCAUGHT_ERROR`, `UNHANDLED_REJECTION`) must omit
+            `durationMs`; a timed kind (`TIME_TO_FIRST_BYTE`, `PAGE_LOAD`) must carry it. Getting that
+            pairing wrong is `400 validation`.
+          enum: [RENDER_ERROR, UNCAUGHT_ERROR, UNHANDLED_REJECTION, TIME_TO_FIRST_BYTE, PAGE_LOAD]
+        path:
+          type: string
+          description: |
+            The SPA path it happened on, at most 63 further characters of `A-Za-z0-9/_-` after the
+            leading slash. A query string or fragment is rejected, because that is where a Reset Token travels.
+          pattern: "^/[A-Za-z0-9/_-]{0,63}$"
+        durationMs:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 3600000
+          description: Required for a timed kind and refused for an error kind.
+
+  examples:
+
+    ValidationProblem:
+      summary: A field's format is wrong; the names are listed, never the values
+      value:
+        type: "about:blank"
+        title: Bad Request
+        status: 400
+        detail: The request is invalid.
+        code: validation
+        fields: [email, username]
+
+    PasswordPolicyProblem:
+      summary: Every broken Credential policy rule, so the holder can fix them at once
+      value:
+        type: "about:blank"
+        title: Bad Request
+        status: 400
+        detail: The password does not meet the password policy.
+        code: password_policy
+        violations: [min_length, digit, special]
+
+    PasswordHistoryProblem:
+      summary: The password is one of the Account's last few
+      value:
+        type: "about:blank"
+        title: Bad Request
+        status: 400
+        detail: The password was used recently.
+        code: password_history
+
+  responses:
+
+    ValidationProblem:
+      description: "`validation`: a field is missing or malformed. `fields` names them; values are never echoed."
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            validation:
+              $ref: "#/components/examples/ValidationProblem"
+
+    AuthenticationRequired:
+      description: |
+        `authentication_required`: there is no Session, it expired, or its Account has been deleted — in
+        the last case the Session is ended as part of answering. Log in again.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "about:blank"
+            title: Unauthorized
+            status: 401
+            detail: Authentication is required.
+            code: authentication_required
+
+    CsrfInvalid:
+      description: |
+        `csrf_invalid`: the `X-CSRF-TOKEN` header was missing or did not match the Session's token.
+        Fetch `GET /api/csrf` again and retry — login and logout each issue a new token.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "about:blank"
+            title: Forbidden
+            status: 403
+            detail: The CSRF token is missing or invalid.
+            code: csrf_invalid
+
+    PasswordChangeRequired:
+      description: |
+        `password_change_required`: the Account must change its password before doing anything else. Only
+        `GET /api/me`, `PATCH /api/me/password`, `POST /api/logout` and `GET /api/csrf` are reachable
+        until it does.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "about:blank"
+            title: Forbidden
+            status: 403
+            detail: The password must be changed before anything else.
+            code: password_change_required
+
+    AdminForbidden:
+      description: |
+        `access_denied` when the Session does not hold the `ADMIN` role, or
+        `password_change_required` when the Admin must change their own password first.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            access_denied:
+              summary: Not an Admin
+              value:
+                type: "about:blank"
+                title: Forbidden
+                status: 403
+                detail: Access is denied.
+                code: access_denied
+            password_change_required:
+              summary: The Admin must change their own password first
+              value:
+                type: "about:blank"
+                title: Forbidden
+                status: 403
+                detail: The password must be changed before anything else.
+                code: password_change_required
+
+    AdminWriteForbidden:
+      description: |
+        `csrf_invalid`, `access_denied` when the Session does not hold the `ADMIN` role, or
+        `password_change_required` when the Admin must change their own password first. There is no
+        `self_action_forbidden` here: an Admin may require a password change of their own Account.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            access_denied:
+              summary: Not an Admin
+              value:
+                type: "about:blank"
+                title: Forbidden
+                status: 403
+                detail: Access is denied.
+                code: access_denied
+            csrf_invalid:
+              summary: The CSRF token was missing or wrong
+              value:
+                type: "about:blank"
+                title: Forbidden
+                status: 403
+                detail: The CSRF token is missing or invalid.
+                code: csrf_invalid
+
+    AdminActionForbidden:
+      description: |
+        `csrf_invalid`, `access_denied` when the Session does not hold the `ADMIN` role,
+        `password_change_required` when the Admin must change their own password first, or
+        `self_action_forbidden` when the Admin targeted their own Account.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            self_action_forbidden:
+              summary: An Admin may never target their own Account with this action
+              value:
+                type: "about:blank"
+                title: Forbidden
+                status: 403
+                detail: An Admin cannot perform this action on their own Account.
+                code: self_action_forbidden
+            access_denied:
+              summary: Not an Admin
+              value:
+                type: "about:blank"
+                title: Forbidden
+                status: 403
+                detail: Access is denied.
+                code: access_denied
+            csrf_invalid:
+              summary: The CSRF token was missing or wrong
+              value:
+                type: "about:blank"
+                title: Forbidden
+                status: 403
+                detail: The CSRF token is missing or invalid.
+                code: csrf_invalid
+
+    AccountNotFound:
+      description: "`not_found`: no Account has that id. A deleted Account's id is gone for good."
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "about:blank"
+            title: Not Found
+            status: 404
+            detail: No such Account.
+            code: not_found
+
+    LastAdmin:
+      description: "`last_admin`: the change would leave the system with no enabled Admin, so it was refused."
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "about:blank"
+            title: Conflict
+            status: 409
+            detail: This change would leave no enabled Admin.
+            code: last_admin
+
+    TooManyRequests:
+      description: |
+        `too_many_requests`. The body never says which limit was hit or on what key, so it cannot be
+        used to probe whether an Account or an address exists. Wait `Retry-After` seconds.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "about:blank"
+            title: Too Many Requests
+            status: 429
+            detail: too many requests
+            code: too_many_requests
+
+    InternalError:
+      description: |
+        `internal_error`: an unexpected server fault, logged once on the server. The body is deliberately
+        opaque and never carries a message, a class name, SQL or a stack trace.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            type: "about:blank"
+            title: Internal Server Error
+            status: 500
+            detail: An unexpected error occurred.
+            code: internal_error

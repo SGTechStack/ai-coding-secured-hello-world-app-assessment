@@ -1,4 +1,5 @@
-import { Link, useSearch } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import type { FormEvent } from 'react';
 import { Alert } from '../../common/ui/alert';
 import { Button } from '../../common/ui/button';
 import { LINK_CLASSES } from '../../common/ui/styles';
@@ -16,10 +17,15 @@ const FEEDBACK_TEXT: Record<LoginFeedback, string> = {
 
 /** Responsive entry page for establishing an authenticated session. Renders without contacting the server. */
 export function LoginPage() {
-  const { field, errors, feedback, attempted, submitting, loadingFrame, onSubmit } = useLoginForm();
-  // Set only by a completed Password reset; gone for good after the first login attempt, so it never sits
-  // beside (or reappears after) that attempt's feedback.
-  const passwordUpdated = useSearch({ from: '/login' }).reset === 'done' && !attempted;
+  const { field, errors, feedback, submitting, loadingFrame, onSubmit } = useLoginForm();
+  const navigate = useNavigate();
+  // Set only by a completed Password reset. The first login attempt drops it from the URL, so the
+  // confirmation never sits beside that attempt's feedback, nor returns on edit, refresh or Back.
+  const passwordUpdated = useSearch({ from: '/login' }).reset === 'done';
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    if (passwordUpdated) void navigate({ to: '/login', search: {}, replace: true });
+    void onSubmit(event);
+  };
   const buttonText = submitting ? `Logging in${'.'.repeat(loadingFrame + 1)}` : 'Log in';
   // A form-level failure replaces field messages so only one alert is announced.
   const fieldError = (name: 'username' | 'password') => (feedback ? undefined : errors[name]?.message);
@@ -48,7 +54,7 @@ export function LoginPage() {
           {FEEDBACK_TEXT[feedback]}
         </Alert>
       )}
-      <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
+      <form className="grid gap-5" onSubmit={submit}>
         <TextField
           autoComplete="username"
           disabled={submitting}

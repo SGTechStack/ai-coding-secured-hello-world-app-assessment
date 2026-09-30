@@ -10,6 +10,7 @@ import local.builderday.account.administration.service.AccountStatusService.Resu
 import local.builderday.account.core.service.UserProfileService;
 import local.builderday.common.exception.ApiError;
 import local.builderday.common.exception.ProblemDetails;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * row in place. A non-UUID path id is a framework 400 {@code INVALID_REQUEST}, never a 500.
  */
 @RestController
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 public class AccountStatusController {
   private final AccountStatusService accountStatusService;
   private final UserProfileService userProfileService;

@@ -23,6 +23,9 @@ export default defineConfig(({ command }) => ({
   test: {
     environment: 'jsdom',
     setupFiles: './src/test-setup.ts',
+    // The route-tree tests render the full User list and query it by role; under coverage instrumentation
+    // several take 5-8s, past vitest's 5s default. ponytail: raise further or speed up rowOf() if they grow.
+    testTimeout: 20000,
     // `npm run coverage` exits non-zero below the threshold, which fails the Maven build (backend/pom.xml).
     coverage: {
       provider: 'v8',

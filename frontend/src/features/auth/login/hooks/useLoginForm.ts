@@ -23,7 +23,7 @@ export function useLoginForm() {
     register,
     handleSubmit,
     clearErrors,
-    formState: { errors, isSubmitting, isSubmitted },
+    formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     reValidateMode: 'onSubmit',
@@ -56,9 +56,6 @@ export function useLoginForm() {
       }),
     errors,
     feedback,
-    /** True once any Login attempt was made, valid or not; stays true while the page is open. */
-    // isSubmitted only turns true once the pending time ends; isSubmitting covers the attempt until then.
-    attempted: isSubmitting || isSubmitted,
     submitting: submission.pending,
     loadingFrame: submission.frame,
     onSubmit: handleSubmit(submit, () => setFeedback(null)),

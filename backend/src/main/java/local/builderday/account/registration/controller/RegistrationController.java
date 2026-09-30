@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -33,6 +34,7 @@ import tools.jackson.databind.ObjectMapper;
  * {@code REQUEST_TOO_LARGE}, {@code FIELD_NOT_ALLOWED} and every field violation reported together as stable codes.
  */
 @RestController
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 public class RegistrationController {
   static final int MAX_BODY_BYTES = 4 * 1024;
   static final String CREATED_MESSAGE = "Account created. You can now log in.";

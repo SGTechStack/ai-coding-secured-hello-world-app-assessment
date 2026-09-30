@@ -4,11 +4,13 @@ import local.builderday.common.exception.ApiError;
 import local.builderday.common.exception.ProblemDetails;
 import local.builderday.account.core.controller.dto.ProfileResponse;
 import local.builderday.account.core.service.UserProfileService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * request.
  */
 @RestController
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 public class ProfileController {
   private static final String ROLE_PREFIX = "ROLE_";
 

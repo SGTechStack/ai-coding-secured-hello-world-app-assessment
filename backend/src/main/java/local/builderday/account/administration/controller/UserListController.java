@@ -9,9 +9,11 @@ import local.builderday.account.administration.service.UserListService;
 import local.builderday.account.core.service.UserProfileService;
 import local.builderday.common.audit.SecurityAudit;
 import org.springframework.data.web.PagedModel;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  * what.
  */
 @RestController
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserListController {
   private final UserListService userListService;
   private final UserProfileService userProfileService;

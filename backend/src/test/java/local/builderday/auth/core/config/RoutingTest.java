@@ -142,7 +142,10 @@ class RoutingTest {
         row(USER, GET, "/api/fixture/ungranted", JSON, false, 403, "ACCESS_DENIED"),
         row(ADMIN, GET, "/api/fixture/ungranted", JSON, false, 403, "ACCESS_DENIED"),
         row(USER, POST, "/api/hello", JSON, true, 403, "ACCESS_DENIED"),
-        row(USER, GET, "/api/hello", JSON, false, 200, OK)));
+        row(USER, GET, "/api/hello", JSON, false, 200, OK),
+        // Every API endpoint produces only JSON, even one that answers without a body.
+        row(USER, GET, "/api/hello", HTML, false, 406, NO_CODE),
+        row(ADMIN, DELETE, "/api/admin/users/00000000-0000-0000-0000-000000000000", HTML, true, 406, NO_CODE)));
   }
 
   private static Arguments row(Caller caller, HttpMethod method, String path, String accept, boolean csrf, int status,

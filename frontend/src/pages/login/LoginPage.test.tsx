@@ -64,13 +64,18 @@ describe('LoginPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Password updated. Log in with your new password.');
   });
 
-  it('drops the Password reset confirmation after a failed login, even once the error clears', async () => {
+  it('drops the Password reset confirmation from the URL on the first login attempt, for good', async () => {
     search = { reset: 'done' };
+    navigate.mockImplementation((to: { to: string; search?: typeof search }) => {
+      if (to.to === '/login') search = to.search ?? {};
+      return Promise.resolve();
+    });
     mutateAsync.mockRejectedValueOnce(axiosFailure(401));
     const button = renderReadyPage();
     enterValidCredentials();
     fireEvent.click(button);
 
+    expect(navigate).toHaveBeenCalledWith({ to: '/login', search: {}, replace: true });
     expect(await screen.findByText('Invalid username or password')).toBeVisible();
     expect(screen.queryByText('Password updated. Log in with your new password.')).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByLabelText('Password')).toBeEnabled(), { timeout: 600 });

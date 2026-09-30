@@ -15,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -33,6 +34,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
  * built, so core imports none of them.
  */
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
   @Bean
@@ -74,8 +76,7 @@ public class SecurityConfig {
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityContextRepository securityContexts,
       AuthorizationProperties authorization, UserProfileService userProfileService,
-      @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping requestMappingHandlerMapping)
-      throws Exception {
+      @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping requestMappingHandlerMapping) {
     return http
         // Explicit save is the default.
         .securityContext(context -> context.securityContextRepository(securityContexts))

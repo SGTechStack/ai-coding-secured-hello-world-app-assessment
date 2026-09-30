@@ -29,14 +29,19 @@ public final class ProblemDetails {
   }
 
   public static ResponseEntity<ProblemDetail> response(ApiError error) {
-    return ResponseEntity.of(of(error)).build();
+    return entity(of(error));
   }
 
   /** {@code error} with an {@code errors} extension listing each distinct entry once, in order. */
   public static ResponseEntity<ProblemDetail> rejected(ApiError error, List<FieldErrorResponse> errors) {
     var problem = of(error);
     problem.setProperty("errors", errors.stream().distinct().toList());
-    return ResponseEntity.of(problem).build();
+    return entity(problem);
+  }
+
+  /** An explicit content type, so a controller's {@code produces = application/json} never downgrades it. */
+  private static ResponseEntity<ProblemDetail> entity(ProblemDetail problem) {
+    return ResponseEntity.status(problem.getStatus()).contentType(MediaType.APPLICATION_PROBLEM_JSON).body(problem);
   }
 
   /**

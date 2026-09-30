@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Visitor API endpoints of Password reset (ADR 0004, ADR 0001 amendment). CSRF-protected like every other mutation. */
 @RestController
-@RequestMapping("/api/auth/password-reset")
+@RequestMapping(path = "/api/auth/password-reset", produces = MediaType.APPLICATION_JSON_VALUE)
 public class PasswordResetController {
   static final String REQUESTED_MESSAGE =
       "If an account is registered with that email, a link to reset its password has been sent.";

@@ -39,12 +39,12 @@ public class AccountLifecycleService {
   public void setEnabled(String actor, UUID id, boolean enabled) {
     var target = find(id);
     if (enabled) {
-      target.setEnabled(true);
+      target.enable();
       audit(EVENT_ACCOUNT_ENABLED, "Account enabled", actor, target);
       return;
     }
     refuseSelf(actor, target, "disable");
-    target.setEnabled(false);
+    target.disable();
     accountSessions.endAllSessions(target.getUsername());
     audit(EVENT_ACCOUNT_DISABLED, "Account disabled", actor, target);
   }

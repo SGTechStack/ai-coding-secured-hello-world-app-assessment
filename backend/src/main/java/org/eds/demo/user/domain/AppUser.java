@@ -174,9 +174,14 @@ public class AppUser extends BaseAuditableEntity {
     return delay;
   }
 
-  /** Suspends ({@code false}) or restores ({@code true}) the Account's ability to sign in. */
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
+  /** Restores the Account's ability to sign in. */
+  public void enable() {
+    this.enabled = true;
+  }
+
+  /** Suspends the Account's ability to sign in. */
+  public void disable() {
+    this.enabled = false;
   }
 
   public void updateEmail(String email) {

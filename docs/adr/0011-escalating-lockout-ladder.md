@@ -115,7 +115,10 @@ contended would then guess without moving the counter or the NIST cap.
 **Decision.** The sign-in still gets the uniform 401 (ADR-033). The failure is not dropped: it is deferred, in memory,
 by username with the time it happened, and the next outcome for that account that takes the row lock (a failure or
 a success) counts every deferred failure first, oldest first, through the same `LockoutCounter`, then its own. So
-windows, rungs and the cap see each failure at its real time. A lock timeout on that later outcome defers again. A
+windows, rungs and the cap see each failure at its real time. If the deferred failures lock the account or disable its
+password, a correct password that arrives next is not counted as a success: the account's sessions end, the lockout
+enters the cardinality axis, and that sign-in gets the uniform 401 with a login-failure row, as it would have had the
+failures been counted in time. Any failure of that later outcome, contention or not, defers them again. A
 second wait for the same lock was not added: it would double the response time only under contention, which is a
 timing signal, and would still fail against a long holder.
 

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.jspecify.annotations.Nullable;
@@ -24,6 +25,7 @@ import sg.securedhello.audit.AccountContext;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.audit.AuditEvent;
 import sg.securedhello.audit.LockoutClearReason;
+import sg.securedhello.audit.LoginFailureReason;
 import sg.securedhello.audit.PasswordDisableReason;
 import sg.securedhello.security.lockout.LockoutCounter.Outcome;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
@@ -94,42 +96,85 @@ final class LockoutRecorder {
         due.add(now);
         List<Counted> counted;
         try {
-            counted = transactions.execute(status -> accounts.findForUpdateByUsername(username)
+            counted = keepingDeferred(username, due, () -> transactions.execute(status -> accounts
+                    .findForUpdateByUsername(username)
                     .filter(account -> account.getPasswordHash() != null)
                     .map(account -> endSessionsIfRestricted(username, failures(account, due)))
-                    .orElse(List.of()));
+                    .orElse(List.of())));
         } catch (PessimisticLockingFailureException contended) {
             // Contended (ADR-011): the sign-in has already failed and still gets the uniform 401, never a 500, and
             // the failure is not lost: it waits, with its own time, for the next outcome that takes the row lock.
-            deferred.put(username, due);
             log.warn("A wrong-password failure is deferred: the account row lock was not granted in time");
             return;
         }
-        counted.forEach(this::report);
-        if (counted.stream().anyMatch(result -> result.outcome().locked())) {
-            cardinality.recordLockout(sourceOf(event.getAuthentication().getDetails()), username);
+        settle(counted, username, event.getAuthentication().getDetails());
+    }
+
+    /**
+     * A correct password resets both counters, once any deferred failures are counted first. If those failures lock
+     * the account or disable its password, the success is not counted: the account's sessions end, and this sign-in
+     * is refused with the uniform 401 ({@link DeferredFailuresRefusal}), as it would have been had they been counted
+     * in time.
+     */
+    @EventListener
+    void rightPassword(AuthenticationSuccessEvent event) {
+        if (!(event.getAuthentication() instanceof UsernamePasswordAuthenticationToken token)
+                || !(token.getPrincipal() instanceof SignedInUser user)) {
+            return;
+        }
+        String username = user.getUsername();
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        List<Instant> due = deferred.take(username);
+        Success success = keepingDeferred(username, due, () -> transactions.execute(status -> accounts
+                .findForUpdateById(user.id())
+                .map(account -> {
+                    List<Counted> results = new ArrayList<>(failures(account, due));
+                    LoginFailureReason refusal = refusal(account.getLockoutState(), now);
+                    if (refusal != null) {
+                        sessions.endAll(username);
+                    } else {
+                        results.add(count(account, counter.success(account.getLockoutState())));
+                    }
+                    return new Success(results, refusal);
+                })
+                .orElse(new Success(List.of(), null))));
+        settle(success.counted(), username, token.getDetails());
+        if (success.refusal() != null) {
+            throw new DeferredFailuresRefusal(user.id(), success.refusal());
         }
     }
 
-    @EventListener
-    void rightPassword(AuthenticationSuccessEvent event) {
-        if (event.getAuthentication() instanceof UsernamePasswordAuthenticationToken token
-                && token.getPrincipal() instanceof SignedInUser user) {
-            List<Instant> due = deferred.take(user.getUsername());
-            List<Counted> counted;
-            try {
-                counted = transactions.execute(status -> accounts.findForUpdateById(user.id())
-                        .map(account -> {
-                            List<Counted> results = new ArrayList<>(failures(account, due));
-                            results.add(count(account, counter.success(account.getLockoutState())));
-                            return results;
-                        })
-                        .orElse(List.of()));
-            } catch (PessimisticLockingFailureException contended) {
-                deferred.put(user.getUsername(), due);
-                throw contended;
-            }
-            counted.forEach(this::report);
+    /** Why {@code state} refuses a sign-in at {@code now}: the password disabled, or a lock still running; or null. */
+    private static @Nullable LoginFailureReason refusal(PasswordLockoutState state, Instant now) {
+        if (state.passwordDisabledAt() != null) {
+            return LoginFailureReason.PASSWORD_DISABLED;
+        }
+        return state.lockedUntil() != null && state.lockedUntil().isAfter(now) ? LoginFailureReason.ACCOUNT_LOCKED
+                : null;
+    }
+
+    /** A correct password's counting: the rows to write, and why deferred failures refuse it, if they do. */
+    private record Success(List<Counted> counted, @Nullable LoginFailureReason refusal) {
+    }
+
+    /**
+     * Runs {@code work}, which counts {@code due} under the row lock; if it fails in any way, {@code due} goes back to
+     * the deferred failures, so no failure is lost, and the failure propagates.
+     */
+    private <T> T keepingDeferred(String username, List<Instant> due, Supplier<T> work) {
+        try {
+            return work.get();
+        } catch (RuntimeException failed) {
+            deferred.put(username, due);
+            throw failed;
+        }
+    }
+
+    /** Writes the rows for {@code counted}, and records a lockout in its source's cardinality set (ADR-015). */
+    private void settle(List<Counted> counted, String username, @Nullable Object details) {
+        counted.forEach(this::report);
+        if (counted.stream().anyMatch(result -> result.outcome().locked())) {
+            cardinality.recordLockout(sourceOf(details), username);
         }
     }
 
@@ -195,6 +240,12 @@ final class LockoutRecorder {
      */
     static final class DeferredFailures {
 
+        /**
+         * The most failures held for one username. The NIST cap is 100 consecutive failures; past it the password is
+         * disabled whatever follows, so more would change nothing and only cost memory.
+         */
+        static final int MAXIMUM_PER_USERNAME = 100;
+
         private final Map<String, List<Instant>> byUsername = new ConcurrentHashMap<>();
 
         /** Removes and returns {@code username}'s deferred failures, oldest first; a new, mutable list. */
@@ -205,8 +256,9 @@ final class LockoutRecorder {
 
         /** Defers {@code failures} for {@code username}, merged in time order with any already waiting. */
         void put(String username, List<Instant> failures) {
-            byUsername.merge(username, List.copyOf(failures), (waiting, more) -> Stream.concat(waiting.stream(),
-                    more.stream()).sorted().toList());
+            byUsername.merge(username, failures.stream().sorted().limit(MAXIMUM_PER_USERNAME).toList(),
+                    (waiting, more) -> Stream.concat(waiting.stream(), more.stream()).sorted()
+                            .limit(MAXIMUM_PER_USERNAME).toList());
         }
     }
 }

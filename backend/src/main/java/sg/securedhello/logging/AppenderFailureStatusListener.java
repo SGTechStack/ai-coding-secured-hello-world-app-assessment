@@ -45,7 +45,8 @@ public class AppenderFailureStatusListener implements StatusListener {
         @Override
         public void bindTo(MeterRegistry registry) {
             FunctionCounter.builder(COUNTER, FAILURES, AtomicLong::get)
-                    .description("Logging failures reported by Logback, such as an appender that cannot write")
+                    .description("Logback error statuses, such as an appender that stopped writing; an outage can "
+                            + "report once, so alert on any increase, not on its size")
                     .register(registry);
         }
     }

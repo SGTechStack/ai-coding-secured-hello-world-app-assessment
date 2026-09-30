@@ -2,6 +2,7 @@ package sg.securedhello.security;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.List;
 
 import jakarta.servlet.DispatcherType;
 
@@ -20,6 +21,13 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
+import org.springframework.security.web.header.HeaderWriter;
+import org.springframework.security.web.header.writers.CacheControlHeadersWriter;
+import org.springframework.security.web.header.writers.ContentSecurityPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.HstsHeaderWriter;
+import org.springframework.security.web.header.writers.XContentTypeOptionsHeaderWriter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
+import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
 import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.security.web.util.matcher.AnyRequestMatcher;
@@ -79,6 +87,15 @@ public class SecurityConfig {
      */
     static final String API_CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'";
 
+    /**
+     * The header set {@code HeaderWriterFilter} writes (Spring Security's defaults plus the API policy), for a refusal
+     * written before that filter runs: the source limiter's 429 (T-HDR-002).
+     */
+    private static final List<HeaderWriter> API_HEADERS = List.of(new CacheControlHeadersWriter(),
+            new XContentTypeOptionsHeaderWriter(), new XXssProtectionHeaderWriter(), new HstsHeaderWriter(),
+            new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.DENY),
+            new ContentSecurityPolicyHeaderWriter(API_CONTENT_SECURITY_POLICY));
+
     /** Web only: the recovery runner runs the same context with no web server (ADR-072). */
     @Bean
     @ConditionalOnWebApplication
@@ -99,7 +116,11 @@ public class SecurityConfig {
         AdminFactorRules adminFactorRules = new AdminFactorRules(lifetime.absolute(), clock);
         return http
                 .addFilterBefore(new SourceRateLimitFilter(limiter, sourceKeys, sessionIds, audit, writer,
-                        (request, response) -> CorsPolicy.allowOrigin(cors, request, response)),
+                        (request, response) -> {
+                            CorsPolicy.allowOrigin(cors, request, response);
+                            // It answers before HeaderWriterFilter runs, so its 429 gets the same header set here.
+                            API_HEADERS.forEach(header -> header.writeHeaders(request, response));
+                        }),
                         SecurityContextHolderFilter.class)
                 .addFilter(CorsPolicy.filter(cors, writer))
                 // Spring Security's default header set (HSTS on secure requests only, nosniff, X-Frame-Options DENY)

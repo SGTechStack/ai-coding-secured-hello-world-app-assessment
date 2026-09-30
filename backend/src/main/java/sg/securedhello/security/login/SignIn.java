@@ -48,6 +48,7 @@ import sg.securedhello.audit.SourceThrottleReason;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.profile.ProfileReader;
+import sg.securedhello.security.lockout.DeferredFailuresRefusal;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.TooManyRequests;
@@ -214,6 +215,9 @@ public final class SignIn {
             if (failure instanceof PasswordDisabledException capped) {
                 audit.emit(AuditEvent.LOGIN_FAILURE,
                         AccountContext.loginFailure(capped.userId(), LoginFailureReason.PASSWORD_DISABLED));
+            } else if (failure instanceof DeferredFailuresRefusal refused) {
+                // A correct password refused because failures deferred under contention locked or disabled it first.
+                audit.emit(AuditEvent.LOGIN_FAILURE, AccountContext.loginFailure(refused.userId(), refused.reason()));
             }
             writer.write(request, response, failure instanceof JsonCredentialsConverter.MalformedLoginException
                     ? ErrorCode.VALIDATION_FAILED

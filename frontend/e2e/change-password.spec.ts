@@ -27,7 +27,7 @@ test('changes the password against the real backend, then signs in with the new 
   await expect(page.getByRole('status')).toHaveText(/Your password has been changed/, { timeout: 20_000 })
 
   // The session survived with a rotated id and CSRF token: signing out through it still works.
-  await page.getByRole('link', { name: 'Back' }).click()
+  await page.getByRole('button', { name: 'Back' }).click()
   const logout = page.waitForResponse((response) => response.url() === `${apiOrigin}/api/logout`)
   await page.getByRole('button', { name: 'Sign out' }).click()
   expect((await logout).status()).toBe(204)

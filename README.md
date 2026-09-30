@@ -18,6 +18,51 @@ The [`prd/assessment-prd.md`](prd/assessment-prd.md) file contains the full
 specification: user stories, acceptance criteria, data model, security
 requirements, and testing requirements. Read it before you start.
 
+## Running the Implementation
+
+```
+backend/    Spring Boot 3.4 (Java 21), Spring Security, Spring Session JDBC, JPA + H2
+frontend/   React 18 + Vite
+```
+
+**Backend** (http://localhost:8080). The initial admin is seeded only if a password
+is supplied (min 12 chars); no default password is shipped:
+
+```bash
+cd backend
+APP_ADMIN_PASSWORD='choose-a-long-password' ./mvnw spring-boot:run
+./mvnw test        # integration tests for the security-critical paths
+```
+
+Optional env vars: `APP_ADMIN_USERNAME`, `APP_ADMIN_EMAIL`, and `--spring.profiles.active=prod`
+(Secure cookies, Postgres, `ddl-auto=validate`; requires `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`,
+`APP_ALLOWED_ORIGINS`). The `prod` schema must be created beforehand (e.g. by migrations); the Postgres
+path has not been run against a real database.
+
+**Frontend** (http://localhost:3000):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Password-reset emails are stubbed: the reset link is written to the backend log.
+
+### Design notes
+
+- **Auth:** server-side session in an HttpOnly, SameSite=Lax cookie (`SESSION`); session id rotated on login.
+- **CSRF:** enabled everywhere. The SPA fetches a token from `GET /api/csrf` and sends it as `X-XSRF-TOKEN`.
+- **Lockout / throttling:** 5 failures locks the account for 15 min. Separately, 10 failures per client IP
+  in 15 min returns 429; a throttled IP is rejected *before* any account counter is touched. The IP counter
+  is in-memory (single node) and keyed on the socket address; behind a proxy, configure
+  `server.forward-headers-strategy` deliberately rather than trusting `X-Forwarded-For` blindly.
+- **Sessions are revoked** on password reset, and when an admin disables, deletes, or changes the role of
+  the target user (roles are cached in the session, so a demoted admin would otherwise keep access).
+- **Password limit:** 12 to 72 bytes (BCrypt ignores anything past 72).
+- **Known gaps (per PRD):** HTTP-only local dev, no MFA, stubbed email. Reset-request timing differs slightly
+  between registered and unregistered emails; send mail asynchronously in a real deployment.
+
 ## The Assessment
 
 You are expected to:

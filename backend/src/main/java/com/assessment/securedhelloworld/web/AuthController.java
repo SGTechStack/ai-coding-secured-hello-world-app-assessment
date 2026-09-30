@@ -3,6 +3,8 @@ package com.assessment.securedhelloworld.web;
 import com.assessment.securedhelloworld.security.AbsoluteSessionTimeoutFilter;
 import com.assessment.securedhelloworld.security.AppUserDetails;
 import com.assessment.securedhelloworld.service.AuditLogService;
+import com.assessment.securedhelloworld.service.IpLoginThrottleService;
+import com.assessment.securedhelloworld.service.LoginAttemptService;
 import com.assessment.securedhelloworld.web.dto.LoginRequest;
 import com.assessment.securedhelloworld.web.dto.LoginResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,29 +40,47 @@ public class AuthController {
     private static final ResponseEntity<Map<String, Object>> GENERIC_AUTH_FAILURE =
             ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "INVALID_CREDENTIALS", "message", "Invalid username or password"));
 
+    private static final ResponseEntity<Map<String, Object>> IP_THROTTLED =
+            ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", "TOO_MANY_REQUESTS", "message", "Too many attempts, try again later"));
+
     private final org.springframework.security.authentication.AuthenticationManager authenticationManager;
     private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
     private final SecurityContextRepository securityContextRepository;
     private final AuditLogService auditLogService;
+    private final LoginAttemptService loginAttemptService;
+    private final IpLoginThrottleService ipLoginThrottleService;
 
     public AuthController(org.springframework.security.authentication.AuthenticationManager authenticationManager,
                            SessionAuthenticationStrategy sessionAuthenticationStrategy,
                            SecurityContextRepository securityContextRepository,
-                           AuditLogService auditLogService) {
+                           AuditLogService auditLogService,
+                           LoginAttemptService loginAttemptService,
+                           IpLoginThrottleService ipLoginThrottleService) {
         this.authenticationManager = authenticationManager;
         this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
         this.securityContextRepository = securityContextRepository;
         this.auditLogService = auditLogService;
+        this.loginAttemptService = loginAttemptService;
+        this.ipLoginThrottleService = ipLoginThrottleService;
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request, HttpServletResponse response) {
+        String remoteAddress = request.getRemoteAddr();
+
+        if (ipLoginThrottleService.isThrottled(remoteAddress)) {
+            auditLogService.event("login", "ip_throttled", loginRequest.username(), null, Map.of("remoteAddress", remoteAddress));
+            return IP_THROTTLED;
+        }
+
         Authentication authRequest = UsernamePasswordAuthenticationToken.unauthenticated(loginRequest.username(), loginRequest.password());
 
         Authentication authResult;
         try {
             authResult = authenticationManager.authenticate(authRequest);
         } catch (AuthenticationException ex) {
+            ipLoginThrottleService.recordFailure(remoteAddress);
+            loginAttemptService.onLoginFailure(loginRequest.username());
             auditLogService.event("login", "failure", loginRequest.username(), null);
             return GENERIC_AUTH_FAILURE;
         }
@@ -83,6 +103,7 @@ public class AuthController {
                 loginRequest.username());
 
         AppUserDetails principal = (AppUserDetails) authResult.getPrincipal();
+        loginAttemptService.onLoginSuccess(principal.getUser());
         auditLogService.event("login", "success", principal.getUsername(), principal.getUsername());
 
         return ResponseEntity.ok(new LoginResponse(

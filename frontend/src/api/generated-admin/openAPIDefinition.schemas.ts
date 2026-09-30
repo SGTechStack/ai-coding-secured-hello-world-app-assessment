@@ -4,6 +4,23 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+export type ChangeAccountRoleRequestRole =
+  (typeof ChangeAccountRoleRequestRole)[keyof typeof ChangeAccountRoleRequestRole];
+
+export const ChangeAccountRoleRequestRole = {
+  USER: 'USER',
+  USER_MANAGER: 'USER_MANAGER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export interface ChangeAccountRoleRequest {
+  role: ChangeAccountRoleRequestRole;
+}
+
+export interface SetAccountEnabledRequest {
+  enabled: boolean;
+}
+
 export type CreateAccountRequestRole = (typeof CreateAccountRequestRole)[keyof typeof CreateAccountRequestRole];
 
 export const CreateAccountRequestRole = {
@@ -46,6 +63,7 @@ export const AccountSummaryResponseRole = {
 } as const;
 
 export interface AccountSummaryResponse {
+  id: string;
   username: string;
   role: AccountSummaryResponseRole;
   enabled: boolean;

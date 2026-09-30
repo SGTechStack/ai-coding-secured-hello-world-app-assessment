@@ -1,0 +1,256 @@
+/* 🎪 CIRCUS THEME — the funkiest mix of colors on Earth 🎪 */
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Rye&display=swap');
+
+:root {
+  --circus-red: #ff2e63;
+  --circus-yellow: #ffd23f;
+  --circus-blue: #08d9d6;
+  --circus-purple: #a05eff;
+  --circus-orange: #ff9a3c;
+  --circus-green: #38ff9d;
+  --circus-pink: #ff6ec7;
+  --circus-navy: #1a1a40;
+  --tent-stripe-a: #ff2e63;
+  --tent-stripe-b: #fff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Fredoka', system-ui, sans-serif;
+  color: var(--circus-navy);
+  /* Big-top: radial spotlight over funky diagonal candy stripes */
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 210, 63, 0.35), transparent 60%),
+    repeating-linear-gradient(
+      45deg,
+      var(--circus-purple) 0 40px,
+      var(--circus-blue) 40px 80px,
+      var(--circus-pink) 80px 120px,
+      var(--circus-orange) 120px 160px,
+      var(--circus-green) 160px 200px
+    );
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+
+.app-shell {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+/* ---- Big top header ---- */
+.big-top {
+  text-align: center;
+  padding: 28px 16px;
+  margin-bottom: 24px;
+  border-radius: 24px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      var(--tent-stripe-a) 0 28px,
+      var(--tent-stripe-b) 28px 56px
+    );
+  border: 6px solid var(--circus-yellow);
+  box-shadow: 0 12px 0 rgba(26, 26, 64, 0.35), 0 0 0 4px var(--circus-navy);
+}
+
+.big-top h1 {
+  font-family: 'Rye', cursive;
+  font-size: 2.4rem;
+  margin: 0;
+  color: var(--circus-navy);
+  text-shadow: 2px 2px 0 var(--circus-yellow), 4px 4px 0 var(--circus-blue);
+  letter-spacing: 1px;
+}
+
+.big-top p {
+  margin: 6px 0 0;
+  font-weight: 700;
+  color: var(--circus-navy);
+  background: var(--circus-yellow);
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 999px;
+  transform: rotate(-1.5deg);
+}
+
+/* ---- Nav ---- */
+nav.ringmaster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+nav.ringmaster a,
+nav.ringmaster button.linkish {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 3px solid var(--circus-navy);
+  background: #fff;
+  color: var(--circus-navy);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+nav.ringmaster a:nth-child(5n + 1) { background: var(--circus-red); color: #fff; }
+nav.ringmaster a:nth-child(5n + 2) { background: var(--circus-blue); }
+nav.ringmaster a:nth-child(5n + 3) { background: var(--circus-yellow); }
+nav.ringmaster a:nth-child(5n + 4) { background: var(--circus-green); }
+nav.ringmaster a:nth-child(5n + 5) { background: var(--circus-pink); }
+nav.ringmaster a:hover,
+nav.ringmaster button.linkish:hover {
+  transform: translateY(-3px) rotate(-2deg);
+}
+
+/* ---- Cards / panels ---- */
+.ring {
+  background: #fffdf5;
+  border: 5px dashed var(--circus-purple);
+  border-radius: 22px;
+  padding: 24px;
+  margin: 0 auto 20px;
+  max-width: 460px;
+  box-shadow: 0 10px 0 rgba(160, 94, 255, 0.3);
+}
+
+.ring.wide {
+  max-width: 100%;
+}
+
+.ring h2 {
+  margin-top: 0;
+  font-family: 'Rye', cursive;
+  color: var(--circus-red);
+  text-shadow: 1px 1px 0 var(--circus-yellow);
+}
+
+/* ---- Forms ---- */
+label {
+  display: block;
+  font-weight: 700;
+  margin: 14px 0 4px;
+  color: var(--circus-purple);
+}
+
+input, select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 3px solid var(--circus-blue);
+  border-radius: 12px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 1rem;
+  background: #fff;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--circus-red);
+  box-shadow: 0 0 0 4px rgba(255, 46, 99, 0.25);
+}
+
+button.act {
+  margin-top: 18px;
+  width: 100%;
+  padding: 12px;
+  font-family: 'Rye', cursive;
+  font-size: 1.1rem;
+  color: #fff;
+  border: 3px solid var(--circus-navy);
+  border-radius: 14px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--circus-red), var(--circus-orange), var(--circus-yellow));
+  box-shadow: 0 6px 0 var(--circus-navy);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+button.act:hover { transform: translateY(-2px); }
+button.act:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--circus-navy); }
+button.act:disabled { opacity: 0.6; cursor: not-allowed; }
+
+button.mini {
+  padding: 6px 10px;
+  margin: 2px;
+  font-weight: 700;
+  border: 2px solid var(--circus-navy);
+  border-radius: 10px;
+  cursor: pointer;
+  background: var(--circus-yellow);
+}
+button.mini.danger { background: var(--circus-red); color: #fff; }
+button.mini.cool { background: var(--circus-blue); }
+
+/* ---- Alerts ---- */
+.flash {
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  margin: 12px 0;
+  border: 3px solid var(--circus-navy);
+}
+.flash.ok { background: var(--circus-green); }
+.flash.err { background: var(--circus-red); color: #fff; }
+
+/* ---- Greeting ---- */
+.greeting {
+  text-align: center;
+  font-family: 'Rye', cursive;
+  font-size: 2rem;
+  color: var(--circus-purple);
+  text-shadow: 2px 2px 0 var(--circus-yellow);
+  animation: wobble 2s ease-in-out infinite;
+}
+@keyframes wobble {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+/* ---- Table ---- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+th, td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 2px dashed var(--circus-purple);
+}
+th {
+  font-family: 'Rye', cursive;
+  color: var(--circus-blue);
+  background: var(--circus-navy);
+}
+tbody tr:nth-child(odd) { background: rgba(255, 210, 63, 0.25); }
+tbody tr:nth-child(even) { background: rgba(8, 217, 214, 0.18); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 2px solid var(--circus-navy);
+}
+.badge.admin { background: var(--circus-red); color: #fff; }
+.badge.user { background: var(--circus-blue); }
+.badge.on { background: var(--circus-green); }
+.badge.off { background: #bbb; }
+
+.hint {
+  font-size: 0.85rem;
+  color: var(--circus-purple);
+  margin-top: 4px;
+}
+
+a.inline-link {
+  color: var(--circus-red);
+  font-weight: 700;
+}

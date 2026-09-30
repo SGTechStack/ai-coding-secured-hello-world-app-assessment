@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  admin:
+    username: "admin"
+    password: "AdminPassword123!"
+    email: "admin@example.com"
+  security:
+    lockout:
+      max-attempts: 5
+      cooldown-minutes: 15
+    ip-throttle:
+      max-attempts: 20
+      window-minutes: 15
+    reset-token:
+      expiry-minutes: 30

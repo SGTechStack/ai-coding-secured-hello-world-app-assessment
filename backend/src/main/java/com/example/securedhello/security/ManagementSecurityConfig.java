@@ -6,10 +6,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+
+import com.example.securedhello.config.ManagementProperties;
 
 /**
  * The Actuator management port's own filter chain (story 111). It exists because Spring Boot runs the
@@ -18,21 +21,30 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
  * <p>
  * Ordered before {@code SecurityConfig}'s API chain but matching only the management port, so the API
  * chain and the API's public paths are untouched: on the API port, an Actuator path is still refused
- * by the API chain's default-deny. Requests here need no credentials and get no Session, because the
- * port exposes only {@code health} (status only) and {@code prometheus} and is bound to
- * {@code management.server.address} — by default loopback only, so it is unreachable off the host
- * whatever the network does. Issue 16 still owes the README the deployment note that it must never be
- * routed publicly, for deployments that widen that address.
+ * by the API chain's default-deny. The port exposes only {@code health} and {@code prometheus} and is
+ * bound to {@code management.server.address}, by default loopback only. That binding is not the only
+ * protection (IM8 as-13): {@code prometheus} needs the scraper's HTTP Basic credential
+ * ({@link ScrapeCredential}), and refuses every scrape when none is configured. {@code health} stays
+ * open, because it answers with the status alone and probes carry no credential. Nothing here gets a
+ * Session. The README's deployment note still says never to route the port publicly.
  */
 @Configuration
 class ManagementSecurityConfig {
 
 	@Bean
 	@Order(5)
-	SecurityFilterChain managementSecurityFilterChain(HttpSecurity http, Environment environment) throws Exception {
+	SecurityFilterChain managementSecurityFilterChain(HttpSecurity http, Environment environment,
+			ManagementProperties properties) throws Exception {
 		http.securityMatcher(managementPort(environment))
 			// The only paths the management server maps are the exposed endpoints; anything else is 404.
-			.authorizeHttpRequests((auth) -> auth.anyRequest().permitAll())
+			// prometheus needs the scrape credential; health is status only, and unmapped paths stay 404.
+			.authorizeHttpRequests((auth) -> auth.requestMatchers("/actuator/prometheus", "/actuator/prometheus/**")
+				.hasAuthority(ScrapeCredential.SCRAPER)
+				.anyRequest()
+				.permitAll())
+			// This chain's own manager, so the scraper can never authenticate as an Account or vice versa.
+			.authenticationManager(ScrapeCredential.authenticationManager(properties))
+			.httpBasic(Customizer.withDefaults())
 			// Nothing here reads or writes a Session, so a scrape never creates one.
 			.sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 		return http.build();

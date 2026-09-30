@@ -90,7 +90,8 @@ which stands in for a mailbox — the `EmailService` is a stub, so in `dev` the 
 link appears there rather than in an inbox. All three are ECS JSON, one object per line.
 
 Actuator listens separately on <http://127.0.0.1:9090/actuator/health> and
-`/actuator/prometheus`, bound to the loopback address.
+`/actuator/prometheus`, bound to the loopback address. `prometheus` needs HTTP Basic
+credentials; in `dev` they are `prometheus` / `dev-only-local-scrape-password`.
 
 ### Tests
 
@@ -140,6 +141,7 @@ The properties a deployment must set or must think about:
 | `app.logging.directory` | `logs` | Root for `application-file`, `audit-file` and `email-file`. Point it at a volume a log-forwarding agent can read. |
 | `app.logging.audit-max-history-days` | `90` | On-disk audit history. Validated: it cannot be set below 90. |
 | `management.server.port` / `.address` | `9090` / `127.0.0.1` | **Must never be publicly routed.** |
+| `app.management.prometheus.username` / `.password` | `prometheus` / `dev` only | The scraper's HTTP Basic credential for `/actuator/prometheus`. The password comes from the secrets manager. **Unset, every scrape is refused (401)**; startup does not fail. |
 | `server.forward-headers-strategy` | `none` | Change only behind a proxy you trust — see [Client addresses](#6-client-addresses-reverse-proxy-and-nat). |
 | `app.api.base-path` | `/api` | Must match the SPA's build. |
 | `app.api.max-request-body-bytes` | `16384` | Bodies above this get 400 `request_too_large` before any controller runs. |
@@ -278,15 +280,23 @@ Actuator runs on its own port — `management.server.port=9090`, bound to
 components, no details) and `prometheus`, read-only, with no links page. The API port
 serves no Actuator endpoint.
 
+`prometheus` answers only to the scraper's HTTP Basic credential,
+`app.management.prometheus.username` (default `prometheus`) and
+`app.management.prometheus.password`, injected from the secrets manager. Configure the
+scrape job with `basic_auth`. With no password configured every scrape gets 401, so a
+missing secret shows up as a failing scrape target, not as open metrics. `health` stays
+unauthenticated, because it answers with the status alone and probes carry no credential.
+
 **Never route the management port publicly.** No ingress rule, no load-balancer target,
 no security-group rule, no port publication that reaches it from outside the host. The
-loopback binding is the app doing what it can; it is not a substitute for keeping the port
-off every public route.
+loopback binding and the scrape credential are the app doing what it can; they are not a
+substitute for keeping the port off every public route.
 
 The loopback binding has a trade-off: the Prometheus scraper and the health check must run
 on the same host, or in the same network namespace. A platform that probes a container
 from outside it has to widen `management.server.address` to `0.0.0.0` — and then keeping
-the port off every public route and ingress is the only thing left protecting it.
+the port off every public route and ingress, plus the scrape credential, is all that is left
+protecting it.
 
 ### 8. Forward the audit log to central logging
 
@@ -370,15 +380,17 @@ entities disagree). Migrations are per vendor, selected by
 - [ ] TLS 1.2+ terminating in front of the API and the SPA; HTTP redirected; TLS to the
       database with certificate and hostname verification.
 - [ ] `spring.profiles.active` set to something other than `dev`.
-- [ ] `APP_IPHASH_KEY`, `APP_BOOTSTRAPADMIN_*` and the datasource credentials injected
-      from the secrets manager; none in the repository, an image or a config file.
+- [ ] `APP_IPHASH_KEY`, `APP_BOOTSTRAPADMIN_*`, `APP_MANAGEMENT_PROMETHEUS_PASSWORD` and the
+      datasource credentials injected from the secrets manager; none in the repository, an
+      image or a config file.
 - [ ] IP-hash key rotation scheduled.
 - [ ] Bootstrap Admin password policy-compliant, changed at first login, and your copy
       discarded. `dev` fallback nowhere in sight.
 - [ ] `app.cors.allowed-origins` set to the production SPA origins.
 - [ ] `server.forward-headers-strategy` decided: `none` unless there is a proxy you own
       that overwrites `X-Forwarded-For`; IP Throttle thresholds reviewed against NAT.
-- [ ] Management port unreachable from any public route.
+- [ ] Management port unreachable from any public route; the Prometheus scrape job sends
+      the scrape credential and its target is up.
 - [ ] `audit.log` forwarded to central logging: 90+ days, write-once, access-restricted,
       alerting when events stop.
 - [ ] `EmailService` stub replaced with real email delivery, or password reset accepted

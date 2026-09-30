@@ -14,12 +14,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalManagementPort;
@@ -31,7 +33,9 @@ import org.springframework.test.context.ActiveProfiles;
  * Operations (story 111): Actuator answers only on the management port, which a deployment never
  * routes publicly, and only with {@code health} (status, no details) and {@code prometheus}. The API
  * port serves no Actuator endpoint. Runs against real embedded servers on two ports, because that
- * separation is the whole point and MockMvc has no port.
+ * separation is the whole point and MockMvc has no port. {@code prometheus} also needs the scraper's
+ * HTTP Basic credential (IM8 as-13), so the loopback binding is not its only protection; {@code health}
+ * stays open for probes, since it answers with the status alone.
  */
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -45,6 +49,12 @@ class ManagementEndpointsTest {
 
 	@Autowired
 	JdbcTemplate jdbc;
+
+	@Value("${app.management.prometheus.username}")
+	String scrapeUsername;
+
+	@Value("${app.management.prometheus.password}")
+	String scrapePassword;
 
 	private final HttpClient http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
 
@@ -81,7 +91,7 @@ class ManagementEndpointsTest {
 	void aScrapeCreatesNoSession() throws Exception {
 		int before = sessionRows();
 
-		HttpResponse<String> response = get(this.managementPort, "/actuator/prometheus");
+		HttpResponse<String> response = scrapeResponse(this.scrapeUsername, this.scrapePassword);
 
 		// The management chain is stateless, and nothing on it touches the CSRF token repository, which
 		// is what would call getSession() and persist a Spring Session row for an anonymous caller.
@@ -94,6 +104,23 @@ class ManagementEndpointsTest {
 	void theApiPortsPublicPathsAreUnchanged() throws Exception {
 		assertThat(get(this.apiPort, "/api/csrf").statusCode()).isEqualTo(200);
 		assertThat(get(this.apiPort, "/api/hello").statusCode()).isEqualTo(401);
+	}
+
+	@Test
+	void prometheusRefusesAScrapeWithoutCredentials() throws Exception {
+		HttpResponse<String> response = get(this.managementPort, "/actuator/prometheus");
+
+		assertThat(response.statusCode()).isEqualTo(401);
+		assertThat(response.headers().firstValue("WWW-Authenticate")).hasValueSatisfying(
+				(challenge) -> assertThat(challenge).startsWith("Basic"));
+		assertThat(response.body()).doesNotContain("http_server_requests").doesNotContain("jvm_");
+		assertThat(response.headers().allValues("Set-Cookie")).isEmpty();
+	}
+
+	@Test
+	void prometheusRefusesAScrapeWithTheWrongCredentials() throws Exception {
+		assertThat(scrapeResponse(this.scrapeUsername, this.scrapePassword + "x").statusCode()).isEqualTo(401);
+		assertThat(scrapeResponse("someone-else", this.scrapePassword).statusCode()).isEqualTo(401);
 	}
 
 	@Test
@@ -165,9 +192,19 @@ class ManagementEndpointsTest {
 	}
 
 	private String scrape() throws Exception {
-		HttpResponse<String> response = get(this.managementPort, "/actuator/prometheus");
+		HttpResponse<String> response = scrapeResponse(this.scrapeUsername, this.scrapePassword);
 		assertThat(response.statusCode()).isEqualTo(200);
 		return response.body();
+	}
+
+	/** A scrape as Prometheus sends it, with HTTP Basic credentials. */
+	private HttpResponse<String> scrapeResponse(String username, String password) throws Exception {
+		String basic = Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+		HttpRequest request = HttpRequest.newBuilder(uri(this.managementPort, "/actuator/prometheus"))
+			.header("Authorization", "Basic " + basic)
+			.GET()
+			.build();
+		return this.http.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 	}
 
 	private HttpResponse<String> get(int port, String path) throws Exception {

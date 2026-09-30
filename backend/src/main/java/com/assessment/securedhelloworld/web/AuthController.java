@@ -74,6 +74,13 @@ public class AuthController {
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
         request.getSession().setAttribute(AbsoluteSessionTimeoutFilter.CREATED_AT_ATTRIBUTE, java.time.Instant.now());
+        // Indexes this session by principal name in JdbcIndexedSessionRepository, so a future
+        // "invalidate every session for this user" (password reset, ticket 04) can find it via
+        // FindByIndexNameSessionRepository#findByPrincipalName without needing Spring Security's
+        // concurrent-session-control machinery wired up just for this one lookup.
+        request.getSession().setAttribute(
+                org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME,
+                loginRequest.username());
 
         AppUserDetails principal = (AppUserDetails) authResult.getPrincipal();
         auditLogService.event("login", "success", principal.getUsername(), principal.getUsername());

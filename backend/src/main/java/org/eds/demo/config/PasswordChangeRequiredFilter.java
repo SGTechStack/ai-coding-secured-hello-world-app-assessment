@@ -7,8 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.eds.demo.common.WebPaths;
 import org.eds.demo.common.WebSpaController;
-import org.eds.demo.user.api.ChangePasswordController;
 import org.eds.demo.user.application.PasswordChangeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -20,6 +20,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * change-password and sign-out. Runs ahead of authorization on the API, admin API and application
  * chains, so an admin is held to the same rule. Read-only GETs for the SPA shell and its built
  * assets stay open, or the change-password page itself could not load; they carry no data.
+ *
+ * <p>Not applied to the actuator chain, on purpose: actuator requests are unauthenticated
+ * monitoring calls (health probes must keep working), the filter skips unauthenticated requests
+ * anyway, and the endpoints expose only health and info, no Account data.
  */
 @RequiredArgsConstructor
 final class PasswordChangeRequiredFilter extends OncePerRequestFilter {
@@ -28,8 +32,12 @@ final class PasswordChangeRequiredFilter extends OncePerRequestFilter {
   private static final String DETAIL = "You must choose a new password before continuing";
 
   private static final List<String> SPA_SHELL_PREFIXES =
-      List.of(WebSpaController.SPA_ROOT, "/assets", WebSpaController.SIGN_IN_PATH, "/error");
-  private static final List<String> SPA_SHELL_EXACT = List.of("/", "/index.html");
+      List.of(
+          WebSpaController.SPA_ROOT,
+          WebPaths.ASSETS,
+          WebSpaController.SIGN_IN_PATH,
+          WebPaths.ERROR);
+  private static final List<String> SPA_SHELL_EXACT = List.of(WebPaths.ROOT, WebPaths.INDEX_HTML);
 
   private final PasswordChangeService passwordChangeService;
 
@@ -51,8 +59,7 @@ final class PasswordChangeRequiredFilter extends OncePerRequestFilter {
 
   private static boolean isAllowedWhileChangeRequired(HttpServletRequest request) {
     var path = request.getRequestURI().substring(request.getContextPath().length());
-    if (path.equals(ChangePasswordController.CHANGE_PASSWORD_PATH)
-        || path.equals(SecurityConfiguration.LOGOUT_URL)) {
+    if (path.equals(WebPaths.CHANGE_PASSWORD) || path.equals(SecurityConfiguration.LOGOUT_URL)) {
       return true;
     }
     var readOnly = "GET".equals(request.getMethod()) || "HEAD".equals(request.getMethod());

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AppErrorController implements ErrorController {
 
-  public static final String ERROR_URL = "/error";
+  public static final String ERROR_URL = WebPaths.ERROR;
   public static final String NOT_FOUND_PAGE = "/404.html";
   public static final String FORBIDDEN_PAGE = "/403.html";
   public static final String SERVER_ERROR_PAGE = "/500.html";

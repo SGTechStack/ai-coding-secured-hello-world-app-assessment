@@ -34,7 +34,7 @@ public class SignInController {
   static final String SIGN_IN_PATH = "/login";
 
   /** One message for every refusal so the response never reveals why sign-in failed. */
-  private static final String GENERIC_FAILURE_DETAIL = "Invalid username or password";
+  private static final String GENERIC_FAILURE_DETAIL = SignInService.INVALID_CREDENTIALS_MESSAGE;
 
   private static final String THROTTLED_DETAIL =
       "Too many failed sign-in attempts. Try again later.";

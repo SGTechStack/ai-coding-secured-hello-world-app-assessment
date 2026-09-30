@@ -1,5 +1,6 @@
 package org.eds.demo.config;
 
+import org.eds.demo.common.WebPaths;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +26,7 @@ class OpenApiGroupConfiguration {
   GroupedOpenApi frontendApiGroup() {
     return GroupedOpenApi.builder()
         .group("frontend")
-        .pathsToMatch("/api/**", SecurityConfiguration.LOGIN_URL)
+        .pathsToMatch(WebPaths.API_PATTERN, SecurityConfiguration.LOGIN_URL)
         .build();
   }
 

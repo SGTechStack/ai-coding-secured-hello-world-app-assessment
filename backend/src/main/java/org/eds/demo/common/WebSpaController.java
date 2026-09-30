@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Controller
 public class WebSpaController {
 
-  public static final String SITE_ROOT = "/";
+  public static final String SITE_ROOT = WebPaths.ROOT;
   public static final String SPA_ROOT = "/app";
   public static final String SIGN_IN_PATH = "/welcome";
 
@@ -21,14 +21,14 @@ public class WebSpaController {
     if (authentication != null
         && authentication.isAuthenticated()
         && !(authentication instanceof AnonymousAuthenticationToken)) {
-      return "redirect:" + SPA_ROOT + "/";
+      return "redirect:" + SPA_ROOT + WebPaths.ROOT;
     }
     return "redirect:" + SIGN_IN_PATH;
   }
 
   @GetMapping(SIGN_IN_PATH)
   public String signIn() {
-    return "forward:" + SIGN_IN_PATH + "/index.html";
+    return "forward:" + SIGN_IN_PATH + WebPaths.INDEX_HTML;
   }
 
   /**
@@ -46,6 +46,6 @@ public class WebSpaController {
         return "forward:" + spaPath;
       }
     }
-    return "forward:/index.html";
+    return "forward:" + WebPaths.INDEX_HTML;
   }
 }

@@ -26,6 +26,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 @RequiredArgsConstructor
 public class SignInService {
 
+  /** The one message behind every refusal; also the API response detail. */
+  public static final String INVALID_CREDENTIALS_MESSAGE = "Invalid username or password";
+
   private static final String EVENT_KEY = "event";
   private static final String USERNAME_KEY = "username";
   private static final String REASON_KEY = "reason";
@@ -145,6 +148,6 @@ public class SignInService {
         .addKeyValue(USERNAME_KEY, safeUsername)
         .addKeyValue(REASON_KEY, reason)
         .log("Sign-in failed: username={}, reason={}", safeUsername, reason);
-    return new BadCredentialsException("Invalid username or password");
+    return new BadCredentialsException(INVALID_CREDENTIALS_MESSAGE);
   }
 }

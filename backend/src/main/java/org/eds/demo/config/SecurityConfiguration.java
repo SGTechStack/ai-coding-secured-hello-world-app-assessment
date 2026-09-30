@@ -5,6 +5,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eds.demo.common.AppErrorController;
+import org.eds.demo.common.WebPaths;
 import org.eds.demo.common.WebSpaController;
 import org.eds.demo.common.WebSpaCsrfTokenRequestHandler;
 import org.eds.demo.user.application.AppUserDetailsService;
@@ -68,9 +69,9 @@ class SecurityConfiguration {
     // WebSpaController serves them by forwarding to /index.html and /assets/**, and the forward is
     // authorized again, so those targets must be public too. They are the same static build files.
     WebSpaController.SPA_SIGN_IN_PATH,
-    WebSpaController.SPA_ROOT + "/assets/**",
-    "/index.html",
-    "/assets/**",
+    WebSpaController.SPA_ROOT + WebPaths.ASSETS_PATTERN,
+    WebPaths.INDEX_HTML,
+    WebPaths.ASSETS_PATTERN,
     LOGIN_URL,
     AppErrorController.ERROR_URL,
     AppErrorController.NOT_FOUND_PAGE,
@@ -130,7 +131,7 @@ class SecurityConfiguration {
       HttpSecurity http, PasswordChangeService passwordChangeService) throws Exception {
     var chain =
         withPasswordChangeRequired(
-            withApiExceptionHandling(withSpaCsrf(http.securityMatcher("/api/**"))),
+            withApiExceptionHandling(withSpaCsrf(http.securityMatcher(WebPaths.API_PATTERN))),
             passwordChangeService);
     return chain.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated()).build();
   }

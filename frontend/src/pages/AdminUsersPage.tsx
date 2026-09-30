@@ -68,6 +68,9 @@ export function AdminUsersPage() {
           </tbody>
         </table>
       )}
+      <Link to="/admin/users/invite" className="text-sm underline">
+        Invite a user
+      </Link>
       <Link to="/change-password" className="text-sm underline">
         Change password
       </Link>

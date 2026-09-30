@@ -13,6 +13,7 @@ export type FixtureTest =
   | 'golden-path'
   | 'disable-admin'
   | 'disable-user'
+  | 'invite-admin'
 
 /** The RFC 6238 code for `secret` at `at`: HMAC-SHA1, 30-second step, 6 digits. */
 export function totp(secret: Buffer, at = Date.now()): string {

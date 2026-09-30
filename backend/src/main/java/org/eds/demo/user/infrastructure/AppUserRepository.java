@@ -1,5 +1,6 @@
 package org.eds.demo.user.infrastructure;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.eds.demo.user.domain.AppUser;
@@ -17,6 +18,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
 
   @EntityGraph(attributePaths = "userRoles")
   Optional<AppUser> findByEmail(String email);
+
+  @EntityGraph(attributePaths = "userRoles")
+  List<AppUser> findAllByOrderByUsernameAsc();
 
   boolean existsByUsername(String username);
 

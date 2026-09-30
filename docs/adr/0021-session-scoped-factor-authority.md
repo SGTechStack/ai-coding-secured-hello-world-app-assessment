@@ -59,9 +59,10 @@ wrong.
   lifetime**. It is there to make a degraded authority fail closed, like the mutation rule does. It cannot fire in
   normal operation: the factor is always granted after `AUTH_INSTANT`, so it always expires after the session does.
   The real bounds on reads are the session's 15-minute idle and 8-hour absolute limits.
-- **A startup assertion** refuses a read duration shorter than the absolute session lifetime (T-CFG-019). If the
-  session lifetime were ever raised past it, admins would be bounced to the challenge mid-session with no code
-  change to blame.
+- **A construction-time assertion** refuses a read duration shorter than the absolute session lifetime, so the
+  rules cannot be built and startup fails (T-CFG-019). The application builds the read duration equal to the
+  lifetime, so the assertion is proven at unit level (amended 2026-09-30). Without it, raising the session lifetime
+  past the read duration would bounce admins to the challenge mid-session with no code change to blame.
 - Both rules read the **same `Clock` bean** that drives the TOTP time-step counter (T-MFA-008).
 - The rules themselves are hand-composed, role first (ADR-026).
 

@@ -11,13 +11,11 @@ import {
 } from '@components/ui/dropdown-menu';
 import { Button } from '@components/ui/button';
 import { Avatar, AvatarFallback } from '@components/ui/avatar';
+import { ADMIN_ROLE } from '@lib/auth';
 import { http } from '@lib/http';
 import { useCurrentUser, getInitials } from '@features/user/user.queries';
 
 const APP_NAME = 'DEMO';
-
-/** Role name (as sent by /api/v1/me) that unlocks the Admin page. */
-const ADMIN_ROLE = 'ADMIN';
 
 export function Topbar() {
   const { data: user } = useCurrentUser();

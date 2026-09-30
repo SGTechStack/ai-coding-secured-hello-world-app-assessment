@@ -1,6 +1,7 @@
 package org.eds.demo;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,8 @@ import org.springframework.test.web.servlet.MockMvc;
 // app.email.inbound.queue-name in application-local.properties points at a real per-developer
 // AWS SQS queue; disable the listener here so this context-load smoke test doesn't depend on AWS
 // credentials/network access (unavailable in CI).
-@SpringBootTest(properties = "app.email.inbound.enabled=false")
+@SpringBootTest(
+    properties = {"app.email.inbound.enabled=false", "spring.datasource.url=jdbc:h2:mem:localit"})
 class DemoLocalProfileIT {
 
   @Autowired private MockMvc mockMvc;
@@ -28,5 +30,17 @@ class DemoLocalProfileIT {
   @Test
   void localProfileExposesOpenApiDocument() throws Exception {
     mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk());
+  }
+
+  @Test
+  void localProfileEnforcesCsrfOnApiChain() throws Exception {
+    mockMvc.perform(post("/api/v1/me/password")).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void localProfileDoesNotAcceptHttpBasic() throws Exception {
+    mockMvc
+        .perform(get("/api/hello").header("Authorization", "Basic YWRtaW46YWRtaW4="))
+        .andExpect(status().isUnauthorized());
   }
 }

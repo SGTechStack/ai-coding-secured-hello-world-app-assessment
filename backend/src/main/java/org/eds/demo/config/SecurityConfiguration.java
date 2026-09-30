@@ -41,10 +41,9 @@ import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler
  * raw cookie token when the SPA supplies it via the {@code X-XSRF-TOKEN} header. The actuator chain
  * disables CSRF because its callers are non-browser monitoring tools.
  *
- * <p>Local-profile overrides (HTTP Basic, H2 console, mock login page) are applied via optional
- * {@link ApiChainCustomizer} and {@link ApplicationChainCustomizer} beans provided by {@link
- * LocalSecurityConfiguration}. The chains themselves are always constructed here; local deltas
- * cannot silently diverge from the base rules.
+ * <p>The API and admin API chains are identical in every profile, including {@code local}: the only
+ * local addition is the separate H2 console chain in {@link LocalSecurityConfiguration}. An
+ * optional {@link ApplicationChainCustomizer} bean can still extend the application chain.
  */
 @Slf4j
 @Configuration
@@ -86,17 +85,8 @@ class SecurityConfiguration {
       Arrays.stream(Role.values()).map(role -> role.name()).toArray(String[]::new);
 
   /**
-   * Pluggable delta applied to the API filter chain. Provide a bean of this type (e.g. in {@link
-   * LocalSecurityConfiguration}) to extend the chain without duplicating its base rules.
-   */
-  @FunctionalInterface
-  interface ApiChainCustomizer {
-    void customize(HttpSecurity http) throws Exception;
-  }
-
-  /**
-   * Pluggable delta applied to the application filter chain. Provide a bean of this type (e.g. in
-   * {@link LocalSecurityConfiguration}) to extend the chain without duplicating its base rules.
+   * Pluggable delta applied to the application filter chain. Provide a bean of this type to extend
+   * the chain without duplicating its base rules.
    */
   @FunctionalInterface
   interface ApplicationChainCustomizer {
@@ -132,46 +122,32 @@ class SecurityConfiguration {
    * than a login redirect. All endpoints require authentication; authentication is handled by an
    * upstream identity provider.
    *
-   * <p>An optional {@link ApiChainCustomizer} bean (e.g. from {@link LocalSecurityConfiguration})
-   * is applied before the final {@code anyRequest().authenticated()} rule, allowing
-   * profile-specific permit-all matchers or auth mechanisms to be added without forking the chain.
+   * <p>The chain is the same in every profile (CSRF on, session sign-in via {@code POST /login}).
    */
   @Bean
   @Order(SecurityFilterChainOrder.API)
   SecurityFilterChain apiSecurityFilterChain(
-      HttpSecurity http,
-      Optional<ApiChainCustomizer> customizer,
-      PasswordChangeService passwordChangeService)
-      throws Exception {
+      HttpSecurity http, PasswordChangeService passwordChangeService) throws Exception {
     var chain =
         withPasswordChangeRequired(
             withApiExceptionHandling(withSpaCsrf(http.securityMatcher("/api/**"))),
             passwordChangeService);
-    if (customizer.isPresent()) {
-      customizer.get().customize(chain);
-    }
     return chain.authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated()).build();
   }
 
   /**
    * Secures all {@code /admin/api/**} endpoints, served to the separately deployed admin frontend.
    * Only {@link Role#ADMIN} is admitted; every other request is denied (JSON 401/403). Reuses the
-   * {@link ApiChainCustomizer} so local HTTP Basic works for {@code curl}.
+   * Same CSRF and sign-in rules as the API chain in every profile.
    */
   @Bean
   @Order(SecurityFilterChainOrder.ADMIN_API)
   SecurityFilterChain adminApiSecurityFilterChain(
-      HttpSecurity http,
-      Optional<ApiChainCustomizer> customizer,
-      PasswordChangeService passwordChangeService)
-      throws Exception {
+      HttpSecurity http, PasswordChangeService passwordChangeService) throws Exception {
     var chain =
         withPasswordChangeRequired(
             withApiExceptionHandling(withSpaCsrf(http.securityMatcher(ADMIN_API_PATTERN))),
             passwordChangeService);
-    if (customizer.isPresent()) {
-      customizer.get().customize(chain);
-    }
     return chain
         .authorizeHttpRequests(authorize -> authorize.anyRequest().hasRole(Role.ADMIN.name()))
         .build();
@@ -182,9 +158,8 @@ class SecurityConfiguration {
    * {@code /welcome/**}, etc.) are permit-all; everything else requires authentication.
    * Unauthenticated requests are redirected to the login page rather than returning a 401.
    *
-   * <p>An optional {@link ApplicationChainCustomizer} bean (e.g. from {@link
-   * LocalSecurityConfiguration}) is applied before the final {@code anyRequest().authenticated()}
-   * rule.
+   * <p>An optional {@link ApplicationChainCustomizer} bean is applied before the final {@code
+   * anyRequest().authenticated()} rule.
    */
   @Bean
   SecurityFilterChain applicationSecurityFilterChain(

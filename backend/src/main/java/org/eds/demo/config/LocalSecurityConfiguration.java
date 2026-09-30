@@ -8,23 +8,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Local-profile deltas for the API security chain and the H2 console.
+ * Local-profile delta: the H2 console gets its own filter chain.
  *
- * <p>The customizer bean implements the interface declared in {@link SecurityConfiguration}. It is
- * injected into the base chains as an {@code Optional} parameter — the base chains always own
- * construction and the final {@code anyRequest()} rule, so local additions cannot accidentally drop
- * shared security rules. The application chain has no local delta: sign-in and sign-out behave the
- * same in every profile.
- *
- * <p>Local-specific additions:
- *
- * <ul>
- *   <li>HTTP Basic is enabled on the API chain; CSRF is disabled there to allow {@code curl} calls
- *       without a token.
- *   <li>{@code /h2-console/**} gets its own filter chain (see {@link
- *       #h2ConsoleSecurityFilterChain}) so its relaxed CSP and framing rules don't leak into the
- *       SPA catch-all chain.
- * </ul>
+ * <p>The API, admin API and application chains have no local delta: CSRF, sign-in and sign-out
+ * behave the same in every profile, so what works locally works when deployed. Call the API with
+ * {@code curl} by signing in through {@code POST /login} (see README). The {@code /h2-console/**}
+ * chain (see {@link #h2ConsoleSecurityFilterChain}) keeps its relaxed CSP and framing rules out of
+ * the SPA catch-all chain.
  */
 @Configuration
 @Profile("local")
@@ -55,15 +45,5 @@ class LocalSecurityConfiguration {
                                     + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
                                     + "object-src 'none'; frame-ancestors 'self';")))
         .build();
-  }
-
-  @Bean
-  SecurityConfiguration.ApiChainCustomizer apiChainCustomizer() {
-    return http ->
-        http.httpBasic(
-                basic ->
-                    basic.authenticationEntryPoint(
-                        SecurityProblemDetailHandlers.problemDetailEntryPoint()))
-            .csrf(csrf -> csrf.disable());
   }
 }

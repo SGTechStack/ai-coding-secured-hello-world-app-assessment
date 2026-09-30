@@ -121,6 +121,30 @@ To sign in locally, seed the initial admin: set `app.admin.password` in the git-
 `backend/config/application-local.properties` (or export `APP_ADMIN_PASSWORD`) before the first
 start. The username defaults to `admin`. There are no other built-in local users.
 
+#### Calling the API locally with curl
+
+The `local` profile enforces the same CSRF and session sign-in rules as every other profile, so
+there is no HTTP Basic. Sign in through `POST /login` with the CSRF header and a cookie jar, then
+reuse the session cookie:
+
+```bash
+JAR=$(mktemp)
+BASE=http://localhost:8080
+
+# 1. Any request through the app chain sets the XSRF-TOKEN cookie.
+curl -s -c "$JAR" -o /dev/null "$BASE/welcome"
+XSRF=$(awk '$6 == "XSRF-TOKEN" { print $7 }' "$JAR")
+
+# 2. Sign in; the session cookie is stored in the jar.
+curl -s -b "$JAR" -c "$JAR" -H "X-XSRF-TOKEN: $XSRF" -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"<your app.admin.password>"}' "$BASE/login"
+
+# 3. Reuse the session. GETs need only the cookie; POST/PUT/PATCH/DELETE also need the header.
+curl -s -b "$JAR" "$BASE/api/hello"
+curl -s -b "$JAR" "$BASE/admin/api/users"
+curl -s -b "$JAR" -X POST -H "X-XSRF-TOKEN: $XSRF" "$BASE/logout"
+```
+
 The local DB is file-based (`backend/data/testdb.mv.db`) so it persists across restarts, including
 devtools restarts on recompile — `./mvnw clean` wipes it for a fresh schema.
 

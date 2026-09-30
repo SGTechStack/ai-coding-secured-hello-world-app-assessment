@@ -6,6 +6,7 @@ import { Given, Then, When } from './fixtures';
 // Locators follow the app's accessible names (see frontend/src/*.tsx).
 const loginForm = (page: Page) => page.getByRole('form', { name: 'Log in' });
 const registerForm = (page: Page) => page.getByRole('form', { name: 'Register' });
+const changePasswordForm = (page: Page) => page.getByRole('form', { name: 'Change password' });
 const greeting = (page: Page) => page.getByRole('heading', { name: /^Hello, / });
 const userRow = (page: Page, username: string) =>
   page.getByRole('row').filter({ has: page.getByRole('cell', { name: username, exact: true }) });
@@ -130,6 +131,22 @@ When('the admin clicks {string} in the row of {string}', async ({ page, world },
 Then('the login form is shown', async ({ page }) => {
   await expect(loginForm(page)).toBeVisible();
 });
+
+Then('the change-password form is shown', async ({ page }) => {
+  await expect(changePasswordForm(page)).toBeVisible();
+});
+
+When(
+  '{string} changes their password from their original password to {string} through the form',
+  async ({ page, world }, alias: string, newPassword: string) => {
+    const user = world.user(alias);
+    const form = changePasswordForm(page);
+    await form.getByLabel('Current password').fill(user.originalPassword);
+    await form.getByLabel('New password').fill(newPassword);
+    await form.getByRole('button', { name: 'Change password' }).click();
+    user.password = newPassword;
+  },
+);
 
 Then('the registration form is still shown', async ({ page }) => {
   const form = registerForm(page);

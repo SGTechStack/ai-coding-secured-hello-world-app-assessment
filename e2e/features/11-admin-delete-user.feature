@@ -29,5 +29,16 @@ Feature: Story 11 - Admin deletes another user's account
     Given "root" is logged in through the login form
     When the user clicks "Manage users"
     And the admin clicks "Delete" in the row of "alice"
+    And the admin clicks "Confirm delete" in the row of "alice"
     Then the users table does not show "alice"
     And no database record exists for "alice"
+
+  @ui
+  Scenario: Deleting from the user table requires confirmation and can be cancelled
+    Given "root" is logged in through the login form
+    When the user clicks "Manage users"
+    And the admin clicks "Delete" in the row of "alice"
+    Then the users table shows "alice" with role "USER" and enabled "Yes"
+    When the admin clicks "Cancel" in the row of "alice"
+    Then the users table shows "alice" with role "USER" and enabled "Yes"
+    And the account "alice" exists with role "USER" and enabled status "TRUE"

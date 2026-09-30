@@ -25,40 +25,59 @@ export function ResetPasswordForm({ onNavigateToLogin }: { onNavigateToLogin: ()
 
   if (success) {
     return (
-      <div>
+      <div className="card">
         <h1>Password reset</h1>
-        <p role="status">Your password has been reset. You can now log in.</p>
-        <button type="button" onClick={onNavigateToLogin}>
-          Back to log in
-        </button>
+        <p className="alert alert--success" role="status">
+          Your password has been reset. You can now log in.
+        </p>
+        <div className="actions">
+          <button type="button" className="btn btn-primary" onClick={onNavigateToLogin}>
+            Back to log in
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="Set new password">
-      <h1>Set a new password</h1>
-      {error && <p role="alert">{error}</p>}
-      <label htmlFor="reset-token">Reset token</label>
-      <input id="reset-token" value={token} onChange={(e) => setToken(e.target.value)} required />
-      <label htmlFor="reset-new-password">New password</label>
-      <input
-        id="reset-new-password"
-        type="password"
-        value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
-        autoComplete="new-password"
-        minLength={12}
-        required
-      />
-      <button type="submit" disabled={submitting}>
-        {submitting ? 'Resetting…' : 'Reset password'}
-      </button>
-      <p>
-        <button type="button" onClick={onNavigateToLogin}>
-          Back to log in
-        </button>
-      </p>
-    </form>
+    <div className="card">
+      <form onSubmit={handleSubmit} aria-label="Set new password">
+        <h1>Set a new password</h1>
+        {error && <p className="alert" role="alert">{error}</p>}
+        <div className="field">
+          <label htmlFor="reset-token">Reset token</label>
+          <input
+            id="reset-token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            aria-invalid={error ? 'true' : undefined}
+            required
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="reset-new-password">New password</label>
+          <input
+            id="reset-new-password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
+            minLength={12}
+            aria-invalid={error ? 'true' : undefined}
+            required
+          />
+        </div>
+        <div className="actions">
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Resetting…' : 'Reset password'}
+          </button>
+        </div>
+        <p className="footnote">
+          <button type="button" className="btn-link" onClick={onNavigateToLogin}>
+            Back to log in
+          </button>
+        </p>
+      </form>
+    </div>
   );
 }

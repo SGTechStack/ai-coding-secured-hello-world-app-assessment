@@ -20,8 +20,18 @@
       environment, this directive must be updated (or generated at build/
       deploy time) to match, or same-origin API calls will be blocked by
       this very policy.
+
+      DEV-ONLY WEAKENING: the placeholder below is replaced by the
+      csp-dev-style-src-unsafe-inline plugin (vite.config.ts) with
+      "style-src 'self' 'unsafe-inline'" for `vite dev` only. Vite's dev
+      server injects CSS via inline <style> tags for HMR, which a strict
+      style-src 'self' blocks outright — so without this, no CSS ever
+      renders under `npm run dev` (verified: dev showed unstyled HTML,
+      the equivalent `vite build && vite preview` rendered correctly).
+      The production build (this exact meta tag, untouched) keeps the
+      strict style-src 'self' with no 'unsafe-inline'.
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:8080; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; __STYLE_SRC__; img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:8080; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" />
     <title>frontend</title>
   </head>
   <body>

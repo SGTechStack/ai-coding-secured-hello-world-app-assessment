@@ -1,111 +1,934 @@
+/*
+ * Design system: "The Instrument Panel" (see /DESIGN.md — the frontmatter
+ * there is normative; keep these custom properties in sync with it).
+ * Restrained neutrals + one functional accent (Signal Blue), flat surfaces,
+ * hairline borders instead of shadows, one sans family for all type.
+ *
+ * Type is the platform system UI face on purpose: the CSP (index.html) is
+ * font-src 'self', and no webfont is shipped, so nothing external loads.
+ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Primary */
+  --signal-blue: #2563eb;
+  --signal-blue-deep: #1d4ed8;
+  --selection-wash: #dbeafe;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Neutral */
+  --ink: #0f172a;
+  --slate: #475569;
+  --mist: #94a3b8;
+  --paper: #ffffff;
+  --fog: #f8fafc;
+  --hairline: #e2e8f0;
+  --row-hover: #fbfcfe;
+  /* Control edge: text-input borders must meet WCAG 1.4.11 (3:1). Steel on
+     Paper = 4.76:1; Hairline (1.23:1) is for dividers only. */
+  --steel: #64748b;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  /* Semantic */
+  --danger: #dc2626;
+  --danger-wash: #fef2f2;
+  --success: #16a34a;
+  --success-wash: #f0fdf4;
+  --warning: #d97706;
+  --warning-wash: #fffbeb;
+  /* Text-safe semantic shades (WCAG 1.4.3, >=4.5:1 on their wash and on
+     Paper/Fog). The base shades stay for borders, dots and fills. */
+  --danger-ink: #b91c1c;
+  --success-ink: #15803d;
+  --warning-ink: #b45309;
+  --warning-deep: #92400e;
+
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Consolas, monospace;
+
+  font: 16px/1.5 var(--sans);
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--fog);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--fog);
+  color: var(--ink);
+  font-family: var(--sans);
+}
+
+#root {
+  min-height: 100svh;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3 {
+  font-family: var(--sans);
+  color: var(--ink);
+  margin: 0;
 }
 
+/* Title: page-level heading */
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.2;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
+
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+button {
+  font-family: var(--sans);
 }
 
-code {
+/* ---------- Layout ---------- */
+
+/* Single layout wrapper applying consistent page padding + centering,
+   per DESIGN.md "Layout" section. */
+.page {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: page-fade 150ms ease-out;
+}
+
+.page--table {
+  justify-content: flex-start;
+  padding-top: 48px;
+}
+
+@media (min-width: 640px) {
+  .page {
+    padding: 48px;
+  }
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page {
+    animation: none;
+  }
+}
+
+/* ---------- Card ---------- */
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+@media (min-width: 640px) {
+  .card {
+    padding: 32px;
+  }
+}
+
+.card h1 {
+  margin-bottom: 24px;
+}
+
+/* ---------- Forms ---------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.field:last-of-type {
+  margin-bottom: 0;
+}
+
+.field > label {
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--slate);
+  margin-bottom: 6px;
+}
+
+.field > input {
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--steel);
+  border-radius: 8px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 100ms ease-out;
+}
+
+.field > input:focus {
+  border: 1.5px solid var(--signal-blue);
+}
+
+.field > input:disabled {
+  background: var(--fog);
+  color: var(--mist);
+  border-color: var(--hairline);
+}
+
+.field > input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+/* Focus must stay distinguishable on an invalid field (WCAG 2.4.7). */
+.field > input[aria-invalid='true']:focus {
+  border-color: var(--signal-blue);
+}
+
+.field-error {
+  margin-top: 6px;
+}
+
+form > .actions {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ---------- Alert / status blocks ---------- */
+/* Every error/success/warning gets a full block treatment, not inline text
+   color (DESIGN.md "The Error Is Not Red Text Rule"). */
+
+.alert {
+  display: block;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 20px;
+}
+
+.alert[role='alert'] {
+  background: var(--danger-wash);
+  border-left-color: var(--danger);
+  color: var(--danger-ink);
+}
+
+.alert--success {
+  background: var(--success-wash);
+  border-left-color: var(--success);
+  color: var(--success-ink);
+}
+
+.alert--warning {
+  background: var(--warning-wash);
+  border-left-color: var(--warning);
+  color: var(--warning-ink);
+}
+
+.field-error.alert {
+  margin-bottom: 0;
+}
+
+.alert--table {
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.5;
+  border-radius: 8px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background-color 100ms ease-out, color 100ms ease-out, border-color 100ms ease-out;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--signal-blue);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: var(--signal-blue);
+  color: var(--paper);
+  border: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--signal-blue-deep);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--fog);
+}
+
+.btn-destructive {
+  background: transparent;
+  color: var(--danger-ink);
+  border: 1px solid var(--danger);
+}
+
+.btn-destructive:hover:not(:disabled),
+.btn-destructive:focus-visible {
+  background: var(--danger);
+  color: var(--paper);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  /* Grows the hit area to >=24px tall (WCAG 2.5.8) without moving the text. */
+  padding: 4px 2px;
+  margin: -4px -2px;
+  color: var(--signal-blue);
+  font-weight: 500;
+  font-size: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.btn-link:focus-visible {
+  outline: 2px solid var(--signal-blue);
+  outline-offset: 2px;
+}
+
+.btn-sm {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* ---------- Nav / secondary controls ---------- */
+
+.nav-back {
+  margin-bottom: 24px;
+  align-self: flex-start;
+}
+
+.card-nav {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 12px;
+}
+
+.footnote {
+  margin-top: 20px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--slate);
+  text-align: center;
+}
+
+/* ---------- Shared bits: icons, badges, state, browser surfaces ---------- */
+
+::selection {
+  background: var(--selection-wash);
+  color: var(--ink);
+}
+
+input {
+  caret-color: var(--signal-blue);
+}
+
+.icon {
+  flex: none;
+  display: block;
+}
+
+.num,
+.data-table time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Role literal (USER / ADMIN): a system value, so it takes the mono face.
+   ADMIN is carried by weight + ink border, never by the accent color. */
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  padding: 5px 7px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  color: var(--slate);
+  background: var(--paper);
+}
+
+.badge--admin {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Enabled Yes/No: text is the value; the dot (pseudo-element, so it adds no
+   text content) makes the column scannable. */
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.state::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.state--on::before {
+  background: var(--success);
+}
+
+.state--off::before {
+  border: 1.5px solid var(--slate);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--slate);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--paper);
+  border-color: var(--hairline);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+/* ---------- Hello (session) ---------- */
+
+.session__greeting {
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.readout {
+  margin: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.readout__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.readout dt {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--slate);
+}
+
+.readout dd {
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+}
+
+.readout__value {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.session__section {
+  margin-top: 32px;
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.section-desc {
+  margin: 4px 0 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--slate);
+}
+
+.btn-nav {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.btn-nav__label {
+  flex: 1;
+  text-align: left;
+}
+
+.btn-nav .icon:last-child {
+  color: var(--slate);
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-nav:hover .icon:last-child {
+  transform: translateX(2px);
+  color: var(--ink);
+}
+
+.session__foot {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---------- Admin console ---------- */
+
+.console {
+  width: 100%;
+  max-width: 960px;
+  min-width: 0; /* flex child of .page: let .table-scroll scroll instead of widening the page */
+}
+
+.console__nav {
+  margin: 0 0 16px -10px; /* optically align the ghost button's text with the heading */
+}
+
+.console__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 20px;
+}
+
+.console__meta {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--slate);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+}
+
+.console__meta .num {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.console__meta .sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--mist);
+  margin: 0 8px;
+}
+
+.console__notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--success-ink);
+  min-height: 20px;
+}
+
+.console__empty {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--slate);
+  max-width: 60ch;
+}
+
+.alert--table {
+  margin: 0 0 16px;
+}
+
+/* ---------- Tables (Admin Users) ---------- */
+
+/* Border + radius live on the scroll wrapper (a collapsed table can't round
+   its corners), and narrow viewports scroll horizontally instead of
+   squeezing columns into unreadable wraps. */
+.table-scroll {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline) transparent;
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table tbody td {
+  background: var(--paper);
+}
+
+/* First/last columns keep 16px so content aligns with the frame's inner edge. */
+.data-table th:first-child,
+.data-table td:first-child {
+  padding-left: 16px;
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  padding-right: 16px;
+}
+
+.data-table thead th {
+  background: var(--fog);
+  color: var(--slate);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  text-align: left;
+  white-space: nowrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.data-table tbody td {
+  height: 56px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--hairline);
   font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+  color: var(--ink);
+  vertical-align: middle;
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover td {
+  background: var(--row-hover);
+}
+
+.cell-username {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cell-email {
+  color: var(--slate);
+  white-space: nowrap;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.data-table tbody td.cell-created {
+  font-size: 14px;
+  color: var(--slate);
+  white-space: nowrap;
+}
+
+.data-table .col-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Disabled accounts: the whole row recedes (Slate keeps it ≥4.5:1 — Mist
+   would fail contrast) on a Fog wash, so "disabled" scans down the list. */
+.data-table tbody tr.row-disabled td {
+  background: var(--fog);
+  color: var(--slate);
+}
+
+.data-table tbody tr.row-disabled .cell-username {
+  font-weight: 500;
+}
+
+.data-table tbody tr.row-disabled .badge {
+  background: transparent;
+}
+
+/* Row mid-mutation: controls are disabled; the row dims slightly. */
+.data-table tbody tr[aria-busy='true'] td {
+  opacity: 0.6;
+}
+
+.self-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--slate);
+  padding-right: 4px;
+}
+
+.data-table .btn-row {
+  flex-wrap: nowrap;
+}
+
+.btn-row-action {
+  position: relative; /* contains the visually-hidden label on mobile */
+  gap: 6px;
+  height: 32px;
+}
+
+.btn-row-action:disabled {
+  opacity: 1;
+}
+
+/* Inline delete confirmation: replaces the row's actions in place. */
+.confirm-row {
+  position: relative;
+  align-items: center;
+}
+
+.confirm-row__prompt {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--danger-ink);
+  margin-right: 4px;
+}
+
+.btn-destructive--solid {
+  background: var(--danger);
+  color: var(--paper);
+}
+
+.btn-destructive--solid:hover:not(:disabled) {
+  background: var(--danger-ink);
+  border-color: var(--danger-ink);
+}
+
+.data-table tbody tr.row-confirm--delete td {
+  background: var(--danger-wash);
+}
+
+/* Granting ADMIN is consequential but reversible: the caution register. */
+.data-table tbody tr.row-confirm--grant td {
+  background: var(--warning-wash);
+}
+
+.row-confirm--grant .confirm-row__prompt {
+  color: var(--warning-ink);
+}
+
+.btn-caution {
+  background: var(--warning-ink);
+  color: var(--paper);
+  border: 1px solid var(--warning-ink);
+}
+
+.btn-caution:hover:not(:disabled) {
+  background: var(--warning-deep);
+  border-color: var(--warning-deep);
+}
+
+/* Skeleton rows while the list loads (no spinner inside content). */
+.skeleton {
+  display: block;
+  height: 10px;
+  width: 70%;
+  border-radius: 4px;
+  background: var(--hairline);
+  animation: skeleton-pulse 1.2s ease-in-out infinite alternate;
+}
+
+.row-skeleton td:last-child .skeleton {
+  width: 50%;
+  margin-left: auto;
+}
+
+@keyframes skeleton-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+  .btn-nav .icon:last-child {
+    transition: none;
+  }
+}
+
+/* Under 640px the row actions collapse to icon-only (DESIGN.md "Tables");
+   the text label stays in the DOM, visually hidden, so each button keeps
+   its accessible name ("Disable", "Make ADMIN", "Delete"). */
+@media (max-width: 640px) {
+  .data-table thead th,
+  .data-table tbody td {
+    padding: 8px 12px;
+  }
+  .data-table tbody td {
+    font-size: 14px;
+  }
+  .btn-row-action {
+    width: 32px;
+    padding: 0;
+  }
+  /* Confirmation buttons keep their visible text: an icon-only "confirm" is too easy to misread. */
+  .confirm-row .btn-row-action {
+    width: auto;
+    padding: 0 10px;
+  }
+  /* The prompt names whose account is affected, so it stays visible: it
+     wraps onto its own line above the two buttons. */
+  .data-table .confirm-row {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .confirm-row__prompt {
+    flex-basis: 100%;
+    text-align: right;
+    margin-right: 0;
+  }
+  /* Username column stays pinned while the rest scrolls, so every row stays identifiable. */
+  .data-table thead th:first-child,
+  .data-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    border-right: 1px solid var(--hairline);
+  }
+  .btn-row-action .btn-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* ---------- Admin console: legend, scroll hint ---------- */
+
+.console__legend,
+.table-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--slate);
+}
+
+.table-hint {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+/* ---------- Access denied (403) ---------- */
+/* A distinct register from form errors: a role-gating decision is the
+   system working as designed, so it is stated calmly, with the facts. */
+
+.denied__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ink);
+  border-radius: 8px;
+  color: var(--ink);
+}
+
+.denied__mark .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.card.denied h1 {
+  margin-bottom: 8px;
+}
+
+.denied__body {
+  color: var(--ink);
+}
+
+.denied__detail {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--slate);
+}
+
+.denied__foot {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
 }

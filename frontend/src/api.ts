@@ -114,6 +114,17 @@ export const api = {
     return apiFetch<{ message: string }>('/api/password-reset/confirm', { method: 'POST', body: payload });
   },
 
+  /**
+   * Self-service password change. This is the only mutating endpoint the
+   * backend allows while a user's forcePasswordChange flag is set (e.g.
+   * the seeded bootstrap admin on first login) — see
+   * ForcePasswordChangeFilter, which otherwise returns 403
+   * PASSWORD_CHANGE_REQUIRED for every other authenticated request.
+   */
+  changePassword(payload: { currentPassword: string; newPassword: string }) {
+    return apiFetch<{ message: string }>('/api/auth/change-password', { method: 'POST', body: payload });
+  },
+
   adminListUsers() {
     return apiFetch<AdminUserView[]>('/api/admin/users');
   },

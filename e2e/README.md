@@ -48,8 +48,8 @@ through `E2E_*` variables (URLs, admin credentials, lockout policy, H2 JDBC URL,
 
 ## Current results
 
-Against the current build: 69 passed, 2 skipped, 3 failed. The 3 failures are app issues, tagged so they stay visible. The
-green set passed 207/207 over three repeated runs.
+Against the current build: 73 passed, 2 skipped, 3 failed. The 3 failures are app issues, tagged so they stay visible. The
+green set (`npm run test:green`) passes 73/73 with 2 skipped.
 
 | Tag | Scenario | Finding |
 | --- | --- | --- |

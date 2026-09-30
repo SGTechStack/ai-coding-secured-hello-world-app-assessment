@@ -23,6 +23,14 @@ Feature: Story 3 - Account lockout and IP throttling
     And "bob" has 0 failed login attempts recorded
     And the account "bob" is not locked
 
+  @ui
+  Scenario: The login form rejects a locked account even with the correct password
+    Given a registered user "iris"
+    And the account "iris" is locked out
+    When "iris" logs in through the login form
+    Then the page shows the alert "Invalid username or password"
+    And the page does not greet anyone
+
   # PRD Story 3, AC 3. docs/adr/no-ip-rate-limiting-waf-delegated.md records a
   # decision to delegate IP throttling to a WAF instead of the application, so
   # this scenario is expected to fail against the current build. It is tagged

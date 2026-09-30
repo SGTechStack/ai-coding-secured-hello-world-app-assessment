@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { api, ApiError, primeCsrfToken } from './api';
 
 interface AuthState {
-  status: 'loading' | 'authenticated' | 'anonymous';
+  status: 'loading' | 'authenticated' | 'anonymous' | 'password-change-required';
   username: string | null;
   role: 'USER' | 'ADMIN' | null;
   refresh: () => Promise<void>;
@@ -27,6 +27,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUsername(null);
         setRole(null);
         setStatus('anonymous');
+      } else if (error instanceof ApiError && error.status === 403 && error.message === 'PASSWORD_CHANGE_REQUIRED') {
+        // ForcePasswordChangeFilter blocks every endpoint but
+        // /api/auth/change-password, /api/logout, /api/csrf until the
+        // user (e.g. the seeded bootstrap admin) sets a new password.
+        setUsername(null);
+        setRole(null);
+        setStatus('password-change-required');
       } else {
         throw error;
       }

@@ -92,6 +92,17 @@ Given('an {string} user already exists', () => {});
 When('the application restarts', () => {});
 
 // ---------------------------------------------------------------------------
+// Forced password change (mirrors the bootstrap admin's one-time
+// forcePasswordChange flag on a disposable registered user — see the
+// comment above the feature scenario that consumes these steps)
+// ---------------------------------------------------------------------------
+
+Given('a registered user {string} with a forced password change pending', async ({ createUser, db }, alias: string) => {
+  const user = await createUser(alias);
+  await db.exec(`UPDATE USERS SET FORCE_PASSWORD_CHANGE = TRUE WHERE USERNAME = ${lit(user.username)}`);
+});
+
+// ---------------------------------------------------------------------------
 // Session fixation (NFR)
 // ---------------------------------------------------------------------------
 

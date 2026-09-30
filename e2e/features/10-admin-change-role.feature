@@ -52,4 +52,16 @@ Feature: Story 10 - Admin changes another user's role
     Given "root" is logged in through the login form
     When the user clicks "Manage users"
     And the admin clicks "Make ADMIN" in the row of "alice"
+    And the admin clicks "Grant admin" in the row of "alice"
     Then the users table shows "alice" with role "ADMIN" and enabled "Yes"
+    And the account "alice" exists with role "ADMIN" and enabled status "TRUE"
+
+  @ui
+  Scenario: Granting admin from the user table requires confirmation and can be cancelled
+    Given "root" is logged in through the login form
+    When the user clicks "Manage users"
+    And the admin clicks "Make ADMIN" in the row of "alice"
+    Then the users table shows "alice" with role "USER" and enabled "Yes"
+    When the admin clicks "Cancel" in the row of "alice"
+    Then the users table shows "alice" with role "USER" and enabled "Yes"
+    And the account "alice" exists with role "USER" and enabled status "TRUE"

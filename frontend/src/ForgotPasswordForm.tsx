@@ -21,26 +21,36 @@ export function ForgotPasswordForm({ onNavigateToLogin }: { onNavigateToLogin: (
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="Request password reset">
-      <h1>Reset your password</h1>
-      {message && <p role="status">{message}</p>}
-      <label htmlFor="forgot-email">Email</label>
-      <input
-        id="forgot-email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        autoComplete="email"
-        required
-      />
-      <button type="submit" disabled={submitting}>
-        {submitting ? 'Sending…' : 'Send reset link'}
-      </button>
-      <p>
-        <button type="button" onClick={onNavigateToLogin}>
-          Back to log in
-        </button>
-      </p>
-    </form>
+    <div className="card">
+      <form onSubmit={handleSubmit} aria-label="Request password reset">
+        <h1>Reset your password</h1>
+        {message && (
+          <p className="alert alert--success" role="status">
+            {message}
+          </p>
+        )}
+        <div className="field">
+          <label htmlFor="forgot-email">Email</label>
+          <input
+            id="forgot-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+          />
+        </div>
+        <div className="actions">
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? 'Sending…' : 'Send reset link'}
+          </button>
+        </div>
+        <p className="footnote">
+          <button type="button" className="btn-link" onClick={onNavigateToLogin}>
+            Back to log in
+          </button>
+        </p>
+      </form>
+    </div>
   );
 }

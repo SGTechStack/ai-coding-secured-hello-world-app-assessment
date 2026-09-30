@@ -21,7 +21,7 @@ public class PasswordChangeService {
 
   private final AppUserRepository appUserRepository;
   private final PasswordEncoder passwordEncoder;
-  private final AccountSessions accountSessions;
+  private final AccountSessionTerminator accountSessionTerminator;
 
   /** True while the Account must replace its Temporary Password before doing anything else. */
   @Transactional(readOnly = true)
@@ -52,7 +52,7 @@ public class PasswordChangeService {
     }
     account.changePassword(passwordEncoder.encode(newPassword));
     appUserRepository.save(account);
-    accountSessions.endAllSessionsExcept(username, currentSessionId);
+    accountSessionTerminator.endAllSessionsExcept(username, currentSessionId);
     log.atInfo()
         .addKeyValue("event", EVENT_PASSWORD_CHANGED)
         .addKeyValue("username", username)

@@ -32,7 +32,7 @@ public class AccountLifecycleService {
   private static final String EVENT_ACCOUNT_DELETED = "account_deleted";
 
   private final AppUserRepository appUserRepository;
-  private final AccountSessions accountSessions;
+  private final AccountSessionTerminator accountSessionTerminator;
 
   /** Disabling ends the Account's sessions at once. */
   @Transactional
@@ -46,7 +46,7 @@ public class AccountLifecycleService {
     refuseSelf(actor, target, "disable");
     refuseLastAdmin(target, "disable");
     target.disable();
-    accountSessions.endAllSessions(target.getUsername());
+    accountSessionTerminator.endAllSessions(target.getUsername());
     audit(EVENT_ACCOUNT_DISABLED, "Account disabled", actor, target);
   }
 
@@ -68,7 +68,7 @@ public class AccountLifecycleService {
     }
     var previous = target.getRoles().stream().max(Comparator.naturalOrder()).orElseThrow();
     target.replaceRolesWith(role);
-    accountSessions.endAllSessions(target.getUsername());
+    accountSessionTerminator.endAllSessions(target.getUsername());
     log.atInfo()
         .addKeyValue(EVENT_KEY, EVENT_ACCOUNT_ROLE_CHANGED)
         .addKeyValue(ACTOR_KEY, actor)
@@ -90,7 +90,7 @@ public class AccountLifecycleService {
     refuseSelf(actor, target, "delete");
     refuseLastAdmin(target, "delete");
     appUserRepository.delete(target);
-    accountSessions.endAllSessions(target.getUsername());
+    accountSessionTerminator.endAllSessions(target.getUsername());
     audit(EVENT_ACCOUNT_DELETED, "Account deleted", actor, target);
   }
 

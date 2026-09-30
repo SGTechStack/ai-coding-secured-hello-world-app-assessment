@@ -41,7 +41,7 @@ public class AccountAdministrationService {
   private final PasswordEncoder passwordEncoder;
   private final TemporaryPasswordGenerator temporaryPasswordGenerator;
   private final TemporaryPasswordProperties temporaryPasswordProperties;
-  private final AccountSessions accountSessions;
+  private final AccountSessionTerminator accountSessionTerminator;
   private final Clock clock;
 
   @Transactional
@@ -83,7 +83,7 @@ public class AccountAdministrationService {
     }
     var issued = issueTemporaryPassword(account);
     account.clearSignInBackoff();
-    accountSessions.endAllSessions(account.getUsername());
+    accountSessionTerminator.endAllSessions(account.getUsername());
     log.atInfo()
         .addKeyValue(EVENT_KEY, EVENT_PASSWORD_RESET)
         .addKeyValue(ACTOR_KEY, actor)

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
-public class AccountSessions {
+public class AccountSessionTerminator {
 
   private final FindByIndexNameSessionRepository<? extends Session> sessions;
 

@@ -2,6 +2,7 @@ package org.eds.demo.auth.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import jakarta.servlet.http.Cookie;
@@ -90,19 +91,51 @@ class SignInBackoffIT {
   @Test
   void delayDoublesPerFailureAndStopsGrowingAtTheCap() throws Exception {
     var username = account("growth");
-    var ip = "10.0.3.1";
+    // A fresh address per attempt keeps the per-IP throttle out of the way.
+    var attempt = 0;
     var expectedSeconds = new long[] {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 900, 900};
     for (int i = 0; i < THRESHOLD - 1; i++) {
-      failure(username, WRONG_PASSWORD, ip);
+      failure(username, WRONG_PASSWORD, "10.0.3." + attempt++);
     }
 
     for (long seconds : expectedSeconds) {
-      failure(username, WRONG_PASSWORD, ip);
+      failure(username, WRONG_PASSWORD, "10.0.3." + attempt++);
       var lockedUntil = appUserRepository.findByUsername(username).orElseThrow().getLockedUntil();
       assertThat(Duration.between(clock.instant(), lockedUntil))
           .isEqualTo(Duration.ofSeconds(seconds));
       clock.advance(Duration.ofSeconds(seconds));
     }
+  }
+
+  @Test
+  void addressIsThrottledAfterRepeatedFailuresAcrossManyUsernamesThenRecovers() throws Exception {
+    var username = account("ip-victim");
+    var ip = "10.0.4.1";
+    for (int i = 0; i < IP_MAX_FAILURES; i++) {
+      failure("stranger-" + i, WRONG_PASSWORD, ip);
+    }
+
+    mockMvc
+        .perform(signIn(username, PASSWORD, ip))
+        .andExpect(status().isTooManyRequests())
+        .andExpect(header().string("Retry-After", "900"));
+    mockMvc.perform(signIn(username, PASSWORD, "10.0.4.2")).andExpect(status().isOk());
+
+    clock.advance(Duration.ofMinutes(15));
+    mockMvc.perform(signIn(username, PASSWORD, ip)).andExpect(status().isOk());
+  }
+
+  @Test
+  void aForwardedForHeaderDoesNotEvadeTheThrottleWhenNoProxyStrategyIsConfigured()
+      throws Exception {
+    var ip = "10.0.5.1";
+    for (int i = 0; i < IP_MAX_FAILURES; i++) {
+      failure("spoofer-" + i, WRONG_PASSWORD, ip);
+    }
+
+    mockMvc
+        .perform(signIn("spoofer-x", WRONG_PASSWORD, ip).header("X-Forwarded-For", "198.51.100.9"))
+        .andExpect(status().isTooManyRequests());
   }
 
   @Test

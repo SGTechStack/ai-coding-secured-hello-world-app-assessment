@@ -34,6 +34,8 @@ public class SignInService {
 
   private static final String EVENT_FAILURE = "sign_in_failure";
   private static final String EVENT_DELAY = "sign_in_delay";
+  private static final String EVENT_IP_THROTTLED = "sign_in_ip_throttled";
+  private static final String REMOTE_ADDRESS_KEY = "remoteAddress";
   private static final String DELAY_KEY = "delay";
 
   private static final String REASON_BLANK_CREDENTIALS = "blank_credentials";
@@ -44,6 +46,7 @@ public class SignInService {
   private final AuthenticationManager authenticationManager;
   private final AppUserRepository appUserRepository;
   private final SignInThrottleProperties throttle;
+  private final SignInIpThrottle ipThrottle;
   private final Clock clock;
   private final TransactionTemplate transactions;
 
@@ -52,7 +55,29 @@ public class SignInService {
    * user-details lookup's transaction would mark an outer one rollback-only and discard the failure
    * counters. Each state change runs in its own short transaction instead.
    */
-  public Authentication signIn(String username, String password) {
+  public Authentication signIn(String username, String password, String remoteAddress) {
+    ipThrottle
+        .retryAfter(remoteAddress)
+        .ifPresent(
+            retryAfter -> {
+              log.atWarn()
+                  .addKeyValue(EVENT_KEY, EVENT_IP_THROTTLED)
+                  .addKeyValue(REMOTE_ADDRESS_KEY, remoteAddress)
+                  .log(
+                      "Sign-in throttled: remoteAddress={}, retryAfter={}",
+                      remoteAddress,
+                      retryAfter);
+              throw new SignInThrottledException(retryAfter);
+            });
+    try {
+      return attempt(username, password);
+    } catch (BadCredentialsException e) {
+      ipThrottle.recordFailure(remoteAddress);
+      throw e;
+    }
+  }
+
+  private Authentication attempt(String username, String password) {
     if (username == null || username.isBlank() || password == null || password.isEmpty()) {
       throw refused(username, REASON_BLANK_CREDENTIALS);
     }

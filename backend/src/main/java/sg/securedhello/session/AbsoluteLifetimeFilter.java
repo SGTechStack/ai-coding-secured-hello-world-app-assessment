@@ -11,8 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import sg.securedhello.audit.AccountContext;
@@ -89,10 +87,8 @@ public class AbsoluteLifetimeFilter extends OncePerRequestFilter {
 
     /** Row 9, for the signed-in principal the session holds; only password sign-in stamps the auth instant. */
     private void auditExpiry() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
-            audit.emit(AuditEvent.SESSION_EXPIRED, AccountContext.sessionExpired(user.id()));
-        }
+        SignedInUser.current().ifPresent(user ->
+                audit.emit(AuditEvent.SESSION_EXPIRED, AccountContext.sessionExpired(user.id())));
     }
 
     private void pinAnonymous(HttpSession session) {

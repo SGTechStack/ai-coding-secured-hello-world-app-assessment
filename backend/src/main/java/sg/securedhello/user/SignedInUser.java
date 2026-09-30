@@ -4,12 +4,15 @@ import java.io.Serial;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 
@@ -48,6 +51,18 @@ public final class SignedInUser implements UserDetails, CredentialsContainer {
         this.passwordDisabled = passwordDisabled;
         this.forcedChangeExpired = forcedChangeExpired;
         this.passwordChangeRequired = passwordChangeRequired;
+    }
+
+    /** The signed-in user {@code authentication} holds, if it holds one: empty for none or any other principal. */
+    public static Optional<SignedInUser> from(@Nullable Authentication authentication) {
+        return authentication != null && authentication.getPrincipal() instanceof SignedInUser user
+                ? Optional.of(user)
+                : Optional.empty();
+    }
+
+    /** The signed-in user of the current security context, if it holds one. */
+    public static Optional<SignedInUser> current() {
+        return from(SecurityContextHolder.getContext().getAuthentication());
     }
 
     /**

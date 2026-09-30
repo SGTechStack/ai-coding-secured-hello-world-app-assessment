@@ -238,9 +238,8 @@ public final class SignIn {
 
     private LogoutHandler auditLogout() {
         return (request, response, authentication) -> {
-            if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
-                audit.emit(AuditEvent.LOGOUT, AccountContext.of(user.id()));
-            }
+            SignedInUser.from(authentication)
+                    .ifPresent(user -> audit.emit(AuditEvent.LOGOUT, AccountContext.of(user.id())));
         };
     }
 

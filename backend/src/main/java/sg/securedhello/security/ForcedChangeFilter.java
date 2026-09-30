@@ -9,8 +9,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpMethod;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -51,9 +49,7 @@ final class ForcedChangeFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user
-                && user.passwordChangeRequired()
+        if (SignedInUser.current().filter(SignedInUser::passwordChangeRequired).isPresent()
                 && ALLOWLIST.stream().noneMatch(route -> route.matches(request))) {
             writer.write(request, response, ErrorCode.PASSWORD_CHANGE_REQUIRED);
             return;

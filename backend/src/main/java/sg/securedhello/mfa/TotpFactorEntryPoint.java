@@ -9,9 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.security.authorization.RequiredFactorError;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Component;
@@ -58,9 +56,9 @@ public class TotpFactorEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
             AuthenticationException exception) throws IOException {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
-            Optional<TotpUserDetails> factor = factors.findById(user.id());
+        Optional<SignedInUser> signedIn = SignedInUser.current();
+        if (signedIn.isPresent()) {
+            Optional<TotpUserDetails> factor = factors.findById(signedIn.get().id());
             if (factor.isEmpty()) {
                 writer.write(request, response, ErrorCode.FACTOR_ENROLMENT_REQUIRED);
                 return;
@@ -71,9 +69,8 @@ public class TotpFactorEntryPoint implements AuthenticationEntryPoint {
             }
         }
         FactorRequiredReason reason = reason(request);
-        if (authentication != null && authentication.getPrincipal() instanceof SignedInUser user) {
-            audit.emit(AuditEvent.FACTOR_REQUIRED, AccountContext.factorRequired(user.id(), reason));
-        }
+        signedIn.ifPresent(user ->
+                audit.emit(AuditEvent.FACTOR_REQUIRED, AccountContext.factorRequired(user.id(), reason)));
         writer.write(request, response, ErrorCode.MISSING_FACTOR, Map.of("factor", FACTOR, "reason", reason.name()));
     }
 

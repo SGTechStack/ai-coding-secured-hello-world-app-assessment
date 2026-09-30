@@ -6,9 +6,8 @@ import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.MissingCsrfTokenException;
@@ -64,10 +63,7 @@ final class ProblemAccessDeniedHandler implements AccessDeniedHandler {
         writer.write(request, response, ErrorCode.CSRF_TOKEN_INVALID);
     }
 
-    private static UUID signedInUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication != null && authentication.getPrincipal() instanceof SignedInUser user
-                ? user.id()
-                : null;
+    private static @Nullable UUID signedInUserId() {
+        return SignedInUser.current().map(SignedInUser::id).orElse(null);
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -49,7 +50,8 @@ import sg.securedhello.session.SessionLifetimeProperties;
  * The application's security filter chain. Declaring it makes Boot's management security auto-configuration back
  * off, so the actuator rules are ours (ADR-061).
  *
- * <p>Authorization follows the matrix (ADR-043): whitelist first, the role-definition {@code denyAll()} before the
+ * <p>Authorization follows the matrix (ADR-043): whitelist first (and, under {@code dev} only, the dev whitelist of
+ * dev-only handlers, which is refused in any other profile), the role-definition {@code denyAll()} before the
  * role guards, then {@code anyRequest().denyAll()}. A guard on {@code /api/admin/**} also requires the second factor,
  * after the role ({@link AdminFactorRules}). Method security repeats the role check only. Every refusal is written by
  * {@link ProblemDetailWriter} (ADR-031): an anonymous caller gets 401 {@code AUTHENTICATION_FAILED}, with no
@@ -87,7 +89,12 @@ public class SecurityConfig {
             SessionRepository<?> sessionRepository, OriginsProperties origins, ProblemDetailWriter writer,
             SignIn signIn, SessionLifetimeProperties lifetime, Clock clock, AuthRateLimiter limiter,
             SourceKeyResolver sourceKeys, HttpSessionIdResolver sessionIds, AuditEmitter audit,
-            RequestBodyProperties requestBody, TotpFactorEntryPoint totpFactorEntryPoint) {
+            RequestBodyProperties requestBody, TotpFactorEntryPoint totpFactorEntryPoint, Environment environment) {
+        boolean dev = environment.matchesProfiles("dev");
+        if (!dev && !matrix.devWhitelist().isEmpty()) {
+            throw new IllegalStateException("app.security.authorization.dev-whitelist is set outside dev; it opens "
+                    + "dev-only routes and is refused in every other profile");
+        }
         // W is what the repository really applies, not the raw timeout property (T-SES-033). Nothing is saved.
         Duration idleWindow = sessionRepository.createSession().getMaxInactiveInterval();
         CsrfTokenRepository csrfTokens = new SessionOnlyCsrfTokenRepository();
@@ -124,6 +131,10 @@ public class SecurityConfig {
                             .requestMatchers(EndpointRequest.toAnyEndpoint()).denyAll();
                     matrix.whitelist().forEach(route ->
                             requests.requestMatchers(route.method(), route.path()).permitAll());
+                    if (dev) {
+                        matrix.devWhitelist().forEach(route ->
+                                requests.requestMatchers(route.method(), route.path()).permitAll());
+                    }
                     requests.requestMatchers(ROLE_DEFINITION_PATHS).denyAll();
                     // The role guards; on the admin surface, the role then both factors (ADR-021; ADR-026).
                     matrix.rolesByRoute().forEach((route, roles) -> requests

@@ -42,9 +42,10 @@ public final class RestartHarness {
     private static final String CLOCK_BEAN = "clock";
 
     /**
-     * The test-speed BCrypt cost 4, under {@code dev} only: outside {@code dev} {@code PasswordEncoderConfig} refuses
-     * a cost below 12 (ADR-001), so a non-dev boot hashes at the production cost. It sits just below the
-     * command line, so a caller's {@code --app.security.password.bcrypt-strength} still wins.
+     * The test-speed BCrypt cost 4 and no dev demo accounts, under {@code dev} only: outside {@code dev}
+     * {@code PasswordEncoderConfig} refuses a cost below 12 (ADR-001), so a non-dev boot hashes at the production cost,
+     * and {@code PublishedDemoValues} refuses any demo-account property. It sits just below the command line, so a
+     * caller's {@code --app.security.password.bcrypt-strength} or {@code --app.dev.demo-accounts.enabled} still wins.
      */
     private static final ApplicationContextInitializer<ConfigurableApplicationContext> TEST_SPEED_BCRYPT_UNDER_DEV =
             context -> {
@@ -53,7 +54,8 @@ public final class RestartHarness {
                     return;
                 }
                 MutablePropertySources sources = environment.getPropertySources();
-                MapPropertySource cost = new MapPropertySource("harnessBcryptCost", Map.of(BCRYPT_STRENGTH, "4"));
+                MapPropertySource cost = new MapPropertySource("harnessBcryptCost", Map.of(BCRYPT_STRENGTH, "4",
+                        "app.dev.demo-accounts.enabled", "false"));
                 if (sources.contains(CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME)) {
                     sources.addAfter(CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME, cost);
                 } else {

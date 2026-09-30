@@ -35,6 +35,12 @@ class PublishedDemoValuesTest {
             "(APP_MFA_TOTP_ENCRYPTION_KEY|APP_SECURITY_HMAC_TOMBSTONE_KEY|APP_SECURITY_HMAC_LOG_KEY|APP_ADMIN_PASSWORD)"
                     + "\\s*=\\s*\"([^\"]+)\"");
 
+    private static final Path DEV_CONFIGURATION = Path.of("src/main/resources/application-dev.yml");
+
+    /** The demo accounts' committed values in {@code application-dev.yml}. */
+    private static final Pattern DEMO_ACCOUNT_LINE = Pattern.compile(
+            "^\\s*(user-password|admin-password|admin-totp-secret):\\s*(\\S+)\\s*$", Pattern.MULTILINE);
+
     private static final Map<String, String> ENVIRONMENT_TO_PROPERTY = Map.of(
             "APP_MFA_TOTP_ENCRYPTION_KEY", TestSecrets.TOTP_KEY_PROPERTY,
             "APP_SECURITY_HMAC_TOMBSTONE_KEY", TestSecrets.TOMBSTONE_KEY_PROPERTY,
@@ -60,6 +66,55 @@ class PublishedDemoValuesTest {
     void theDenylistHoldsNoRawValue() throws IOException {
         String source = Files.readString(Path.of("src/main/java/sg/securedhello/config/PublishedDemoValues.java"));
         readmeDemoValues().values().forEach(value -> assertThat(source).doesNotContain(value));
+        demoAccountValues().values().forEach(value -> assertThat(source).doesNotContain(value));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"user-password", "admin-password"})
+    void outsideDevADemoAccountPasswordIsRefusedAsTheAdminPassword(String key) throws IOException {
+        String value = demoAccountValues().get(key);
+
+        runner(Map.of(TestSecrets.ADMIN_PASSWORD_PROPERTY, value)).run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(causeMessages(context.getStartupFailure()))
+                    .contains(TestSecrets.ADMIN_PASSWORD_PROPERTY, "published demo value")
+                    .doesNotContain(value);
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"user-password", "admin-password", "admin-totp-secret"})
+    void outsideDevAnyDemoAccountPropertyIsRefusedNamingItButNotItsValue(String key) throws IOException {
+        String value = demoAccountValues().get(key);
+
+        runner(Map.of(PublishedDemoValues.DEMO_ACCOUNTS + "." + key, value)).run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(causeMessages(context.getStartupFailure()))
+                    .contains(PublishedDemoValues.DEMO_ACCOUNTS, "published demo value")
+                    .doesNotContain(value);
+        });
+    }
+
+    @Test
+    void underDevTheDemoAccountValuesStart() throws IOException {
+        Map<String, String> overrides = new HashMap<>();
+        demoAccountValues().forEach((key, value) -> overrides.put(PublishedDemoValues.DEMO_ACCOUNTS + "." + key, value));
+        overrides.put(TestSecrets.ADMIN_PASSWORD_PROPERTY, demoAccountValues().get("admin-password"));
+        overrides.put("spring.profiles.active", "dev");
+
+        runner(overrides).run(context -> assertThat(context).hasNotFailed());
+    }
+
+    /** The three demo-account values as {@code application-dev.yml} commits them. */
+    private static Map<String, String> demoAccountValues() throws IOException {
+        Map<String, String> values = new HashMap<>();
+        Matcher matcher = DEMO_ACCOUNT_LINE.matcher(Files.readString(DEV_CONFIGURATION));
+        while (matcher.find()) {
+            values.put(matcher.group(1), matcher.group(2));
+        }
+        assertThat(values).as("application-dev.yml's demo accounts").containsOnlyKeys("user-password",
+                "admin-password", "admin-totp-secret");
+        return values;
     }
 
     @Test

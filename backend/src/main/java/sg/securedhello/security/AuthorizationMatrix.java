@@ -21,14 +21,18 @@ import org.springframework.validation.annotation.Validated;
  * <p>{@link SecurityConfig} applies it in a fixed order: the whitelist first, then the explicit role-definition
  * {@code denyAll()}, then the role guards, then {@code anyRequest().denyAll()}. A route with no row is denied.
  *
- * @param whitelist routes open to anyone, including anonymous callers
- * @param roles     for each role name ({@code USER} or {@code ADMIN}), the routes that role may call
+ * @param whitelist    routes open to anyone, including anonymous callers
+ * @param roles        for each role name ({@code USER} or {@code ADMIN}), the routes that role may call
+ * @param devWhitelist routes open to anyone under {@code dev} only, for dev-only handlers; set in
+ *                     {@code application-dev.yml}, applied only under {@code dev}, and refused at startup outside it,
+ *                     so outside dev such a route is denied as any unknown route is
  */
 @Validated
 @ConfigurationProperties("app.security.authorization")
 public record AuthorizationMatrix(
         @DefaultValue List<@Valid Route> whitelist,
-        @DefaultValue Map<@Pattern(regexp = "USER|ADMIN") String, List<@Valid Route>> roles) {
+        @DefaultValue Map<@Pattern(regexp = "USER|ADMIN") String, List<@Valid Route>> roles,
+        @DefaultValue List<@Valid Route> devWhitelist) {
 
     /**
      * The role guards by route: each route once, with every role that may call it, in matrix order. Spring applies the

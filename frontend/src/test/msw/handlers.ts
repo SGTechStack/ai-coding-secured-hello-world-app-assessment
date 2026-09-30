@@ -11,4 +11,6 @@ export const handlers: RequestHandler[] = [
   http.get(apiUrl('/api/csrf'), () => HttpResponse.json({ headerName: CSRF_HEADER, token: 'test-csrf-token' })),
   // Nobody is signed in unless a test says so.
   http.get(apiUrl('/api/profile'), () => problemResponse('AUTHENTICATION_FAILED', '/api/profile')),
+  // No dev-only demo accounts: refused as any unknown route is outside the backend's dev profile.
+  http.get(apiUrl('/api/dev/demo-accounts'), () => problemResponse('AUTHENTICATION_FAILED', '/api/dev/demo-accounts')),
 ]

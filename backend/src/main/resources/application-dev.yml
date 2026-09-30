@@ -17,3 +17,22 @@ logging:
     ecs:
       service:
         environment: dev
+# The dev-only demo accounts (DemoAccountSeeder; DemoAccountsController): seeded on first start alongside the admin
+# seed, and listed with their passwords and the admin's current TOTP code on the sign-in page. These values are public:
+# outside dev nothing reads them, startup refuses them as the seed administrator's password, and it refuses a database
+# that still holds a demo account (PublishedDemoValues). Set enabled to false to start without them.
+app:
+  security:
+    authorization:
+      # Dev-only routes open to anyone (AuthorizationMatrix#devWhitelist): the sign-in page's demo accounts
+      # (DemoAccountsController). Outside dev the handler and this row are both absent, and setting it is refused.
+      dev-whitelist:
+        - method: GET
+          path: /api/dev/demo-accounts
+  dev:
+    demo-accounts:
+      enabled: true
+      user-password: violet-harbour-signal-meadow
+      admin-password: granite-falcon-ember-quarry
+      # 20 bytes, RFC 4648 Base32: the demo admin's pre-enrolled TOTP secret.
+      admin-totp-secret: X47C675OXQB5LUEX3C5MGK6A445A23M2

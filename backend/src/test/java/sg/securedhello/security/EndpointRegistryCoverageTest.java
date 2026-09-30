@@ -40,13 +40,14 @@ class EndpointRegistryCoverageTest extends CtxDefaultTest {
     /**
      * The handlers with no budget row of their own, covered by the stated default instead: the session-miss budget
      * meters every request (ADR-017) and a route absent from the table is bounded at the edge (R-OPS-006). Every one
-     * needs a signed-in session, and the admin surface also the factor, so none is an anonymous password oracle.
+     * needs a signed-in session, and the admin surface also the factor, so none is an anonymous password oracle, except
+     * the dev-only demo accounts, which take no input and exist under {@code dev} only.
      */
     private static final Set<String> DEFAULT_BUDGET = Set.of("GET /api/profile", "GET /api/hello",
             "GET /api/admin/users", "GET /api/admin/users/{id}", "POST /api/admin/users",
             "PUT /api/admin/users/{id}/enabled", "PUT /api/admin/users/{id}/role", "DELETE /api/admin/users/{id}",
             "POST /api/admin/users/{id}/password-reset", "POST /api/admin/users/{id}/unlock",
-            "DELETE /api/admin/users/{id}/totp", ERROR_DISPATCH);
+            "DELETE /api/admin/users/{id}/totp", "GET /api/dev/demo-accounts", ERROR_DISPATCH);
 
     /**
      * Sign-in and sign-out, answered by security filters (SignIn), so they have no handler; the login budget row and
@@ -101,6 +102,8 @@ class EndpointRegistryCoverageTest extends CtxDefaultTest {
                     AuditEvent.ADMIN_ACTION_REFUSED)),
             entry("DELETE /api/admin/users/{id}/totp", AuditDisposition.rows(AuditEvent.TOTP_REMOVED,
                     AuditEvent.ADMIN_ACTION_REFUSED)),
+            entry("GET /api/dev/demo-accounts", AuditDisposition.omitted("a dev-only read of committed demo values; "
+                    + "it changes nothing and does not exist outside dev")),
             entry(ERROR_DISPATCH, AuditDisposition.omitted("renders the envelope for a request that already failed; "
                     + "whatever refused it wrote that request's row")));
 
@@ -138,6 +141,7 @@ class EndpointRegistryCoverageTest extends CtxDefaultTest {
 
         Set<String> matrixRoutes = matrix.whitelist().stream().map(route -> key(route.method(), route.path()))
                 .collect(Collectors.toCollection(TreeSet::new));
+        matrix.devWhitelist().forEach(route -> matrixRoutes.add(key(route.method(), route.path())));
         matrix.rolesByRoute().keySet().forEach((Route route) -> matrixRoutes.add(key(route.method(), route.path())));
         Set<String> budgeted = Arrays.stream(RateLimit.values()).map(row -> key(row.method(), row.path()))
                 .collect(Collectors.toSet());

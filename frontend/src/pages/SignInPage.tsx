@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { z } from 'zod'
+import { DemoAccountsPanel } from '@/components/DemoAccountsPanel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +34,7 @@ export function SignInPage() {
     handleSubmit,
     setFocus,
     resetField,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<Credentials>({ resolver: zodResolver(schema), defaultValues: { username: '', password: '' } })
 
@@ -102,6 +104,13 @@ export function SignInPage() {
           </Link>
         </div>
       </form>
+      <DemoAccountsPanel
+        onUse={(username, password) => {
+          setValue('username', username, { shouldValidate: true })
+          setValue('password', password, { shouldValidate: true })
+          setFocus('password')
+        }}
+      />
     </section>
   )
 }

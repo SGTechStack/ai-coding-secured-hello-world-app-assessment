@@ -46,6 +46,22 @@ describe('built index.html (vite build, mode production)', () => {
     )
   })
 
+  it('the built bundle holds none of the dev demo accounts values: the sign-in panel gets them from the API', () => {
+    const devConfig = readFileSync(path.join(root, '../backend/src/main/resources/application-dev.yml'), 'utf8')
+    const values = [...devConfig.matchAll(/^\s*(?:user-password|admin-password|admin-totp-secret):\s*(\S+)\s*$/gm)].map(
+      (m) => m[1],
+    )
+    expect(values).toHaveLength(3)
+    const files = readdirSync(outDir, { recursive: true, encoding: 'utf8' }).filter((entry) =>
+      /\.(html|js|css|map|json|txt|webmanifest)$/.test(entry),
+    )
+    expect(files.some((entry) => entry.endsWith('.js'))).toBe(true)
+    for (const file of files) {
+      const text = readFileSync(path.join(outDir, file), 'utf8')
+      for (const value of values) expect(text, file).not.toContain(value)
+    }
+  })
+
   it('T-BLD-002: the built index.html has no inline script', () => {
     const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
     expect(scripts.length).toBeGreaterThan(0)

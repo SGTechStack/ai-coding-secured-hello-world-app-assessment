@@ -20,6 +20,20 @@ Backend and frontend each have their own `CLAUDE.md`; read the one for the area 
 - ADRs: `docs/adr/` (system-wide), `backend/docs/adr/`, `frontend/docs/adr/`. Number a new one as highest existing + 1 in that directory; see [ADR-0001](docs/adr/ADR-0001-adr-naming-convention.md).
 - Domain vocabulary: [CONTEXT.md](CONTEXT.md)
 
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/<feature-slug>/`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary, recorded as a `Status:` line in each issue file. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md`, ADRs in `docs/adr/`, `backend/docs/adr/` and `frontend/docs/adr/`. See `docs/agents/domain.md`.
+
 ## Verify
 
 Backend: `./mvnw spotless:apply` then `./mvnw verify`. Frontend: `npm run lint`, `npm run test:ci`, and `npm run build` after every change.

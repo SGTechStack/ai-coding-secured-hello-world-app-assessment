@@ -372,8 +372,8 @@ class LockoutTest extends CtxDefaultTest {
 
     /**
      * Concurrent wrong passwords are counted one after another under the row lock: none is lost, and those that land
-     * after the lock are not counted. T-LCK-008 itself asks for BCrypt cost 12 on the non-dev posture; this runs the
-     * shared context's cost.
+     * after the lock are not counted, through the whole sign-in at the shared context's cost. T-LCK-008 itself, at
+     * BCrypt cost 12 on the non-dev posture, is {@code LoginCountingProductionCostTest}.
      */
     @Test
     void concurrentFailuresAreCountedUnderTheRowLock() throws Exception {

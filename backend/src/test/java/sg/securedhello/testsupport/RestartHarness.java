@@ -1,6 +1,7 @@
 package sg.securedhello.testsupport;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.boot.web.server.context.WebServerInitializedEvent;
@@ -34,6 +37,9 @@ public final class RestartHarness {
     private static final String[] HARNESS_ARGUMENTS = {"--server.port=0"};
 
     private static final String BCRYPT_STRENGTH = "app.security.password.bcrypt-strength";
+
+    /** {@code ClockConfig}'s bean, the one source of time for main code (ADR-066). */
+    private static final String CLOCK_BEAN = "clock";
 
     /**
      * The test-speed BCrypt cost 4, under {@code dev} only: outside {@code dev} {@code PasswordEncoderConfig} refuses
@@ -114,6 +120,20 @@ public final class RestartHarness {
         String database = directory.resolve("secured-hello").toString().replace('\\', '/');
         return context -> context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
                 "restartDatabase", Map.of("spring.datasource.url", "jdbc:h2:file:" + database + ";LOCK_TIMEOUT=1000")));
+    }
+
+    /**
+     * An initializer that makes {@code clock} the application's {@code clock} bean, in place of the system clock, so
+     * successive boots share one timeline the test advances: pass the same {@link MutableClock} to each boot. The
+     * definition is replaced after every configuration class has registered its own, so the ticker and time meter
+     * built from the clock follow it too.
+     */
+    public static ApplicationContextInitializer<ConfigurableApplicationContext> withClock(Clock clock) {
+        BeanFactoryPostProcessor replaceClock = beanFactory -> {
+            ((BeanDefinitionRegistry) beanFactory).removeBeanDefinition(CLOCK_BEAN);
+            beanFactory.registerSingleton(CLOCK_BEAN, clock);
+        };
+        return context -> context.addBeanFactoryPostProcessor(replaceClock);
     }
 
     /** An initializer, to run after {@link TemporaryH2FileInitializer}, that removes one test secret. */

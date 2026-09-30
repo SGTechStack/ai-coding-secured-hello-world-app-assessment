@@ -16,7 +16,7 @@ export function AccountRowActions({ account }: { account: AccountSummary }) {
   return (
     <div className="flex flex-col items-start gap-2">
       <div className="flex items-center gap-2">
-        <ActionTooltip label={account.enabled ? 'Disable' : 'Enable'}>
+        <ActionTooltip label={account.enabled ? 'Disable Account' : 'Enable Account'}>
           <Button
             type="button"
             variant="outline"
@@ -39,7 +39,7 @@ export function AccountRowActions({ account }: { account: AccountSummary }) {
             {account.enabled ? <UserMinus className="size-4" /> : <UserCheck className="size-4" />}
           </Button>
         </ActionTooltip>
-        <ActionTooltip label={`Delete ${account.username}`}>
+        <ActionTooltip label="Delete Account">
           <Button
             type="button"
             variant="danger"

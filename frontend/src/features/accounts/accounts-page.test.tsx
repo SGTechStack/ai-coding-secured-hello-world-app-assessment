@@ -279,10 +279,15 @@ describe('AccountsPage', () => {
     const row = (await screen.findByText('active-user')).closest('tr')!;
     const user = userEvent.setup();
 
-    for (const name of ['Reset password', 'Disable', 'Delete active-user']) {
-      await user.hover(within(row).getByRole('button', { name }));
-      expect(await screen.findByText(name, { selector: '[data-side]' })).toBeInTheDocument();
-      await user.unhover(within(row).getByRole('button', { name }));
+    const tooltips = [
+      { button: 'Reset password', tooltip: 'Reset password' },
+      { button: 'Disable', tooltip: 'Disable Account' },
+      { button: 'Delete active-user', tooltip: 'Delete Account' },
+    ];
+    for (const { button, tooltip } of tooltips) {
+      await user.hover(within(row).getByRole('button', { name: button }));
+      expect(await screen.findByText(tooltip, { selector: '[data-side]' })).toBeInTheDocument();
+      await user.unhover(within(row).getByRole('button', { name: button }));
     }
   });
 

@@ -40,6 +40,14 @@ public class DeletedUser {
     protected DeletedUser() {
     }
 
+    DeletedUser(UUID userId, String username, String emailHmac, Instant deletedAt, UUID deletedById) {
+        this.userId = userId;
+        this.username = username;
+        this.emailHmac = emailHmac;
+        this.deletedAt = deletedAt;
+        this.deletedById = deletedById;
+    }
+
     public UUID getUserId() {
         return userId;
     }

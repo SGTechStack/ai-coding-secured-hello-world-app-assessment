@@ -2,6 +2,7 @@ package sg.securedhello.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
@@ -19,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -28,6 +31,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -40,6 +44,7 @@ import sg.securedhello.testsupport.Accounts.Account;
 import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxLockHoldTest;
+import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SignedIn;
 import sg.securedhello.testsupport.TotpFactors;
 
@@ -218,6 +223,87 @@ class TwoAdminInvariantTest extends CtxLockHoldTest {
         assertThat(enabled(a)).isTrue();
         assertThat(enabled(b)).isFalse();
         assertThat(enrolledAdmins()).isEqualTo(2);
+    }
+
+    /** The three admin mutations that can remove an admin from the count (ADR-048). */
+    private enum Removal {
+        DISABLE, DEMOTE, DELETE;
+
+        MockHttpServletRequestBuilder request(UUID subject) {
+            return switch (this) {
+                case DISABLE -> put("/api/admin/users/" + subject + "/enabled").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false}");
+                case DEMOTE -> put("/api/admin/users/" + subject + "/role").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"USER\"}");
+                case DELETE -> delete("/api/admin/users/" + subject);
+            };
+        }
+    }
+
+    private ResultActions remove(Removal removal, Admin actor, UUID subject) throws Exception {
+        return mockMvc.perform(removal.request(subject).with(actor.session().inHeader()));
+    }
+
+    /** Whether {@code id} is still an enabled {@code ADMIN} with no tombstone: what every removal would change. */
+    private boolean untouchedAdmin(UUID id) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("SELECT COUNT(*) = 1 FROM users"
+                + " WHERE id = ? AND role = 'ADMIN' AND enabled AND NOT EXISTS (SELECT 1 FROM deleted_users WHERE user_id = ?)", Boolean.class, id, id));
+    }
+
+    @ParameterizedTest
+    @EnumSource(Removal.class)
+    @Proves("T-ADM-028")
+    void atExactlyTwoEnrolledAdminsNeitherCanDisableDemoteOrDeleteTheOther(Removal removal) throws Exception {
+        Admin a = enrolledAdmin();
+        Admin b = enrolledAdmin();
+
+        try (AuditCapture audit = AuditCapture.start()) {
+            remove(removal, a, b.id()).andExpect(problem(ErrorCode.TWO_ADMIN_INVARIANT));
+            remove(removal, b, a.id()).andExpect(problem(ErrorCode.TWO_ADMIN_INVARIANT));
+            assertThat(audit.withMessage("Administrative action refused.")).hasSize(2).allSatisfy(row ->
+                    assertThat(row).containsEntry("event.reason", "TWO_ADMIN_INVARIANT"));
+        }
+        assertThat(untouchedAdmin(a.id())).isTrue();
+        assertThat(untouchedAdmin(b.id())).isTrue();
+        assertThat(enrolledAdmins()).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @EnumSource(Removal.class)
+    void withThreeEnrolledAdminsRemovingOneSucceedsAndThenTheRemainingTwoAreProtected(Removal removal)
+            throws Exception {
+        Admin a = enrolledAdmin();
+        Admin b = enrolledAdmin();
+        Admin c = enrolledAdmin();
+
+        remove(removal, a, c.id()).andExpect(status().is2xxSuccessful());
+
+        assertThat(enrolledAdmins()).isEqualTo(2);
+        remove(removal, a, b.id()).andExpect(problem(ErrorCode.TWO_ADMIN_INVARIANT));
+    }
+
+    /**
+     * T-ADM-010: an invited admin who has not redeemed is not counted. With one real admin and an invite, the real
+     * admin's own demotion or disable is refused; with two real admins and an invite, demoting either is refused as
+     * the last pair, while the invite can be demoted.
+     */
+    @Test
+    @Proves("T-ADM-010")
+    void anInviteDoesNotCountTowardsTheInvariantForDemotionOrDisable() throws Exception {
+        Admin a = enrolledAdmin();
+        Account invite = accounts.withRole("ADMIN");
+        jdbc.update("UPDATE users SET activated_at = NULL WHERE id = ?", invite.id());
+        factors.enrol(invite);
+
+        remove(Removal.DEMOTE, a, a.id()).andExpect(problem(ErrorCode.ACCESS_DENIED));
+        remove(Removal.DISABLE, a, a.id()).andExpect(problem(ErrorCode.ACCESS_DENIED));
+        assertThat(untouchedAdmin(a.id())).isTrue();
+
+        Admin b = enrolledAdmin();
+        remove(Removal.DEMOTE, a, b.id()).andExpect(problem(ErrorCode.TWO_ADMIN_INVARIANT));
+        remove(Removal.DISABLE, a, b.id()).andExpect(problem(ErrorCode.TWO_ADMIN_INVARIANT));
+        assertThat(untouchedAdmin(b.id())).isTrue();
+        remove(Removal.DEMOTE, a, invite.id()).andExpect(status().isOk());
     }
 
     /**

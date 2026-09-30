@@ -28,8 +28,9 @@ import sg.securedhello.testsupport.TotpFactors;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * An admin disable ends the subject's live sessions after commit (ADR-037; ADR-039): the subject's raw cookie, replayed
- * against the real JDBC session store over a real port, is refused and its row is gone (level P).
+ * An admin disable, role change or delete ends the subject's live sessions after commit (ADR-037; ADR-039): the
+ * subject's raw cookie, replayed against the real JDBC session store over a real port, is refused and its row is gone
+ * (level P).
  */
 class AdminDisableSessionsPortTest extends CtxPortTest {
 
@@ -100,6 +101,45 @@ class AdminDisableSessionsPortTest extends CtxPortTest {
         EntityExchangeResult<String> disabled = send(HttpMethod.PUT, "/api/admin/users/" + target.id() + "/enabled",
                 withToken(cookieValue(verified)), "{\"enabled\":false}");
         assertThat(disabled.getStatus().value()).isEqualTo(200);
+
+        assertThat(new SessionRows(jdbc).exists(SessionRows.idOf(captured))).as("the session row is gone").isFalse();
+        EntityExchangeResult<String> replay = send(HttpMethod.GET, "/api/hello", new Session(captured, null), null);
+        ProblemAssertions.assertProblem(replay.getStatus().value(),
+                replay.getResponseHeaders().getFirst(HttpHeaders.CONTENT_TYPE), replay.getResponseBody(),
+                replay.getResponseHeaders().getFirst(HttpHeaders.WWW_AUTHENTICATE), ErrorCode.AUTHENTICATION_FAILED);
+    }
+
+    @Test
+    @Proves("T-SES-004")
+    void aPromotedUsersReplayedCookieIsRefusedAndItsRowIsGone() {
+        assertReplayRefusedAfter(HttpMethod.PUT, "/role", "{\"role\":\"ADMIN\"}", 200);
+    }
+
+    @Test
+    @Proves("T-SES-016")
+    void aDeletedUsersReplayedCookieIsRefusedAndItsRowIsGone() {
+        assertReplayRefusedAfter(HttpMethod.DELETE, "", null, 204);
+    }
+
+    /**
+     * Signs a user in and captures its cookie, has a verified admin send {@code method} to the user's admin path plus
+     * {@code suffix}, then replays the captured cookie: the row is gone and the replay gets 401.
+     */
+    private void assertReplayRefusedAfter(HttpMethod method, String suffix, String json, int expectedStatus) {
+        Accounts accounts = new Accounts(jdbc, passwordEncoder);
+        TotpFactors factors = new TotpFactors(jdbc, cipher, clock);
+        Account target = accounts.user();
+        Account admin = accounts.withRole("ADMIN");
+        byte[] secret = factors.enrol(admin);
+        String captured = signIn(target).cookie();
+        assertThat(send(HttpMethod.GET, "/api/hello", new Session(captured, null), null).getStatus().value())
+                .as("the target's session is live").isEqualTo(200);
+
+        EntityExchangeResult<String> verified = send(HttpMethod.POST, TotpFactors.VERIFICATION, signIn(admin),
+                JSON.writeValueAsString(Map.of("code", factors.code(secret))));
+        EntityExchangeResult<String> changed = send(method, "/api/admin/users/" + target.id() + suffix,
+                withToken(cookieValue(verified)), json);
+        assertThat(changed.getStatus().value()).isEqualTo(expectedStatus);
 
         assertThat(new SessionRows(jdbc).exists(SessionRows.idOf(captured))).as("the session row is gone").isFalse();
         EntityExchangeResult<String> replay = send(HttpMethod.GET, "/api/hello", new Session(captured, null), null);

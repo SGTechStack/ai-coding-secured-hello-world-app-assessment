@@ -15,11 +15,11 @@ import sg.securedhello.audit.AdminRefusalReason;
  *   <li><b>Check 1, actor &ne; subject:</b> an administrator may not act on their own account (REJ-050). It covers
  *       enable too: the standard bars self-directed updates through the admin endpoint, and a self-enable could only
  *       ever be a no-op, since a disabled admin cannot sign in.</li>
- *   <li><b>Check 2, the two-admin invariant:</b> a mutation that can remove an admin (disable, and later demote and
- *       delete) is refused if the proposed state would leave fewer than two enrolled admins, counted with
+ *   <li><b>Check 2, the two-admin invariant:</b> a mutation that can remove an admin (disable, demote and delete) is
+ *       refused if the proposed state would leave fewer than two enrolled admins, counted with
  *       {@link Standing#enrolledAdmin()}. A mutation that lowers nothing, such as disabling a user, an unenrolled
- *       admin or an already disabled one, is never refused by it, whatever the count. Factor reset is exempt
- *       (ADR-049).</li>
+ *       admin or an already disabled one, or any promotion, is never refused by it, whatever the count. Factor
+ *       reset is exempt (ADR-049).</li>
  * </ol>
  */
 final class AdminActionGuard {
@@ -30,7 +30,10 @@ final class AdminActionGuard {
     /** An admin mutation, and whether it can remove an admin from the invariant's count. */
     enum Mutation {
         ENABLE(false),
-        DISABLE(true);
+        DISABLE(true),
+        PROMOTE(false),
+        DEMOTE(true),
+        DELETE(true);
 
         private final boolean removesAnAdmin;
 

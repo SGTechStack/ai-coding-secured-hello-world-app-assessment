@@ -10,8 +10,8 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +20,6 @@ import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.config.PasswordResetProperties;
 import com.example.securedhello.credential.PasswordHistoryException;
-import com.example.securedhello.notification.EmailService;
 
 /**
  * Password reset service: issues a Reset Token (at least 32 random bytes, URL-safe encoded), stores
@@ -48,7 +47,7 @@ class PasswordResetService {
 
 	private final PasswordResetProperties properties;
 
-	private final EmailService emailService;
+	private final ApplicationEventPublisher events;
 
 	private final AuditLog auditLog;
 
@@ -56,13 +55,13 @@ class PasswordResetService {
 
 	PasswordResetService(AccountRepository accounts, PasswordResetTokenRepository tokens,
 			PasswordResetTokenCanceller resetTokenCanceller, PasswordUpdater passwordUpdater,
-			PasswordResetProperties properties, EmailService emailService, AuditLog auditLog, Clock clock) {
+			PasswordResetProperties properties, ApplicationEventPublisher events, AuditLog auditLog, Clock clock) {
 		this.accounts = accounts;
 		this.tokens = tokens;
 		this.resetTokenCanceller = resetTokenCanceller;
 		this.passwordUpdater = passwordUpdater;
 		this.properties = properties;
-		this.emailService = emailService;
+		this.events = events;
 		this.auditLog = auditLog;
 		this.clock = clock;
 	}
@@ -71,7 +70,8 @@ class PasswordResetService {
 	 * Issues a Reset Token and sends its link, unless the email matches no Account or a Disabled one.
 	 * Runs on the background executor (see {@code PasswordResetExecutorConfig}), after the endpoint
 	 * has already returned 202, so it takes {@code httpMethod} and {@code urlPath} rather than a live
-	 * {@code HttpServletRequest} to audit issuance.
+	 * {@code HttpServletRequest} to audit issuance. The link is sent, and issuance audited, only once
+	 * the token has committed, so no link is ever sent for a token that was never stored.
 	 */
 	@Transactional
 	void issue(String email, String httpMethod, String urlPath) {
@@ -85,15 +85,16 @@ class PasswordResetService {
 		String token = generateToken();
 		tokens.save(PasswordResetToken.issue(account.getId(), hash(token), now.plus(properties.tokenExpiry())));
 		String link = properties.frontendOrigin() + "/reset-password#token=" + token;
-		emailService.sendPasswordResetLink(account.getEmail(), link);
-		auditLog.record(
-				AuditEvent.success(AuditAction.PASSWORD_RESET).userId(account.getId()).request(httpMethod, urlPath));
+		events.publishEvent(
+				new AccountEvent.PasswordResetIssued(account.getId(), account.getEmail(), link, httpMethod, urlPath));
 	}
 
 	/**
 	 * Redeems a Reset Token: applies the Credential policy and Password History, marks the token
 	 * used, and cancels any other pending token, but never touches an active lock (story 58). A new
-	 * password also satisfies and clears a Required Password Change.
+	 * password also satisfies and clears a Required Password Change. Failures are audited here, where
+	 * they are known; on success, ending the Account's Sessions, auditing and notifying follow the
+	 * commit ({@link AccountEvent.PasswordResetCompleted}).
 	 * @throws TokenInvalidException when the token is unknown, expired or already used
 	 * @throws com.example.securedhello.credential.PasswordPolicyException when the new password
 	 *         breaks the Credential policy
@@ -101,7 +102,7 @@ class PasswordResetService {
 	 *         the current one or another in the Password History
 	 */
 	@Transactional
-	ConfirmedReset confirm(String token, String newPassword, String httpMethod, String urlPath) {
+	void confirm(String token, String newPassword, String httpMethod, String urlPath) {
 		Instant now = clock.instant();
 		PasswordResetToken resetToken = tokens.findByTokenHash(hash(token))
 			.filter((candidate) -> candidate.isUsable(now))
@@ -120,16 +121,8 @@ class PasswordResetService {
 		}
 		resetToken.markUsed(now);
 		resetTokenCanceller.cancelPending(account.getId(), now);
-		auditLog.record(
-				AuditEvent.success(AuditAction.PASSWORD_RESET).userId(account.getId()).request(httpMethod, urlPath));
-		if (requirementCleared) {
-			auditLog.record(PasswordChangeEnforcement.cleared(account.getId()).request(httpMethod, urlPath));
-		}
-		return new ConfirmedReset(account.getId(), account.getEmail());
-	}
-
-	/** The Account resolved by a redeemed token, and its email for the completion notification. */
-	record ConfirmedReset(UUID accountId, String email) {
+		events.publishEvent(
+				new AccountEvent.PasswordResetCompleted(account.getId(), account.getEmail(), requirementCleared));
 	}
 
 	private TokenInvalidException invalid(String httpMethod, String urlPath) {

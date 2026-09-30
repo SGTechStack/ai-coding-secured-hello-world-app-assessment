@@ -4,7 +4,6 @@ import java.util.Locale;
 import java.util.concurrent.Executor;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -26,11 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.securedhello.credential.PasswordHistoryException;
 import com.example.securedhello.credential.PasswordPolicyException;
 import com.example.securedhello.logging.CorrelationFilter;
-import com.example.securedhello.notification.EmailService;
 import com.example.securedhello.ratelimit.ClientAddressLimit;
 import com.example.securedhello.ratelimit.RateLimitedByClientAddress;
 import com.example.securedhello.ratelimit.RateLimiters;
-import com.example.securedhello.security.SessionControl;
 import com.example.securedhello.web.ErrorCategory;
 import com.example.securedhello.web.ProblemResponses;
 
@@ -45,8 +42,6 @@ import com.example.securedhello.web.ProblemResponses;
 @RestController
 @RequestMapping("${app.api.base-path}")
 class PasswordResetController {
-
-	static final String PASSWORD_RESET = "password_reset";
 
 	private static final Logger log = LoggerFactory.getLogger(PasswordResetController.class);
 
@@ -70,19 +65,13 @@ class PasswordResetController {
 
 	private final PasswordResetService passwordReset;
 
-	private final SessionControl sessionControl;
-
-	private final EmailService emailService;
-
 	private final RateLimiters rateLimiters;
 
 	private final Executor passwordResetExecutor;
 
-	PasswordResetController(PasswordResetService passwordReset, SessionControl sessionControl,
-			EmailService emailService, RateLimiters rateLimiters, Executor passwordResetExecutor) {
+	PasswordResetController(PasswordResetService passwordReset, RateLimiters rateLimiters,
+			Executor passwordResetExecutor) {
 		this.passwordReset = passwordReset;
-		this.sessionControl = sessionControl;
-		this.emailService = emailService;
 		this.rateLimiters = rateLimiters;
 		this.passwordResetExecutor = passwordResetExecutor;
 	}
@@ -125,12 +114,9 @@ class PasswordResetController {
 	/** Rate-limited before the body is validated, so a malformed confirmation spends quota too (issue 18). */
 	@PostMapping("/password-reset/confirm")
 	@RateLimitedByClientAddress(ClientAddressLimit.RESET_CONFIRM)
-	ResponseEntity<Void> confirm(@Valid @RequestBody ResetConfirmRequest body, HttpServletRequest request,
-			HttpServletResponse response) {
-		PasswordResetService.ConfirmedReset confirmed = passwordReset.confirm(body.token(), body.newPassword(),
-				request.getMethod(), CorrelationFilter.urlPath(request));
-		sessionControl.endAll(confirmed.accountId(), PASSWORD_RESET, request, response);
-		emailService.notifyPasswordResetCompleted(confirmed.email());
+	ResponseEntity<Void> confirm(@Valid @RequestBody ResetConfirmRequest body, HttpServletRequest request) {
+		// Ending the Sessions, auditing and notifying follow the commit, in AccountEventListener.
+		passwordReset.confirm(body.token(), body.newPassword(), request.getMethod(), CorrelationFilter.urlPath(request));
 		return ResponseEntity.ok().build();
 	}
 

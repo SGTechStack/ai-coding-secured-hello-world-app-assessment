@@ -163,7 +163,8 @@ public class SessionControl {
 	/**
 	 * Ends every Session of the Account, including the request's own if it is one of them, and
 	 * audits each as {@code session-end} with the given reason (or the timeout it had already
-	 * passed). Used by Password Change, reset confirmation and admin actions.
+	 * passed). Used, once the change has committed, by Password Change, reset confirmation and admin
+	 * actions.
 	 */
 	public void endAll(UUID accountId, String reason, HttpServletRequest request, HttpServletResponse response) {
 		HttpSession current = request.getSession(false);
@@ -174,6 +175,16 @@ public class SessionControl {
 			}
 			// Also after end(): a no-op once the Session is invalidated, but it guarantees the stored row goes.
 			removeStored(session, accountId, reason, request);
+		}
+	}
+
+	/**
+	 * {@link #endAll(UUID, String, HttpServletRequest, HttpServletResponse)} for a change made outside
+	 * any request, so there is no own Session to end and no request fields to audit.
+	 */
+	public void endAll(UUID accountId, String reason) {
+		for (Session session : sessions.findByPrincipalName(accountId.toString()).values()) {
+			removeStored(session, accountId, reason, null);
 		}
 	}
 
@@ -231,8 +242,10 @@ public class SessionControl {
 			.forEach((session) -> removeStored(session, accountId, NEW_LOGIN, request));
 	}
 
+	/** Audits a {@code session-end}, with the request's fields when there is a request. */
 	private void audit(UUID accountId, String reason, HttpServletRequest request) {
-		auditLog.record(AuditEvent.success(AuditAction.SESSION_END).reason(reason).userId(accountId).request(request));
+		AuditEvent event = AuditEvent.success(AuditAction.SESSION_END).reason(reason).userId(accountId);
+		auditLog.record((request != null) ? event.request(request) : event);
 	}
 
 }

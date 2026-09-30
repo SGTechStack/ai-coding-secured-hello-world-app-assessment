@@ -8,10 +8,9 @@ import com.example.securedhello.audit.AuditEvent;
 /**
  * The audit trail of a Required Password Change ({@code password-change-enforcement}): an Admin
  * setting the flag, a Password Change or reset clearing it, and every request refused while it is
- * set. One place for the event shape, because three modules emit it (the Account administration
- * controller, the Password Change controller and the reset service, and
- * {@link RequiredPasswordChangeFilter}). Callers add {@code url.path} and the request method, which
- * they alone know how to resolve.
+ * set. One place for the event shape, because two modules emit it: {@link AccountEventListener}, for
+ * the committed set and clear, and {@link RequiredPasswordChangeFilter}, for refusals. Callers add
+ * {@code url.path} and the request method when there is a request.
  */
 final class PasswordChangeEnforcement {
 

@@ -5,12 +5,12 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.securedhello.config.LockoutProperties;
 import com.example.securedhello.credential.CredentialPolicy;
-import com.example.securedhello.notification.EmailService;
 import com.example.securedhello.ratelimit.IpThrottle;
 import com.example.securedhello.ratelimit.RateLimitExceededException;
 import com.example.securedhello.ratelimit.RateLimiters;
@@ -37,19 +37,19 @@ class AuthenticationGuard {
 
 	private final Clock clock;
 
-	private final EmailService emailService;
+	private final ApplicationEventPublisher events;
 
 	private final RateLimiters rateLimiters;
 
 	private final IpThrottle ipThrottle;
 
 	AuthenticationGuard(AccountRepository accounts, CredentialPolicy credentialPolicy, LockoutProperties lockout,
-			Clock clock, EmailService emailService, RateLimiters rateLimiters, IpThrottle ipThrottle) {
+			Clock clock, ApplicationEventPublisher events, RateLimiters rateLimiters, IpThrottle ipThrottle) {
 		this.accounts = accounts;
 		this.credentialPolicy = credentialPolicy;
 		this.lockout = lockout;
 		this.clock = clock;
-		this.emailService = emailService;
+		this.events = events;
 		this.rateLimiters = rateLimiters;
 		this.ipThrottle = ipThrottle;
 	}
@@ -88,7 +88,8 @@ class AuthenticationGuard {
 		Instant now = clock.instant();
 		if (!credentialPolicy.matches(password, account.getPasswordHash())) {
 			if (account.recordFailedLogin(now, lockout.threshold(), lockout.duration())) {
-				emailService.notifyAccountLocked(account.getEmail());
+				// Sent once the counter commits, which it does although the login is refused.
+				events.publishEvent(new AccountEvent.Locked(account.getId(), account.getEmail()));
 				throw AuthenticationFailedException.lockedAccount(account.getId());
 			}
 			throw new AuthenticationFailedException();

@@ -1,7 +1,6 @@
 package com.example.securedhello.account;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -20,8 +19,6 @@ import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
 import com.example.securedhello.credential.PasswordHistoryException;
 import com.example.securedhello.credential.PasswordPolicyException;
-import com.example.securedhello.notification.EmailService;
-import com.example.securedhello.security.SessionControl;
 import com.example.securedhello.web.ProblemResponses;
 
 /**
@@ -39,9 +36,6 @@ import com.example.securedhello.web.ProblemResponses;
 @RequestMapping("${app.api.base-path}")
 class PasswordChangeController {
 
-	static final String PASSWORD_CHANGE = "password_change";
-
-	private static final String CHANGE = "change";
 
 	/** The new password's length and byte limits are Credential policy rules, not checked here. */
 	record PasswordChangeRequest(@NotNull String currentPassword, @NotNull String newPassword) {
@@ -49,35 +43,18 @@ class PasswordChangeController {
 
 	private final PasswordChangeService passwordChange;
 
-	private final SessionControl sessionControl;
-
 	private final AuditLog auditLog;
 
-	private final EmailService emailService;
-
-	PasswordChangeController(PasswordChangeService passwordChange, SessionControl sessionControl, AuditLog auditLog,
-			EmailService emailService) {
+	PasswordChangeController(PasswordChangeService passwordChange, AuditLog auditLog) {
 		this.passwordChange = passwordChange;
-		this.sessionControl = sessionControl;
 		this.auditLog = auditLog;
-		this.emailService = emailService;
 	}
 
 	@PatchMapping("/me/password")
 	ResponseEntity<Void> change(@AuthenticationPrincipal AccountPrincipal principal,
-			@Valid @RequestBody PasswordChangeRequest body, HttpServletRequest request, HttpServletResponse response) {
-		PasswordChangeService.CompletedPasswordChange completed = passwordChange.change(principal.accountId(),
-				body.currentPassword(), body.newPassword());
-		// The change has committed, so the notification never announces a change that rolled back.
-		emailService.notifyPasswordChanged(completed.email());
-		sessionControl.endAll(principal.accountId(), PASSWORD_CHANGE, request, response);
-		auditLog.record(AuditEvent.success(AuditAction.PASSWORD_RESET)
-			.eventType(CHANGE)
-			.userId(principal.accountId())
-			.request(request));
-		if (completed.requirementCleared()) {
-			auditLog.record(PasswordChangeEnforcement.cleared(principal.accountId()).request(request));
-		}
+			@Valid @RequestBody PasswordChangeRequest body) {
+		// Ending the Sessions, auditing and notifying follow the commit, in AccountEventListener.
+		passwordChange.change(principal.accountId(), body.currentPassword(), body.newPassword());
 		return ResponseEntity.ok().build();
 	}
 
@@ -110,7 +87,7 @@ class PasswordChangeController {
 
 	private void auditFailure(AccountPrincipal principal, String reason, HttpServletRequest request) {
 		auditLog.record(AuditEvent.failure(AuditAction.PASSWORD_RESET, reason)
-			.eventType(CHANGE)
+			.eventType(AccountEventListener.CHANGE)
 			.userId(principal.accountId())
 			.request(request));
 	}

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Account administration for Admins. Every method checks the Admin role itself with
  * {@code @PreAuthorize}, in addition to the {@code /api/admin/**} URL rule, so no caller reaches it
- * as a User.
+ * as a User. Each change publishes an {@link AccountEvent}, so ending the target's Sessions and
+ * auditing the change follow once it has committed ({@link AccountEventListener}).
  */
 @Service
 class AccountAdministrationService {
@@ -28,13 +30,17 @@ class AccountAdministrationService {
 
 	private final Clock clock;
 
+	private final ApplicationEventPublisher events;
+
 	AccountAdministrationService(AccountRepository accounts, DeletedAccountRepository deletedAccounts,
-			PasswordResetTokenRepository resetTokens, PasswordHistoryRepository passwordHistory, Clock clock) {
+			PasswordResetTokenRepository resetTokens, PasswordHistoryRepository passwordHistory, Clock clock,
+			ApplicationEventPublisher events) {
 		this.accounts = accounts;
 		this.deletedAccounts = deletedAccounts;
 		this.resetTokens = resetTokens;
 		this.passwordHistory = passwordHistory;
 		this.clock = clock;
+		this.events = events;
 	}
 
 	/** Every Account, oldest first, with its role and enabled and Locked state. */
@@ -50,41 +56,41 @@ class AccountAdministrationService {
 
 	/**
 	 * Enables or disables an Account. Never touches the required-password-change flag: a re-enable is
-	 * not treated as a suspected compromise (ADR 0001). Ending the target's Sessions and auditing the
-	 * change are the caller's job, once this has committed.
+	 * not treated as a suspected compromise (ADR 0001). Disabling ends the target's Sessions once this
+	 * has committed; re-enabling does not.
 	 * @throws AccountNotFoundException when {@code targetId} is not an Account
 	 * @throws SelfActionForbiddenException when the acting Admin targets their own Account
 	 * @throws LastAdminException when disabling would leave zero enabled Admins
 	 */
 	@PreAuthorize("hasRole('ADMIN')")
 	@Transactional
-	AccountEnabledChange setEnabled(UUID actingAdminId, UUID targetId, boolean enabled) {
+	void setEnabled(UUID actingAdminId, UUID targetId, boolean enabled) {
 		guardSelfAction(actingAdminId, targetId);
 		LockedTarget locked = lockTarget(targetId);
 		Account target = locked.account();
 		boolean before = target.isEnabled();
 		guardLastAdmin(locked, enabled, target.getRole());
 		target.setEnabled(enabled);
-		return new AccountEnabledChange(before, enabled);
+		events.publishEvent(new AccountEvent.EnabledChanged(actingAdminId, targetId, before, enabled));
 	}
 
 	/**
-	 * Changes an Account's role between User and Admin. Ending the target's Sessions and auditing the
-	 * change are the caller's job, once this has committed.
+	 * Changes an Account's role between User and Admin, ending the target's Sessions once this has
+	 * committed.
 	 * @throws AccountNotFoundException when {@code targetId} is not an Account
 	 * @throws SelfActionForbiddenException when the acting Admin targets their own Account
 	 * @throws LastAdminException when the change would leave zero enabled Admins
 	 */
 	@PreAuthorize("hasRole('ADMIN')")
 	@Transactional
-	AccountRoleChange changeRole(UUID actingAdminId, UUID targetId, Role role) {
+	void changeRole(UUID actingAdminId, UUID targetId, Role role) {
 		guardSelfAction(actingAdminId, targetId);
 		LockedTarget locked = lockTarget(targetId);
 		Account target = locked.account();
 		Role before = target.getRole();
 		guardLastAdmin(locked, target.isEnabled(), role);
 		target.changeRole(role);
-		return new AccountRoleChange(before, role);
+		events.publishEvent(new AccountEvent.RoleChanged(actingAdminId, targetId, before, role));
 	}
 
 	/**
@@ -98,27 +104,28 @@ class AccountAdministrationService {
 	 */
 	@PreAuthorize("hasRole('ADMIN')")
 	@Transactional
-	AccountUnlockChange unlock(UUID actingAdminId, UUID targetId) {
+	void unlock(UUID actingAdminId, UUID targetId) {
 		guardSelfAction(actingAdminId, targetId);
 		Account target = accounts.findForUpdateById(targetId).orElseThrow(AccountNotFoundException::new);
 		boolean before = target.isLocked(clock.instant());
 		target.unlock();
-		return new AccountUnlockChange(before);
+		events.publishEvent(new AccountEvent.Unlocked(actingAdminId, targetId, before));
 	}
 
 	/**
 	 * Requires the Account to change its password before it can do anything else, because an Admin
 	 * suspects it is compromised. Not subject to the self-action guard: an Admin may require it of
 	 * themselves, and the Bootstrap Admin starts out that way. Not subject to the last-Admin rule
-	 * either: the requirement never changes {@code enabled} or the role. Idempotent. Ending the
-	 * target's Sessions and auditing the change are the caller's job, once this has committed.
+	 * either: the requirement never changes {@code enabled} or the role. Idempotent. Ends the target's
+	 * Sessions once this has committed, so a suspected attacker is logged out.
 	 * @throws AccountNotFoundException when {@code targetId} is not an Account
 	 */
 	@PreAuthorize("hasRole('ADMIN')")
 	@Transactional
-	AccountRequiredPasswordChange requirePasswordChange(UUID targetId) {
+	void requirePasswordChange(UUID actingAdminId, UUID targetId) {
 		Account target = accounts.findForUpdateById(targetId).orElseThrow(AccountNotFoundException::new);
-		return new AccountRequiredPasswordChange(target.requirePasswordChange());
+		boolean alreadyRequired = target.requirePasswordChange();
+		events.publishEvent(new AccountEvent.PasswordChangeRequired(actingAdminId, targetId, alreadyRequired));
 	}
 
 	/**
@@ -126,8 +133,8 @@ class AccountAdministrationService {
 	 * Tokens and Password History, and removes the Account itself; the tombstone is then the only
 	 * record of it, and keeps its UUID, username, email, deletion time and the deleting Admin
 	 * indefinitely (ADR 0001). Because the tombstone holds the username for good, that username can
-	 * never be registered or bootstrapped again; the email can be reused. Ending the target's Sessions
-	 * and auditing the deletion are the caller's job, once this has committed.
+	 * never be registered or bootstrapped again; the email can be reused. Ends the target's Sessions
+	 * once this has committed.
 	 * @throws AccountNotFoundException when {@code targetId} is not an Account
 	 * @throws SelfActionForbiddenException when the acting Admin targets their own Account
 	 * @throws LastAdminException when the deletion would leave zero enabled Admins
@@ -147,6 +154,7 @@ class AccountAdministrationService {
 		accounts.flush();
 		accounts.delete(target);
 		accounts.flush();
+		events.publishEvent(new AccountEvent.Deleted(actingAdminId, targetId));
 	}
 
 	private static void guardSelfAction(UUID actingAdminId, UUID targetId) {

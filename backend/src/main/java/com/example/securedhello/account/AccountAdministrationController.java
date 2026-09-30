@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -25,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.securedhello.audit.AuditAction;
 import com.example.securedhello.audit.AuditEvent;
 import com.example.securedhello.audit.AuditLog;
-import com.example.securedhello.security.SessionControl;
 import com.example.securedhello.web.ProblemResponses;
 
 /**
@@ -38,30 +36,23 @@ import com.example.securedhello.web.ProblemResponses;
  * self-action guard and the last-Admin rule are enforced by the service; a rejected attempt is
  * audited here at WARN as {@code user-administration}. Requiring a password change also ends the
  * target's Sessions and is audited as {@code password-change-enforcement} instead, since it
- * changes what the target may do rather than its administrative state.
+ * changes what the target may do rather than its administrative state. Ending Sessions and auditing
+ * a change follow its commit, in {@link AccountEventListener}; only the list view and the refusals
+ * are audited here.
  */
 @RestController
 @RequestMapping("${app.api.base-path}/admin/users")
 class AccountAdministrationController {
 
-	static final String ACCOUNT_DISABLED = "account_disabled";
-
-	static final String ROLE_CHANGED = "role_changed";
-
-	static final String PASSWORD_CHANGE_REQUIRED = "password_change_required";
-
+	/** The {@code event.reason} of a Session ended because its Account was deleted. */
 	static final String ACCOUNT_DELETED = "account_deleted";
 
 	private final AccountAdministrationService administration;
 
-	private final SessionControl sessionControl;
-
 	private final AuditLog auditLog;
 
-	AccountAdministrationController(AccountAdministrationService administration, SessionControl sessionControl,
-			AuditLog auditLog) {
+	AccountAdministrationController(AccountAdministrationService administration, AuditLog auditLog) {
 		this.administration = administration;
-		this.sessionControl = sessionControl;
 		this.auditLog = auditLog;
 	}
 
@@ -80,17 +71,8 @@ class AccountAdministrationController {
 
 	@PatchMapping("/{id}/enabled")
 	ResponseEntity<Void> setEnabled(@PathVariable UUID id, @Valid @RequestBody EnabledRequest body,
-			@AuthenticationPrincipal AccountPrincipal principal, HttpServletRequest request,
-			HttpServletResponse response) {
-		AccountEnabledChange change = administration.setEnabled(principal.accountId(), id, body.enabled());
-		if (!change.after()) {
-			sessionControl.endAll(id, ACCOUNT_DISABLED, request, response);
-		}
-		auditLog.record(AuditEvent.success(AuditAction.USER_ADMINISTRATION)
-			.userId(principal.accountId())
-			.targetUserId(id)
-			.change("enabled", change.before(), change.after())
-			.request(request));
+			@AuthenticationPrincipal AccountPrincipal principal) {
+		administration.setEnabled(principal.accountId(), id, body.enabled());
 		return ResponseEntity.ok().build();
 	}
 
@@ -99,27 +81,14 @@ class AccountAdministrationController {
 
 	@PatchMapping("/{id}/role")
 	ResponseEntity<Void> changeRole(@PathVariable UUID id, @Valid @RequestBody RoleRequest body,
-			@AuthenticationPrincipal AccountPrincipal principal, HttpServletRequest request,
-			HttpServletResponse response) {
-		AccountRoleChange change = administration.changeRole(principal.accountId(), id, body.role());
-		sessionControl.endAll(id, ROLE_CHANGED, request, response);
-		auditLog.record(AuditEvent.success(AuditAction.USER_ADMINISTRATION)
-			.userId(principal.accountId())
-			.targetUserId(id)
-			.change("role", change.before(), change.after())
-			.request(request));
+			@AuthenticationPrincipal AccountPrincipal principal) {
+		administration.changeRole(principal.accountId(), id, body.role());
 		return ResponseEntity.ok().build();
 	}
 
 	@PostMapping("/{id}/unlock")
-	ResponseEntity<Void> unlock(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal principal,
-			HttpServletRequest request) {
-		AccountUnlockChange change = administration.unlock(principal.accountId(), id);
-		auditLog.record(AuditEvent.success(AuditAction.USER_ADMINISTRATION)
-			.userId(principal.accountId())
-			.targetUserId(id)
-			.change("locked", change.before(), false)
-			.request(request));
+	ResponseEntity<Void> unlock(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal principal) {
+		administration.unlock(principal.accountId(), id);
 		return ResponseEntity.ok().build();
 	}
 
@@ -130,30 +99,20 @@ class AccountAdministrationController {
 	 */
 	@PostMapping("/{id}/require-password-change")
 	ResponseEntity<Void> requirePasswordChange(@PathVariable UUID id,
-			@AuthenticationPrincipal AccountPrincipal principal, HttpServletRequest request,
-			HttpServletResponse response) {
-		AccountRequiredPasswordChange change = administration.requirePasswordChange(id);
-		sessionControl.endAll(id, PASSWORD_CHANGE_REQUIRED, request, response);
-		auditLog.record(PasswordChangeEnforcement.set(principal.accountId(), id, change.before()).request(request));
+			@AuthenticationPrincipal AccountPrincipal principal) {
+		administration.requirePasswordChange(principal.accountId(), id);
 		return ResponseEntity.ok().build();
 	}
 
 	/**
 	 * Deletes an Account. The service writes its tombstone and removes the Account with its Reset Tokens
-	 * and Password History in one transaction; its Sessions are then ended, so the holder is logged out
-	 * at once. The tombstone keeps the username for good, so it can never be registered again, while the
+	 * and Password History in one transaction; once it commits its Sessions are ended, so the holder is
+	 * logged out at once. The tombstone keeps the username for good, so it can never be registered again, while the
 	 * email can be reused (ADR 0001).
 	 */
 	@DeleteMapping("/{id}")
-	ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal principal,
-			HttpServletRequest request, HttpServletResponse response) {
+	ResponseEntity<Void> delete(@PathVariable UUID id, @AuthenticationPrincipal AccountPrincipal principal) {
 		administration.delete(principal.accountId(), id);
-		sessionControl.endAll(id, ACCOUNT_DELETED, request, response);
-		auditLog.record(AuditEvent.success(AuditAction.USER_ADMINISTRATION)
-			.userId(principal.accountId())
-			.targetUserId(id)
-			.change("deleted", false, true)
-			.request(request));
 		return ResponseEntity.noContent().build();
 	}
 

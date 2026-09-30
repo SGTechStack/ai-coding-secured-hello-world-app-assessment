@@ -4,19 +4,19 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.securedhello.config.LockoutProperties;
 import com.example.securedhello.credential.CredentialPolicy;
-import com.example.securedhello.notification.EmailService;
 
 /**
  * Password Change: a logged-in Account holder replaces their known password. Checks, in order, the
  * current password, the Credential policy and the Password History; then stores the new hash and
  * records it in the Password History (keeping only the latest entries), and cancels any pending
- * Reset Token. Notifying the Account holder and ending the Account's Sessions are the caller's job,
- * after this transaction commits.
+ * Reset Token. It publishes {@link AccountEvent.PasswordChanged}, so the Account's Sessions are
+ * ended, the change audited and the holder notified once this transaction commits.
  * <p>
  * A wrong current password counts toward lockout exactly like a failed login (same counter,
  * threshold and duration, and the Account holder is notified when it locks), so a hijacked Session
@@ -36,28 +36,27 @@ class PasswordChangeService {
 
 	private final LockoutProperties lockout;
 
-	private final EmailService emailService;
+	private final ApplicationEventPublisher events;
 
 	private final Clock clock;
 
 	PasswordChangeService(AccountRepository accounts, CredentialPolicy credentialPolicy,
 			PasswordUpdater passwordUpdater, PasswordResetTokenCanceller resetTokenCanceller, LockoutProperties lockout,
-			EmailService emailService, Clock clock) {
+			ApplicationEventPublisher events, Clock clock) {
 		this.accounts = accounts;
 		this.credentialPolicy = credentialPolicy;
 		this.passwordUpdater = passwordUpdater;
 		this.resetTokenCanceller = resetTokenCanceller;
 		this.lockout = lockout;
-		this.emailService = emailService;
+		this.events = events;
 		this.clock = clock;
 	}
 
 	/**
 	 * Changes the Account's password. The Account row is locked for the change, so concurrent changes
 	 * and logins run one after another and each sees the other's history and failure count. The
-	 * failure count is committed even though a wrong current password is refused.
-	 * @return the Account's email, for the "password changed" notification once this has committed,
-	 *         and whether this change cleared a Required Password Change, for its audit event
+	 * failure count is committed even though a wrong current password is refused, and so is the
+	 * Account-locked notification when it locks the Account.
 	 * @throws CurrentPasswordInvalidException when the current password is wrong or the Account is
 	 *         Locked
 	 * @throws com.example.securedhello.credential.PasswordPolicyException when the new password
@@ -66,7 +65,7 @@ class PasswordChangeService {
 	 *         the current one or another in the Password History
 	 */
 	@Transactional(noRollbackFor = CurrentPasswordInvalidException.class)
-	CompletedPasswordChange change(UUID accountId, String currentPassword, String newPassword) {
+	void change(UUID accountId, String currentPassword, String newPassword) {
 		// RequiredPasswordChangeFilter already refused a Session whose Account is gone. The row still has
 		// to be read here, under its lock, and a delete may have committed while this request waited.
 		Account account = accounts.findForUpdateById(accountId).orElseThrow(CurrentAccount::gone);
@@ -74,7 +73,7 @@ class PasswordChangeService {
 		if (!credentialPolicy.matches(currentPassword, account.getPasswordHash())) {
 			boolean newlyLocked = account.recordFailedLogin(now, lockout.threshold(), lockout.duration());
 			if (newlyLocked) {
-				emailService.notifyAccountLocked(account.getEmail());
+				events.publishEvent(new AccountEvent.Locked(accountId, account.getEmail()));
 			}
 			throw new CurrentPasswordInvalidException(newlyLocked);
 		}
@@ -83,14 +82,7 @@ class PasswordChangeService {
 		}
 		boolean requirementCleared = passwordUpdater.apply(account, newPassword, now);
 		resetTokenCanceller.cancelPending(accountId, now);
-		return new CompletedPasswordChange(account.getEmail(), requirementCleared);
-	}
-
-	/**
-	 * A committed Password Change: the Account's email for the notification, and whether it cleared a
-	 * Required Password Change.
-	 */
-	record CompletedPasswordChange(String email, boolean requirementCleared) {
+		events.publishEvent(new AccountEvent.PasswordChanged(accountId, account.getEmail(), requirementCleared));
 	}
 
 }

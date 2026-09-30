@@ -63,7 +63,7 @@ describe('/admin/users', () => {
       within(table)
         .getAllByRole('columnheader')
         .map((header) => header.textContent),
-    ).toEqual(['Username', 'Email', 'Role', 'Status', 'Created'])
+    ).toEqual(['Username', 'Email', 'Role', 'Status', 'Sign-in', 'Created'])
     const bob = within(table).getByRole('row', { name: /bob/ })
     expect(within(bob).getByText('bob@example.test')).toBeInTheDocument()
     expect(within(bob).getByText('USER')).toBeInTheDocument()

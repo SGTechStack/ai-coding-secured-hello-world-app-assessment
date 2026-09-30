@@ -15,12 +15,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
 
 import sg.securedhello.credential.CredentialTokenType;
-import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.mfa.TotpSecretCipher;
+import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.CtxPortTest;
 import sg.securedhello.testsupport.LogOutputGuard;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.Registrations;
+import sg.securedhello.testsupport.SessionCookies;
 import sg.securedhello.testsupport.SessionRows;
 import sg.securedhello.testsupport.SignedIn;
 import sg.securedhello.testsupport.TotpFactors;
@@ -61,7 +62,7 @@ class ActivationSessionsPortTest extends CtxPortTest {
     }
 
     private static String cookieValue(EntityExchangeResult<?> result) {
-        return result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE).split(";", 2)[0].split("=", 2)[1];
+        return SessionCookies.value(result.getResponseHeaders());
     }
 
     /** Posts {@code json} to {@code path} on a freshly bootstrapped anonymous session; returns the status. */

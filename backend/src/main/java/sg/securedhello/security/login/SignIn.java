@@ -50,7 +50,9 @@ import sg.securedhello.audit.SourceThrottleReason;
 import sg.securedhello.error.ErrorCode;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.profile.ProfileReader;
+import sg.securedhello.security.device.TrustedDevices;
 import sg.securedhello.security.lockout.DeferredFailuresRefusal;
+import sg.securedhello.security.lockout.LockoutLane;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.TooManyRequests;
@@ -80,7 +82,9 @@ import tools.jackson.databind.json.JsonMapper;
  *       hand-built one, and without it a token fetched before sign-in would survive sign-in (T-CSRF-007).</li>
  * </ol>
  *
- * <p>Every sign-in failure is the same 401 {@code AUTHENTICATION_FAILED} (ADR-033); a body that is not JSON
+ * <p>A successful sign-in from a browser with no valid device cookie for the account earns one (ADR-075). Every
+ * sign-in failure is the same 401 {@code AUTHENTICATION_FAILED} (ADR-033), and never sets or clears a device cookie; a
+ * body that is not JSON
  * credentials is 400 {@code VALIDATION_FAILED}, and a spent username budget is 429 {@code TOO_MANY_REQUESTS}. A
  * displaced session's next request is answered 401 too.
  *
@@ -113,11 +117,12 @@ public final class SignIn {
     private final SourceKeyAuthenticationDetailsSource detailsSource;
     private final LockoutCardinality cardinality;
     private final ProfileReader profiles;
+    private final TrustedDevices devices;
 
     SignIn(AuthenticationProvider provider, AuthenticationEventPublisher events, SessionRegistry sessionRegistry,
             AuditEmitter audit, ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock,
             AuthRateLimiter limiter, SourceKeyAuthenticationDetailsSource detailsSource,
-            LockoutCardinality cardinality, ProfileReader profiles) {
+            LockoutCardinality cardinality, ProfileReader profiles, TrustedDevices devices) {
         this.authenticationManager = new ProviderManager(provider);
         this.authenticationManager.setAuthenticationEventPublisher(events);
         this.sessionRegistry = sessionRegistry;
@@ -129,6 +134,7 @@ public final class SignIn {
         this.detailsSource = detailsSource;
         this.cardinality = cardinality;
         this.profiles = profiles;
+        this.devices = devices;
     }
 
     /**
@@ -141,7 +147,7 @@ public final class SignIn {
     public void configure(HttpSecurity http, CsrfTokenRepository csrfTokens, CsrfTokenRequestHandler csrfHandler,
             Duration idleWindow) {
         JsonLoginFilter login = new JsonLoginFilter(authenticationManager,
-                new JsonCredentialsConverter(jsonMapper, limiter, detailsSource, cardinality));
+                new JsonCredentialsConverter(jsonMapper, limiter, detailsSource, cardinality, devices));
         login.setSessionAuthenticationStrategy(loginComposite(csrfTokens, csrfHandler, idleWindow));
         login.setSecurityContextRepository(new DelegatingSecurityContextRepository(
                 new RequestAttributeSecurityContextRepository(), new HttpSessionSecurityContextRepository()));
@@ -227,9 +233,16 @@ public final class SignIn {
         }
     }
 
+    /**
+     * Row 1 and the profile. A sign-in that was not already from a trusted device of this account earns a new one: its
+     * device cookie is set here, on success only, never on a failure (ADR-033; ADR-075).
+     */
     private void loginSucceeded(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException {
         SignedInUser user = userOf(authentication);
+        if (!LockoutLane.of(authentication.getDetails(), user.id(), clock.instant()).trusted()) {
+            devices.issue(user.id(), response);
+        }
         audit.emit(AuditEvent.LOGIN_SUCCESS, AccountContext.of(user.id()));
         response.setStatus(HttpStatus.OK.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);

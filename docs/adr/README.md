@@ -96,6 +96,7 @@ IDs are permanent. They are never renumbered or reused.
 | ADR-072 | [Operator recovery is an offline same-jar runner run inside a planned outage](0072-offline-recovery-runner.md) | accepted |
 | ADR-073 | [The runner takes a credential in and emits nothing; batch mode mints nothing](0073-runner-credential-in-nothing-out.md) | accepted |
 | ADR-074 | [Runner changes are bound by a plan/apply digest](0074-runner-plan-apply-digest.md) | accepted |
+| ADR-075 | [Device cookies split the password lockout into an untrusted lane and per-device lanes](0075-device-cookie-lockout-lanes.md) | accepted |
 
 ## Rejection log
 
@@ -115,7 +116,7 @@ Each line names a candidate, where the decision lives instead, and why it gets n
 | REJ-010 | `Clear-Site-Data` sent for compliance, with SPA-side clearing as the real control | test plan T-HDR-005; register; handover | The test pins the origin scoping, and the deployer note covers the domain condition. |
 | REJ-011 | Dropping `.deleteCookies("JSESSIONID","SESSION")` from logout | spec (session lifecycle) | An implementation note. Trivially reversible and harmless either way. |
 | REJ-012 | Session limits of 15 minutes idle, 8 hours absolute, one concurrent session | spec (session lifecycle) | These are the standard's own values. There was no trade-off. |
-| REJ-013 | PRD Story 3's third criterion not met as stated; the state-independence reading adopted | register (PRD Story 3 AC3) | A verdict on a criterion, with nothing in the code to change back. The register is where it is graded. |
+| REJ-013 | Withdrawn (2026-09-30). Was: PRD Story 3's third criterion not met as stated; the state-independence reading adopted | ADR-075; register (PRD Story 3 AC3) | Withdrawn: device cookies (ADR-075) now meet the criterion's promised outcome for trusted browsers, so there is again a design choice a maintainer could reverse, and it has an ADR. |
 | REJ-014 | ASVS 6.1.1 (L1) passed with a documented malicious-lockout residual | register | A verdict, not a design choice. |
 | REJ-015 | `server.forward-headers-strategy: framework` prohibited; trusted proxies named explicitly | test plan T-CFG-025; handover | Prohibited configuration fails startup, and the test and its rationale carry the reason. Naming the proxies is the deployer's job. |
 | REJ-016 | Admin issuance of a reset token does not clear the lock | spec (credential flows); handover | Unlocking is a separate, audited admin action under the standard, and the user's own redemption clears the lock (ADR-009). |

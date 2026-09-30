@@ -41,7 +41,7 @@ public record PortSession(RestTestClient client, String cookie, String token) {
         if (login.getStatus().value() != 200) {
             throw new AssertionError("sign-in answered " + login.getStatus() + ": " + login.getResponseBody());
         }
-        String rotated = login.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE).split(";", 2)[0];
+        String rotated = SessionCookies.pair(login.getResponseHeaders());
         return new PortSession(client, rotated, null).refreshed();
     }
 

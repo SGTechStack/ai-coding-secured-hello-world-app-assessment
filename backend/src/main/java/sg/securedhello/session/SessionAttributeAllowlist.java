@@ -33,6 +33,7 @@ final class SessionAttributeAllowlist implements Deserializer<Object> {
             "sg.securedhello.user.SignedInUser",
             "sg.securedhello.security.source.SourceKeyAuthenticationDetails",
             "sg.securedhello.security.source.SourceKey",
+            "sg.securedhello.security.source.DeviceClaim",
             "!*");
 
     private static final ObjectInputFilter FILTER = ObjectInputFilter.Config.createFilter(PATTERN);

@@ -36,9 +36,9 @@ class AuditReasonCodesTest {
             // TruncationReason: row 46
             "SOURCE_CAP_REACHED", "USER_CAP_REACHED",
             // LockoutReason: row 3
-            "THRESHOLD_REACHED",
+            "THRESHOLD_REACHED", "TRUSTED_DEVICE_THRESHOLD_REACHED",
             // LockoutClearReason: row 4
-            "AUTO_LIFT", "PASSWORD_RESET_COMPLETED",
+            "AUTO_LIFT", "TRUSTED_DEVICE_AUTO_LIFT", "PASSWORD_RESET_COMPLETED",
             // PasswordDisableReason: the NIST cap's disable
             "FAILURE_CAP",
             // AdminRefusalReason: row 34

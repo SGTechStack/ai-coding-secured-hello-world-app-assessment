@@ -126,6 +126,15 @@ timing signal, and would still fail against a long holder.
 the deferred list lives on the one supported instance, like every throttle (REJ-018). An entry exists only while its
 row is contended, so the map stays small. T-AUTH-016 proves the 401 and the count.
 
+## Amendment (2026-09-30): two lanes, one cap (ADR-075)
+
+The lock this ADR describes is now the account's **untrusted lane**: sign-ins with no valid device cookie for the
+account. Each trusted device has its own lane on the same ladder, its rung read from its own failures since success.
+The cap counter still counts every failure in every lane, and a trusted device's success resets it. The deferred-failure
+refusal above now applies to the untrusted lane and the cap only: a deferred failure has lost its lane and counts in
+the untrusted lane, so the correct password it refuses is an untrusted one when the untrusted lane is locked, or any
+one when the password is disabled; and since an untrusted-lane lock ends no session (ADR-037 amendment), only a
+disable reached through deferred failures ends them.
 
 ## Sources
 

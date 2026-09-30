@@ -58,6 +58,11 @@ The "limit stated honestly" consequence above is narrowed. The window still does
 locking a known username (R-LCK-002), but a paced attacker can no longer reach the cap faster than a steady one.
 Five typos over a year still lock nothing; ten with no successful sign-in between them now do.
 
+## Amendment (2026-09-30): the window per lane (ADR-075)
+
+Each lane counts its own windowed failures with this rule: the account's untrusted lane in `failed_login_attempts`, and
+each trusted device in its own row. "No counter tied to one account can prevent a targeted lock" is narrowed: a paced
+attacker can still lock a known username's untrusted lane, but not the owner's trusted browsers (R-LCK-002).
 
 ## Sources
 

@@ -28,7 +28,8 @@ import org.springframework.stereotype.Component;
  * reads the README and fails if a published value is missing from these lists. Never lazy: nothing injects it, so
  * under {@code spring.main.lazy-initialization} it would otherwise never run.
  *
- * <p>The dev-only demo accounts ({@code sg.securedhello.demo}) publish three more values in {@code application-dev.yml}:
+ * <p>{@code application-dev.yml} also publishes the dev device-cookie key, refused by fingerprint in any key slot like
+ * the README's keys. The dev-only demo accounts ({@code sg.securedhello.demo}) publish three more values there:
  * two passwords and a TOTP secret. Outside {@code dev} their passwords are refused as {@code app.admin.password} like
  * the others, any {@value #DEMO_ACCOUNTS} property is refused, and, once every singleton exists and the schema is
  * migrated but before the port opens, so is a database still holding an activated demo account, which a copied dev
@@ -55,8 +56,11 @@ public class PublishedDemoValues implements SmartInitializingSingleton {
             SELECT COUNT(*) FROM users WHERE activated_at IS NOT NULL
             AND ((username = ? AND email = ?) OR (username = ? AND email = ?))""";
 
-    /** Fingerprints of the README's demo TOTP, tombstone HMAC and log HMAC keys. */
-    static final Set<String> KEY_FINGERPRINTS = Set.of("4d7e3f33", "8ae7cde4", "72e91456");
+    /**
+     * Fingerprints of the README's demo TOTP, tombstone HMAC and log HMAC keys, and of the dev device-cookie key in
+     * {@code application-dev.yml} (ADR-075).
+     */
+    static final Set<String> KEY_FINGERPRINTS = Set.of("4d7e3f33", "8ae7cde4", "72e91456", "727477a8");
 
     /** SHA-256 hex digests of every demo admin password the README has published. */
     private static final Set<String> PASSWORD_DIGESTS = Set.of(

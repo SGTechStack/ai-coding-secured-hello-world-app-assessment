@@ -23,9 +23,9 @@ public record AccountContext(@Nullable UUID userId, @Nullable AuditReason reason
         return new AccountContext(userId, reason);
     }
 
-    /** Lockout engaged (row 3). */
-    public static AccountContext lockout(UUID userId) {
-        return new AccountContext(userId, LockoutReason.THRESHOLD_REACHED);
+    /** Lockout engaged (row 3), in the lane {@code reason} names (ADR-075). */
+    public static AccountContext lockout(UUID userId, LockoutReason reason) {
+        return new AccountContext(userId, reason);
     }
 
     /** Lockout cleared (row 4). */

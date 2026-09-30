@@ -28,7 +28,9 @@ import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.mfa.TotpUserDetailsRepository;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.session.SessionTerminationService;
+import sg.securedhello.user.DeviceLockState;
 import sg.securedhello.user.Tombstones;
+import sg.securedhello.user.TrustedDeviceRepository;
 import sg.securedhello.user.UserAccount;
 import sg.securedhello.user.UserAccountRepository;
 
@@ -51,10 +53,13 @@ public class AdminActions {
     private final TotpFactorRemoval factorRemoval;
     private final CredentialTokens tokens;
     private final TotpUserDetailsRepository factors;
+    private final TrustedDeviceRepository devices;
+    private final AdminUserViews views;
 
     AdminActions(AuthenticableAdmins admins, UserAccountRepository accounts, PasswordService passwords,
             SessionTerminationService sessions, AuditEmitter audit, Tombstones tombstones,
-            TotpFactorRemoval factorRemoval, CredentialTokens tokens, TotpUserDetailsRepository factors) {
+            TotpFactorRemoval factorRemoval, CredentialTokens tokens, TotpUserDetailsRepository factors,
+            TrustedDeviceRepository devices, AdminUserViews views) {
         this.admins = admins;
         this.accounts = accounts;
         this.passwords = passwords;
@@ -64,11 +69,14 @@ public class AdminActions {
         this.factorRemoval = factorRemoval;
         this.tokens = tokens;
         this.factors = factors;
+        this.devices = devices;
+        this.views = views;
     }
 
     /**
      * Enables or disables {@code subjectId} for {@code actorId} (PRD Story 9). A disable ends the subject's sessions
-     * after commit (ADR-037) and cancels its pending activation and reset tokens (ADR-007). A re-enable, from
+     * after commit (ADR-037), cancels its pending activation and reset tokens (ADR-007) and revokes its trusted
+     * devices (ADR-075). A re-enable, from
      * disabled, issues a forced-change credential (ADR-046). Setting the state an account already has changes nothing
      * but is still audited.
      *
@@ -84,6 +92,7 @@ public class AdminActions {
             if (!enabled) {
                 sessions.endAll(account.getUsername());
                 tokens.cancelAll(account.getId());
+                devices.revokeAll(account.getId());
             } else if (!wasEnabled) {
                 passwords.issueForcedChangeCredential(account.getId());
             }
@@ -116,7 +125,7 @@ public class AdminActions {
 
     /**
      * Deletes {@code subjectId} for {@code actorId}, leaving its tombstone in the same transaction (PRD Story 11;
-     * ADR-044), and ends its sessions after commit (ADR-037).
+     * ADR-044), and ends its sessions after commit (ADR-037). Its trusted devices go with its row, by cascade.
      *
      * @return whether an account had {@code subjectId}
      * @throws AdminActionRefusedException if the guard refuses it; nothing changes
@@ -152,9 +161,10 @@ public class AdminActions {
     }
 
     /**
-     * Unlocks {@code subjectId} for {@code actorId} (R-AUTH-002): clears its password lockout, the windowed counter and
-     * the lock, and its factor's tier-1 lock. Never the NIST cap's password disable nor the factor's tier-2 disable,
-     * which only rebinding clears (REJ-072; ADR-013; ADR-027). An administrator may not unlock themselves (REJ-050).
+     * Unlocks {@code subjectId} for {@code actorId} (R-AUTH-002): clears its password lockout in every lane, the
+     * untrusted lane's windowed counter and lock and each trusted device's (ADR-075), and its factor's tier-1 lock.
+     * Never the NIST cap's password disable nor the factor's tier-2 disable, which only rebinding clears (REJ-072;
+     * ADR-013; ADR-027). An administrator may not unlock themselves (REJ-050).
      * Unlocking an account with no lock changes nothing but is still audited, with {@code reason} (REJ-028).
      *
      * @return the account as it now is, or empty if no account has {@code subjectId}
@@ -165,6 +175,9 @@ public class AdminActions {
     public Optional<AdminUserView> unlock(UUID actorId, UUID subjectId, UnlockReason reason) {
         return guarded(Mutation.UNLOCK, actorId, subjectId, account -> {
             account.setLockoutState(account.getLockoutState().unlocked());
+            // Under the account's row lock, which every device-row write takes (ADR-075).
+            devices.findByUserIdOrderByCreatedAtDesc(subjectId)
+                    .forEach(device -> device.setLockState(DeviceLockState.CLEAR));
             // Its row is already locked: the guard's lock set takes the subject's factor row too (ADR-048).
             factors.findById(subjectId).ifPresent(factor -> factor.unlockTier1());
             afterCommit(() -> audit.emit(AuditEvent.ADMIN_USER_UNLOCKED,
@@ -174,8 +187,8 @@ public class AdminActions {
 
     /**
      * Issues {@code actorId} a password-reset token for {@code subjectId}, their own account included (ADR-006): it
-     * replaces the subject's pending reset tokens and ends the subject's sessions after commit (ADR-037). It clears
-     * nothing, the lock included (REJ-016; R-LCK-010); the user's redemption at the ordinary confirm does. The token
+     * replaces the subject's pending reset tokens, ends the subject's sessions after commit (ADR-037) and revokes its
+     * trusted devices (ADR-075). It clears nothing else, the lock included (REJ-016; R-LCK-010); the user's redemption at the ordinary confirm does. The token
      * is marked admin-issued, so a self-service request leaves it in place (ADR-007).
      *
      * @return the plaintext token, to return once and never log, or empty if no account has {@code subjectId}
@@ -190,6 +203,7 @@ public class AdminActions {
             }
             String token = tokens.issueForAdmin(subjectId, CredentialTokenType.PASSWORD_RESET);
             sessions.endAll(account.getUsername());
+            devices.revokeAll(subjectId);
             afterCommit(() -> audit.emit(AuditEvent.ADMIN_RESET_ISSUED,
                     AdminActionContext.applied(actorId, subjectId)));
             return new IssuedToken(subjectId, token);
@@ -219,7 +233,7 @@ public class AdminActions {
             Consumer<UserAccount> change) {
         return guardedThen(mutation, actorId, subjectId, account -> {
             change.accept(account);
-            return AdminUserView.of(account);
+            return views.of(account);
         });
     }
 

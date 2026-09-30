@@ -25,10 +25,10 @@ Key: ✅ met and tested · 🟡 met, but no test asserts it · ⚠️ knowingly 
 | | 4 plaintext never logged or stored | ✅ | T-AUD-018, T-AUD-013 |
 | 2 Login | 1 session, cookie, counter reset | ✅ | T-SES-005, T-LCK-006 |
 | | 2 generic error, counter increments | ✅ | T-AUTH-006, T-LCK-008 |
-| | 3 locked account refuses the correct password | ✅➕ | T-LCK-004. R-LCK-004: after 100 consecutive failures the password stays disabled until the user resets it. |
+| | 3 locked account refuses the correct password | ✅➕ | T-LCK-004. R-LCK-015: a trusted device's correct password passes an untrusted-lane lock (ADR-075). R-LCK-004: after 100 consecutive failures the password stays disabled until the user resets it. |
 | 3 Lockout | 1 lock after 5 failures | ✅➕ | T-LCK-012. R-LCK-007: the lock lasts 20, then 40, then 60 minutes, instead of the PRD's example 15. |
 | | 2 cooldown elapses, then login succeeds | ✅ | T-LCK-002, T-LCK-006 |
-| | 3 IP throttle independent; attacker cannot lock out a user | ⚠️ | R-LCK-002: the IP throttle is independent of account lockout, as required. The PRD's promise that one source can't lock out a user isn't achievable while per-account lockout exists, because a few failures per lock period keep a user locked. |
+| | 3 IP throttle independent; attacker cannot lock out a user | ✅➕ | T-LCK-024, T-E2E-006, T-RL-006. ADR-075: a correct password earns a device cookie, and an attacker's lockout of the account's untrusted lane no longer locks out the owner's trusted browsers. R-LCK-002: a new browser, or one whose user signed out, is still untrusted and lockable. |
 | 4 Logout | 1, 2 | ✅ | T-SES-007 |
 | 5 Hello | 1 body is `Hello, <username>` | ✅ | T-ADM-013 (200 and the exact body for the caller's username) |
 | | 2 no session gets 401 | ✅ | T-AUTH-009, T-SES-007 |

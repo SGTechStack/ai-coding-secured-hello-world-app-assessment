@@ -124,7 +124,7 @@ public class TotpUserDetails {
     }
 
     /** The end of the tier-1 lock, if the factor is locked at {@code now}. */
-    Optional<Instant> lockedUntil(Instant now) {
+    public Optional<Instant> lockedUntil(Instant now) {
         return Optional.ofNullable(lockedUntil).filter(until -> until.isAfter(now));
     }
 
@@ -160,7 +160,7 @@ public class TotpUserDetails {
     }
 
     /** Whether tier 2 has disabled the factor, so only rebinding restores it (ADR-027). */
-    boolean isDisabled() {
+    public boolean isDisabled() {
         return factorDisabledAt != null;
     }
 }

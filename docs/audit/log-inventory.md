@@ -30,8 +30,8 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | LOGIN_SUCCESS | `user-authentication` | `user` | success | INFO | low | yes | per event | — | `user.id` | — | Login succeeded. |
 | LOGIN_FAILURE | `user-authentication` | `user` | failure | WARN | medium | yes | per event | `BAD_CREDENTIALS`, `UNKNOWN_USER`, `ACCOUNT_LOCKED`, `ACCOUNT_DISABLED`, `CREDENTIAL_EXPIRED`, `PASSWORD_DISABLED` | — | `user.id` | Login failed. |
-| LOCKOUT_TRIGGERED | `user-authentication` | `error` | failure | WARN | high | yes | per event | `THRESHOLD_REACHED` | `user.id` | — | Account locked. |
-| LOCKOUT_CLEARED | `user-authentication` | `change` | success | INFO | low | yes | per event | `AUTO_LIFT`, `PASSWORD_RESET_COMPLETED` | `user.id` | — | Account lock cleared. |
+| LOCKOUT_TRIGGERED | `user-authentication` | `error` | failure | WARN | high | yes | per event | `THRESHOLD_REACHED`, `TRUSTED_DEVICE_THRESHOLD_REACHED` | `user.id` | — | Account locked. |
+| LOCKOUT_CLEARED | `user-authentication` | `change` | success | INFO | low | yes | per event | `AUTO_LIFT`, `TRUSTED_DEVICE_AUTO_LIFT`, `PASSWORD_RESET_COMPLETED` | `user.id` | — | Account lock cleared. |
 | PASSWORD_FAILURE_ALERT | `user-authentication` | `error` | failure | WARN | high | yes | per event | — | `user.id` | — | Password failures reached the alert threshold. |
 | PASSWORD_DISABLED | `user-authentication` | `error` | failure | ERROR | critical | yes | per event | `FAILURE_CAP` | `user.id` | — | Password disabled. |
 | SOURCE_THROTTLED | `access-control` | `denied` | failure | WARN | medium | yes | tier 1: per source | `RATE_LIMITED_SOURCE`, `RATE_LIMITED_SOURCE_MISSES`, `RATE_LIMITED_LOCKOUT_CARDINALITY`, `DISK_RESERVE_SHED` | — | — | Request throttled for its source. |

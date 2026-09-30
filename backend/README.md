@@ -15,12 +15,13 @@ wins over it:
 | `APP_SECURITY_HMAC_TOMBSTONE_KEY` | `app.security.hmac.tombstone.key` | 32 random bytes, padded Base64 |
 | `APP_SECURITY_HMAC_TOMBSTONE_VERSION` | `app.security.hmac.tombstone.version` | `0` or more, e.g. `1` |
 | `APP_SECURITY_HMAC_LOG_KEY` | `app.security.hmac.log.key` | 32 random bytes, padded Base64 |
+| `APP_SECURITY_LOCKOUT_DEVICE_SECRET` | `app.security.lockout.device.secret` | 32 random bytes, padded Base64; the device-cookie key (ADR-075). Under `dev` a published value in `application-dev.yml` applies unless you set one |
 | `APP_ADMIN_USERNAME` | `app.admin.username` | the seed administrator's username |
 | `APP_ADMIN_PASSWORD` | `app.admin.password` | the seed administrator's initial password |
 | `APP_ORIGINS_SPA` | `app.origins.spa` | e.g. `http://localhost:5173` |
 | `APP_ORIGINS_API` | `app.origins.api` | e.g. `http://localhost:8080` |
 
-Generate each key separately. The three keys must be different: startup refuses a reused key. Use a CSPRNG
+Generate each key separately. The four keys must be different: startup refuses a reused key. Use a CSPRNG
 (R-CFG-008):
 
 ```sh

@@ -26,11 +26,13 @@ import org.springframework.validation.annotation.Validated;
  *                             ADR-011 amendment of 2026-09-29)
  * @param ladder               the lock durations
  * @param nist                 the NIST cap and its alert
+ * @param device               the trusted-device lane (ADR-075)
  */
 @Validated
 @ConfigurationProperties("app.security.lockout")
 public record LockoutProperties(@Positive int threshold, @NotNull Duration observationWindow,
-        @Positive int consecutiveThreshold, @NotNull @Valid Ladder ladder, @NotNull @Valid Nist nist) {
+        @Positive int consecutiveThreshold, @NotNull @Valid Ladder ladder, @NotNull @Valid Nist nist,
+        @NotNull @Valid Device device) {
 
     public LockoutProperties {
         if (threshold > 0 && observationWindow != null && consecutiveThreshold > 0 && ladder != null && nist != null
@@ -38,12 +40,20 @@ public record LockoutProperties(@Positive int threshold, @NotNull Duration obser
             LockoutLadder built = ladder(threshold, observationWindow, consecutiveThreshold, ladder, nist);
             built.requireFloor();
             built.requireRungsOfAtLeastTheWindow();
+            if (device != null && device.threshold() > 0) {
+                ladder(device.threshold(), observationWindow, consecutiveThreshold, ladder, nist).requireFloor();
+            }
         }
     }
 
-    /** The ladder these values describe. */
+    /** The untrusted lane's ladder: these values. */
     public LockoutLadder toLadder() {
         return ladder(threshold, observationWindow, consecutiveThreshold, ladder, nist);
+    }
+
+    /** A trusted device's ladder: the same one, locking at the device threshold (ADR-075). */
+    public LockoutLadder toDeviceLadder() {
+        return ladder(device.threshold(), observationWindow, consecutiveThreshold, ladder, nist);
     }
 
     private static LockoutLadder ladder(int threshold, Duration window, int consecutiveThreshold, Ladder ladder,
@@ -60,6 +70,23 @@ public record LockoutProperties(@Positive int threshold, @NotNull Duration obser
 
         boolean valid() {
             return rungs != null && !rungs.isEmpty() && cyclesPerRung > 0;
+        }
+    }
+
+    /**
+     * The trusted-device lane (ADR-075). Its signing key binds separately, as a secret, in {@code SecretsConfig}.
+     *
+     * @param ttl       how long a device cookie, and its device, stays trusted after the correct password that earned
+     *                  it (30d)
+     * @param threshold failures inside the window that lock one trusted device (5); a divisor of the consecutive
+     *                  threshold, and held to the same startup floor as the untrusted lane
+     */
+    public record Device(@NotNull Duration ttl, @Positive int threshold) {
+
+        public Device {
+            if (ttl != null && (ttl.isNegative() || ttl.isZero())) {
+                throw new IllegalArgumentException("app.security.lockout.device.ttl must be positive (ADR-075)");
+            }
         }
     }
 

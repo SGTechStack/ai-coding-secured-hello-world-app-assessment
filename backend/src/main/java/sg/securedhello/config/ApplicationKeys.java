@@ -6,16 +6,17 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The application's three keys, plus any retired TOTP keys, each distinct material (ADR-022; ADR-052; ADR-054): one key, one purpose (NIST SP
- * 800-57 Part 1 Rev 5 §5.2).
+ * The application's four keys, plus any retired TOTP keys, each distinct material (ADR-022; ADR-052; ADR-054;
+ * ADR-075): one key, one purpose (NIST SP 800-57 Part 1 Rev 5 §5.2).
  *
  * @param totpEncryption        the current TOTP seed encryption key
  * @param tombstoneHmac         the tombstone email HMAC key
  * @param logHmac               the log correlation HMAC key
+ * @param deviceCookieHmac      the device-cookie HMAC key (ADR-075)
  * @param retiredTotpEncryption earlier TOTP keys, each with the version it was current under (ADR-022)
  */
 public record ApplicationKeys(KeyMaterial totpEncryption, KeyMaterial tombstoneHmac, KeyMaterial logHmac,
-        List<KeyMaterial> retiredTotpEncryption) {
+        KeyMaterial deviceCookieHmac, List<KeyMaterial> retiredTotpEncryption) {
 
     /**
      * @throws IllegalStateException naming both properties when two keys share material, or naming the retired key
@@ -35,7 +36,7 @@ public record ApplicationKeys(KeyMaterial totpEncryption, KeyMaterial tombstoneH
             }
         }
         // The fields are not assigned yet inside a compact constructor, so the list is built from the parameters.
-        List<KeyMaterial> keys = new ArrayList<>(List.of(totpEncryption, tombstoneHmac, logHmac));
+        List<KeyMaterial> keys = new ArrayList<>(List.of(totpEncryption, tombstoneHmac, logHmac, deviceCookieHmac));
         keys.addAll(retiredTotpEncryption);
         for (int i = 0; i < keys.size(); i++) {
             for (int j = i + 1; j < keys.size(); j++) {
@@ -47,9 +48,9 @@ public record ApplicationKeys(KeyMaterial totpEncryption, KeyMaterial tombstoneH
         }
     }
 
-    /** The three current keys, in declaration order, then the retired TOTP keys. */
+    /** The four current keys, in declaration order, then the retired TOTP keys. */
     public List<KeyMaterial> all() {
-        List<KeyMaterial> keys = new ArrayList<>(List.of(totpEncryption, tombstoneHmac, logHmac));
+        List<KeyMaterial> keys = new ArrayList<>(List.of(totpEncryption, tombstoneHmac, logHmac, deviceCookieHmac));
         keys.addAll(retiredTotpEncryption);
         return keys;
     }

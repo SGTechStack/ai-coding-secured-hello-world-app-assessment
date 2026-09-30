@@ -74,6 +74,13 @@ final class SchemaFixture {
         return id;
     }
 
+    UUID trustedDevice(UUID userId) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO trusted_devices (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+                id, userId, now(), now().plusDays(30));
+        return id;
+    }
+
     UUID usernameHold() {
         UUID id = UUID.randomUUID();
         jdbc.update("INSERT INTO username_holds (id, username, email, expires_at) VALUES (?, ?, ?, ?)",

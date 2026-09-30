@@ -35,10 +35,15 @@ class CommittedSecretNamesTest {
     /** {@code app.admin.password} must also be absent from the example environment file. */
     private static final Path ENV_EXAMPLE = Path.of("../.env.example");
 
+    /** The device-cookie key (ADR-075), whose dev value alone is committed, in {@link #DEV_CONFIGURATION}. */
+    private static final String DEVICE_SECRET = "app.security.lockout.device.secret";
+
+    private static final Path DEV_CONFIGURATION = Path.of("src/main/resources/application-dev.yml");
+
     @ParameterizedTest
     @ValueSource(strings = {"app.mfa.totp.encryption.key", "app.security.hmac.tombstone.key",
             "app.security.hmac.log.key", "app.admin.password", "app.admin.username",
-            "management.otlp.metrics.export.headers"})
+            "management.otlp.metrics.export.headers", "app.security.lockout.device.secret"})
     @Proves("T-CFG-020")
     void noCommittedConfigurationFileNamesTheSecret(String secret) throws IOException {
         Pattern name = namePattern(secret);
@@ -47,6 +52,11 @@ class CommittedSecretNamesTest {
             files.add(ENV_EXAMPLE);
         }
 
+        if (secret.equals(DEVICE_SECRET)) {
+            // Its dev value is published in application-dev.yml, which only dev loads, and which startup refuses
+            // outside dev by fingerprint (ADR-075; T-CFG-039). Every other file is scanned as for any secret.
+            files.removeIf(file -> file.endsWith(DEV_CONFIGURATION));
+        }
         assertThat(files).as("configuration files to scan").isNotEmpty();
         for (Path file : files) {
             assertThat(name.matcher(Files.readString(file)).find()).as("%s names %s", file, secret).isFalse();

@@ -3,6 +3,7 @@ package sg.securedhello.security.lockout;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,6 +27,7 @@ import sg.securedhello.testsupport.ProblemAssertions;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.RestartHarness;
 import sg.securedhello.testsupport.RestartHarness.Boot;
+import sg.securedhello.testsupport.SessionCookies;
 import sg.securedhello.testsupport.SignedIn;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -52,15 +54,29 @@ class LockoutRestartTest {
     /** Posts a login on a freshly bootstrapped anonymous session over the real port, as the SPA does. */
     private static EntityExchangeResult<String> login(ConfigurableApplicationContext context, String username,
             String password) {
+        return login(context, username, password, null);
+    }
+
+    /** As {@link #login(ConfigurableApplicationContext, String, String)}, presenting {@code device} if any. */
+    private static EntityExchangeResult<String> login(ConfigurableApplicationContext context, String username,
+            String password, String device) {
         RestTestClient client = RestTestClient.bindToServer()
                 .baseUrl("http://localhost:" + context.getEnvironment().getProperty("local.server.port")).build();
         EntityExchangeResult<String> bootstrap = client.get().uri("/api/csrf").exchange()
                 .expectBody(String.class).returnResult();
         String cookie = bootstrap.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE).split(";", 2)[0];
-        return client.post().uri("/api/login").header(HttpHeaders.COOKIE, cookie)
+        return client.post().uri("/api/login").header(HttpHeaders.COOKIE,
+                        device == null ? cookie : cookie + "; " + device)
                 .header("X-CSRF-TOKEN", JSON.readTree(bootstrap.getResponseBody()).get("token").asString())
                 .contentType(MediaType.APPLICATION_JSON).body(SignedIn.credentials(username, password))
                 .exchange().expectBody(String.class).returnResult();
+    }
+
+    /** The device cookie a successful sign-in set, as a {@code name=value} pair. */
+    private static String deviceCookie(EntityExchangeResult<String> signIn) {
+        assertThat(signIn.getStatus().value()).isEqualTo(200);
+        return signIn.getResponseHeaders().getOrEmpty(HttpHeaders.SET_COOKIE).stream()
+                .map(header -> header.split(";", 2)[0]).filter(SessionCookies::isDevice).findFirst().orElseThrow();
     }
 
     private static void assertUniformRefusal(EntityExchangeResult<String> result) {
@@ -97,6 +113,43 @@ class LockoutRestartTest {
             clock.advance(Duration.ofSeconds(1));
             assertThat(login(context, account.username(), account.password()).getStatus().value())
                     .as("admitted once the shared clock reaches locked_until").isEqualTo(200);
+        });
+        assertThat(second.failure()).isNull();
+    }
+
+    @Test
+    @Proves("T-LCK-030")
+    void aTrustedDevicesLockAndItsTrustSurviveARestart() {
+        AtomicReference<Account> owner = new AtomicReference<>();
+        AtomicReference<String> device = new AtomicReference<>();
+        AtomicReference<Instant> lockedUntil = new AtomicReference<>();
+
+        Boot first = boot(context -> {
+            Accounts accounts = new Accounts(context.getBean(JdbcTemplate.class), context.getBean(PasswordEncoder.class));
+            Account account = accounts.user();
+            String cookie = deviceCookie(login(context, account.username(), account.password()));
+            for (int i = 0; i < context.getBean(LockoutProperties.class).device().threshold(); i++) {
+                assertUniformRefusal(login(context, account.username(), Accounts.WRONG_PASSWORD, cookie));
+            }
+            lockedUntil.set(context.getBean(JdbcTemplate.class).queryForObject(
+                    "SELECT locked_until FROM trusted_devices WHERE user_id = ?", Timestamp.class, account.id())
+                    .toInstant());
+            assertThat(lockedUntil.get()).as("the device locked in the first boot").isAfter(clock.instant());
+            assertThat(accounts.lockoutState(account).lockedUntil()).as("the untrusted lane did not").isNull();
+            owner.set(account);
+            device.set(cookie);
+        });
+        assertThat(first.failure()).isNull();
+
+        Boot second = boot(context -> {
+            Account account = owner.get();
+            assertUniformRefusal(login(context, account.username(), account.password(), device.get()));
+            assertThat(login(context, account.username(), account.password()).getStatus().value())
+                    .as("the device lock is the device's alone").isEqualTo(200);
+
+            clock.advance(Duration.between(clock.instant(), lockedUntil.get()));
+            assertThat(login(context, account.username(), account.password(), device.get()).getStatus().value())
+                    .as("the cookie is still trusted, and admitted once its lock lapses").isEqualTo(200);
         });
         assertThat(second.failure()).isNull();
     }

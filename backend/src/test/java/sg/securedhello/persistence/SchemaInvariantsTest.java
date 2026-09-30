@@ -38,13 +38,15 @@ class SchemaInvariantsTest extends CtxDefaultTest {
                     "CUMULATIVE_FAILURES", "CREATED_AT"),
             "PENDING_TOTP", Set.of("USER_ID", "TOTP_KEY", "KEY_VERSION", "CREATED_AT"),
             "DELETED_USERS", Set.of("USER_ID", "USERNAME", "EMAIL_HMAC", "DELETED_AT", "DELETED_BY_ID"),
-            "USERNAME_HOLDS", Set.of("ID", "USERNAME", "EMAIL", "EXPIRES_AT"));
+            "USERNAME_HOLDS", Set.of("ID", "USERNAME", "EMAIL", "EXPIRES_AT"),
+            "TRUSTED_DEVICES", Set.of("ID", "USER_ID", "CREATED_AT", "EXPIRES_AT", "FAILED_LOGIN_ATTEMPTS",
+                    "CONSECUTIVE_FAILURES"));
 
     /** The primary-key column each table's fixture row is addressed by. */
     private static final Map<String, String> KEY = Map.of(
             "ROLES", "NAME", "USERS", "ID", "CREDENTIAL_TOKENS", "ID", "PASSWORD_HISTORY", "ID",
             "TOTP_USER_DETAILS", "USER_ID", "PENDING_TOTP", "USER_ID", "DELETED_USERS", "USER_ID",
-            "USERNAME_HOLDS", "ID");
+            "USERNAME_HOLDS", "ID", "TRUSTED_DEVICES", "ID");
 
     /** The foreign keys of V1-V6 as "child.column -> parent.column delete-rule". */
     private static final Set<String> FOREIGN_KEYS = Set.of(
@@ -52,7 +54,8 @@ class SchemaInvariantsTest extends CtxDefaultTest {
             "CREDENTIAL_TOKENS.USER_ID -> USERS.ID CASCADE",
             "PASSWORD_HISTORY.USER_ID -> USERS.ID CASCADE",
             "TOTP_USER_DETAILS.USER_ID -> USERS.ID CASCADE",
-            "PENDING_TOTP.USER_ID -> USERS.ID CASCADE");
+            "PENDING_TOTP.USER_ID -> USERS.ID CASCADE",
+            "TRUSTED_DEVICES.USER_ID -> USERS.ID CASCADE");
 
     @Autowired
     JdbcTemplate jdbc;
@@ -66,7 +69,7 @@ class SchemaInvariantsTest extends CtxDefaultTest {
     void everyNotNullColumnRejectsNull() {
         Map<String, Set<String>> declared = jdbc.query(
                 "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS"
-                        + " WHERE TABLE_SCHEMA = 'PUBLIC' AND IS_NULLABLE = 'NO' AND TABLE_NAME IN (?, ?, ?, ?, ?, ?, ?, ?)",
+                        + " WHERE TABLE_SCHEMA = 'PUBLIC' AND IS_NULLABLE = 'NO' AND TABLE_NAME IN (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (row, i) -> List.of(row.getString(1), row.getString(2)), NOT_NULL.keySet().toArray())
                 .stream().collect(Collectors.groupingBy(List::getFirst,
                         Collectors.mapping(List::getLast, Collectors.toSet())));
@@ -79,7 +82,8 @@ class SchemaInvariantsTest extends CtxDefaultTest {
         Map<String, Object> rows = Map.of(
                 "ROLES", "USER", "USERS", userId, "CREDENTIAL_TOKENS", fixture.token(userId),
                 "PASSWORD_HISTORY", fixture.history(userId), "TOTP_USER_DETAILS", userId, "PENDING_TOTP", userId,
-                "DELETED_USERS", fixture.tombstone(), "USERNAME_HOLDS", fixture.usernameHold());
+                "DELETED_USERS", fixture.tombstone(), "USERNAME_HOLDS", fixture.usernameHold(),
+                "TRUSTED_DEVICES", fixture.trustedDevice(userId));
 
         NOT_NULL.forEach((table, columns) -> columns.forEach(column -> assertThatThrownBy(() -> jdbc.update(
                 "UPDATE " + table + " SET " + column + " = NULL WHERE " + KEY.get(table) + " = ?", rows.get(table)))
@@ -103,6 +107,8 @@ class SchemaInvariantsTest extends CtxDefaultTest {
                 .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("FK_CREDENTIAL_TOKENS_USER_ID");
         assertThatThrownBy(() -> fixture.history(ghost))
                 .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("FK_PASSWORD_HISTORY_USER_ID");
+        assertThatThrownBy(() -> fixture.trustedDevice(ghost))
+                .isInstanceOf(DataIntegrityViolationException.class).hasMessageContaining("FK_TRUSTED_DEVICES_USER_ID");
         for (String table : List.of("totp_user_details", "pending_totp")) {
             assertThatThrownBy(() -> fixture.totp(table, ghost, SchemaFixture.bytes(SchemaFixture.TOTP_KEY_BYTES), 1))
                     .isInstanceOf(DataIntegrityViolationException.class)
@@ -117,6 +123,7 @@ class SchemaInvariantsTest extends CtxDefaultTest {
         UUID userId = fixture.user();
         UUID tokenId = fixture.token(userId);
         UUID historyId = fixture.history(userId);
+        UUID deviceId = fixture.trustedDevice(userId);
         fixture.totp("totp_user_details", userId, SchemaFixture.bytes(SchemaFixture.TOTP_KEY_BYTES), 1);
         fixture.totp("pending_totp", userId, SchemaFixture.bytes(SchemaFixture.TOTP_KEY_BYTES), 1);
         String sessionId = fixture.session(fixture.username(userId));
@@ -125,6 +132,7 @@ class SchemaInvariantsTest extends CtxDefaultTest {
 
         assertThat(fixture.count("credential_tokens", "id", tokenId)).isZero();
         assertThat(fixture.count("password_history", "id", historyId)).isZero();
+        assertThat(fixture.count("trusted_devices", "id", deviceId)).isZero();
         assertThat(fixture.count("totp_user_details", "user_id", userId)).isZero();
         assertThat(fixture.count("pending_totp", "user_id", userId)).isZero();
         // Sessions end through SessionTerminationService after commit (ADR-039), never by cascade.

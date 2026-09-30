@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import type { ErrorCode } from '@/lib/api/errors'
 import { issuePasswordReset, oneTimeLink, UNLOCK_REASONS, type UnlockReason, unlockUser } from '@/lib/admin/credentials'
+import { isUnlockable } from '@/lib/admin/signInStatus'
 import { ADMIN_USERS_KEY, type AdminUser, adminUserKey } from '@/lib/admin/users'
 import { useAuthorityFailure } from '@/lib/auth/authority'
 import { fetchProfile, PROFILE_KEY } from '@/lib/auth/session'
@@ -41,7 +42,8 @@ export function AdminCredentialActions({ user, announce }: { user: AdminUser; an
   return (
     <div className="flex flex-col gap-4">
       {resettable && <ResetControl user={user} own={own} />}
-      {!own && <UnlockControl user={user} announce={announce} />}
+      {/* Offered only when there is a lock to clear; the cap and tier 2 need rebinding, not an unlock (REJ-072). */}
+      {!own && isUnlockable(user.signInStatus) && <UnlockControl user={user} announce={announce} />}
     </div>
   )
 }

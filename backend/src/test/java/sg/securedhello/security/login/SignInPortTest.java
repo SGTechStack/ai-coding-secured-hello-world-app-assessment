@@ -20,6 +20,7 @@ import sg.securedhello.testsupport.Accounts;
 import sg.securedhello.testsupport.CtxPortTest;
 import sg.securedhello.testsupport.ProblemAssertions;
 import sg.securedhello.testsupport.Proves;
+import sg.securedhello.testsupport.SessionCookies;
 import sg.securedhello.testsupport.SessionRows;
 import sg.securedhello.testsupport.SignedIn;
 
@@ -56,7 +57,7 @@ class SignInPortTest extends CtxPortTest {
     }
 
     private static String cookieValue(EntityExchangeResult<?> result) {
-        return result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE).split(";", 2)[0].split("=", 2)[1];
+        return SessionCookies.value(result.getResponseHeaders());
     }
 
     private static String token(EntityExchangeResult<String> result) {
@@ -96,7 +97,10 @@ class SignInPortTest extends CtxPortTest {
         assertThat(new SessionRows(jdbc).exists(SessionRows.idOf(signedIn))).isFalse();
         assertProblem(send(HttpMethod.GET, "/api/hello", signedIn, null, null), ErrorCode.AUTHENTICATION_FAILED);
 
-        assertThat(setCookies).as("every Set-Cookie of bootstrap, login, mutation, errors and logout")
+        // Besides the session cookie, only the device cookie a successful sign-in earns (ADR-075), and only once.
+        assertThat(setCookies).as("the device cookie").filteredOn(SessionCookies::isDevice).hasSize(1);
+        assertThat(setCookies).as("every other Set-Cookie of bootstrap, login, mutation, errors and logout")
+                .filteredOn(header -> !SessionCookies.isDevice(header))
                 .isNotEmpty().allSatisfy(header -> assertThat(header).startsWith("SESSION="));
     }
 }

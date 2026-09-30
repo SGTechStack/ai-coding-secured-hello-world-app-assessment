@@ -21,8 +21,8 @@ class ConfigurationValidatorPresenceTest extends CtxDefaultTest {
     }
 
     @Test
-    void theContextHoldsTheThreeValidatedKeysAndTheResetLinkGuard() {
-        assertThat(context.getBean(ApplicationKeys.class).all()).hasSize(3);
+    void theContextHoldsTheFourValidatedKeysAndTheResetLinkGuard() {
+        assertThat(context.getBean(ApplicationKeys.class).all()).hasSize(4);
         assertThat(context.getBeansOfType(ResetLinkLoggerGuard.class)).hasSize(1);
     }
 }

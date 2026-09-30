@@ -22,10 +22,12 @@ import sg.securedhello.user.UserAccountRepository;
 public class AdminUsers {
 
     private final UserAccountRepository accounts;
+    private final AdminUserViews views;
     private final AuditEmitter audit;
 
-    AdminUsers(UserAccountRepository accounts, AuditEmitter audit) {
+    AdminUsers(UserAccountRepository accounts, AdminUserViews views, AuditEmitter audit) {
         this.accounts = accounts;
+        this.views = views;
         this.audit = audit;
     }
 
@@ -33,7 +35,7 @@ public class AdminUsers {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public List<AdminUserView> list(UUID actorId) {
-        List<AdminUserView> users = accounts.findAll(Sort.by("username")).stream().map(AdminUserView::of).toList();
+        List<AdminUserView> users = views.of(accounts.findAll(Sort.by("username")));
         audit.emit(AuditEvent.ADMIN_USERS_LISTED, AdminReadContext.listed(actorId, users.size()));
         return users;
     }
@@ -42,7 +44,7 @@ public class AdminUsers {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public Optional<AdminUserView> find(UUID actorId, UUID id) {
-        Optional<AdminUserView> user = accounts.findById(id).map(AdminUserView::of);
+        Optional<AdminUserView> user = accounts.findById(id).map(views::of);
         user.ifPresent(found -> audit.emit(AuditEvent.ADMIN_USER_VIEWED, AdminReadContext.viewed(actorId, id)));
         return user;
     }

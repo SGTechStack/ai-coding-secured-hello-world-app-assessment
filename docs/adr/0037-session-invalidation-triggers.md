@@ -32,7 +32,8 @@ a maintainer. None of them is.
 | Admin disable | all of the subject's | **added**; ASVS 7.4.2 (L1) |
 | Admin role change | all of the subject's | **added** |
 | Admin deletion | all of the subject's | **added**; ASVS 7.4.2 (L1) |
-| Account lockout | all | **added** |
+| Trusted-device lockout (ADR-075) | all | **added** |
+| Untrusted-lane lockout (ADR-075) | none | **amended 2026-09-30**: anyone can cause one |
 | Password authenticator disabled by the failure cap (ADR-013) | all | **added**; ASVS 7.4.2 (L1) |
 | Admin factor reset | all of the subject's | added with the second factor |
 | Automatic tier-2 factor disable (ADR-027) | all | added with the second factor |
@@ -59,6 +60,14 @@ a maintainer. None of them is.
   T-SES-016 (deletion), T-SES-017 (lockout), T-SES-021 (cap), T-SES-015 (reset issuance), T-SES-018 (factor reset),
   T-SES-012 to T-SES-014 (credential rows). T-SES-019 and T-SES-020 assert that the two redemption rows end nothing.
   The automatic tier-2 row needs a replay test of the same shape.
+
+## Amendment (2026-09-30): the untrusted lane's lock ends no session (ADR-075)
+
+The first consequence above, that driving an account into lockout ends its sessions for five requests, was a session
+kill any attacker who knew the username could use. Since ADR-075 the account's lock is the untrusted lane's, which
+anyone can cause and which no longer refuses the owner's trusted browsers, so it ends no session (T-SES-038). The lock
+of a trusted device still ends every session (T-SES-017): only a client holding that device's cookie can cause it. The
+cap's disable and every admin action are unchanged.
 
 ## Sources
 

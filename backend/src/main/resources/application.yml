@@ -228,6 +228,13 @@ app:
       nist:
         cap: 100
         alert-threshold: 50
+      # Trusted devices (ADR-075): a correct password earns an HMAC-signed device cookie for ttl. A sign-in presenting a
+      # valid one for the submitted username counts in that device's own lane, which locks at threshold failures on the
+      # ladder above; every other sign-in counts in the account's untrusted lane. The NIST cap counts every lane. Its
+      # signing key is a secret, supplied by the environment or a mounted file only (ADR-062).
+      device:
+        ttl: 30d
+        threshold: 5
     request:
       # Counted in bytes as the body is read, before the login converter parses it (Std §5:494).
       max-body-bytes: 16384

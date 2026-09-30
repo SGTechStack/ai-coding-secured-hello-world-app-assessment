@@ -38,8 +38,8 @@ class LifecycleRowsTest {
                 // The dev profile enables the dev-only link logger (ADR-057), and the row records it.
                 .containsEntry("labels.audit_loggers", List.of("audit=INFO",
                         ResetLinkLoggerGuard.LOGGER_NAME + "=DEBUG"));
-        assertThat((List<?>) startup.get("labels.key_fingerprints")).hasSize(3).allSatisfy(fingerprint ->
-                assertThat(fingerprint.toString()).matches("app\\.[a-z.-]+\\.key=[0-9a-f]{8}"));
+        assertThat((List<?>) startup.get("labels.key_fingerprints")).hasSize(4).allSatisfy(fingerprint ->
+                assertThat(fingerprint.toString()).matches("app\\.[a-z.-]+\\.(key|secret)=[0-9a-f]{8}"));
         assertThat(startup.toString()).doesNotContain(TestSecrets.CANARIES);
     }
 

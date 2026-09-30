@@ -7,6 +7,9 @@ public enum LockoutClearReason implements AuditReason {
     /** The lock's time ran out; written by the next sign-in that finds it lifted (ADR-011). */
     AUTO_LIFT("AUTO_LIFT"),
 
+    /** A trusted device's lock ran out; written by that device's next sign-in that finds it lifted (ADR-075). */
+    TRUSTED_DEVICE_AUTO_LIFT("TRUSTED_DEVICE_AUTO_LIFT"),
+
     /** A password-reset redemption rebound the password, which clears the lock and the NIST cap (ADR-009). */
     PASSWORD_RESET_COMPLETED("PASSWORD_RESET_COMPLETED");
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { signInStatusSchema } from '@/lib/admin/signInStatus'
 import { apiFetch } from '@/lib/api/client'
 
 /** One account as the admin surface shows it (PRD Story 8). Never a hash, token or factor field. */
@@ -10,6 +11,8 @@ export const adminUserSchema = z.object({
   enabled: z.boolean(),
   activated: z.boolean(),
   createdAt: z.iso.datetime({ offset: true }),
+  /** Locks and disables, apart from Enabled (ADR-075); the server always sends it. */
+  signInStatus: signInStatusSchema.optional(),
 })
 
 export type AdminUser = z.infer<typeof adminUserSchema>

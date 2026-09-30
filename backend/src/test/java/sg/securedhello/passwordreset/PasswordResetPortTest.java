@@ -30,6 +30,7 @@ import sg.securedhello.testsupport.PasswordResets;
 import sg.securedhello.testsupport.ProblemAssertions;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.Registrations;
+import sg.securedhello.testsupport.SessionCookies;
 import sg.securedhello.testsupport.SessionRows;
 import sg.securedhello.testsupport.SignedIn;
 
@@ -74,7 +75,7 @@ class PasswordResetPortTest extends CtxPortTest {
     }
 
     private static String cookieValue(EntityExchangeResult<?> result) {
-        return result.getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE).split(";", 2)[0].split("=", 2)[1];
+        return SessionCookies.value(result.getResponseHeaders());
     }
 
     private Anonymous anonymous() {

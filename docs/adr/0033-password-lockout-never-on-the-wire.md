@@ -57,6 +57,14 @@ factor responses to match the password axis. Both would be wrong, for opposite r
 - Tests: T-AUTH-006 (one literal body across every account state and all three endpoints) and T-MFA-019 (the factor
   mapping), with T-MFA-020 and T-MFA-021 for the two tiers.
 
+## Amendment (2026-09-30): device cookies (ADR-075)
+
+The uniform refusal holds across the device axis: an unknown username, a wrong password and a locked lane answer the
+same status, body and headers with no device cookie, the account's own, or another account's (T-AUTH-019). A device
+cookie that does not match the submitted username, or is tampered, expired or revoked, is simply untrusted: the
+sign-in counts in the account's untrusted lane, and nothing on the wire says so. The cookie is set only on a successful
+sign-in and is never set or cleared on a failure, so a failure's headers never differ by account state.
+
 ## Sources
 
 - Standalone User Access Control Application Standard §3.2 Error Contract (`account locked`,

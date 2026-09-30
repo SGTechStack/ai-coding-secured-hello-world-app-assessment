@@ -25,6 +25,7 @@ public final class TestSecrets {
     public static final String TOMBSTONE_KEY_PROPERTY = "app.security.hmac.tombstone.key";
     public static final String TOMBSTONE_VERSION_PROPERTY = "app.security.hmac.tombstone.version";
     public static final String LOG_KEY_PROPERTY = "app.security.hmac.log.key";
+    public static final String DEVICE_KEY_PROPERTY = "app.security.lockout.device.secret";
     public static final String ADMIN_USERNAME_PROPERTY = "app.admin.username";
     public static final String ADMIN_PASSWORD_PROPERTY = "app.admin.password";
     public static final String SPA_ORIGIN_PROPERTY = "app.origins.spa";
@@ -33,17 +34,19 @@ public final class TestSecrets {
     public static final String TOTP_KEY_TEXT = "TEST-ONLY-CANARY-TOTP-KEY";
     public static final String TOMBSTONE_KEY_TEXT = "TEST-ONLY-CANARY-TOMBSTONE-KEY";
     public static final String LOG_KEY_TEXT = "TEST-ONLY-CANARY-LOG-KEY";
+    public static final String DEVICE_KEY_TEXT = "TEST-ONLY-CANARY-DEVICE-KEY";
 
     public static final String TOTP_KEY = canaryKey(TOTP_KEY_TEXT);
     public static final String TOMBSTONE_KEY = canaryKey(TOMBSTONE_KEY_TEXT);
     public static final String LOG_KEY = canaryKey(LOG_KEY_TEXT);
+    public static final String DEVICE_KEY = canaryKey(DEVICE_KEY_TEXT);
     public static final String ADMIN_USERNAME = "canary-admin";
     /** Passes the password policy for {@link #ADMIN_USERNAME}, so every harness context seeds the bootstrap admin. */
     public static final String ADMIN_PASSWORD = "TEST-ONLY-CANARY-quartz-meadow-7f3a";
 
     /** Every secret value that must never appear in output: the encoded keys, their text and the admin password. */
-    public static final List<String> CANARIES = List.of(TOTP_KEY, TOMBSTONE_KEY, LOG_KEY, TOTP_KEY_TEXT,
-            TOMBSTONE_KEY_TEXT, LOG_KEY_TEXT, ADMIN_PASSWORD);
+    public static final List<String> CANARIES = List.of(TOTP_KEY, TOMBSTONE_KEY, LOG_KEY, DEVICE_KEY, TOTP_KEY_TEXT,
+            TOMBSTONE_KEY_TEXT, LOG_KEY_TEXT, DEVICE_KEY_TEXT, ADMIN_PASSWORD);
 
     /** The name of the property source {@link #addTo} adds. */
     public static final String SOURCE_NAME = "testSecrets";
@@ -59,6 +62,7 @@ public final class TestSecrets {
         properties.put(TOMBSTONE_KEY_PROPERTY, TOMBSTONE_KEY);
         properties.put(TOMBSTONE_VERSION_PROPERTY, "1");
         properties.put(LOG_KEY_PROPERTY, LOG_KEY);
+        properties.put(DEVICE_KEY_PROPERTY, DEVICE_KEY);
         properties.put(ADMIN_USERNAME_PROPERTY, ADMIN_USERNAME);
         properties.put(ADMIN_PASSWORD_PROPERTY, ADMIN_PASSWORD);
         properties.put(SPA_ORIGIN_PROPERTY, "http://localhost:5173");

@@ -17,6 +17,7 @@ import sg.securedhello.credential.CredentialTokenType;
 import sg.securedhello.security.PasswordProperties;
 import sg.securedhello.user.PasswordHistoryEntry;
 import sg.securedhello.user.PasswordHistoryRepository;
+import sg.securedhello.user.TrustedDeviceRepository;
 import sg.securedhello.user.UserAccount;
 import sg.securedhello.user.UserAccountRepository;
 
@@ -38,17 +39,19 @@ public class PasswordService {
     private final UserAccountRepository accounts;
     private final PasswordHistoryRepository history;
     private final CredentialTokenRepository tokens;
+    private final TrustedDeviceRepository devices;
     private final int historyLength;
     private final Clock clock;
 
     PasswordService(PasswordPolicy policy, PasswordEncoder encoder, UserAccountRepository accounts,
-            PasswordHistoryRepository history, CredentialTokenRepository tokens, PasswordProperties properties,
-            Clock clock) {
+            PasswordHistoryRepository history, CredentialTokenRepository tokens, TrustedDeviceRepository devices,
+            PasswordProperties properties, Clock clock) {
         this.policy = policy;
         this.encoder = encoder;
         this.accounts = accounts;
         this.history = history;
         this.tokens = tokens;
+        this.devices = devices;
         this.historyLength = properties.historyLength();
         this.clock = clock;
     }
@@ -61,7 +64,9 @@ public class PasswordService {
      *   <li>encodes it with the BCrypt {@code DelegatingPasswordEncoder} (ADR-001; no pepper, ADR-004) and stores it,
      *       which also completes any forced change (ADR-046);</li>
      *   <li>records it in the history and trims the history to {@code history-length} (T-CRED-021);</li>
-     *   <li>invalidates the account's pending reset tokens (ADR-007).</li>
+     *   <li>invalidates the account's pending reset tokens (ADR-007);</li>
+     *   <li>revokes every trusted device of the account, so no device cookie issued under the old password keeps its
+     *       own lockout lane (ADR-075).</li>
      * </ol>
      *
      * @throws PasswordRejectedException if a rule refuses it; the transaction rolls back and nothing changes
@@ -108,8 +113,8 @@ public class PasswordService {
     /**
      * Invalidates the account's password, for the recovery runner's batch form, which mints nothing (ADR-073): the
      * credential column and any forced change are cleared, so no password signs in, and the pending reset tokens are
-     * cancelled. The account recovers through the normal reset flow, whose redemption sets a new password. The
-     * retained history stays, so the old password cannot simply be set back.
+     * cancelled, and every trusted device is revoked (ADR-075). The account recovers through the normal reset flow,
+     * whose redemption sets a new password. The retained history stays, so the old password cannot simply be set back.
      *
      * @throws IllegalArgumentException if no account has {@code accountId}
      */
@@ -119,6 +124,7 @@ public class PasswordService {
                 .orElseThrow(() -> new IllegalArgumentException("No account " + accountId));
         account.revokeCredential();
         tokens.deletePending(accountId, CredentialTokenType.PASSWORD_RESET);
+        devices.revokeAll(accountId);
     }
 
     /**
@@ -151,6 +157,7 @@ public class PasswordService {
         history.save(new PasswordHistoryEntry(accountId, encoded, clock.instant()));
         history.deleteAll(retained.stream().skip(historyLength - 1L).toList());
         tokens.deletePending(accountId, CredentialTokenType.PASSWORD_RESET);
+        devices.revokeAll(accountId);
     }
 
     /**

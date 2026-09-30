@@ -63,6 +63,15 @@ class LockoutBindingTest extends CtxNondevTest {
     }
 
     @Test
+    @Proves("T-LCK-032")
+    void aTrustedDeviceStaysTrustedFor30DaysAndLocksAt5() {
+        assertThat(LOCKOUT.device().ttl()).isEqualTo(Duration.ofDays(30));
+        assertThat(LOCKOUT.device().threshold()).isEqualTo(5);
+        assertThat(LOCKOUT.toDeviceLadder().threshold()).as("the value the device lane compares against")
+                .isEqualTo(5);
+    }
+
+    @Test
     @Proves("T-LCK-016")
     void theNistCapIs100() {
         assertThat(LOCKOUT.nist().cap()).isEqualTo(100);

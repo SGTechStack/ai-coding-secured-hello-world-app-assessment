@@ -14,6 +14,7 @@ import java.time.Clock;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.error.ProblemDetailWriter;
 import sg.securedhello.profile.ProfileReader;
+import sg.securedhello.security.device.TrustedDevices;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.source.SourceKeyAuthenticationDetailsSource;
@@ -29,8 +30,9 @@ public class SignInConfig {
     /**
      * The one password provider. {@code alwaysPerformAdditionalChecksOnUser} keeps its default, {@code true}, so a
      * disabled account still costs one {@code matches()} (REJ-005; T-AUTH-005). No {@code CompromisedPasswordChecker}
-     * is set, and none is a bean (T-AUTH-013). The pre-authentication checks run locked and disabled, then the NIST
-     * cap, then the forced-change expiry (ADR-013; ADR-046).
+     * is set, and none is a bean (T-AUTH-013). The pre-authentication checks run disabled, then the NIST cap, then the
+     * forced-change expiry (ADR-013; ADR-046); the provider checks the lockout lane's lock just before the password
+     * (ADR-075).
      */
     @Bean
     DaoAuthenticationProvider passwordAuthenticationProvider(UserAccountRepository accounts,
@@ -46,10 +48,11 @@ public class SignInConfig {
     SignIn signIn(DaoAuthenticationProvider provider, AuthenticationEventPublisher events,
             FindByIndexNameSessionRepository<? extends Session> sessions, AuditEmitter audit,
             ProblemDetailWriter writer, JsonMapper jsonMapper, Clock clock, AuthRateLimiter limiter,
-            SourceKeyResolver sourceKeys, LockoutCardinality cardinality, ProfileReader profiles) {
+            SourceKeyResolver sourceKeys, LockoutCardinality cardinality, ProfileReader profiles,
+            TrustedDevices devices) {
         return new SignIn(provider, events, new SpringSessionBackedSessionRegistry<>(sessions), audit, writer,
                 jsonMapper, clock, limiter, new SourceKeyAuthenticationDetailsSource(sourceKeys), cardinality,
-                profiles);
+                profiles, devices);
     }
 
     @Bean

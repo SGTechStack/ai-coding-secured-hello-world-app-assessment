@@ -11,6 +11,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationConverter;
 
 import sg.securedhello.password.PasswordPolicy;
+import sg.securedhello.security.device.TrustedDevices;
 import sg.securedhello.security.ratelimit.AuthRateLimiter;
 import sg.securedhello.security.ratelimit.LockoutCardinality;
 import sg.securedhello.security.ratelimit.AuthRateLimiter.Refusal;
@@ -33,8 +34,10 @@ import tools.jackson.databind.json.JsonMapper;
  * Beside it, the lockout-cardinality axis refuses a username that is not in its source's full set (ADR-015), the same
  * way and before BCrypt.
  *
- * <p>The token carries {@link SourceKeyAuthenticationDetails}, the source key the early filter already derived, so the
- * lockout listener can tell which source drove an account into lockout (ADR-015; T-RL-005).
+ * <p>The token carries {@link SourceKeyAuthenticationDetails}: the source key the early filter already derived, so the
+ * lockout listener can tell which source drove an account into lockout (ADR-015; T-RL-005), and the claim of the
+ * request's device cookie, if one verified, read from the cookie alone before anything looks the username up, so the
+ * lookup costs the same whether or not the account exists (ADR-075).
  */
 final class JsonCredentialsConverter implements AuthenticationConverter {
 
@@ -46,13 +49,16 @@ final class JsonCredentialsConverter implements AuthenticationConverter {
     private final AuthRateLimiter limiter;
     private final SourceKeyAuthenticationDetailsSource detailsSource;
     private final LockoutCardinality cardinality;
+    private final TrustedDevices devices;
 
     JsonCredentialsConverter(JsonMapper jsonMapper, AuthRateLimiter limiter,
-            SourceKeyAuthenticationDetailsSource detailsSource, LockoutCardinality cardinality) {
+            SourceKeyAuthenticationDetailsSource detailsSource, LockoutCardinality cardinality,
+            TrustedDevices devices) {
         this.jsonMapper = jsonMapper;
         this.limiter = limiter;
         this.detailsSource = detailsSource;
         this.cardinality = cardinality;
+        this.devices = devices;
     }
 
     @Override
@@ -72,10 +78,12 @@ final class JsonCredentialsConverter implements AuthenticationConverter {
         limiter.tryConsume(RateLimit.LOGIN_USERNAME, credentials.username()).ifPresent(refusal -> {
             throw new LoginThrottledException(refusal);
         });
-        SourceKeyAuthenticationDetails details = detailsSource.buildDetails(request);
-        cardinality.refusal(details.sourceKey(), credentials.username()).ifPresent(refusal -> {
+        SourceKeyAuthenticationDetails source = detailsSource.buildDetails(request);
+        cardinality.refusal(source.sourceKey(), credentials.username()).ifPresent(refusal -> {
             throw new LockoutCardinalityException(refusal);
         });
+        SourceKeyAuthenticationDetails details = new SourceKeyAuthenticationDetails(source.sourceKey(),
+                devices.claim(request).orElse(null));
         // Passwords are hashed in NFC, so they are verified in NFC too (ADR-002; T-CRED-006).
         UsernamePasswordAuthenticationToken token = UsernamePasswordAuthenticationToken.unauthenticated(
                 credentials.username(), PasswordPolicy.normalise(credentials.password()));

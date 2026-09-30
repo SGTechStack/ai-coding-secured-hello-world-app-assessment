@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { signInBadge } from '@/lib/admin/signInStatus'
 import { ADMIN_USERS_KEY, fetchAdminUsers } from '@/lib/admin/users'
 import { authorityRoute } from '@/lib/auth/authority'
 import { signOut } from '@/lib/auth/session'
@@ -46,6 +47,7 @@ export function AdminUsersPage() {
               <th scope="col">Email</th>
               <th scope="col">Role</th>
               <th scope="col">Status</th>
+              <th scope="col">Sign-in</th>
               <th scope="col">Created</th>
             </tr>
           </thead>
@@ -60,6 +62,7 @@ export function AdminUsersPage() {
                 <td>{user.email}</td>
                 <td>{user.role}</td>
                 <td>{user.enabled ? 'Enabled' : 'Disabled'}</td>
+                <td>{signInBadge(user.signInStatus)}</td>
                 <td>
                   <time dateTime={user.createdAt}>{user.createdAt.slice(0, 10)}</time>
                 </td>

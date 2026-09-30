@@ -23,6 +23,11 @@ logging:
 # that still holds a demo account (PublishedDemoValues). Set enabled to false to start without them.
 app:
   security:
+    # The dev device-cookie key (ADR-075), public: outside dev startup refuses it in any key slot (PublishedDemoValues),
+    # and nothing else reads this file there. Every other environment supplies its own key (ADR-062).
+    lockout:
+      device:
+        secret: RIwFIXZBRXDdHv1rLtl7v8J0u9R/q6WI1sfJOrhYPO4=
     authorization:
       # Dev-only routes open to anyone (AuthorizationMatrix#devWhitelist): the sign-in page's demo accounts
       # (DemoAccountsController). Outside dev the handler and this row are both absent, and setting it is refused.

@@ -55,8 +55,9 @@ source working across many accounts.
 - The uniform-401 failure handler carries a deliberate `429` branch for the account axis. A later "always 401"
   simplification would silently delete that limiter's only observable behaviour, so a comment marks the branch and
   T-RL-002 pins it.
-- PRD Story 3's third criterion is met on its first clause (state independence) and not on its promised outcome.
-  One source can still keep a known username locked (R-LCK-002, REJ-013).
+- PRD Story 3's third criterion is met on its first clause (state independence), and since ADR-075 on its promised
+  outcome for the owner's trusted browsers: one source can still keep a known username's untrusted lane locked, but
+  not a browser the owner has signed in on (R-LCK-002).
 - The account-axis 10-a-minute budget is unreachable by pure-failure traffic, because the lockout fires at 5. It is
   kept for its other jobs: probing usernames that have no account, abuse on mixed traffic, and write contention on one
   user row (R-STD-018).

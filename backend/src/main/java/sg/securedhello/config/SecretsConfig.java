@@ -10,29 +10,32 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Binds every secret through {@code @Validated @ConfigurationProperties} (ADR-062) and turns the three keys into
+ * Binds every secret through {@code @Validated @ConfigurationProperties} (ADR-062) and turns the four keys into
  * validated {@link KeyMaterial} during context refresh, before the web server opens its port. A missing secret fails
  * binding; a malformed or reused key fails here. Each key's fingerprint, never the key, is logged once.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({TotpEncryptionProperties.class, HmacProperties.class, AdminSeedProperties.class,
-        OriginsProperties.class})
+        OriginsProperties.class, DeviceCookieKeyProperties.class})
 public class SecretsConfig {
 
     static final String TOTP_KEY = "app.mfa.totp.encryption.key";
     static final String TOMBSTONE_KEY = "app.security.hmac.tombstone.key";
     static final String LOG_KEY = "app.security.hmac.log.key";
+    static final String DEVICE_KEY = "app.security.lockout.device.secret";
     static final String RETIRED_TOTP_KEYS = "app.mfa.totp.encryption.retired-keys";
     static final int MAX_KEY_VERSION = 255;
 
     private static final Logger log = LoggerFactory.getLogger(SecretsConfig.class);
 
     @Bean
-    ApplicationKeys applicationKeys(TotpEncryptionProperties totp, HmacProperties hmac) {
+    ApplicationKeys applicationKeys(TotpEncryptionProperties totp, HmacProperties hmac,
+            DeviceCookieKeyProperties device) {
         ApplicationKeys keys = new ApplicationKeys(
                 KeyMaterial.decode(TOTP_KEY, totp.keyVersion(), totp.key()),
                 KeyMaterial.decode(TOMBSTONE_KEY, hmac.tombstone().version(), hmac.tombstone().key()),
                 KeyMaterial.decode(LOG_KEY, null, hmac.log().key()),
+                KeyMaterial.decode(DEVICE_KEY, null, device.secret()),
                 totp.retiredKeys().entrySet().stream().map(SecretsConfig::retiredTotpKey)
                         .sorted(Comparator.comparing(KeyMaterial::version)).toList());
         for (KeyMaterial key : keys.all()) {

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -115,6 +116,33 @@ class PublishedDemoValuesTest {
         assertThat(values).as("application-dev.yml's demo accounts").containsOnlyKeys("user-password",
                 "admin-password", "admin-totp-secret");
         return values;
+    }
+
+    /** The dev device-cookie key, as {@code application-dev.yml} commits it. */
+    private static String devDeviceKey() throws IOException {
+        Matcher matcher = Pattern.compile("^\\s*secret:\\s*(\\S+)\\s*$", Pattern.MULTILINE)
+                .matcher(Files.readString(DEV_CONFIGURATION));
+        assertThat(matcher.find()).as("application-dev.yml's device-cookie key").isTrue();
+        return matcher.group(1);
+    }
+
+    @Test
+    @Proves("T-CFG-039")
+    void theDevDeviceKeyIsOnTheDenylistAndRefusedOutsideDevInAnyKeySlot() throws IOException {
+        String key = devDeviceKey();
+        assertThat(PublishedDemoValues.KEY_FINGERPRINTS)
+                .contains(KeyMaterial.decode("device", null, key).fingerprint());
+        assertThat(Files.readString(Path.of("src/main/java/sg/securedhello/config/PublishedDemoValues.java")))
+                .doesNotContain(key);
+        for (String slot : List.of(TestSecrets.DEVICE_KEY_PROPERTY, TestSecrets.LOG_KEY_PROPERTY)) {
+            runner(Map.of(slot, key)).run(context -> {
+                assertThat(context).hasFailed();
+                assertThat(causeMessages(context.getStartupFailure())).contains(slot, "published demo value")
+                        .doesNotContain(key);
+            });
+        }
+        runner(Map.of(TestSecrets.DEVICE_KEY_PROPERTY, key, "spring.profiles.active", "dev"))
+                .run(context -> assertThat(context).hasNotFailed());
     }
 
     @Test

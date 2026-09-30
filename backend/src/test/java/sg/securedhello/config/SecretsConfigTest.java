@@ -28,7 +28,8 @@ class SecretsConfigTest {
     private static final Pattern FINGERPRINT_LINE =
             Pattern.compile("Key loaded: property=(\\S+) version=\\S+ fingerprint=([0-9a-f]+)\\b");
 
-    private static final String[] KEYS = {SecretsConfig.TOTP_KEY, SecretsConfig.TOMBSTONE_KEY, SecretsConfig.LOG_KEY};
+    private static final String[] KEYS = {SecretsConfig.TOTP_KEY, SecretsConfig.TOMBSTONE_KEY, SecretsConfig.LOG_KEY,
+            SecretsConfig.DEVICE_KEY};
 
     static Stream<Arguments> malformedKeys() {
         Map<String, String> malformed = Map.of(
@@ -132,7 +133,7 @@ class SecretsConfigTest {
                 assertThat(key.version()).isZero();
                 assertThat(key.property()).isEqualTo(RETIRED_V0);
             });
-            assertThat(keys.all()).hasSize(4);
+            assertThat(keys.all()).hasSize(5);
         });
         assertThat(output.getOut()).contains("property=" + RETIRED_V0 + " version=0").doesNotContain(retired);
     }

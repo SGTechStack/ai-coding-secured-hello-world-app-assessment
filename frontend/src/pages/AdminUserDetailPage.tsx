@@ -15,6 +15,7 @@ import {
   setAdminUserEnabled,
   setAdminUserRole,
 } from '@/lib/admin/users'
+import { signInRestrictions } from '@/lib/admin/signInStatus'
 import { authorityRoute, useAuthorityFailure } from '@/lib/auth/authority'
 import { fetchProfile, PROFILE_KEY } from '@/lib/auth/session'
 
@@ -76,6 +77,14 @@ export function AdminUserDetailPage() {
             <dd>{user.data.role}</dd>
             <dt>Status</dt>
             <dd>{user.data.enabled ? 'Enabled' : 'Disabled'}</dd>
+            {user.data.signInStatus && (
+              <>
+                <dt>Sign-in status</dt>
+                <dd>
+                  <SignInStatusDetail status={user.data.signInStatus} />
+                </dd>
+              </>
+            )}
             <dt>Created</dt>
             <dd>
               <time dateTime={user.data.createdAt}>{user.data.createdAt.slice(0, 10)}</time>
@@ -93,6 +102,27 @@ export function AdminUserDetailPage() {
         Back to the user list
       </Link>
     </section>
+  )
+}
+
+/** The account's locks and disables, apart from Enabled (ADR-075), read-only; the unlock control acts on them. */
+function SignInStatusDetail({ status }: { status: NonNullable<AdminUser['signInStatus']> }) {
+  const restrictions = signInRestrictions(status)
+  return (
+    <div className="flex flex-col gap-1">
+      {restrictions.length === 0 ? (
+        <span>Can sign in</span>
+      ) : (
+        <ul className="list-disc pl-4">
+          {restrictions.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
+      <span className="text-muted-foreground">
+        Wrong passwords since the last sign-in: {status.failuresSinceSuccess}
+      </span>
+    </div>
   )
 }
 

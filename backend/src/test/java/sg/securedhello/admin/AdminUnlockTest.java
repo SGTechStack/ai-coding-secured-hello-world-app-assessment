@@ -1,6 +1,7 @@
 package sg.securedhello.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
@@ -10,6 +11,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+
+import jakarta.servlet.http.Cookie;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,9 +34,11 @@ import sg.securedhello.testsupport.AdminCredentialCalls;
 import sg.securedhello.testsupport.AuditCapture;
 import sg.securedhello.testsupport.CsrfSession;
 import sg.securedhello.testsupport.CtxDefaultTest;
+import sg.securedhello.testsupport.DeviceCookies;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.SignedIn;
 import sg.securedhello.testsupport.TotpFactors;
+import sg.securedhello.user.DeviceLockState;
 import sg.securedhello.user.PasswordLockoutState;
 
 /**
@@ -195,5 +200,50 @@ class AdminUnlockTest extends CtxDefaultTest {
     @Test
     void anUnknownAccountIsDenied() throws Exception {
         admin.unlock(UUID.randomUUID(), "OTHER").andExpect(problem(ErrorCode.ACCESS_DENIED));
+    }
+
+    @Test
+    @Proves({"T-ADM-036", "T-LCK-005"})
+    void theSignInStatusShowsEveryLockAndAnUnlockClearsTheTrustedDevicesLocksToo() throws Exception {
+        Account target = accounts.withRole("ADMIN");
+        factors.enrol(target);
+        Cookie device = DeviceCookies.earn(mockMvc, "198.51.100.36", target);
+        lockPassword(target);
+        lockFactor(target);
+        Instant until = accounts.lockoutState(target).lockedUntil();
+        jdbc.update("UPDATE trusted_devices SET failed_login_attempts = 5, last_failed_at = ?, locked_until = ?,"
+                + " consecutive_failures = 5 WHERE id = ?", Timestamp.from(clock.instant()), Timestamp.from(until),
+                DeviceCookies.idOf(device));
+
+        mockMvc.perform(get("/api/admin/users/" + target.id()).cookie(admin.session().cookie()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.signInStatus.accountLockedUntil").value(until.toString()))
+                .andExpect(jsonPath("$.signInStatus.failuresSinceSuccess").value(5))
+                .andExpect(jsonPath("$.signInStatus.lockedDevices").value(1))
+                .andExpect(jsonPath("$.signInStatus.nextDeviceUnlock").value(until.toString()))
+                .andExpect(jsonPath("$.signInStatus.capDisabledAt").doesNotExist())
+                .andExpect(jsonPath("$.signInStatus.factorLockedUntil").value(until.toString()))
+                .andExpect(jsonPath("$.signInStatus.factorDisabled").value(false));
+        String list = mockMvc.perform(get("/api/admin/users").cookie(admin.session().cookie()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(list).contains("\"lockedDevices\":1").doesNotContain(device.getValue())
+                .doesNotContain(DeviceCookies.idOf(device).toString());
+
+        admin.unlock(target.id(), "USER_REQUEST").andExpect(status().isOk())
+                .andExpect(jsonPath("$.signInStatus.accountLockedUntil").doesNotExist())
+                .andExpect(jsonPath("$.signInStatus.lockedDevices").value(0))
+                .andExpect(jsonPath("$.signInStatus.factorLockedUntil").doesNotExist());
+        assertThat(DeviceCookies.state(jdbc, device)).isEqualTo(DeviceLockState.CLEAR);
+        assertThat(DeviceCookies.login(mockMvc, "198.51.100.36", device, target.username(), target.password())
+                .getResponse().getStatus()).as("the device signs in again").isEqualTo(200);
+
+        jdbc.update("UPDATE users SET password_disabled_at = ? WHERE id = ?", Timestamp.from(clock.instant()),
+                target.id());
+        jdbc.update("UPDATE totp_user_details SET factor_disabled_at = ? WHERE user_id = ?",
+                Timestamp.from(clock.instant()), target.id());
+        mockMvc.perform(get("/api/admin/users/" + target.id()).cookie(admin.session().cookie()))
+                .andExpect(jsonPath("$.signInStatus.capDisabledAt").exists())
+                .andExpect(jsonPath("$.signInStatus.factorDisabled").value(true));
     }
 }

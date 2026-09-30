@@ -44,6 +44,17 @@ public interface CredentialTokenRepository extends JpaRepository<CredentialToken
             + " AND t.adminIssued = FALSE")
     int deletePendingSelfIssued(UUID userId, CredentialTokenType type);
 
+    /**
+     * Expires the account's unused administrator's tokens at {@code now} instead of deleting them, so each row keeps
+     * marking what an administrator issued: an invite stays an invite after a disable cancels its token (ADR-007).
+     *
+     * @return how many tokens were invalidated
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE CredentialToken t SET t.expiresAt = :now WHERE t.userId = :userId AND t.usedAt IS NULL"
+            + " AND t.adminIssued = TRUE AND t.expiresAt > :now")
+    int expireAdminIssuedPending(UUID userId, Instant now);
+
     /** Whether {@code userId} has an unused administrator's {@code type} token that is unexpired at {@code now}. */
     @Query("SELECT COUNT(t) > 0 FROM CredentialToken t WHERE t.userId = :userId AND t.type = :type"
             + " AND t.adminIssued = TRUE AND t.usedAt IS NULL AND t.expiresAt > :now")

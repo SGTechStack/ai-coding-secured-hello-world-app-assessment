@@ -1,6 +1,7 @@
 package sg.securedhello.credential;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
@@ -28,7 +29,6 @@ import sg.securedhello.testsupport.PasswordResets;
 import sg.securedhello.testsupport.Proves;
 import sg.securedhello.testsupport.Registrations;
 import sg.securedhello.testsupport.TotpFactors;
-import sg.securedhello.user.UserAccountRepository;
 
 /**
  * ADR-007's pending-token invalidation triggers, each through the path that fires it in the application: a pending
@@ -44,7 +44,7 @@ class PendingTokenInvalidationTest extends CtxDefaultTest {
         NEW_ISSUANCE,
         /** An admin disable: pending tokens of both types. */
         ADMIN_DISABLE,
-        /** An admin delete: the {@code ON DELETE CASCADE} removes the rows, so no call has to be remembered. */
+        /** An admin delete, through its route: the {@code ON DELETE CASCADE} removes the rows, so no call is needed. */
         ADMIN_DELETE,
         /** A re-registration against an unactivated record: its activation token. */
         RE_REGISTRATION
@@ -61,9 +61,6 @@ class PendingTokenInvalidationTest extends CtxDefaultTest {
 
     @Autowired
     private PasswordService passwords;
-
-    @Autowired
-    private UserAccountRepository users;
 
     private Accounts accounts;
     private PasswordResets resets;
@@ -88,11 +85,18 @@ class PendingTokenInvalidationTest extends CtxDefaultTest {
         return emails.latestToken(email, CredentialTokenType.ACTIVATION).orElseThrow();
     }
 
+    private AdminCredentialCalls admin() throws Exception {
+        return AdminCredentialCalls.signedIn(mockMvc, new TotpFactors(jdbc, cipher, clock), accounts.withRole("ADMIN"));
+    }
+
     private ResultActions disable(UUID id) throws Exception {
-        AdminCredentialCalls admin = AdminCredentialCalls.signedIn(mockMvc, new TotpFactors(jdbc, cipher, clock),
-                accounts.withRole("ADMIN"));
-        return mockMvc.perform(put("/api/admin/users/" + id + "/enabled").with(admin.session().inHeader())
+        return mockMvc.perform(put("/api/admin/users/" + id + "/enabled").with(admin().session().inHeader())
                 .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":false}"));
+    }
+
+    /** {@code DELETE /api/admin/users/{uuid}}: the delete and its tombstone, whose cascade removes the token rows. */
+    private ResultActions deleteAccount(UUID id) throws Exception {
+        return mockMvc.perform(delete("/api/admin/users/" + id).with(admin().session().inHeader()));
     }
 
     private UUID idOf(String username) {
@@ -134,8 +138,8 @@ class PendingTokenInvalidationTest extends CtxDefaultTest {
             case ADMIN_DELETE -> {
                 String reset = resetToken(account);
                 String activation = activationToken(username, email);
-                users.deleteById(account.id());
-                users.deleteById(idOf(username));
+                deleteAccount(account.id()).andExpect(status().is2xxSuccessful());
+                deleteAccount(idOf(username)).andExpect(status().is2xxSuccessful());
                 invalidResets = List.of(reset);
                 invalidActivations = List.of(activation);
             }

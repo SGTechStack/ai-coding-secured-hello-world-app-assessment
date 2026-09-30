@@ -15,7 +15,7 @@ import org.jspecify.annotations.Nullable;
 public record AdminActionContext(UUID userId, UUID targetId, @Nullable AdminRefusalReason reason)
         implements AuditContext {
 
-    /** An applied mutation (rows 28 and 29). */
+    /** An applied mutation: an enable or disable (rows 28 and 29), a role change or a delete. */
     public static AdminActionContext applied(UUID userId, UUID targetId) {
         return new AdminActionContext(userId, targetId, null);
     }

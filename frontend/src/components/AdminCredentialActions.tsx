@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { Navigate } from 'react-router'
+import { ConfirmAction } from '@/components/ConfirmAction'
 import { OneTimeToken } from '@/components/OneTimeToken'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -24,20 +25,23 @@ const UNLOCK_COPY: Partial<Record<ErrorCode, string>> = {
 const UNLOCK_FAILED = 'The account could not be unlocked. Try again.'
 
 /**
- * The admin credential actions on one account: issue a password-reset link, shown once (ADR-006), for any account
- * including the admin's own; and unlock another account, with a reason (REJ-028; REJ-072).
+ * The admin credential actions on one account: issue a password-reset link, shown once (ADR-006), for any activated,
+ * enabled account including the admin's own, confirmed first; and unlock another account, with a reason (REJ-028;
+ * REJ-072). An unlock's outcome goes to the page's `announce` region, beside the other account actions.
  */
-export function AdminCredentialActions({ user }: { user: AdminUser }) {
+export function AdminCredentialActions({ user, announce }: { user: AdminUser; announce: (outcome: string) => void }) {
   const profile = useQuery({ queryKey: PROFILE_KEY, queryFn: fetchProfile })
   // Offered only once the self-read says whose account this is; the server enforces both rules whatever renders.
   if (!profile.data) {
     return null
   }
   const own = profile.data.id === user.id
+  // A never-activated or disabled account cannot redeem a reset token, so none is offered (R-STD-024).
+  const resettable = user.activated && user.enabled
   return (
     <div className="flex flex-col gap-4">
-      <ResetControl user={user} own={own} />
-      {!own && <UnlockControl user={user} />}
+      {resettable && <ResetControl user={user} own={own} />}
+      {!own && <UnlockControl user={user} announce={announce} />}
     </div>
   )
 }
@@ -65,15 +69,20 @@ function ResetControl({ user, own }: { user: AdminUser; own: boolean }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm text-muted-foreground">
-        {own
-          ? 'Issuing a reset link for your own account signs you out everywhere, this session included.'
-          : 'Issuing a reset link signs the user out everywhere. It does not unlock the account.'}
-      </p>
       <div>
-        <Button type="button" variant="outline" onClick={onIssue} disabled={pending || token !== ''}>
-          Issue password reset link
-        </Button>
+        <ConfirmAction
+          trigger="Issue password reset link"
+          triggerVariant="outline"
+          title={own ? 'Issue a reset link for your own account?' : `Issue a reset link for ${user.username}?`}
+          description={
+            own
+              ? 'You are signed out everywhere, this session included. The link is shown once.'
+              : 'They are signed out everywhere. It does not unlock the account. The link is shown once.'
+          }
+          confirm="Issue link"
+          disabled={pending || token !== ''}
+          onConfirm={onIssue}
+        />
       </div>
       {token && <OneTimeToken heading="Password reset link" token={token} link={oneTimeLink('reset', token)} />}
       <p role="alert" className="text-sm text-destructive">
@@ -83,12 +92,11 @@ function ResetControl({ user, own }: { user: AdminUser; own: boolean }) {
   )
 }
 
-function UnlockControl({ user }: { user: AdminUser }) {
+function UnlockControl({ user, announce }: { user: AdminUser; announce: (outcome: string) => void }) {
   const queryClient = useQueryClient()
   const reasonId = useId()
   const [reason, setReason] = useState<UnlockReason>('USER_REQUEST')
   const [pending, setPending] = useState(false)
-  const [done, setDone] = useState('')
   const { redirect, failure, fail, clearFailure } = useAuthorityFailure(OWN_CODES)
 
   if (redirect) {
@@ -97,12 +105,12 @@ function UnlockControl({ user }: { user: AdminUser }) {
 
   const onUnlock = async () => {
     clearFailure()
-    setDone('')
+    announce('')
     setPending(true)
     try {
       queryClient.setQueryData(adminUserKey(user.id), await unlockUser(user.id, reason))
       void queryClient.invalidateQueries({ queryKey: ADMIN_USERS_KEY, exact: true })
-      setDone('Account unlocked. Its password lockout and factor lock are cleared.')
+      announce('Account unlocked. Its password lockout and factor lock are cleared.')
     } catch (error) {
       fail(error, UNLOCK_COPY, UNLOCK_FAILED)
     } finally {
@@ -126,13 +134,11 @@ function UnlockControl({ user }: { user: AdminUser }) {
         ))}
       </select>
       <div>
-        <Button type="button" onClick={onUnlock} disabled={pending}>
+        {/* Focusable while disabled, so focus can return here when a step-up challenge closes (T-FE-007). */}
+        <Button type="button" onClick={onUnlock} disabled={pending} focusableWhenDisabled>
           Unlock account
         </Button>
       </div>
-      <p role="status" className="text-sm">
-        {done}
-      </p>
       <p role="alert" className="text-sm text-destructive">
         {failure}
       </p>

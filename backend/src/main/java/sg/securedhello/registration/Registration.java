@@ -5,11 +5,9 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
-import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -22,6 +20,7 @@ import sg.securedhello.email.EmailService;
 import sg.securedhello.email.LinkEmail;
 import sg.securedhello.user.Identifiers;
 import sg.securedhello.user.Tombstones;
+import sg.securedhello.user.UniqueIdentifierIndexes;
 import sg.securedhello.user.UserAccount;
 import sg.securedhello.user.UserAccountRepository;
 
@@ -56,8 +55,8 @@ public class Registration {
     static final Duration PENDING_PERIOD = CredentialTokenType.ACTIVATION.lifetime();
 
     /** The unique indexes a registration inserts a username into (V2; V8). */
-    private static final List<String> UNIQUE_USERNAME_INDEXES = List.of("UX_USERNAME_HOLDS_USERNAME",
-            "UX_USERS_USERNAME");
+    private static final Set<String> UNIQUE_USERNAME_INDEXES = Set.of(UniqueIdentifierIndexes.USERNAME_HOLDS_USERNAME,
+            UniqueIdentifierIndexes.USERS_USERNAME);
 
     private final UserAccountRepository accounts;
     private final UsernameHoldRepository holds;
@@ -106,9 +105,7 @@ public class Registration {
      * index: it is the same 400 as a username found taken. Any other integrity failure stays a failure.
      */
     private static RuntimeException usernameRace(DataIntegrityViolationException e) {
-        String cause = String.valueOf(NestedExceptionUtils.getMostSpecificCause(e).getMessage())
-                .toUpperCase(Locale.ROOT);
-        return UNIQUE_USERNAME_INDEXES.stream().anyMatch(cause::contains) ? new UsernameUnavailableException() : e;
+        return UniqueIdentifierIndexes.violated(e, UNIQUE_USERNAME_INDEXES) ? new UsernameUnavailableException() : e;
     }
 
     private Optional<LinkEmail> reserve(String username, String canonicalEmail) {

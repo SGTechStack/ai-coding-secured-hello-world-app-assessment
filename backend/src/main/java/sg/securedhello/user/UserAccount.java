@@ -102,6 +102,18 @@ public class UserAccount {
     }
 
     /**
+     * An administrator's re-invite of this pending invite (ADR-007 amendment): it takes the role the administrator now
+     * chose. The account has never held a password or a session, so no authority changes hands; the caller has checked
+     * that it is an invite, and mints its new token in the same transaction.
+     */
+    public void reinvite(String newRole) {
+        if (!isPending()) {
+            throw new IllegalStateException("Only a pending invite is re-invited");
+        }
+        this.role = newRole;
+    }
+
+    /**
      * The bootstrap administrator (ADR-047): an enabled, activated {@code ADMIN} account with no password yet. The
      * caller issues its forced-change credential through {@code PasswordService} in the same transaction.
      */
@@ -131,6 +143,14 @@ public class UserAccount {
 
     public String getRole() {
         return role;
+    }
+
+    /**
+     * An administrator's role change (PRD Story 10), to a {@code roles.name}. Only {@code AdminActions} calls it,
+     * after {@code AdminActionGuard} and under its lock set (ADR-048; ArchUnit).
+     */
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public boolean isEnabled() {

@@ -2,6 +2,7 @@ package sg.securedhello.admin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static sg.securedhello.testsupport.ProblemAssertions.problem;
@@ -14,6 +15,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -200,6 +202,30 @@ class AdminPasswordResetTest extends CtxDefaultTest {
         resets.confirm(admins, PasswordResets.NEW_PASSWORD).andExpect(status().isNoContent());
         // The password set then cancels every pending reset token, the self-issued one included (ADR-007).
         resets.confirm(own, "another copper lantern drifts east").andExpect(problem(ErrorCode.RESET_TOKEN_INVALID));
+    }
+
+    /**
+     * ADR-007: an admin disable cancels a pending admin-issued reset token by expiring it in place, so it no longer
+     * redeems, its row keeps its marker, and a re-enable does not revive it.
+     */
+    @Test
+    void anAdminDisableCancelsAPendingAdminIssuedResetTokenForGood() throws Exception {
+        Account target = accounts.user();
+        String token = issue(target.id());
+
+        setEnabled(target.id(), false);
+        resets.confirm(token, PasswordResets.NEW_PASSWORD).andExpect(problem(ErrorCode.RESET_TOKEN_INVALID));
+        assertThat(jdbc.queryForObject("SELECT admin_issued FROM credential_tokens WHERE token_hash = ?", Boolean.class,
+                CredentialTokenHash.hash(CredentialTokenType.PASSWORD_RESET, token))).isTrue();
+
+        setEnabled(target.id(), true);
+        resets.confirm(token, PasswordResets.NEW_PASSWORD).andExpect(problem(ErrorCode.RESET_TOKEN_INVALID));
+    }
+
+    private void setEnabled(UUID id, boolean enabled) throws Exception {
+        mockMvc.perform(put("/api/admin/users/" + id + "/enabled").with(admin.session().inHeader())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"enabled\":" + enabled + "}"))
+                .andExpect(status().isOk());
     }
 
     /** The hold ends with the admin token: once it expires or is redeemed, a self-service request works again. */

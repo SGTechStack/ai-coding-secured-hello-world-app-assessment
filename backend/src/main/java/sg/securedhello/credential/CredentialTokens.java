@@ -67,12 +67,24 @@ public class CredentialTokens {
         return tokens.existsByUserIdAndTypeAndAdminIssued(userId, CredentialTokenType.ACTIVATION, false);
     }
 
-    /** Cancels every pending token of {@code userId}, of both types: what an admin disable does (ADR-007). */
+    /**
+     * Whether an administrator invited {@code userId}: it holds an admin-issued activation token, used, expired or
+     * pending. The marker, never the role, is what makes a pending account an invite (ADR-007 amendment).
+     */
+    public boolean invited(UUID userId) {
+        return tokens.existsByUserIdAndTypeAndAdminIssued(userId, CredentialTokenType.ACTIVATION, true);
+    }
+
+    /**
+     * Cancels every pending token of {@code userId}, of both types: what an admin disable does (ADR-007). A self-issued
+     * token is deleted; an administrator's is expired in place, so its row still marks the account an invite.
+     */
     @Transactional
     public void cancelAll(UUID userId) {
         for (CredentialTokenType type : CredentialTokenType.values()) {
-            tokens.deletePending(userId, type);
+            tokens.deletePendingSelfIssued(userId, type);
         }
+        tokens.expireAdminIssuedPending(userId, now());
     }
 
     private String issue(UUID userId, CredentialTokenType type, boolean adminIssued) {

@@ -21,9 +21,11 @@ import sg.securedhello.audit.AuditEvent;
 import sg.securedhello.audit.UnlockReason;
 import sg.securedhello.credential.CredentialTokenType;
 import sg.securedhello.credential.CredentialTokens;
+import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.mfa.TotpUserDetailsRepository;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.session.SessionTerminationService;
+import sg.securedhello.user.Tombstones;
 import sg.securedhello.user.UserAccount;
 import sg.securedhello.user.UserAccountRepository;
 
@@ -42,17 +44,21 @@ public class AdminActions {
     private final PasswordService passwords;
     private final SessionTerminationService sessions;
     private final AuditEmitter audit;
+    private final Tombstones tombstones;
+    private final TotpFactorRemoval factorRemoval;
     private final CredentialTokens tokens;
     private final TotpUserDetailsRepository factors;
 
     AdminActions(AuthenticableAdmins admins, UserAccountRepository accounts, PasswordService passwords,
-            SessionTerminationService sessions, AuditEmitter audit, CredentialTokens tokens,
-            TotpUserDetailsRepository factors) {
+            SessionTerminationService sessions, AuditEmitter audit, Tombstones tombstones,
+            TotpFactorRemoval factorRemoval, CredentialTokens tokens, TotpUserDetailsRepository factors) {
         this.admins = admins;
         this.accounts = accounts;
         this.passwords = passwords;
         this.sessions = sessions;
         this.audit = audit;
+        this.tombstones = tombstones;
+        this.factorRemoval = factorRemoval;
         this.tokens = tokens;
         this.factors = factors;
     }
@@ -80,6 +86,65 @@ public class AdminActions {
             }
             afterCommit(() -> audit.emit(enabled ? AuditEvent.ADMIN_USER_ENABLED : AuditEvent.ADMIN_USER_DISABLED,
                     AdminActionContext.applied(actorId, subjectId)));
+        });
+    }
+
+    /**
+     * Changes {@code subjectId}'s role to {@code role}, {@code USER} or {@code ADMIN}, for {@code actorId} (PRD Story
+     * 10). A change ends the subject's sessions after commit, so no session keeps the old authorities (ADR-037).
+     * Setting the role an account already has changes nothing but is still audited, as {@link #setEnabled} is.
+     *
+     * @return the account as it now is, or empty if no account has {@code subjectId}
+     * @throws AdminActionRefusedException if the guard refuses it; nothing changes
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public Optional<AdminUserView> setRole(UUID actorId, UUID subjectId, String role) {
+        boolean promote = RoleRequest.ADMIN.equals(role);
+        return guarded(promote ? Mutation.PROMOTE : Mutation.DEMOTE, actorId, subjectId, account -> {
+            if (!account.getRole().equals(role)) {
+                account.setRole(role);
+                sessions.endAll(account.getUsername());
+            }
+            afterCommit(() -> audit.emit(promote ? AuditEvent.ADMIN_USER_PROMOTED : AuditEvent.ADMIN_USER_DEMOTED,
+                    AdminActionContext.applied(actorId, subjectId)));
+        });
+    }
+
+    /**
+     * Deletes {@code subjectId} for {@code actorId}, leaving its tombstone in the same transaction (PRD Story 11;
+     * ADR-044), and ends its sessions after commit (ADR-037).
+     *
+     * @return whether an account had {@code subjectId}
+     * @throws AdminActionRefusedException if the guard refuses it; nothing changes
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public boolean delete(UUID actorId, UUID subjectId) {
+        return guarded(Mutation.DELETE, actorId, subjectId, account -> {
+            tombstones.deleteLeavingTombstone(account, actorId);
+            sessions.endAll(account.getUsername());
+            afterCommit(() -> audit.emit(AuditEvent.ADMIN_USER_DELETED,
+                    AdminActionContext.applied(actorId, subjectId)));
+        }).isPresent();
+    }
+
+    /**
+     * Resets {@code subjectId}'s TOTP factor for {@code actorId} (ADR-024; ADR-049): deletes its confirmed and pending
+     * rows, which clears a tier-2 disable too, and ends its sessions after commit (ADR-037). The subject re-enrols at
+     * their next sign-in. Check 1 applies; the two-admin count does not, since the subject restores it alone. An
+     * account with no factor loses nothing but the reset is still audited.
+     *
+     * @return the account, or empty if no account has {@code subjectId}
+     * @throws AdminActionRefusedException if the guard refuses it; nothing changes
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public Optional<AdminUserView> resetFactor(UUID actorId, UUID subjectId) {
+        return guarded(Mutation.FACTOR_RESET, actorId, subjectId, account -> {
+            factorRemoval.remove(subjectId);
+            sessions.endAll(account.getUsername());
+            afterCommit(() -> audit.emit(AuditEvent.TOTP_REMOVED, AdminActionContext.applied(actorId, subjectId)));
         });
     }
 

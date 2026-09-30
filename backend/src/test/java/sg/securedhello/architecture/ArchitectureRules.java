@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
@@ -57,6 +58,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import sg.securedhello.admin.AdminActions;
 import sg.securedhello.audit.AuditEmitter;
 import sg.securedhello.mfa.TotpUserDetails;
+import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.security.source.SourceKeyResolver;
 import sg.securedhello.testsupport.Proves;
@@ -64,6 +66,7 @@ import sg.securedhello.time.ClockConfig;
 import sg.securedhello.user.UserAccountRepository;
 import sg.securedhello.user.PasswordHistoryEntry;
 import sg.securedhello.user.PasswordLockoutState;
+import sg.securedhello.user.Tombstones;
 import sg.securedhello.user.UserAccount;
 
 /**
@@ -181,6 +184,22 @@ final class ArchitectureRules {
             .that().doNotBelongToAnyOf(AdminActions.class)
             .should().callMethod(UserAccount.class, "setEnabled", boolean.class)
             .because("an enable or disable runs under AdminActionGuard's lock set and checks (ADR-048)");
+
+    /**
+     * T-ADM-014: only the guarded service changes a role or deletes an account with its tombstone. Like the rule above,
+     * it does not see raw SQL; the controller rule and review cover that (ADR-048; ADR-044).
+     */
+    static final ArchRule ONLY_THE_GUARDED_SERVICE_CHANGES_ROLES_OR_DELETES = noClasses()
+            .that().doNotBelongToAnyOf(AdminActions.class)
+            .should().callMethod(UserAccount.class, "setRole", String.class)
+            .orShould().callMethod(Tombstones.class, "deleteLeavingTombstone", UserAccount.class, UUID.class)
+            .because("a role change or delete runs under AdminActionGuard's lock set and checks (ADR-048)");
+
+    /** T-ADM-014: only the guarded service removes a TOTP factor, so a factor reset runs under the guard (ADR-049). */
+    static final ArchRule ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS = noClasses()
+            .that().doNotBelongToAnyOf(AdminActions.class)
+            .should().callMethod(TotpFactorRemoval.class, "remove", UUID.class)
+            .because("a factor reset runs under AdminActionGuard's lock set and actor-not-subject check (ADR-049)");
 
     /**
      * Only the guarded service unlocks: clears a factor's tier-1 lock or takes an account's unlocked lockout state

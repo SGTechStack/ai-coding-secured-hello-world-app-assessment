@@ -96,7 +96,7 @@ framework swap. A maintainer would plausibly reach for either.
 - **A self-registration replaces a pending registration only if its activation token was self-issued**, used, expired
   or pending. An invite's is admin-issued, so a self-registration of an invitee's address gets the uniform 202 and
   changes nothing: no rename, no cancelled token, no email. A pending row with no activation token at all (a disabled
-  one, whose tokens a disable cancelled) is not treated as self-registered either, so the check fails closed.
+  self-registration, whose token a disable deleted) is not treated as self-registered either, so the check fails closed.
 - **While an admin-issued reset token is pending** (unused, unexpired), a self-service reset request for the address
   mints nothing and leaves that token in place. Its response is the same empty 202 as for every other address, and it
   writes the same audit row, which names no account (REJ-002). Its timing follows the no-account path: one account
@@ -104,14 +104,24 @@ framework swap. A maintainer would plausibly reach for either.
   self-service issues again.
 - **An admin-issued token still yields to the ordinary triggers**: a new admin issuance of the same type, a password
   set, an admin disable and deletion all invalidate it as before. A self-service issuance deletes only self-issued
-  pending tokens, so even one that raced past the pending check cannot remove an administrator's.
+  pending tokens, so even one that raced past the pending check cannot remove an administrator's. An admin disable
+  expires an administrator's pending token in place instead of deleting it, so its row keeps marking the invite.
+- **Re-invite (the user's decision, 2026-09-30).** `POST /api/admin/users` for a username and address that both name
+  one enabled, never-activated account an administrator invited (it holds an admin-issued activation token, in any
+  state) issues the invite again on that row: its outstanding token is cancelled and a new admin-issued one minted in
+  the same transaction, under the account's row lock, with the same 201 as a first invite. Nothing is deleted and no
+  tombstone is written, since it never activated, and username holds are untouched. The account takes the role the
+  administrator asks for now: it has never held a password or a session, so no authority changes hands, and the role
+  is the administrator's to choose (ADR-006). It writes its own audit row, "Invitation re-issued." on row 27's action.
+  An activated or disabled account, a pending self-registration, a tombstoned identifier, or a username and address
+  naming different accounts stay `USER_EXISTS`: the marker check fails closed.
 
 **Consequences.** A stranger can no longer cancel or redirect a credential an administrator issued. A user who holds
 an admin-issued reset token and asks for a self-service one gets nothing new for up to 30 minutes; the admin token is
-the one to use. An invite whose token expired, or was cancelled by a disable, has no route to activation: the invitee's
-own registration leaves it alone, an admin reset refuses a never-activated account and a re-invite finds the identifiers
-taken. It fails closed; the administrator deletes it and invites again (the delete route, ticket 22). Tests: T-CRED-019 (the triggers, admin disable and delete included); the invite and admin-reset tests
-of ticket 23 (`AdminInviteTest`, `AdminPasswordResetTest`) prove both protections.
+the one to use. An invite whose token expired, or was cancelled by a disable, is recovered by inviting it again: the
+invitee's own registration still leaves it alone, and a disabled invite is re-enabled first. Tests: T-CRED-019 (the triggers, admin disable and delete included); the invite and admin-reset tests
+of ticket 23 (`AdminInviteTest`, `AdminReinviteTest`, `AdminPasswordResetTest`) prove both protections and the
+re-invite.
 
 ## Sources
 

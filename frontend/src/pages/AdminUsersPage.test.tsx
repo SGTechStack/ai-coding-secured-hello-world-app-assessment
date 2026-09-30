@@ -28,6 +28,7 @@ const users: AdminUser[] = [
     email: 'alice@example.test',
     role: 'ADMIN',
     enabled: true,
+    activated: true,
     createdAt: '2026-09-01T08:00:00Z',
   },
   {
@@ -36,6 +37,7 @@ const users: AdminUser[] = [
     email: 'bob@example.test',
     role: 'USER',
     enabled: false,
+    activated: true,
     createdAt: '2026-09-02T09:30:00Z',
   },
 ]

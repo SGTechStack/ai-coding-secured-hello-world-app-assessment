@@ -256,14 +256,28 @@ public enum AuditEvent {
             .required(USER_ID)
             .build()),
 
-    /** An administrator read the user list; the row carries how many accounts it returned (PRD Story 8). */
-    ADMIN_USERS_LISTED(row("admin-user-list", "Administrator listed users.")
+    /**
+     * Row 33: an administrator reset another account's TOTP factor, deleting its confirmed and pending rows and, after
+     * commit, its sessions (ADR-049). With the admin password reset's row, the detector of one admin taking another
+     * over (R-ADM-009).
+     */
+    TOTP_REMOVED(row("totp-remove", "TOTP factor reset.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * An administrator read the user list; the row carries how many accounts it returned (PRD Story 8). Log_Schema's
+     * closed {@code event.action} has no read value for the admin surface, so it shares the admin actions' value and
+     * {@code event.type} {@code access} tells it apart (R-STD-004).
+     */
+    ADMIN_USERS_LISTED(row("user-administration", "Administrator listed users.")
             .type("access")
             .required(USER_ID, USER_TARGET_COUNT)
             .build()),
 
     /** An administrator read one account; the row names it by UUID only (R-STD-008). */
-    ADMIN_USER_VIEWED(row("admin-user-read", "Administrator read a user.")
+    ADMIN_USER_VIEWED(row("user-administration", "Administrator read a user.")
             .type("access")
             .required(USER_ID, USER_TARGET_ID)
             .build()),
@@ -280,6 +294,27 @@ public enum AuditEvent {
     /** Row 29: an administrator disabled an account, whose sessions end after commit (ADR-037). */
     ADMIN_USER_DISABLED(row("user-administration", "Account disabled.")
             .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /** An administrator changed an account's role to {@code ADMIN}; its sessions end after commit (ADR-037). */
+    ADMIN_USER_PROMOTED(row("user-administration", "Account role changed to administrator.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /** An administrator changed an account's role to {@code USER}; its sessions end after commit (ADR-037). */
+    ADMIN_USER_DEMOTED(row("user-administration", "Account role changed to user.")
+            .type("change")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * An administrator deleted an account and left its tombstone (ADR-044); its sessions end after commit. The row
+     * names the account by UUID only, the tombstone's {@code user_id}.
+     */
+    ADMIN_USER_DELETED(row("user-administration", "Account deleted.")
+            .type("deletion")
             .required(USER_ID, USER_TARGET_ID)
             .build()),
 
@@ -301,6 +336,16 @@ public enum AuditEvent {
      */
     ADMIN_USER_INVITED(row("user-provisioning", "Account invited.")
             .type("creation")
+            .required(USER_ID, USER_TARGET_ID)
+            .build()),
+
+    /**
+     * Row 27, re-issued: an administrator invited an account that was already their pending invite, so its outstanding
+     * activation token was cancelled and a new one returned once (ADR-007 amendment). The message tells it apart from
+     * a first invite (R-STD-004). The row never carries the token.
+     */
+    ADMIN_USER_REINVITED(row("user-provisioning", "Invitation re-issued.")
+            .type("change")
             .required(USER_ID, USER_TARGET_ID)
             .build()),
 

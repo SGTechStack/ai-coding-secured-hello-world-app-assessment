@@ -179,11 +179,7 @@ class AdminInviteTest extends CtxDefaultTest {
         assertThat(emails.to(deletedEmail)).isEmpty();
     }
 
-    /**
-     * Over-length, malformed and out-of-pattern identifiers, each with the other identifier valid. T-CRED-003's rows ask
-     * for an {@code errors[]} member the error contract does not declare (ADR-031), so it stays on the ledger until
-     * that conflict is decided; this asserts what the contract allows.
-     */
+    /** Over-length, malformed and out-of-pattern identifiers, each with the other identifier valid. */
     static Stream<Arguments> invalidIdentifiers() {
         String longLocal = "a".repeat(64);
         String overLengthEmail = longLocal + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(60)
@@ -197,6 +193,7 @@ class AdminInviteTest extends CtxDefaultTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidIdentifiers")
+    @Proves("T-CRED-003")
     void registrationAndAdminCreateRefuseAnInvalidIdentifierWithValidationFailedAndCreateNothing(String label,
             String badUsername, String badEmail) throws Exception {
         String username = badUsername != null ? badUsername : Registrations.freshUsername();

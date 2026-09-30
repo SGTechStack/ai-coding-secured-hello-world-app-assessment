@@ -4,9 +4,9 @@
 
 **Blocked by:** 20
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Two concurrent mutations refused with `MISSING_FACTOR` open one challenge.
-- [ ] After a correct code both are replayed exactly once, with a fresh CSRF token.
-- [ ] Cancelling the challenge rejects the queued requests without replaying them.
-- [ ] A Playwright test covers the expired factor → challenge → replayed disable path.
+- [x] Two concurrent mutations refused with `MISSING_FACTOR` open one challenge.
+- [x] After a correct code both are replayed exactly once, with a fresh CSRF token.
+- [x] Cancelling the challenge rejects the queued requests without replaying them.
+- [x] A Playwright test covers the expired factor → challenge → replayed disable path.

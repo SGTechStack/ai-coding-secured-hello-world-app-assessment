@@ -25,6 +25,7 @@ const alice: AdminUser = {
   email: 'alice@example.test',
   role: 'ADMIN',
   enabled: true,
+  activated: true,
   createdAt: '2026-09-01T08:00:00Z',
 }
 
@@ -34,6 +35,7 @@ const carol: AdminUser = {
   email: 'carol@example.test',
   role: 'USER',
   enabled: true,
+  activated: true,
   createdAt: '2026-09-03T10:00:00Z',
 }
 
@@ -72,6 +74,8 @@ describe('/admin/users/:id credential actions', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()
 
     await user.click(await screen.findByRole('button', { name: 'Issue password reset link' }))
+    expect(resets).toEqual([])
+    await user.click(await screen.findByRole('button', { name: 'Issue link' }))
 
     expect(await screen.findByText(TOKEN)).toBeInTheDocument()
     const link = `${window.location.origin}/reset#token=${TOKEN}`
@@ -91,8 +95,18 @@ describe('/admin/users/:id credential actions', () => {
     renderApp(`/admin/users/${alice.id}`)
 
     expect(await screen.findByRole('button', { name: 'Issue password reset link' })).toBeEnabled()
-    expect(screen.getByText(/signs you out everywhere/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Unlock account' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['disabled', { enabled: false }],
+    ['never activated', { activated: false }],
+  ])('offers no reset link for a %s account, which could not redeem one', async (_label, change) => {
+    server.use(http.get(apiUrl('/api/admin/users/:id'), () => HttpResponse.json({ ...carol, ...change })))
+    renderApp(`/admin/users/${carol.id}`)
+
+    expect(await screen.findByRole('button', { name: 'Unlock account' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Issue password reset link' })).not.toBeInTheDocument()
   })
 
   it('a reset the server refuses for an unactivated or disabled account says why', async () => {
@@ -105,6 +119,7 @@ describe('/admin/users/:id credential actions', () => {
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Issue password reset link' }))
+    await user.click(await screen.findByRole('button', { name: 'Issue link' }))
 
     expect(
       await screen.findByText('A reset link can only be issued for an activated, enabled account.'),
@@ -125,18 +140,17 @@ describe('/admin/users/:id credential actions', () => {
     expect(unlocks).toEqual([{ id: carol.id, body: { reason: 'FALSE_POSITIVE' } }])
   })
 
-  it('a factor too old for an unlock sends the session to the challenge', async () => {
+  it('a factor too old for an unlock opens the step-up challenge', async () => {
     server.use(
       http.post(apiUrl('/api/admin/users/:id/unlock'), () =>
         problemResponse('MISSING_FACTOR', `/api/admin/users/${carol.id}/unlock`, { factor: 'TOTP', reason: 'EXPIRED' }),
       ),
     )
-    const { router } = renderApp(`/admin/users/${carol.id}`)
+    renderApp(`/admin/users/${carol.id}`)
     const user = userEvent.setup()
 
     await user.click(await screen.findByRole('button', { name: 'Unlock account' }))
 
     expect(await screen.findByRole('heading', { name: 'TOTP Verification' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/verify')
   })
 })

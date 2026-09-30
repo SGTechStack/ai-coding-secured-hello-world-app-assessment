@@ -57,10 +57,15 @@ public class LoginAttemptService {
         });
     }
 
-    /** Clears the failure counter and any lock on a successful login (PRD Story 2/3). */
+    /**
+     * Clears the failure counter and any lock on a successful login (PRD Story 2/3), and records
+     * {@code last_login_at} — the manual access-review signal ticket 05's admin list surfaces in
+     * place of automatic inactive-account deactivation (spec.md waiver register, row C).
+     */
     public void onLoginSuccess(User user) {
         user.setFailedLoginAttempts(0);
         user.setLockedUntil(null);
+        user.setLastLoginAt(Instant.now());
         userRepository.save(user);
     }
 }

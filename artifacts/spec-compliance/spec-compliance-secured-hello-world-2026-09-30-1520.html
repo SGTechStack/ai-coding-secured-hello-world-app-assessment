@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Spec Compliance: Secured Hello World App — 2026-09-30 15:20</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans">
+    <div class="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm px-6 py-3 flex items-center gap-3 flex-wrap">
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span>
+      <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Policy (IM8 / ARC)</span>
+      <span class="ml-auto font-mono text-sm text-slate-500">Waiver-completeness &amp; Overview-coverage re-check</span>
+    </div>
+    <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+      <div class="flex flex-wrap gap-3">
+        <div class="rounded-full bg-emerald-50 border border-emerald-200 px-4 py-1 text-sm font-medium text-emerald-800">✓ PASS — 19</div>
+        <div class="rounded-full bg-blue-50 border border-blue-200 px-4 py-1 text-sm font-medium text-blue-700">⟳ AUTO-FIX — 0</div>
+        <div class="rounded-full bg-red-50 border border-red-200 px-4 py-1 text-sm font-medium text-red-700">✗ FAIL — 0</div>
+        <div class="rounded-full bg-amber-50 border border-amber-200 px-4 py-1 text-sm font-medium text-amber-700">⏱ DEFERRED — 5</div>
+        <div class="rounded-full bg-slate-50 border border-slate-200 px-4 py-1 text-sm font-medium text-slate-400">— N/A — 100 (88 ARC + 12 IM8)</div>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm px-6 py-5">
+        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">1. PRD out-of-scope waiver completeness</h2>
+        <p class="text-sm text-slate-700 mb-3">
+          The PRD's <code>Out of Scope</code> section lists exactly 6 bullets. Each now has its own
+          row in <code>spec.md</code>'s waiver register section&nbsp;A, in the PRD's own listed order,
+          with an explicit disposition. No gaps.
+        </p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2 text-left">#</th>
+              <th class="px-4 py-2 text-left">PRD out-of-scope bullet</th>
+              <th class="px-4 py-2 text-left">Waiver row</th>
+              <th class="px-4 py-2 text-left">Disposition</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">1</td><td class="px-4 py-2">JWT implementation (appendix design only)</td><td class="px-4 py-2 font-mono">A1</td><td class="px-4 py-2 text-emerald-700 font-semibold">Covered — no live control, contingent N/A</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">2</td><td class="px-4 py-2">MFA / 2FA</td><td class="px-4 py-2 font-mono">A2</td><td class="px-4 py-2 text-emerald-700 font-semibold">Covered — waived with compensating controls</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">3</td><td class="px-4 py-2">Real SMTP / email delivery</td><td class="px-4 py-2 font-mono">A3</td><td class="px-4 py-2 text-emerald-700 font-semibold">Covered — constrained, fenced to dev/DEBUG</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">4</td><td class="px-4 py-2">Containerization / CI/CD / hosting infra</td><td class="px-4 py-2 font-mono">A4</td><td class="px-4 py-2 text-emerald-700 font-semibold">Covered — deferred to manual pre-deployment step</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">5</td><td class="px-4 py-2">Local HTTPS setup</td><td class="px-4 py-2 font-mono">A5</td><td class="px-4 py-2 text-emerald-700 font-semibold">Covered — deferred, prod TLS remains binding</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">6</td><td class="px-4 py-2">Granular per-resource authorization beyond USER/ADMIN</td><td class="px-4 py-2 font-mono">A6</td><td class="px-4 py-2 text-emerald-700 font-semibold">Covered — waived, two-role model is the declared baseline</td></tr>
+          </tbody>
+        </table>
+        <p class="text-sm text-slate-700 mt-3">
+          Two further waivers exist in <code>spec.md</code> but are <strong>not</strong> PRD
+          out-of-scope bullets, so they are kept in separate sections rather than padding this list:
+          section&nbsp;B (<code>ac-12</code>, <code>ac-8</code> — waived because the PRD's chosen
+          architecture is local auth, not SSO) and section&nbsp;C (<code>ac-3</code> automatic
+          enforcement — deferred as a ticket-consolidation trim, not a PRD exclusion).
+        </p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm px-6 py-5">
+        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">2. PRD Overview feature coverage</h2>
+        <p class="text-sm text-slate-700 mb-3">
+          Every bullet in the PRD's <code>Overview</code> section must have a corresponding
+          acceptance criterion in the ticket set, not just a mention in <code>spec.md</code> prose.
+          Two gaps were found and closed this run (marked below); everything else was already covered.
+        </p>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2 text-left">PRD Overview item</th>
+              <th class="px-4 py-2 text-left">Enforced by</th>
+              <th class="px-4 py-2 text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">Frontend: React, own origin</td><td class="px-4 py-2">Ticket 01, AC 1</td><td class="px-4 py-2 text-emerald-700 font-semibold">Already covered</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">Backend: Spring Boot REST API, own origin</td><td class="px-4 py-2">Ticket 01, AC 1</td><td class="px-4 py-2 text-emerald-700 font-semibold">Already covered</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">Cross-origin: CORS allow-list, credentials enabled</td><td class="px-4 py-2">Ticket 01, AC 2</td><td class="px-4 py-2 text-emerald-700 font-semibold">Already covered</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">Persistence: Spring Data JPA over H2, schema portable to Postgres/MySQL</td><td class="px-4 py-2">Ticket 01 — new AC added: standard JPA/SQL types only, no H2-specific dialect features</td><td class="px-4 py-2 text-blue-600 font-semibold">Gap closed this run</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">Primary auth: server-side session via secure HttpOnly cookie (Spring Session)</td><td class="px-4 py-2">Ticket 01 — new AC added: sessions explicitly backed by Spring Session, not bare <code>HttpSession</code>; establishment in Ticket 02</td><td class="px-4 py-2 text-blue-600 font-semibold">Gap closed this run</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2">Alternative auth (documented, not built): JWT bearer token</td><td class="px-4 py-2">PRD appendix itself (the documentation IS the deliverable); waiver register row A1 records that no ticket builds it</td><td class="px-4 py-2 text-emerald-700 font-semibold">Already covered</td></tr>
+          </tbody>
+        </table>
+        <p class="text-sm text-slate-700 mt-3">
+          The two gaps mattered because <code>spec.md</code>'s "What we're building" section already
+          named Spring Session and schema portability, but nothing in the ticket set's checkboxes
+          would have forced an implementing agent to honour either — a plausible implementation could
+          have used bare <code>HttpSession</code> or an H2-specific column type and still passed every
+          previously-written acceptance criterion. Both are now explicit, testable checkboxes on
+          Ticket 01.
+        </p>
+      </div>
+
+      <div class="rounded-lg border border-slate-200 bg-white shadow-sm px-6 py-5">
+        <h2 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-3">3. Regression check vs. 2026-09-30 14:50 run</h2>
+        <p class="text-sm text-slate-700">
+          No verdict bucket changed (19 PASS / 0 AUTO-FIX / 0 FAIL / 5 DEFERRED / 100 N/A, identical
+          to the prior run). This run only restructured <em>where</em> each waiver's rationale lives
+          (into explicit sections A/B/C) and added two new acceptance criteria to Ticket 01 — it did
+          not change any control's disposition.
+        </p>
+      </div>
+
+      <details class="rounded-lg border border-slate-200 bg-white shadow-sm" open>
+        <summary class="flex items-center justify-between px-5 py-4 cursor-pointer select-none">
+          <span class="font-medium">Policy (IM8 / ARC) — full verdict table</span>
+          <span class="text-xs font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">PASS</span>
+        </summary>
+        <table class="w-full text-sm border-t border-slate-100">
+          <thead>
+            <tr class="text-xs uppercase tracking-wider text-slate-500 bg-slate-50">
+              <th class="px-4 py-2 text-left">Control</th>
+              <th class="px-4 py-2 text-left">Verdict</th>
+              <th class="px-4 py-2 text-left">Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-1 Input Validation</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Registration (01) and reset request/confirm (04) require validated inputs before any state change.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-2 Parameterised Interfaces</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Spring Data JPA over H2 (01); no raw/concatenated SQL in scope.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-3 Output Sanitisation</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Generic reset-request response (04); admin list excludes password hashes (05).</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-4 Auth Rate-Limiting</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Account lockout and independent IP throttling, ticket 03.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-5 Password Requirements</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Length ≥12 enforced at registration (01), reused at reset-confirm (04).</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-6 Password Salting and Hashing</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">BCrypt applied uniformly across 01, 04, 05.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-7 Access Control Check Enforcement</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Default-deny + CORS/CSRF (01); server-side session/role checks, enumeration resistance (02); 403 for non-admin (05).</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-8 Secrets Management</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">No hardcoded/committed secrets; externalised config (01).</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-9 Content Security Policy</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">CSP header, ticket 01.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-10 HSTS</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">HSTS header under prod profile, ticket 01.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-11 Session Management</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Cookie attributes + Spring Session (01); idle/absolute timeout (02).</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-12 Malware Scanning of Uploads</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">No file-upload capability.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-13 Exposure of Internal System Details</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Sanitised error responses, ticket 01.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-14 Secure Cryptographic Libraries</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Standard <code>BCryptPasswordEncoder</code>, ticket 01.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">as-15 Password Change</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Change mechanism exists (04); no compromise-detection signal in scope.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-1 Least Privilege</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Default-deny + method-level checks (01/02/05); granularity waived, waiver A6.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-2 MFA Enforcement</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Waived per PRD, waiver A2.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-3 Inactive and Expired Accounts</td><td class="px-4 py-2 text-amber-600 font-semibold">DEFERRED</td><td class="px-4 py-2"><code>last_login_at</code> captured (02) / surfaced (05); automatic deactivation deferred, waiver C.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-4 Access Review</td><td class="px-4 py-2 text-amber-600 font-semibold">DEFERRED</td><td class="px-4 py-2">Baseline richness waived, waiver A6; <code>last_login_at</code> is the review surface (05).</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-6 Default Credentials</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Forced password change on seeded admin credential, ticket 05.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-7 Singpass/Corppass</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Not a government service.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-8 Automated Account Lifecycle</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Waived, no IdP in scope, waiver B.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ac-12 SSO for Internal Services</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Waived, local auth chosen, waiver B.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">dp-3 Data in Transit Encryption</td><td class="px-4 py-2 text-amber-600 font-semibold">DEFERRED</td><td class="px-4 py-2">Prod TLS remains binding, waiver A5.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">dp-8 Data Classification Disclosure</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">No classified data; Low Risk reference app.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">lm-4 Audit Logging</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Structured audit lines on every ticket (01–05).</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">lm-15 Structured Log Formatting</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Structured/redacted logging seam, ticket 01.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">lm-16 Key Signals Monitoring</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">Secured metrics hook, ticket 01; alerting waived, waiver A4.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">lm-18 WOGAA</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Not a public-facing government service.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">lm-19 Log Sanitisation</td><td class="px-4 py-2 text-emerald-700 font-semibold">PASS</td><td class="px-4 py-2">No plaintext passwords/tokens in audit stream (01, 04); dev-only stub fenced, waiver A3.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ck-1 Key Establishment</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">No keys; contingent on JWT not built, waiver A1.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ck-2 Key Rotation</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Same basis as ck-1.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ck-4 Key Storage</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Same basis as ck-1.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ga-8 GenAI Risks</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">No GenAI feature.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">pm-6 System Documentation</td><td class="px-4 py-2 text-amber-600 font-semibold">DEFERRED</td><td class="px-4 py-2">Manual pre-deployment scan, not a ticket, waiver A4.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">st-3 Public Vulnerability Disclosure</td><td class="px-4 py-2 text-amber-600 font-semibold">DEFERRED</td><td class="px-4 py-2">Needs a public deployment that doesn't exist.</td></tr>
+            <tr class="border-b border-slate-100"><td class="px-4 py-2 font-mono">ARC Framework (88 controls, 8 sections)</td><td class="px-4 py-2 text-slate-400">N/A</td><td class="px-4 py-2">Every control presupposes an LLM, MCP server, agent prompt, memory, or agent-generated code — none exist in this application.</td></tr>
+          </tbody>
+        </table>
+      </details>
+    </main>
+  </body>
+</html>

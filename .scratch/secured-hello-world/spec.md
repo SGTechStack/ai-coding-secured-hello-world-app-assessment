@@ -43,13 +43,13 @@ Not built, and no ticket may quietly smuggle them back in:
 Two of these shape the build rather than just being absent:
 
 1. **No local HTTPS** → the `Secure` cookie attribute must be profile-conditional (ticket 01),
-   and the gap recorded as an accepted deviation with risk rationale (ticket 27).
-2. **No CI/CD** → the dependency vulnerability scan is a point-in-time snapshot (ticket 26),
-   not a pipeline stage.
+   and the gap recorded as an accepted deviation with risk rationale (waiver register below).
+2. **No CI/CD** → the dependency vulnerability scan is a point-in-time, manually-run snapshot,
+   not a pipeline stage (waiver register below).
 
-**Every one of the six** waives or constrains a control that would otherwise apply, which is
-different from a control that does not apply at all. All six are enumerated in the waiver register
-below and each one needs an entry in the deviation register (ticket 27). A waiver without a
+**All six** waive or constrain a control that would otherwise apply, which is different from a
+control that does not apply at all — every one of the six has its own row in the **PRD
+out-of-scope waivers** table below, in this list's order, with no exceptions. A waiver without a
 recorded rationale is itself an audit finding.
 
 ## IM8 compliance approach
@@ -61,18 +61,16 @@ Every ticket's `IM8 controls` line cites real control IDs. ASVS 4.0.3 chapters a
 secondary mapping because they give each control a *testable* form, which is useful when writing
 the integration tests, but IM8 is the authority.
 
-The audits live in [`artifacts/spec-compliance/`](../../artifacts/spec-compliance/). Two runs so
-far:
+The audits live in [`artifacts/spec-compliance/`](../../artifacts/spec-compliance/).
 
-1. **PRD phase** (`…-2157`) — 3 PASS, 15 AUTO-FIX, 3 FAIL, 3 DEFERRED, 12 N/A. The three FAIL
-   findings are what tickets 22, 23 and 24 exist to resolve.
-2. **Post-decomposition** (`…-2227`) — 18 PASS, 4 AUTO-FIX, **0 FAIL**, 3 DEFERRED, 11 N/A. All
-   three FAILs confirmed closed by tickets 22, 23 and 24. The four AUTO-FIX findings
-   (`ac-1`, `as-15`, `lm-19`, `pm-6`) were all waiver-register completeness gaps rather than
-   control failures, and were resolved in that run.
-
-The table below shows verdicts **after** those four fixes were applied, which is why no AUTO-FIX
-row appears in it. The report retains the as-audited verdicts; this table is the living state.
+**2026-09-30 re-decomposition:** the ticket set was consolidated from 27 tickets down to 5
+(tickets 01–05 below), on explicit instruction to minimize ticket count. Every control previously
+resolved by a dedicated ticket (22–24, plus the metrics hook from 23) was folded into an
+acceptance criterion on one of the 5 vertical slices instead of dropped; where a control's *full*
+remediation (e.g. automated inactive-account deactivation, continuous dependency scanning) would
+have required scope the PRD doesn't ask for, it is recorded as a **deferred deviation** below
+rather than silently disappearing. See the re-run in `artifacts/spec-compliance/` for the verdict
+against this 5-ticket set.
 
 ### Risk classification
 
@@ -98,46 +96,48 @@ here still means *the spec mandates it*, never that code implements it.
 
 | Control | Level | PRD phase | Verdict | Ticket(s) |
 | --- | :---: | :---: | --- | --- |
-| `as-1` Input Validation | 1 | AUTO-FIX | **PASS** | 05, 02 |
+| `as-1` Input Validation | 1 | AUTO-FIX | **PASS** | 01, 04 |
 | `as-2` Parameterised Interfaces | 1 | AUTO-FIX | **PASS** | 01 |
-| `as-3` Output Sanitisation | 1 | AUTO-FIX | **PASS** | 02, 07 |
-| `as-4` Auth Rate-Limiting | 1 | AUTO-FIX | **PASS** | 11, 12, 13 |
-| `as-5` Password Requirements | 1 | AUTO-FIX | **PASS** | 05, 22 |
-| `as-6` Password Salting and Hashing | 1 | PASS | **PASS** | 01, 04, 16, 22 |
-| `as-7` Access Control Enforcement | 1 | AUTO-FIX | **PASS** | 01, 17, 23 |
-| `as-8` Secrets Management | 1 | AUTO-FIX | **PASS** | 16 |
+| `as-3` Output Sanitisation | 1 | AUTO-FIX | **PASS** | 04 |
+| `as-4` Auth Rate-Limiting | 1 | AUTO-FIX | **PASS** | 03 |
+| `as-5` Password Requirements | 1 | AUTO-FIX | **PASS** | 01 |
+| `as-6` Password Salting and Hashing | 1 | PASS | **PASS** | 01 |
+| `as-7` Access Control Enforcement | 1 | AUTO-FIX | **PASS** | 01, 02, 05 |
+| `as-8` Secrets Management | 1 | AUTO-FIX | **PASS** | 01 |
 | `as-9` Content Security Policy | 1 | AUTO-FIX | **PASS** | 01 |
 | `as-10` HSTS | **2** | AUTO-FIX | **PASS** | 01 |
-| `as-11` Session Management | 1 | AUTO-FIX | **PASS** | 06, 09, 10, 14 |
+| `as-11` Session Management | 1 | AUTO-FIX | **PASS** | 01, 02 |
 | `as-12` Malware Scanning of Uploads | 2 | N/A | N/A — no upload capability | — |
-| `as-13` Exposure of Internal Details | **2** | PASS | **PASS** | 01, 23 |
-| `as-14` Secure Cryptographic Libraries | **2** | AUTO-FIX | **PASS** | 01, 13, 26 |
-| `as-15` Password Change | — | N/A | N/A — mechanism exists (22), no detection signal | 22, 14, 19 |
-| `ac-1` Least Privilege | 1 | PASS | **PASS** — granularity ceiling waived (6) | 01, 17, 19–21 |
-| `ac-2` MFA Enforcement | 1 | N/A | **WAIVED** (1) — applies, excluded by PRD | 27 |
-| `ac-3` Inactive and Expired Accounts | 1 | **FAIL** | **PASS** — resolved by **24** | 24 |
-| `ac-4` Access Review | 1 | DEFERRED | DEFERRED — baseline richness waived (6) | 18, 24, 27 |
-| `ac-6` Default Credentials | 1 | **FAIL** | **PASS** — resolved by **22** | 22 |
+| `as-13` Exposure of Internal Details | **2** | PASS | **PASS** | 01 |
+| `as-14` Secure Cryptographic Libraries | **2** | AUTO-FIX | **PASS** | 01 |
+| `as-15` Password Change | — | N/A | N/A — mechanism exists (04), no detection signal | 04 |
+| `ac-1` Least Privilege | 1 | PASS | **PASS** — granularity ceiling waived (A6) | 01, 02, 05 |
+| `ac-2` MFA Enforcement | 1 | N/A | **WAIVED** (A2) — applies, excluded by PRD | — |
+| `ac-3` Inactive and Expired Accounts | 1 | **FAIL** | **DEFERRED** (C) — `last_login_at` captured, automatic deactivation not built | 02, 05 |
+| `ac-4` Access Review | 1 | DEFERRED | DEFERRED — baseline richness waived (A6); `last_login_at` is the review surface | 05 |
+| `ac-6` Default Credentials | 1 | **FAIL** | **PASS** — forced password change on seeded credential | 05 |
 | `ac-7` Singpass/Corppass | 1 | N/A | N/A — not a government service | — |
-| `ac-8` Automated Account Lifecycle | 1 | N/A | **WAIVED** (2) — no IdP in scope | 27 |
-| `ac-12` SSO for Internal Services | 1 | N/A | **WAIVED** (2) — applies, excluded by PRD | 27 |
-| `dp-3` Data in Transit Encryption | 1 | DEFERRED | DEFERRED (3) — prod TLS remains binding | 01, 27 |
+| `ac-8` Automated Account Lifecycle | 1 | N/A | **WAIVED** (B) — no IdP in scope | — |
+| `ac-12` SSO for Internal Services | 1 | N/A | **WAIVED** (B) — applies, excluded by PRD | — |
+| `dp-3` Data in Transit Encryption | 1 | DEFERRED | DEFERRED (A5) — prod TLS remains binding | 01 |
 | `dp-8` Data Classification Disclosure | 1 | N/A | N/A — internal applications only | — |
-| `lm-4` Audit Logging | 1 | AUTO-FIX | **PASS** | 03, 25 |
-| `lm-15` Structured Log Formatting | **2** | AUTO-FIX | **PASS** | 03, 25 |
-| `lm-16` Key Signals Monitoring | **2** | **FAIL** | **PASS** — resolved by **23**; alerting waived (5) | 23 |
+| `lm-4` Audit Logging | 1 | AUTO-FIX | **PASS** | 01, 02, 03, 04, 05 |
+| `lm-15` Structured Log Formatting | **2** | AUTO-FIX | **PASS** | 01 |
+| `lm-16` Key Signals Monitoring | **2** | **FAIL** | **PASS** — metrics hook exposed; alerting waived (A4) | 01 |
 | `lm-18` WOGAA | — | N/A | N/A — not a public government service | — |
-| `lm-19` Log Sanitisation | **2** | AUTO-FIX | **PASS** — dev reset-link emission waived (4) | 03, 13, 25 |
-| `ck-1` Key Establishment | 2 | N/A | N/A — no keys; **contingent on JWT not being built** | 27 |
-| `ck-2` Key Rotation | 2 | N/A | N/A — no keys; **contingent on JWT not being built** | 27 |
-| `ck-4` Key Storage | — | N/A | N/A — no keys; **contingent on JWT not being built** | 27 |
+| `lm-19` Log Sanitisation | **2** | AUTO-FIX | **PASS** — dev reset-link emission waived (A3) | 01, 04 |
+| `ck-1` Key Establishment | 2 | N/A | N/A — no keys (A1); **contingent on JWT not being built** | — |
+| `ck-2` Key Rotation | 2 | N/A | N/A — no keys (A1); **contingent on JWT not being built** | — |
+| `ck-4` Key Storage | — | N/A | N/A — no keys (A1); **contingent on JWT not being built** | — |
 | `ga-8` GenAI Risks | — | N/A | N/A — no GenAI feature | — |
-| `pm-6` System Documentation | 1 | AUTO-FIX | **PASS** — continuous scanning waived (5) | 26, 27 |
-| `st-3` Public Vulnerability Disclosure | 1 | DEFERRED | DEFERRED — needs a public deployment | 27 |
+| `pm-6` System Documentation | 1 | AUTO-FIX | **DEFERRED** (A4) — no dedicated scan ticket; run as a pre-deployment step | — |
+| `st-3` Public Vulnerability Disclosure | 1 | DEFERRED | DEFERRED — needs a public deployment | — |
 
-Bracketed numbers point at the waiver-register row below that governs the gap. A control marked
-**WAIVED** is one that *applies* to an application of this shape and is absent only by PRD
-decision — distinct from N/A, where there is nothing for the control to attach to.
+Bracketed codes point at the waiver-register section/row above that governs the gap (`A1`–`A6` =
+PRD out-of-scope waivers table, in PRD list order; `B` = architecture-driven waivers; `C` =
+consolidation deviation). A control marked **WAIVED** is one that *applies* to an application of
+this shape and is absent only by an explicit decision — distinct from N/A, where there is nothing
+for the control to attach to.
 
 The **ARC Framework** (88 controls) is N/A in full. Every ARC control presupposes an LLM, an MCP
 server, an agent system prompt, agent memory, inter-agent messaging, or agent-generated code.
@@ -145,128 +145,104 @@ This application has none of those, so there is no component for any ARC control
 
 ### Waiver register
 
-Controls that **do** apply to an application of this shape and are excluded or constrained only by
-an explicit PRD decision. Each needs a deviation-register entry in ticket 27 with its compensating
-controls. The register is keyed to the PRD's **Out of Scope** list so that every scope exclusion
-has a traceable control disposition — an out-of-scope item with no row here is the gap this
-register exists to prevent.
+**A. PRD out-of-scope waivers.** One row per bullet in the PRD's **Out of Scope** list, in that
+list's exact order — all six, no exceptions, so an excluded item with no row here would be the
+gap this register exists to prevent. There is no such gap: every bullet below has a disposition.
 
-| # | PRD out-of-scope item | Control waived or constrained | Residual risk | Compensating controls |
-| :---: | --- | --- | --- | --- |
-| 1 | MFA / 2FA | `ac-2` MFA Enforcement | A single authentication factor is the only barrier to account takeover; a phished or stuffed credential is sufficient | Account lockout (11), IP throttling (12), audit logging of every privileged action (03, 25), self-action guards (19–21), externalised admin credential (16), forced rotation (22) |
-| 2 | Local username/password auth is the declared subject of the PRD | `ac-12` SSO for Internal Services, and `ac-8` Automated Account Lifecycle following from it | No central identity, no leaver feed, so deprovisioning is manual and depends on an admin noticing | Server-side session with HttpOnly cookie; manual lifecycle via admin enable/disable/delete (19, 21) plus inactivity deactivation (24). `ac-12` would be a blocking FAIL if this were fielded as an internal agency service. |
-| 3 | Local HTTPS setup | `dp-3` Data in Transit Encryption | Session cookie and credentials travel in clear over the loopback interface in `dev` | Held as **DEFERRED, not waived**: prod-profile TLS, a TLS 1.2 protocol floor, and the profile-conditional `Secure` cookie all remain binding (01, 27) |
-| 4 | Real SMTP / email delivery — stubbed `EmailService` logs instead | `lm-19` Log Sanitisation, partially | The stub writes a **live plaintext reset token** to a log file; read access to logs is full account takeover. A **deployment blocker**, not a cosmetic stub | Emission fenced to the `dev` profile only, at DEBUG only, through a non-audit logger, and unreachable under the prod profile (13). Redaction of tokens from the audit stream is enforced in the seam (03, 25) |
-| 5 | Containerization / CI/CD / hosting infra | `pm-6` System Documentation, as to *continuous* vulnerability management; `lm-16` as to alert routing | Dependency scanning is point-in-time and superseded the day after it runs; nothing re-runs it and no alerting stack consumes the metrics | CycloneDX SBOM plus dated scan snapshot with resolved versions, re-run documented as a pre-deployment step (26); application-side metrics exposed so alerting is a wiring task not a discovery task (23) |
-| 6 | Granular per-resource authorization beyond USER/ADMIN | `ac-1` Least Privilege, as to granularity; `ac-4` Access Review, as to baseline richness | Exactly two privilege levels, so an admin has every admin power; no finer separation of duties is expressible | Default-deny filter chain with method-level `@PreAuthorize` as an independent second check (01, 17), self-action guards (19–21), the Roles table above as the declared `ac-4` baseline, `last_login_at` on the admin list as the review surface (18, 24) |
+| # | PRD out-of-scope item (verbatim) | Control(s) affected | Disposition | Residual risk | Compensating controls |
+| :---: | --- | --- | --- | --- | --- |
+| 1 | JWT implementation (appendix design only) | `ck-1`, `ck-2`, `ck-4` | **No live control waived** — N/A, contingent on JWT not being built | None while unbuilt; all three become live the moment the appendix design is implemented | Session-cookie mechanism (the PRD's chosen primary) is fully built (01, 02); the JWT design itself is fully documented in the PRD appendix, satisfying "documented, not built" |
+| 2 | MFA / 2FA | `ac-2` MFA Enforcement | **Waived** — applies to an app of this shape, excluded by explicit PRD decision | A single authentication factor is the only barrier to account takeover; a phished or stuffed credential is sufficient | Account lockout (03), IP throttling (03), audit logging of every privileged action (01–05), self-action guards (05), externalised + forced-rotation admin credential (01, 05) |
+| 3 | Real SMTP / email delivery (stubbed `EmailService` logs instead) | `lm-19` Log Sanitisation, partially | **Constrained** — a deployment blocker if left unfenced, not a cosmetic gap | The stub writes a **live plaintext reset token** to a log file; read access to logs is full account takeover | Emission fenced to the `dev` profile only, DEBUG-only, through a non-audit logger, unreachable under prod (04); redaction of tokens from the audit stream is enforced in the seam (01, 04) |
+| 4 | Containerization / CI/CD / hosting infra | `pm-6` System Documentation (continuous scanning), `lm-16` (alert routing) | **Deferred** — no pipeline exists to re-run scans or route alerts | Dependency scanning is point-in-time and stale the day after it runs; no alerting stack consumes metrics | Manual pre-deployment dependency-vulnerability scan (SBOM + resolved versions) as a documented step, not a ticket; the metrics hook in 01 makes alerting a future wiring task, not a discovery task |
+| 5 | Local HTTPS setup (dev runs over HTTP) | `dp-3` Data in Transit Encryption | **Deferred, not waived** — accepted only for local `dev`; remains binding elsewhere | Session cookie and credentials travel in clear over the loopback interface in `dev` | Profile-conditional `Secure` cookie attribute (01); prod-profile TLS and a TLS 1.2 floor remain binding on any real deployment |
+| 6 | Granular per-resource authorization beyond the USER/ADMIN role check | `ac-1` Least Privilege (granularity), `ac-4` Access Review (baseline richness) | **Waived** — exactly two privilege levels is the PRD's declared model | An admin has every admin power; no finer separation of duties is expressible | Default-deny filter chain with method-level `@PreAuthorize` as an independent second check (01, 02, 05); self-action guards (05); the Roles table above as the declared `ac-4` baseline; `last_login_at` on the admin list as the review surface (02, 05) |
 
-The sixth PRD exclusion, **JWT implementation**, waives no live control — the session-cookie
-design is the PRD's chosen primary and is fully built. It is recorded as a deviation in ticket 27
-for a different reason: `ck-1`, `ck-2` and `ck-4` are N/A **because** no JWT signing key exists.
-Their N/A is contingent on that architectural choice, not on the application's nature, and all
-three become live the moment the appendix is built.
+**B. Architecture-driven waivers.** Not literal PRD out-of-scope bullets, but controls that apply
+to an app of this shape and are excluded only because the PRD chose local username/password
+session-cookie auth as the sole built mechanism, rather than SSO:
 
-Not a PRD exclusion but recorded in the same register, because it is a deliberate narrowing of a
+| Control | Disposition | Residual risk | Compensating controls |
+| --- | --- | --- | --- |
+| `ac-12` SSO for Internal Services | **Waived** — would be a blocking FAIL if this were fielded as a real internal agency service | No central identity provider | Server-side session with HttpOnly cookie (01, 02) is the PRD's chosen mechanism |
+| `ac-8` Automated Account Lifecycle | **Waived** — follows from having no IdP/SCIM feed | No leaver feed, so deprovisioning is manual and depends on an admin noticing | Manual lifecycle via admin enable/disable/delete (05) plus the `last_login_at` review signal (02, 05) |
+
+**C. Consolidation deviation.** Trimmed when the ticket set was minimized from 27 to 5 — not a PRD
+exclusion at all, but recorded with the same rigor:
+
+| Control | Disposition | Residual risk | Compensating controls |
+| --- | --- | --- | --- |
+| `ac-3` Inactive and Expired Accounts (automatic enforcement) | **Deferred** — folded to a data-capture AC instead of a dedicated deactivation ticket | A dormant, still-enabled account with a valid password remains usable indefinitely | `last_login_at` captured on every login (02) and surfaced on the admin list (05) so an admin can manually disable a dormant account; automatic deactivation is documented future work (a 6th ticket blocked by 02 and 05), not silently dropped |
+
+Not a waiver but recorded in the same register, because it is a deliberate narrowing of a
 requirement rather than an omission: **registration conflict errors intentionally reveal that a
-username or email is taken** (05). The PRD requires a clear validation error and a registration
+username or email is taken** (01). The PRD requires a clear validation error and a registration
 form cannot function otherwise, so this is a bounded exception to the enumeration resistance that
 governs login and password reset — which remain strict.
 
-Controls added beyond what the PRD states, because IM8 requires them:
+Controls folded in as acceptance criteria beyond what the PRD states in prose, because IM8
+requires them, without spawning a dedicated ticket:
 
-- Forced password change on the admin-issued seed credential — `ac-6` (ticket 22)
-- Key signals monitoring — `lm-16` (ticket 23)
-- Inactive account deactivation and `last_login_at` — `ac-3`, `ac-4` (ticket 24)
-- Externalised admin seed credential, no default or committed password — `as-8` (ticket 16)
-- Idle and absolute session timeouts — `as-11` (ticket 10)
+- Forced password change on the admin-issued seed credential — `ac-6` (ticket 05)
+- Key signals monitoring hook — `lm-16` (ticket 01)
+- `last_login_at` capture and admin-list surfacing — `ac-3`, `ac-4` (tickets 02, 05)
+- Externalised admin seed credential, no default or committed password — `as-8` (ticket 01)
+- Idle and absolute session timeouts — `as-11` (ticket 02)
 - CSP, HSTS and sanitised error responses — `as-9`, `as-10`, `as-13` (ticket 01)
-- Audit-log redaction and ECS structured formatting — `lm-15`, `lm-19` (tickets 03, 25)
-- Dependency vulnerability scanning and SBOM — `pm-6` (ticket 26)
-- Formal recording of accepted deviations — the waiver register above (ticket 27)
+- Audit-log redaction and structured formatting — `lm-15`, `lm-19` (ticket 01, reused everywhere)
 
 ## Ticket index
 
-Tickets live in [`issues/`](issues/), numbered in dependency order (blockers first).
+Tickets live in [`issues/`](issues/), numbered in dependency order (blockers first). This is a
+**consolidated 5-ticket set**, deliberately minimized from an earlier 27-ticket draft of the same
+PRD — each ticket is a full vertical slice (schema → API → UI → tests) rather than a single layer
+or endpoint, with the IM8-driven controls folded in as acceptance criteria (see the waiver register
+above for the handful that were trimmed to fit rather than fully built out).
 
 | # | Ticket | Blocked by |
 | --- | --- | --- |
-| 01 | Backend skeleton and security configuration baseline | None |
-| 02 | Frontend skeleton and credentialed API client | 01 |
-| 03 | Audit logging seam and redaction policy | 01 |
-| 04 | Registration happy path | 02, 03 |
-| 05 | Registration validation and conflict handling | 04 |
-| 06 | Login and session establishment | 04 |
-| 07 | Protected personalised greeting | 06 |
-| 08 | Login failure handling and enumeration resistance | 06 |
-| 09 | Logout and session invalidation | 07 |
-| 10 | Idle and absolute session timeouts | 09 |
-| 11 | Account lockout after repeated failures | 08 |
-| 12 | IP-level login throttling | 08 |
-| 13 | Password reset request | 04 |
-| 14 | Password reset confirmation | 13, 05, 06 |
-| 15 | Reset token expiry and single-use enforcement | 14 |
-| 16 | Admin bootstrap seeding with externalised credential | 04 |
-| 17 | Admin endpoint role enforcement | 16, 06 |
-| 18 | Admin user list | 17 |
-| 19 | Admin enable/disable account with self-action guard | 18 |
-| 20 | Admin role change with self-demotion guard | 18 |
-| 21 | Admin delete account with self-deletion guard | 18, 13 |
-| 22 | **Forced password change on admin-issued credentials** | 16, 07 |
-| 23 | **Key signals monitoring** | 01 |
-| 24 | **Inactive account deactivation** | 06, 19 |
-| 25 | Audit log conformance verification | 09, 11, 12, 14, 19, 20, 21, 22, 24 |
-| 26 | Dependency vulnerability scan snapshot | 02 |
-| 27 | IM8 control mapping dossier and accepted deviations | 23, 25, 26 |
-
-Tickets 22–24 are new, added to resolve the three FAIL findings. The three aggregator tickets
-that were previously 22–24 are now 25–27, so that aggregators still sort last and the numbering
-stays in dependency order.
+| 01 | App skeleton, security baseline & registration | None |
+| 02 | Login, session, logout & protected greeting | 01 |
+| 03 | Brute-force protection: account lockout & IP throttling | 02 |
+| 04 | Password reset (request & confirm) | 01, 02 |
+| 05 | Admin user management (bootstrap, list, enable/disable, role change, delete) | 02 |
 
 ## Dependency shape
 
 ```
-01 ─┬─ 02 ── 04 ─┬─ 06 ─┬─ 07 ── 09 ── 10 ─────────────────┐
-    │            │      │                                   │
-    │            │      ├─ 08 ─┬─ 11 ─────────────────────┤
-    │            │      │      └─ 12 ─────────────────────┤
-    │            │      └─ 24 ──────────────────────────┐ │
-    ├─ 03 ───────┘                                       │ │
-    │            ├─ 05 ── 14 ── 15                        │ │
-    │            ├─ 13 ─┘                                 │ │
-    │            └─ 16 ─┬─ 17 ── 18 ─┬─ 19 ──────────────┤ │
-    │                   │            ├─ 20 ──────────────┤ │
-    │                   │            └─ 21 ──────────────┤ │
-    │                   └─ 22 ────────────────────────────┤ │
-    │                                                  25 ─┴─┤
-    └─ 23 ──────────────────────────────────────────────────┤
-                                          02 ── 26 ─────────┴─ 27
+01 ── 02 ─┬─ 03
+          ├─ 04 (also needs 01, directly)
+          └─ 05
 ```
 
-Note that 24 needs both 06 (to write `last_login_at` on login) and 19 (it reuses the `enabled`
-flag and its audit event), so it sits across two chains.
-
-Four independent fronts open up after ticket 04: the **login/session** chain (06→07→09→10,
-08→11/12), the **password reset** chain (13→14→15), the **admin** chain
-(16→17→18→19/20/21, 16→22), and the **inactivity** work (24, once 06 and 19 land). Ticket 23
-depends only on 01 and can be worked at any time. They can all be worked in parallel.
+Ticket 01 is the only hard prerequisite for everything else. Once 02 (login/session) lands, three
+independent fronts open in parallel: **brute-force protection** (03), **password reset** (04, which
+also touches the registration/session surface from 01 directly), and **admin management** (05).
 
 ## Design decisions (resolved)
 
-These four points are where the PRD is silent and the tickets had to choose. They are **decided**,
-not open — an implementing agent follows them rather than re-deciding or pausing to ask.
+These are points where the PRD is silent, or where consolidating to 5 tickets required a call, and
+the tickets had to choose. They are **decided**, not open — an implementing agent follows them
+rather than re-deciding or pausing to ask.
 
-- **Ticket 14:** a password reset **does** also clear `failed_login_attempts` and `locked_until`.
+- **Ticket 04:** a password reset **does** also clear `failed_login_attempts` and `locked_until`.
   The PRD does not say, but a user who reset their password *because* they were locked out would
   otherwise still be locked out, which makes the recovery path useless in the case that most needs
   it.
-- **Tickets 19-21:** the self-action guard is **one shared rule applied three times**, not three
-  independent checks. Implement it once in 19 and reuse it in 20 and 21. Three hand-written copies
-  of a privilege check is three chances for one of them to drift.
-- **Ticket 22:** the forced-change gate is ordered **before** role authorization, so a gated admin
-  gets `PASSWORD_CHANGE_REQUIRED` rather than a 403 from the admin matcher. Both are 403s, so the
-  body code is the only thing distinguishing them — which is why the ordering is specified rather
-  than left to whichever filter happens to register first.
-- **Ticket 23:** the metrics endpoint is **either** authenticated **or** bound to a separate
-  management port — the implementer picks one, and either satisfies `as-7`. What the ticket does
-  not allow is leaving it open: the choice must be recorded, because an unstated decision here is
+- **Ticket 05:** the self-action guard is **one shared rule applied three times** (disable, demote,
+  delete), not three independent checks. Three hand-written copies of a privilege check is three
+  chances for one of them to drift.
+- **Ticket 05:** the forced-change gate on the seeded admin credential is ordered **before** role
+  authorization, so a gated admin gets a distinct "password change required" response rather than
+  an indistinguishable 403 from the admin matcher.
+- **Ticket 01:** the metrics/health hook is **either** authenticated **or** bound to a separate
+  management port — the implementer picks one, and either satisfies `as-7`. What isn't allowed is
+  leaving it open: the choice must be recorded, because an unstated decision here is
   indistinguishable from an unsecured actuator surface.
+- **Scope trim (waiver register C):** automatic deactivation of inactive accounts (`ac-3`/`ac-4` in
+  full) is not built. Capturing `last_login_at` and surfacing it to admins (02, 05) is the
+  compensating control, and the gap is recorded rather than silently dropped. If this ever needs to
+  be closed, it's a 6th ticket blocked by 02 and 05, not a change to either of them.
+- **Scope trim (waiver register A4):** dependency vulnerability scanning (`pm-6`) is a manual
+  pre-deployment step, not a ticket, because the PRD puts CI/CD out of scope and a one-off scan with
+  no pipeline to re-run it would be a stale artifact by the next commit.

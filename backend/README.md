@@ -87,7 +87,8 @@ terminal and then run the `spring-boot:run` command above, from the repository r
 > **These values are public.** They are committed to git, so treat them as compromised. Never use them outside a
 > local `dev` run: generate fresh keys for any shared, staging or production environment. Without the `dev` profile,
 > startup refuses any of these keys (in any key variable) and this admin password, or an earlier published one
-> (`PublishedDemoValues` holds only their fingerprints and digests).
+> (`PublishedDemoValues` holds only their fingerprints and digests). The same goes for the demo accounts' values in
+> `application-dev.yml` (see [Demo accounts](#demo-accounts-dev-only)).
 
 PowerShell (current window only):
 
@@ -134,15 +135,44 @@ Open it, set a password, then sign in. A forgotten password works the same way: 
 http://localhost:5173/forgot-password and the reset link, valid for 30 minutes, appears on the same logger. Outside
 `dev` that logger is refused at startup, so a link is delivered nowhere.
 
+### Demo accounts (dev only)
+
+For demos, a `dev` start seeds two ready-to-use accounts on an empty database, before the administrator bootstrap
+runs. Their values are committed in `src/main/resources/application-dev.yml` under `app.dev.demo-accounts`:
+
+| Account | Role | Password | Second factor |
+|---|---|---|---|
+| `demo-user` (`demo-user@demo.invalid`) | `USER` | `violet-harbour-signal-meadow` | none |
+| `demo-admin` (`demo-admin@demo.invalid`) | `ADMIN` | `granite-falcon-ember-quarry` | TOTP, pre-enrolled with the Base32 secret `X47C675OXQB5LUEX3C5MGK6A445A23M2` |
+
+Both are activated and enabled, and neither has to change its password. `demo-admin` is an enrolled, authenticable
+administrator from the first start: its TOTP secret is stored sealed, exactly as an enrolment stores it. The console
+logs `Demo accounts: seeded demo-user` and `Demo accounts: seeded demo-admin, enrolled in TOTP`, then
+`Administrator bootstrap: an ADMIN account exists, so none is seeded`. A restart seeds nothing again, and an account
+that already exists, or whose username or address a tombstone holds, is left as it is.
+
+The sign-in page shows a **Demo accounts** panel with each account's username and password (and **Copy** and
+**Fill in** buttons) and `demo-admin`'s current six-digit code, which refreshes as each 30-second step ends. The panel
+reads `GET /api/dev/demo-accounts`, which computes the code on the server from the committed secret; no demo value is
+compiled into the SPA. A password changed since seeding is no longer shown, and the code is dropped once
+`demo-admin`'s authenticator has been reset. To add `demo-admin` to an authenticator app instead, type in the secret
+above (time-based, 6 digits, 30 seconds).
+
+**These accounts exist only under `dev`.** Outside `dev` nothing seeds them, `GET /api/dev/demo-accounts` has no
+handler and no authorization-matrix row, so it is refused exactly as an unknown route is, and startup refuses any
+`app.dev.demo-accounts` property, the two demo passwords as `APP_ADMIN_PASSWORD`, and a database that still holds an
+activated demo account (a `dev` database copied elsewhere). To start under `dev` without them, set
+`APP_DEV_DEMOACCOUNTS_ENABLED=false` on an empty database.
+
 ### Signing in as the seeded administrator
 
-On its first start against an empty database the app seeds one administrator from `APP_ADMIN_USERNAME` and
-`APP_ADMIN_PASSWORD` (ADR-047); with the demo values above that is `demo-admin` / `lantern-orchard-copper-tide`. It
-seeds only while no `ADMIN` account exists, so later starts seed nothing and changing the variables afterwards has no
-effect. The database is the H2 file under `backend/data/`: stop the app and delete that folder to start over. The
-folder is `app.db.data-dir` (`APP_DB_DATA_DIR`), and the default datasource URL names a file inside it; if you point
-`spring.datasource.url` somewhere else, set `app.db.data-dir` to a directory that holds that file too, or startup
-refuses (R-OBS-019).
+Without the demo accounts (`APP_DEV_DEMOACCOUNTS_ENABLED=false`), and in every other profile, the first start against
+an empty database seeds one administrator from `APP_ADMIN_USERNAME` and `APP_ADMIN_PASSWORD` (ADR-047); with the demo
+values above that is `demo-admin` / `lantern-orchard-copper-tide`. It seeds only while no `ADMIN` account exists, so
+later starts seed nothing and changing the variables afterwards has no effect. The database is the H2 file under
+`backend/data/`: stop the app and delete that folder to start over. The folder is `app.db.data-dir`
+(`APP_DB_DATA_DIR`), and the default datasource URL names a file inside it; if you point `spring.datasource.url`
+somewhere else, set `app.db.data-dir` to a directory that holds that file too, or startup refuses (R-OBS-019).
 
 The seeded password is a forced-change credential (ADR-046):
 
@@ -159,7 +189,9 @@ The seeded password is a forced-change credential (ADR-046):
    Verification** before the admin pages open.
 
 An unchanged seed password expires 30 days after the first start: sign-in then fails with the uniform 401. Delete
-`backend/data/` to get a fresh seed.
+`backend/data/` to get a fresh seed. With the demo accounts on, the same forced change and enrolment can be seen on a
+new administrator: invite one as `ADMIN`, activate it from the logged link, disable and re-enable it before it enrols
+(a re-enable issues a forced-change credential), then sign in as it.
 
 The issuer the app shows beside the account is `app.mfa.totp.issuer`, `Secured Hello World` in `application.yml`; it
 is required and may not be blank.

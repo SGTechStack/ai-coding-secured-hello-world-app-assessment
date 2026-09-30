@@ -85,8 +85,10 @@ mvn -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=dev | tee back
 ```
 
 The first start downloads the Maven dependencies, so it can take several minutes. Every log line is one JSON
-object. The backend is ready when a line says `Tomcat started on port 8080`. On first start it also logs
-`Administrator bootstrap: seeded user.id=… with a forced-change credential`. Check it from another terminal:
+object. The backend is ready when a line says `Tomcat started on port 8080`. On first start it also seeds the two
+dev-only demo accounts (step 7) and logs `Demo accounts: seeded demo-user`, `Demo accounts: seeded demo-admin,
+enrolled in TOTP` and `Administrator bootstrap: an ADMIN account exists, so none is seeded`. Check it from another
+terminal:
 
 ```powershell
 curl.exe http://localhost:8080/actuator/health
@@ -132,21 +134,24 @@ For an activation link, use `ACTIVATION` in place of `PASSWORD_RESET` (PowerShel
 (bash). An activation link lasts 24 hours and a reset
 link 30 minutes. Each works once, and a newer link for the same account replaces an older one.
 
-### 7. Sign in as the seeded administrator and enrol an authenticator
+### 7. Sign in with the demo accounts panel
 
-> **UAT testers: skip this step.** Run [UAT-12 part A](docs/uat/uat-guide.md#uat-12-initial-admin-bootstrap)
-> instead. It does the same things, with checks that need the seed password still unchanged.
+Under the `dev` profile the **Sign in** page shows a **Demo accounts** panel. It lists two accounts the backend
+seeded on first start, with their passwords and **Copy** buttons:
 
-1. Sign in as `demo-admin` with password `lantern-orchard-copper-tide`. The seeded password must be changed first,
-   so the app opens **Change password**.
-2. Enter `lantern-orchard-copper-tide` as the current password and a new password. It must be at least 15
-   characters and hard to guess, such as `granite-meadow-silver-kettle`. It must not contain your username, email or
-   the service name. Choose **Change password**.
-3. The app opens **Two-factor authentication**. Choose **Generate QR code** and scan it with your authenticator app,
-   or type the key shown under it (time-based, 6 digits, 30 seconds). Enter the app's current code and choose
-   **Confirm**. The key is shown only once.
-4. Choose **Continue to the user list**. You are now an enrolled administrator. From now on, each sign-in as
-   `demo-admin` asks for a code on **TOTP Verification**.
+- `demo-user`, an ordinary user;
+- `demo-admin`, an administrator already enrolled in TOTP, with its **current six-digit code**. The code refreshes
+  by itself when its 30-second step ends, so no authenticator app is needed for this account.
+
+1. Choose **Fill in demo-user**, then **Sign in**. **Hello, demo-user** opens. Choose **Sign out**.
+2. Choose **Fill in demo-admin**, note the code, then **Sign in**. On **TOTP Verification**, enter the code and
+   choose **Verify**. The **Users** list opens.
+
+Neither account has to change its password first. The panel, the endpoint behind it and the accounts exist only
+under `dev`: every value comes from the backend at run time, nothing is compiled into the SPA, and any other profile
+refuses them (details in [`backend/README.md` → Demo accounts](backend/README.md#demo-accounts-dev-only)). To see the
+forced password change and authenticator enrolment, invite a new administrator, as
+[UAT-12 part B](docs/uat/uat-guide.md#part-b-a-new-administrator-forced-change-and-enrolment) does.
 
 The app is now ready to use. Stop either server with **Ctrl+C** in its terminal.
 
@@ -162,9 +167,10 @@ The app is now ready to use. Stop either server with **Ctrl+C** in its terminal.
 | The SPA says "The service is unavailable. Try again later." | The backend is not running, or the page was opened on another origin (such as `127.0.0.1`). |
 | `npm ci` or `npm run dev` fails with "npm.ps1 cannot be loaded because running scripts is disabled on this system" | Windows PowerShell's default execution policy blocks npm's PowerShell shim. Run `npm.cmd ci` and `npm.cmd run dev` instead, or allow local scripts once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. |
 | "Too many attempts. Wait a moment, then try again." | A rate limit was hit. Everything local comes from one address, so the per-source limits are shared by every browser window. Most limits refill within seconds. Reset requests for one email address allow 3 and then one more every 20 minutes ("Too many reset requests for this address…"). A source that has driven five accounts into lockout is refused for other usernames for up to an hour. |
-| The correct password is refused as "The username or password is not correct." | The account may be locked: 5 wrong passwords within 20 minutes lock it for 20 minutes, and the message never says so. Wait, or have an administrator choose **Unlock account**. For `demo-admin`, see the recovery runner in [`backend/README.md`](backend/README.md#recovering-an-account-with-the-recovery-runner). An unchanged seed password also expires 30 days after first start. |
-| A TOTP code is refused | Check that the phone's clock is set automatically. A code works once only, so wait for the next one. After 10 wrong codes in 20 minutes the factor locks for 20 minutes. |
-| You want a clean start | Stop the backend, delete `backend/data/` (and optionally `backend/logs/`), and start it again. The admin is seeded afresh. |
+| The correct password is refused as "The username or password is not correct." | The account may be locked: 5 wrong passwords within 20 minutes lock it for 20 minutes, and the message never says so. Wait, or have an administrator choose **Unlock account**. For `demo-admin`, see the recovery runner in [`backend/README.md`](backend/README.md#recovering-an-account-with-the-recovery-runner). A forced-change credential also expires 30 days after it is issued. |
+| The sign-in page has no **Demo accounts** panel | The backend is not running under `dev`, `APP_DEV_DEMOACCOUNTS_ENABLED` is `false`, or the database predates the demo accounts: stop the backend, delete `backend/data/`, and start it again. |
+| A TOTP code is refused | Check that the phone's clock is set automatically. A code works once only, so wait for the next one (the demo panel shows it). After 10 wrong codes in 20 minutes the factor locks for 20 minutes. |
+| You want a clean start | Stop the backend, delete `backend/data/` (and optionally `backend/logs/`), and start it again. The demo accounts are seeded afresh. |
 
 ## User Acceptance Test (UAT)
 
@@ -173,7 +179,9 @@ quotes its acceptance criteria and gives the preconditions, numbered browser ste
 and a Pass/Fail box. The scripts assume the [Setup](#setup) above on a fresh database. They exercise the PRD's
 negative paths too: wrong passwords, lockout, throttling, invalid and expired links, and self-action refusals. Where
 the app deliberately differs from the PRD's wording, such as the two-step registration or the 15-character
-minimum, the script says so and cites the record.
+minimum, the script says so and cites the record. The administrator scripts sign in as the pre-enrolled `demo-admin`
+from the sign-in page's demo panel; UAT-12 shows the forced password change and authenticator enrolment on a newly
+invited administrator, and the configuration-driven bootstrap with the demo accounts turned off.
 
 | ID | User story | Script |
 |---|---|---|

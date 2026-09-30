@@ -15,17 +15,19 @@ Where the application deliberately behaves differently from the PRD's wording, t
    database**. Start the backend with the `Tee-Object` (or `tee`) variant from Setup step 4, so that its console is
    also saved in `backend-console.log`. **Skip Setup step 7**: it is the start of
    [UAT-12](#uat-12-initial-admin-bootstrap), so run UAT-12 part A first.
-2. Keep three things open: the browser, the backend console, and your **authenticator app**, which holds the code
-   for `demo-admin`. "The backend console" below means terminal 1 or, more reliably, `backend-console.log`
-   (README Setup, step 6, shows how to pull the newest link out of it).
+2. Keep three things open: the browser, the backend console, and your **authenticator app**, which UAT-12 part B
+   enrols for a new administrator. `demo-admin` needs no app: the **Demo accounts** panel on the sign-in page always
+   shows its current code (see [Signing in as the administrator](#signing-in-as-the-administrator)). "The backend
+   console" below means terminal 1 or, more reliably, `backend-console.log` (README Setup, step 6, shows how to pull
+   the newest link out of it).
 3. Recommended order:
-   1. UAT-12 part A.
+   1. UAT-12 parts A and B.
    2. Create `uat-carol` and `uat-dave` ([Appendix A](#appendix-a-register-and-activate-an-account)), then run UAT-03
       steps 1–5 and UAT-07 part B steps 1–3. Both start a clock.
    3. While the clocks run: UAT-01, 02, 04, 05, 06, 07 part A, 08, 09, 10 and 11, and UAT-03 steps 9–11.
    4. UAT-03 steps 6–8 (at least 20 minutes after its step 2) and UAT-07 part B steps 4–6 (more than 30 minutes after
       its step 2).
-   5. UAT-12 part B last, because it restarts the backend.
+   5. UAT-12 parts C and D last, because they restart the backend, and part D needs an empty database.
 
 ### Things a tester must know
 
@@ -46,8 +48,9 @@ Where the application deliberately behaves differently from the PRD's wording, t
   sign-in.
 - **Step-up codes.** Administrator changes need an authenticator code from the last 10 minutes. If it is older, a
   **TOTP Verification** dialog asks for a new code. Enter it, choose **Verify**, and the change completes. This is
-  expected. A code can be used once only, so if one is refused just after you used it, wait
-  for the next.
+  expected. For `demo-admin`, read the code from a second tab of the same window left open on
+  http://localhost:5173/sign-in: its **Demo accounts** panel shows the current code even while you are signed in. A
+  code can be used once only, so if one is refused just after you used it, wait for the next.
 - **Waiting.** The lockout lasts **20 minutes** and a reset link **30 minutes**. There is no dev-only clock shortcut.
   The only shortcut for a lock is an administrator's **Unlock account**, which UAT-03 lists as an optional step but
   which does not prove the cooldown.
@@ -69,7 +72,9 @@ refused, which is why each account has its own.
 
 | Account | Email | Password | Used in |
 |---|---|---|---|
-| `demo-admin` | `demo-admin@admin.invalid` (seeded) | seed `lantern-orchard-copper-tide`, then `granite-meadow-silver-kettle` | UAT-08 to UAT-12 |
+| `demo-admin` | `demo-admin@demo.invalid` (seeded, dev only) | `granite-falcon-ember-quarry`, and the code from the sign-in page's demo panel | UAT-08 to UAT-12 |
+| `demo-user` | `demo-user@demo.invalid` (seeded, dev only) | `violet-harbour-signal-meadow` | UAT-12 |
+| `uat-ivy` | `ivy@example.test` (invited as an administrator) | `tulip-anchor-velvet-comet`, then `juniper-cobalt-rain-lantern` | UAT-12 |
 | `uat-alice` | `alice@example.test` | `copper-willow-evening-drum` | UAT-01, 04, 05, 08 |
 | `uat-bob` | `bob@example.test` | `saffron-glacier-tuesday-kite` | UAT-02, 03 |
 | `uat-carol` | `carol@example.test` | `maple-orbit-canvas-thunder` | UAT-03 |
@@ -81,9 +86,11 @@ refused, which is why each account has its own.
 
 ### Signing in as the administrator
 
-After UAT-12 part A, a `demo-admin` sign-in goes like this: go to http://localhost:5173/sign-in and sign in as
-`demo-admin` / `granite-meadow-silver-kettle`. The **TOTP Verification** page opens. Enter the authenticator's
-current code and choose **Verify**. The **Users** list opens.
+`demo-admin` is seeded already enrolled, and its password never has to change. Go to
+http://localhost:5173/sign-in. In the **Demo accounts** panel, choose **Fill in demo-admin** (or type `demo-admin` /
+`granite-falcon-ember-quarry`) and note the code shown beside **Code**, then choose **Sign in**. The **TOTP
+Verification** page opens. Enter the code and choose **Verify**. The **Users** list opens. If the code has changed
+since you noted it, a second tab on the sign-in page shows the current one.
 
 ---
 
@@ -133,7 +140,7 @@ current code and choose **Verify**. The **Users** list opens.
 | 12 | Register with username `uat-alice2` and the taken email `alice@example.test`. | The same **Check your email** answer as step 3. The backend console shows **no** new `Dev-only ACTIVATION link` line. | AC2 | ☐ |
 | 13 | Sign in as the administrator ([how](#signing-in-as-the-administrator)) and look at the **Users** list. | `uat-alice` is listed with `alice@example.test`, role `USER`, status `Enabled` and today's date in UTC (before 08:00 in Singapore that is yesterday). No `uat-alice2` account exists. Sign out. | AC1, AC2 | ☐ |
 | 14 | Search the backend console and `backend/logs/audit.ndjson` for `copper-willow-evening-drum`, `passwordpassword` and `short-pass`. | No match anywhere. | AC4 | ☐ |
-| 15 | The BCrypt check needs the backend stopped, so it is done in UAT-12 part B, step 2. | See UAT-12. | AC1, AC4 | ☐ |
+| 15 | The BCrypt check needs the backend stopped, so it is done in UAT-12 part C, step 2. | See UAT-12. | AC1, AC4 | ☐ |
 
 **Result:** ☐ Pass ☐ Fail  Notes: ______________________
 
@@ -328,7 +335,7 @@ The token lasts 30 minutes.
 | 5 | Check the backend console. | A new line: `Dev-only PASSWORD_RESET link (no mail is sent): http://localhost:5173/reset#token=…`. Keep the link for UAT-07. | AC2 | ☐ |
 | 6 | Search `backend/logs/audit.ndjson` for the token part of the link, which is everything after `#token=`. | No match. The token is not written to the audit log. | AC2 | ☐ |
 | 7 | Up to about 16 minutes after step 2, search the audit file for `Password reset requested.` | A row with an `event.count` covering the requests from this source, and no email address or `user.id`. | AC1 | ☐ |
-| 8 | The check that only the token's hash is stored needs the backend stopped, so it is UAT-12 part B, step 2. Single use is UAT-07 step 8, and the expiry is UAT-07 part B. | See those steps. | AC2 | ☐ |
+| 8 | The check that only the token's hash is stored needs the backend stopped, so it is UAT-12 part C, step 2. Single use is UAT-07 step 8, and the expiry is UAT-07 part B. | See those steps. | AC2 | ☐ |
 
 **Result:** ☐ Pass ☐ Fail  Notes: ______________________
 
@@ -554,49 +561,79 @@ the administrator.
 
 **Deviations:** the seed credential comes from the `APP_ADMIN_USERNAME` and `APP_ADMIN_PASSWORD` environment
 variables, which bind to `app.admin.username` and `app.admin.password`. It is a forced-change credential: it must be
-changed at first sign-in and expires 30 days after first start. The admin must then enrol TOTP
+changed at first sign-in and expires 30 days after issue. An administrator must then enrol TOTP
 ([ADR-047](../adr/0047-bootstrap-refresh-validation-runner-seeding.md),
-[ADR-046](../adr/0046-lazy-forced-change-expiry-pre-authentication.md)).
+[ADR-046](../adr/0046-lazy-forced-change-expiry-pre-authentication.md)). Under the `dev` profile the first start
+also seeds two **dev-only demo accounts** before the bootstrap runs: `demo-user`, and `demo-admin`, an administrator
+already enrolled in TOTP with no forced change. The bootstrap then finds an `ADMIN` and seeds none. Part B shows the
+forced change and the enrolment on a newly invited administrator; part D turns the demo accounts off to show the
+bootstrap from configuration.
 
 **Preconditions:** part A runs on an **empty** database (no `backend/data/` folder before the first start) with the
-demo values from the Setup. Part B runs after the other scripts.
+demo values from the Setup. Part B needs the authenticator app. Parts C and D run after the other scripts.
 
 ### Part A: first start
 
 | # | Action | Expected result | Covers | P/F |
 |---|---|---|---|---|
-| 1 | Start the backend for the first time (Setup, step 4). Search its console for `Administrator bootstrap`. | `Administrator bootstrap: seeded user.id=… with a forced-change credential`. | AC1 | ☐ |
-| 2 | Open http://localhost:5173. | **Sign in**. | AC1 | ☐ |
+| 1 | Start the backend for the first time (Setup, step 4). Search its console for `Demo accounts` and `Administrator bootstrap`. | `Demo accounts: seeded demo-user`, `Demo accounts: seeded demo-admin, enrolled in TOTP`, then `Administrator bootstrap: an ADMIN account exists, so none is seeded`. | AC1, AC2 | ☐ |
+| 2 | Open http://localhost:5173. | **Sign in**, with a **Demo accounts** panel listing `demo-user` and `demo-admin` with their passwords, and a six-digit **Code** for `demo-admin` that changes every 30 seconds. | AC1 | ☐ |
 | 3 | Sign in as `demo-admin` with a wrong password, `wrong-password-for-demo`. | "The username or password is not correct." | AC1 | ☐ |
-| 4 | Sign in as `demo-admin` / `lantern-orchard-copper-tide`. | **Change password**, with "You must choose a new password before you can continue." | AC1 | ☐ |
+| 4 | Choose **Fill in demo-admin**, note the code, and choose **Sign in**. | **TOTP Verification**: no password change is asked for. | AC1 | ☐ |
+| 5 | Enter `000000` and choose **Verify**. | "That code was not accepted." | AC1 | ☐ |
+| 6 | Enter the code from the panel and choose **Verify**. If it has changed since you noted it, open http://localhost:5173/sign-in in a new tab and use the one shown there. | **Users** lists `demo-admin` · `demo-admin@demo.invalid` · `ADMIN` · `Enabled`, and `demo-user` · `demo-user@demo.invalid` · `USER` · `Enabled`. | AC1 | ☐ |
+
+### Part B: a new administrator, forced change and enrolment
+
+A forced-change credential and TOTP enrolment, on an administrator created through the invite. Window A is signed in
+as `demo-admin`.
+
+| # | Action | Expected result | Covers | P/F |
+|---|---|---|---|---|
+| 1 | **Window A:** on **Users**, choose **Invite a user**. Enter username `uat-ivy`, email `ivy@example.test`, role **Administrator**, and choose **Create invitation**. Enter a code if asked. | **Invitation for uat-ivy**, with a link shown once. | AC1 | ☐ |
+| 2 | **Window B:** open the link. Enter `tulip-anchor-velvet-comet` under **Choose a password** and choose **Activate**. | "Your password is set. You can now sign in." | AC1 | ☐ |
+| 3 | **Window A:** choose **Back to the user list**, open `uat-ivy`, choose **Disable account**, then **Enable account**. Enter a code if asked. | "Account enabled. The user must change their password when they next sign in." A re-enable issues a forced-change credential. | AC1 | ☐ |
+| 4 | **Window B:** sign in as `uat-ivy` / `tulip-anchor-velvet-comet`. | **Change password**, with "You must choose a new password before you can continue." | AC1 | ☐ |
 | 5 | Open http://localhost:5173/admin/users. | The app returns to **Change password**. Nothing else is reachable until the change. | AC1 | ☐ |
-| 6 | Enter current password `lantern-orchard-copper-tide` and new password `demo-admin-password-1`, then choose **Change password**. | The server refuses it: "Do not use your username, your email address or the name of this service in your password." The seed account runs the same policy as any other. | AC1 | ☐ |
-| 7 | Enter new password `granite-meadow-silver-kettle` and choose **Change password**. | **Two-factor authentication**: "Administrators must use an authenticator app…" | AC1 | ☐ |
+| 6 | Enter current password `tulip-anchor-velvet-comet` and new password `uat-ivy-password-2026`, then choose **Change password**. | The server refuses it: "Do not use your username, your email address or the name of this service in your password." | AC1 | ☐ |
+| 7 | Enter new password `juniper-cobalt-rain-lantern` and choose **Change password**. | **Two-factor authentication**: "Administrators must use an authenticator app…" | AC1 | ☐ |
 | 8 | Choose **Generate QR code**. Scan the QR code, or type the key shown (time-based, 6 digits, 30 seconds), into your authenticator app. | A QR code and a key of 32 letters and digits, in groups. | AC1 | ☐ |
 | 9 | Enter `000000` and choose **Confirm**. | "That code was not accepted. Check the code in your authenticator app and try again." | AC1 | ☐ |
 | 10 | Enter the app's current code and choose **Confirm**. | "Your authenticator app is set up…" | AC1 | ☐ |
-| 11 | Choose **Continue to the user list**. | **Users** lists exactly one account: `demo-admin`, `demo-admin@admin.invalid`, `ADMIN`, `Enabled`. | AC1 | ☐ |
+| 11 | Choose **Continue to the user list**. | **Users** lists `uat-ivy` · `ivy@example.test` · `ADMIN` · `Enabled`. Choose **Sign out**. | AC1 | ☐ |
 
-### Part B: restart, and the storage checks
+### Part C: restart, and the storage checks
 
 | # | Action | Expected result | Covers | P/F |
 |---|---|---|---|---|
 | 1 | Stop the backend with **Ctrl+C** in terminal 1. | The process ends. | AC2 | ☐ |
 | 2 | In terminal 1, still in the repository root, run the storage check below. | `BCrypt cost-12 hashes found:` a number of at least 10, and `False` on every other line. | AC1; Story 1 AC1, AC4; Story 6 AC2 | ☐ |
 | 3 | In the same terminal, set a **different** seed username, then start the backend again with the same command as before: `$env:APP_ADMIN_USERNAME = "uat-second-admin"` (bash: `export APP_ADMIN_USERNAME=uat-second-admin`). | The backend starts. | AC2 | ☐ |
-| 4 | Search the new console output for `Administrator bootstrap`. | `Administrator bootstrap: an ADMIN account exists, so none is seeded`. | AC2 | ☐ |
-| 5 | Sign in as the administrator with `granite-meadow-silver-kettle` and a code. | The **Users** list still has exactly one `ADMIN` account, `demo-admin`, and no `uat-second-admin`. | AC2 | ☐ |
+| 4 | Search the new console output for `Demo accounts` and `Administrator bootstrap`. | `Demo accounts: demo-user exists or is held by a tombstone, so it is left as it is` (the same for `demo-admin`), and `Administrator bootstrap: an ADMIN account exists, so none is seeded`. | AC2 | ☐ |
+| 5 | Sign in as the administrator ([how](#signing-in-as-the-administrator)). | The **Users** list has the `ADMIN` accounts `demo-admin` and `uat-ivy` only, and no `uat-second-admin`. | AC2 | ☐ |
 | 6 | Sign in as `uat-second-admin` / `lantern-orchard-copper-tide`. | "The username or password is not correct." No such account exists. | AC2 | ☐ |
 | 7 | Stop the backend, and set `$env:APP_ADMIN_USERNAME = "demo-admin"` back. | | — | ☐ |
 
-Storage check (step 2), in PowerShell from the repository root, with the backend stopped because H2 locks the file
+### Part D: the bootstrap from configuration
+
+With the demo accounts turned off, the first start on an empty database seeds the administrator from
+`APP_ADMIN_USERNAME` and `APP_ADMIN_PASSWORD`, as every non-dev deployment does.
+
+| # | Action | Expected result | Covers | P/F |
+|---|---|---|---|---|
+| 1 | With the backend stopped, rename `backend\data` to `backend\data-uat` (it keeps the database of parts A to C). Run `$env:APP_DEV_DEMOACCOUNTS_ENABLED = "false"` (bash: `export APP_DEV_DEMOACCOUNTS_ENABLED=false`), and start the backend with the same command as before. | The backend starts. Its console has `Administrator bootstrap: seeded user.id=… with a forced-change credential`, and no `Demo accounts` line. | AC1 | ☐ |
+| 2 | Open http://localhost:5173. | **Sign in**, with no **Demo accounts** panel. | AC1 | ☐ |
+| 3 | Sign in as `demo-admin` / `lantern-orchard-copper-tide`. | **Change password**, with "You must choose a new password before you can continue." The seed holds a forced-change credential. | AC1 | ☐ |
+| 4 | Choose **Sign out** and stop the backend. Run `Remove-Item Env:APP_DEV_DEMOACCOUNTS_ENABLED` (bash: `unset APP_DEV_DEMOACCOUNTS_ENABLED`), delete `backend\data`, and rename `backend\data-uat` back to `backend\data` if you want the UAT database again. | | — | ☐ |
+
+Storage check (part C, step 2), in PowerShell from the repository root, with the backend stopped because H2 locks the file
 while it runs. It reads every activation and reset token from `backend-console.log` (Setup step 4), so run it before
 restarting the backend, which overwrites that file. Add any other password you used to the list:
 
 ```powershell
 $db = [IO.File]::ReadAllText("$PWD\backend\data\secured-hello.mv.db", [Text.Encoding]::GetEncoding(28591))
 "BCrypt cost-12 hashes found: " + ([regex]::Matches($db, '\{bcrypt\}\$2a\$12\$')).Count
-foreach ($p in 'lantern-orchard-copper-tide', 'granite-meadow-silver-kettle', 'copper-willow-evening-drum', 'saffron-glacier-tuesday-kite', 'orchid-thunder-basket-lemon') {
+foreach ($p in 'granite-falcon-ember-quarry', 'violet-harbour-signal-meadow', 'tulip-anchor-velvet-comet', 'juniper-cobalt-rain-lantern', 'copper-willow-evening-drum', 'saffron-glacier-tuesday-kite', 'orchid-thunder-basket-lemon') {
   "$p stored in plaintext: " + $db.Contains($p)
 }
 $tokens = Select-String -Path backend-console.log -Pattern '#token=([A-Za-z0-9_-]+)' | ForEach-Object { $_.Matches[0].Groups[1].Value }
@@ -605,7 +642,7 @@ $tokens = Select-String -Path backend-console.log -Pattern '#token=([A-Za-z0-9_-
 ```
 
 The `tokens checked` line must show a number above 0 (one per link the backend logged), and its result line `False`.
-Every password set during the UAT, the seed password included, went through the same password service, and the
+Every password set during the UAT, the demo accounts' included, went through the same password service, and the
 database holds only `{bcrypt}$2a$12$…` hashes of them: BCrypt at cost 12. The count is higher than the number of
 accounts because the database file keeps old versions of changed rows and the password history. No password and no
 token appears in plaintext. The token table holds only their SHA-256 hashes.

@@ -60,7 +60,7 @@ Accounts are created and managed only by admins. An admin creates an Account (or
 46. As a developer, I want the local `{noop}password` sign-in and the auto-creation of unknown usernames removed, so that the demo cannot be entered with a guessable password.
 47. As a developer, I want the same login and session behavior in every profile, so that local testing reflects production.
 48. As a developer, I want schema changes delivered as changelogs that run on H2 and MSSQL, so that cloud profiles get a schema.
-49. As a frontend user, I want a sign-in page that shows the generic failure and any delay message, so that I know why I was refused.
+49. As a frontend user, I want a sign-in page that shows the generic failure, and a delay message when the IP throttle answers 429, so that I know why I was refused. (Account backoff deliberately returns the same generic 401 for enumeration resistance, so only the IP throttle produces a delay message.)
 50. As a frontend user, I want a change-password page with two password fields, so that I can complete the forced change.
 51. As an admin using the SPA, I want pages to create Accounts, reset passwords and manage Accounts, so that I do not need raw API calls.
 

@@ -53,7 +53,8 @@ See [CONTEXT.md](../CONTEXT.md) for **Account**, **Role** and **Temporary Passwo
 - Given consecutive failed logins against one account beyond a threshold (default 3), when a further failure occurs, then `locked_until` is set to now plus a delay that doubles per failure from a base delay (default 1 s) up to a cap (default 15 min). Threshold, base delay and cap are properties.
 - Given the backoff has elapsed and the correct password is submitted, then login succeeds and `failed_login_attempts` resets.
 - Given an admin resets the account's password (Story 6), then `failed_login_attempts` and `locked_until` are cleared.
-- Given repeated failed attempts from one IP across multiple usernames beyond a threshold, then further attempts from that IP are throttled independently of any account's state. The counter is in memory. `X-Forwarded-For` is trusted only when `server.forward-headers-strategy` is set for a known proxy.
+- Given repeated failed attempts from one IP across multiple usernames beyond a threshold, then further attempts from that IP are throttled independently of any account's state. The counter is in memory. `X-Forwarded-For` is trusted only when `server.forward-headers-strategy` is set for a known proxy (the `feat-load-balancer` profile in cloud environments).
+- Account backoff returns the same generic 401 as any bad sign-in (enumeration resistance); it never tells the caller a delay is running. Only the IP throttle answers 429 with `Retry-After`, so any "try again later" message in the SPA comes from that 429 alone.
 
 ### Logout
 

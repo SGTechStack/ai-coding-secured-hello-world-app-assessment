@@ -46,10 +46,16 @@ import sg.securedhello.testsupport.TotpFactors;
 @ExtendWith(OutputCaptureExtension.class)
 class SessionReconciliationRestartTest {
 
-    private static final String ACTION = "session-reconciliation";
+    /** The sweep's row; its action, {@code session-end}, is shared with the other session-end rows. */
+    private static final String ROW = "Sessions reconciled at startup.";
 
     @TempDir
     Path database;
+
+    /** The sweep's rows in {@code output}. */
+    private static List<Map<String, Object>> swept(String output) {
+        return EcsJson.rows(output).stream().filter(row -> ROW.equals(row.get("message"))).toList();
+    }
 
     private Boot boot(Consumer<ConfigurableApplicationContext> whileRunning,
             ApplicationListener<WebServerInitializedEvent> atPortOpen) {
@@ -119,7 +125,7 @@ class SessionReconciliationRestartTest {
         assertThat(second.failure()).isNull();
         assertThat(atPortOpen.get()).as("the store as the port opened").containsExactlyInAnyOrderElementsOf(
                 survivors.values());
-        List<Map<String, Object>> swept = EcsJson.rowsWithAction(output.getOut().substring(mark), ACTION);
+        List<Map<String, Object>> swept = swept(output.getOut().substring(mark));
         assertThat(swept).singleElement().satisfies(row -> assertThat(row)
                 .containsEntry("log.logger", "audit")
                 .containsEntry("event.type", List.of("end"))
@@ -132,7 +138,7 @@ class SessionReconciliationRestartTest {
                 .containsExactlyInAnyOrderElementsOf(survivors.values()), event -> { });
 
         assertThat(third.failure()).isNull();
-        assertThat(EcsJson.rowsWithAction(output.getOut().substring(mark), ACTION)).singleElement()
+        assertThat(swept(output.getOut().substring(mark))).singleElement()
                 .satisfies(row -> assertThat(row).containsEntry("session.ended_count", 0));
     }
 

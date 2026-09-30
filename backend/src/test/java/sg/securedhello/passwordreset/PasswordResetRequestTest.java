@@ -201,7 +201,7 @@ class PasswordResetRequestTest extends CtxDefaultTest {
             emitter.closeKeyingWindow();
 
             assertThat(audit.withMessage(REQUESTED_ROW)).hasSize(2).allSatisfy(row -> assertThat(row)
-                    .containsEntry("event.action", "password-reset-request").containsEntry("event.count", 1)
+                    .containsEntry("event.action", "password-reset").containsEntry("event.count", 1)
                     .doesNotContainKey("user.id"));
         }
     }

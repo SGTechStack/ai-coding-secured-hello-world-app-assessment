@@ -9,7 +9,8 @@ admin user management. This file is the project's glossary. It defines words, no
 **Pending registration**:
 An account record holding a reserved username and an email address but no password, created by self-registration
 or by an admin invite. It becomes usable only when its activation token is redeemed. A self-registered one lapses
-24 hours after its last registration.
+24 hours after its last registration, and an invite once its admin-issued activation token has expired unredeemed
+(24 hours after the last invite). A lapsed one no longer holds its username or email address.
 _Avoid_: unverified account, unconfirmed user
 
 **Username hold**:

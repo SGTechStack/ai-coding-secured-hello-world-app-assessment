@@ -56,6 +56,14 @@ import sg.securedhello.audit.AuditRowDefinition.Severity;
  *   <li>Regenerate the inventory with {@code -Daudit-inventory.regenerate=true} and commit it.</li>
  * </ol>
  * Nothing else changes: the emitter validates the keys, derives the request fields and writes the row.
+ *
+ * <h2>The action</h2>
+ * {@code event.action} is a value of {@code Log_Schema.md}'s closed enum, never a new one (R-STD-004; T-AUD-046): the
+ * message and {@code event.type} tell rows of one action apart. A TOTP verification, and its factor's lock and
+ * disable, are {@code user-authentication}, like the password's; a reset request is {@code password-reset}; the
+ * startup reconciliation, which ends sessions, is {@code session-end}; and a TOTP context mismatch, a ciphertext
+ * presented as another account's, is {@code access-control}, since the key is not a KMS key ({@code KMS_DECRYPT}
+ * would misname it; ADR-022).
  */
 public enum AuditEvent {
 
@@ -153,7 +161,7 @@ public enum AuditEvent {
      * address names an account, so the row never confirms one exists (REJ-002). Anyone can trigger it, so it is a
      * tier-1 keyed row: one per source and keying window, with its count (ADR-019).
      */
-    PASSWORD_RESET_REQUESTED(row("password-reset-request", "Password reset requested.")
+    PASSWORD_RESET_REQUESTED(row("password-reset", "Password reset requested.")
             .keyed(Keying.SOURCE)
             .build()),
 
@@ -328,7 +336,7 @@ public enum AuditEvent {
             .build()),
 
     /** Row 38: a code verified against the enrolled factor, which was granted or renewed to the session (ADR-021). */
-    TOTP_VERIFIED(row("totp-verify", "TOTP verification succeeded.")
+    TOTP_VERIFIED(row("user-authentication", "TOTP verification succeeded.")
             .type("user")
             .required(USER_ID)
             .build()),
@@ -337,7 +345,7 @@ public enum AuditEvent {
      * Row 39: a code did not verify against the enrolled factor: wrong, outside the window, or a replay (R-MFA-017).
      * Every guess costs the password, so the row always names the account (ADR-027).
      */
-    TOTP_VERIFICATION_FAILED(row("totp-verify", "TOTP verification failed.")
+    TOTP_VERIFICATION_FAILED(row("user-authentication", "TOTP verification failed.")
             .type("user")
             .outcome(Outcome.FAILURE)
             .level(Level.WARN, Severity.MEDIUM)
@@ -348,7 +356,7 @@ public enum AuditEvent {
      * Row 40: consecutive wrong codes locked an administrator's factor for 20 minutes (tier 1; ADR-027). WARN, once
      * per transition; the lock lifts by itself.
      */
-    TOTP_FACTOR_LOCKED(row("totp-verify", "TOTP factor locked.")
+    TOTP_FACTOR_LOCKED(row("user-authentication", "TOTP factor locked.")
             .type("error")
             .outcome(Outcome.FAILURE)
             .level(Level.WARN, Severity.HIGH)
@@ -360,7 +368,7 @@ public enum AuditEvent {
      * password change and ended the account's sessions. ERROR and critical, like the password's disable: an automatic
      * trip, which only rebinding clears, and one trigger of the break-glass runner.
      */
-    TOTP_FACTOR_DISABLED(row("totp-verify", "TOTP factor disabled.")
+    TOTP_FACTOR_DISABLED(row("user-authentication", "TOTP factor disabled.")
             .type("error")
             .outcome(Outcome.FAILURE)
             .level(Level.ERROR, Severity.CRITICAL)
@@ -431,7 +439,8 @@ public enum AuditEvent {
 
     /**
      * Row 34: {@code AdminActionGuard} refused an admin mutation, as a self-action or under the two-admin invariant
-     * (ADR-048). One row per refused attempt; nothing changed.
+     * (ADR-048), or its lock set timed out under contention, so the guard could not run. One row per refused attempt;
+     * nothing changed.
      */
     ADMIN_ACTION_REFUSED(row("user-administration", "Administrative action refused.")
             .type("error")
@@ -483,7 +492,7 @@ public enum AuditEvent {
      * Row 42: a TOTP envelope's context prefix did not match the row it was read from, so ciphertext was moved between
      * users or replayed across key versions. A data-integrity alarm, not a decrypt error (ADR-028; R-MFA-020).
      */
-    TOTP_CONTEXT_MISMATCH(row("totp-decrypt", "TOTP secret context mismatch.")
+    TOTP_CONTEXT_MISMATCH(row("access-control", "TOTP secret context mismatch.")
             .type("error")
             .outcome(Outcome.FAILURE)
             .level(Level.ERROR, Severity.CRITICAL)
@@ -504,7 +513,7 @@ public enum AuditEvent {
      * session the cleanup job had not yet removed. Written during refresh, before the port opens, so it precedes the
      * startup row (row 43).
      */
-    SESSIONS_RECONCILED(row("session-reconciliation", "Sessions reconciled at startup.")
+    SESSIONS_RECONCILED(row("session-end", "Sessions reconciled at startup.")
             .type("end")
             .scope(Scope.PROCESS)
             .required(SESSIONS_ENDED_COUNT, RECONCILED_ACCOUNTS)

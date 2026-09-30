@@ -123,6 +123,48 @@ invitee's own registration still leaves it alone, and a disabled invite is re-en
 of ticket 23 (`AdminInviteTest`, `AdminReinviteTest`, `AdminPasswordResetTest`) prove both protections and the
 re-invite.
 
+## Amendment (2026-09-30, ticket 32): an expired invite lapses like a self-registration
+
+**The defects (review of ticket 29).**
+- **An expired invite held its identifiers for good.** An invite never lapsed, so once its link expired unredeemed
+  its username and address were blocked until an administrator re-invited it: the invitee's own registration of the
+  address created nothing, and no other address could take the username.
+- **An invite could not free a lapsed self-registration.** A self-registration that had lapsed (ADR-032 amendment of
+  2026-09-29) still made an invite of its username or address `USER_EXISTS`, and nothing but another registration of
+  that username could remove it.
+
+**Decision.** One lapse rule, read by both registration and invite (`PendingRegistrationLapse`):
+- **An invite lapses once its admin-issued activation token has expired unredeemed**, which is 24 hours after the
+  last invite, the same period a self-registration gets from its last registration. A re-invite mints a new token and
+  so renews it. The admin-issued marker still decides what an invite is; the role never does.
+- **A lapsed invite is deleted by the next registration that needs it**, without a tombstone and with the lapse audit
+  row (row 48), exactly as a lapsed self-registration is: another address's registration of its username, or a
+  registration of its own address. The address then registers as a new one, so the invitee gets a `USER`-role
+  self-registration and their own emailed link; the invite's role is never inherited, because it was the
+  administrator's to choose (ADR-006).
+- **An invite frees a lapsed pending registration**, self-registered or invited, that holds its username or address:
+  it deletes it under its row lock in the invite's transaction, audits the deletion, and proceeds. A live one still
+  answers `USER_EXISTS`.
+- **Unchanged:** a live invite is never replaced or renamed by a registration (the amendment above); an
+  administrator's re-invite of a pending invite, expired or not, re-issues on the same row; a disabled invite never
+  lapses, because its disable expired the token in place and freeing its identifiers would undo the administrator's
+  decision; a pending row with no activation token at all never lapses (the check fails closed).
+- **A re-enable does not renew an invite; a re-invite does.** A disable expired the invite's token in place, so an
+  invite re-enabled after it has no live token and has lapsed at once. The administrator re-invites it, as the
+  amendment above already says to, which mints a new token and restarts its 24 hours.
+
+**Why this option.** It is the rule ADR-032 already applies to self-registration, for the same reason: a pending
+registration that no one can activate should not squat identifiers forever. The protection this ADR's first amendment
+gives an invite rests on its token being usable; once the token has expired there is nothing left to protect, and
+keeping the identifiers blocked only locked the invitee out. Registration's enumeration stance is unchanged: the wire
+answer is the same 202 in every email state, and the lapse deletion runs in its own short transaction, locking one
+account row, like the other lapse step (T-CRED-027).
+
+**Consequences.** An invitee who misses the 24-hour window can register themselves, or be re-invited, whichever comes
+first. An administrator who wants an unredeemed invite held longer must re-invite it within the day. Tests:
+T-CRED-030 (an expired invite lapses; live, disabled and re-invited ones do not), T-ADM-035 (an invite frees a lapsed
+self-registration), T-CRED-031 (an invite and a registration racing on one identifier never answer 500).
+
 ## Sources
 
 - PRD, Data model (`password_reset_tokens`).

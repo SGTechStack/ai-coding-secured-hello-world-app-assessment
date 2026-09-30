@@ -95,6 +95,7 @@ class ErrorLogLineTest extends CtxDefaultTest {
                 Map.entry("FACTOR_ALREADY_ENROLLED", "conflict none"),
                 Map.entry("FACTOR_DISABLED", "authentication contact-admin"),
                 Map.entry("TWO_ADMIN_INVARIANT", "conflict none"),
+                Map.entry("SERVICE_BUSY", "conflict retry-later"),
                 Map.entry("INTERNAL_ERROR", "server contact-admin")));
     }
 }

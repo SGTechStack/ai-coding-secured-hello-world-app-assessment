@@ -26,11 +26,8 @@ spring:
   application:
     name: secured-hello-world
   # Secrets come from the environment or from files mounted under /run/secrets, never from a committed file (ADR-062;
-  # R-CFG-013). A local .env file, never committed, is read first, so a mounted secret file wins over it (T-CFG-021).
-  config:
-    import:
-      - "optional:file:./.env[.properties]"
-      - "optional:configtree:/run/secrets/"
+  # R-CFG-013). Both imports are in the documents at the end of this file: a local .env file in dev only, then the
+  # mounted secret files in every profile, last, so they win over .env (T-CFG-021; T-CFG-043).
   datasource:
     # H2 file mode only; LOCK_TIMEOUT is pinned on the URL and FILE_LOCK=NO is prohibited. The file lies under
     # app.db.data-dir, which startup checks (R-OBS-019).
@@ -308,3 +305,20 @@ logging:
         version: "@project.version@"
         # service.environment on every line (LOG §5:347); the dev profile overrides it.
         environment: production
+
+---
+# dev only: a local .env file, never committed (.gitignore), for a developer's own secrets. Outside dev a .env file in
+# the working directory is ignored, so a stray one can never supply a production secret (T-CFG-043).
+spring:
+  config:
+    activate:
+      on-profile: dev
+    import:
+      - "optional:file:./.env[.properties]"
+---
+# Every profile: secret files mounted under /run/secrets (R-CFG-013). Imported by the last document, so in dev they
+# win over .env (T-CFG-021). An import already loaded is not loaded again, so this must stay the only configtree import.
+spring:
+  config:
+    import:
+      - "optional:configtree:/run/secrets/"

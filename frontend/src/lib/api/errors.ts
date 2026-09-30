@@ -18,6 +18,7 @@ export const ERROR_CODES = [
   'FACTOR_ALREADY_ENROLLED',
   'FACTOR_DISABLED',
   'TWO_ADMIN_INVARIANT',
+  'SERVICE_BUSY',
   'INTERNAL_ERROR',
 ] as const
 
@@ -49,7 +50,7 @@ export function isProblem(value: unknown): value is Problem {
 export class ApiError extends Error {
   readonly code: ErrorCode
   readonly problem: Problem
-  /** The integer `Retry-After` in seconds, when the response carried one (every 429 does; ADR-014). */
+  /** The integer `Retry-After` in seconds, when the response carried one (every 429 and every `SERVICE_BUSY` 503 does; ADR-014). */
   readonly retryAfterSeconds: number | undefined
 
   constructor(problem: Problem, retryAfterSeconds?: number) {

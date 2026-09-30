@@ -200,7 +200,7 @@ class TotpVerificationTest extends CtxDefaultTest {
 
             assertThat(audit.withMessage("TOTP verification succeeded.")).singleElement()
                     .satisfies(row -> assertThat(row).containsEntry("user.id", admin.id().toString())
-                            .containsEntry("event.action", "totp-verify"));
+                            .containsEntry("event.action", "user-authentication"));
         }
     }
 

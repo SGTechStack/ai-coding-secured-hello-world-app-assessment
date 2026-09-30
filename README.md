@@ -304,7 +304,7 @@ This is a summary. Each item links to the record that governs it. The full pictu
   reason. A password is read from a no-echo prompt, or from stdin with `--non-interactive`, and never from the command line. Every run is audited.
   ([ADR-072](docs/adr/0072-offline-recovery-runner.md))
 - **Configuration validation.** Secrets have no default in any profile and are supplied from the environment or a
-  mounted secret, never from a committed file.
+  mounted secret (in the `dev` profile, also a git-ignored local `.env` file), never from a committed file.
   Startup fails before the port opens when a key is missing, malformed or reused, when configuration is prohibited,
   or when the public demo values are used outside the `dev` profile. Each key's fingerprint, never the key itself, is
   logged at startup. ([ADR-062](docs/adr/0062-secrets-bind-through-configuration-properties.md))

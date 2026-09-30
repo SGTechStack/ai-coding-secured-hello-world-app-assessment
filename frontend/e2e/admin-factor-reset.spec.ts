@@ -35,7 +35,7 @@ test("an administrator resets another administrator's authenticator app, who is 
   await page.getByRole('link', { name: target, exact: true }).click()
 
   await page.getByRole('button', { name: 'Reset authenticator app' }).click()
-  await page.getByRole('button', { name: 'Confirm reset' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Reset', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Authenticator app reset.' })).toBeVisible()
 
   // The reset ended the target's session (ADR-037), and at the next sign-in they are sent to enrolment (ADR-049).

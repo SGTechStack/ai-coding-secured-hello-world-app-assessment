@@ -64,6 +64,7 @@ import sg.securedhello.testsupport.Proves;
 import sg.securedhello.time.ClockConfig;
 import sg.securedhello.user.UserAccountRepository;
 import sg.securedhello.user.PasswordHistoryEntry;
+import sg.securedhello.user.Tombstones;
 import sg.securedhello.user.UserAccount;
 
 /**
@@ -181,6 +182,16 @@ final class ArchitectureRules {
             .that().doNotBelongToAnyOf(AdminActions.class)
             .should().callMethod(UserAccount.class, "setEnabled", boolean.class)
             .because("an enable or disable runs under AdminActionGuard's lock set and checks (ADR-048)");
+
+    /**
+     * T-ADM-014: only the guarded service changes a role or deletes an account with its tombstone. Like the rule above,
+     * it does not see raw SQL; the controller rule and review cover that (ADR-048; ADR-044).
+     */
+    static final ArchRule ONLY_THE_GUARDED_SERVICE_CHANGES_ROLES_OR_DELETES = noClasses()
+            .that().doNotBelongToAnyOf(AdminActions.class)
+            .should().callMethod(UserAccount.class, "setRole", String.class)
+            .orShould().callMethod(Tombstones.class, "deleteLeavingTombstone", UserAccount.class, UUID.class)
+            .because("a role change or delete runs under AdminActionGuard's lock set and checks (ADR-048)");
 
     /** T-ADM-014: only the guarded service removes a TOTP factor, so a factor reset runs under the guard (ADR-049). */
     static final ArchRule ONLY_THE_GUARDED_SERVICE_RESETS_FACTORS = noClasses()

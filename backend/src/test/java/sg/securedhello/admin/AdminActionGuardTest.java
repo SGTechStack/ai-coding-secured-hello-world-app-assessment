@@ -47,21 +47,23 @@ class AdminActionGuardTest {
                 .contains(AdminRefusalReason.SELF_ACTION);
     }
 
-    @Test
-    void atExactlyTwoEnrolledAdminsDisablingTheOtherIsRefused() {
+    @ParameterizedTest
+    @EnumSource(value = Mutation.class, names = {"DISABLE", "DEMOTE", "DELETE"})
+    void atExactlyTwoEnrolledAdminsRemovingTheOtherIsRefused(Mutation mutation) {
         List<UUID> others = new ArrayList<>();
         List<Standing> lockSet = enrolledAdmins(1, others);
 
-        assertThat(AdminActionGuard.decide(Mutation.DISABLE, ACTOR, others.get(0), lockSet))
+        assertThat(AdminActionGuard.decide(mutation, ACTOR, others.get(0), lockSet))
                 .contains(AdminRefusalReason.TWO_ADMIN_INVARIANT);
     }
 
-    @Test
-    void atThreeEnrolledAdminsDisablingOneIsAllowed() {
+    @ParameterizedTest
+    @EnumSource(value = Mutation.class, names = {"DISABLE", "DEMOTE", "DELETE"})
+    void atThreeEnrolledAdminsRemovingOneIsAllowed(Mutation mutation) {
         List<UUID> others = new ArrayList<>();
         List<Standing> lockSet = enrolledAdmins(2, others);
 
-        assertThat(AdminActionGuard.decide(Mutation.DISABLE, ACTOR, others.get(0), lockSet)).isEmpty();
+        assertThat(AdminActionGuard.decide(mutation, ACTOR, others.get(0), lockSet)).isEmpty();
     }
 
     /** ADR-049: at exactly two enrolled admins a factor reset of the other passes; only check 1 applies to it. */
@@ -73,16 +75,18 @@ class AdminActionGuardTest {
         assertThat(AdminActionGuard.decide(Mutation.FACTOR_RESET, ACTOR, others.get(0), lockSet)).isEmpty();
     }
 
-    @Test
-    void enablingIsNeverRefusedByTheCount() {
+    @ParameterizedTest
+    @EnumSource(value = Mutation.class, names = {"ENABLE", "PROMOTE"})
+    void enablingOrPromotingIsNeverRefusedByTheCount(Mutation mutation) {
         UUID subject = UUID.randomUUID();
         List<Standing> lockSet = List.of(enrolledAdmin(ACTOR), enrolledAdmin(subject));
 
-        assertThat(AdminActionGuard.decide(Mutation.ENABLE, ACTOR, subject, lockSet)).isEmpty();
+        assertThat(AdminActionGuard.decide(mutation, ACTOR, subject, lockSet)).isEmpty();
     }
 
-    @Test
-    void disablingSomeoneWhoIsNotCountedLowersNothingSoIsAllowedAtAnyCount() {
+    @ParameterizedTest
+    @EnumSource(value = Mutation.class, names = {"DISABLE", "DEMOTE", "DELETE"})
+    void removingSomeoneWhoIsNotCountedLowersNothingSoIsAllowedAtAnyCount(Mutation mutation) {
         UUID user = UUID.randomUUID();
         UUID invite = UUID.randomUUID();
         UUID disabled = UUID.randomUUID();
@@ -93,8 +97,7 @@ class AdminActionGuardTest {
                 new Standing(unenrolled, true, true, true, false, false, false));
 
         for (UUID subject : List.of(user, invite, disabled, unenrolled)) {
-            assertThat(AdminActionGuard.decide(Mutation.DISABLE, ACTOR, subject, lockSet)).as("%s", subject)
-                    .isEmpty();
+            assertThat(AdminActionGuard.decide(mutation, ACTOR, subject, lockSet)).as("%s", subject).isEmpty();
         }
     }
 

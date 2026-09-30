@@ -123,6 +123,14 @@ public class UserAccount {
         return role;
     }
 
+    /**
+     * An administrator's role change (PRD Story 10), to a {@code roles.name}. Only {@code AdminActions} calls it,
+     * after {@code AdminActionGuard} and under its lock set (ADR-048; ArchUnit).
+     */
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public boolean isEnabled() {
         return enabled;
     }

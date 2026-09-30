@@ -2,6 +2,7 @@ package sg.securedhello.e2e;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,8 @@ import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 
 import sg.securedhello.SecuredHelloApplication;
 import sg.securedhello.mfa.TotpSecretCipher;
@@ -45,13 +48,17 @@ public final class E2eBackend {
      */
     static final List<String> USERNAMES = List.of("chromium", "firefox").stream()
             .flatMap(browser -> List.of("hello", "service-worker", "change-password", "reset", "forced-change",
-                    "golden-path", "disable-admin", "disable-user", "factor-reset-admin",
-                    "factor-reset-target").stream()
+                    "golden-path", "disable-admin", "disable-user", "step-up-admin", "step-up-user",
+                    "role-admin", "role-user", "factor-reset-admin", "factor-reset-target").stream()
                     .map(test -> "e2e-" + browser + "-" + test))
             .toList();
     static final String PASSWORD = "e2e-password-correct-horse";
 
-    /** The disable-admin administrators' TOTP secret, 20 bytes, mirrored in {@code e2e/admin-disable.spec.ts}. */
+    /**
+     * The disable-admin, step-up-admin, role-admin and factor-reset administrators' TOTP secret, 20 bytes, mirrored in
+     * {@code e2e/admin-disable.spec.ts}, {@code e2e/step-up.spec.ts}, {@code e2e/admin-role-delete.spec.ts} and
+     * {@code e2e/admin-factor-reset.spec.ts}.
+     */
     static final byte[] ADMIN_TOTP_SECRET = "e2e-admin-disable-01".getBytes(StandardCharsets.US_ASCII);
 
     private static final String COMMAND_LINE = CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME;
@@ -104,15 +111,16 @@ public final class E2eBackend {
                         + " WHERE username LIKE 'e2e-%-forced-change'");
                 // The golden-path accounts: administrators past the forced change, not yet enrolled.
                 jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-golden-path'");
-                // The disable-admin administrators: enrolled with a known secret, so the spec can answer the challenge.
-                jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-disable-admin'");
-                jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-disable-admin'", UUID.class)
-                        .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
-                                + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
-                                cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));
-                // The factor-reset administrators, actor and target: enrolled with the same known secret.
-                jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-factor-reset-%'");
-                jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-factor-reset-%'", UUID.class)
+                // The enrolled administrators (disable, step-up, role, and both factor-reset accounts): a known secret,
+                // so the specs can answer the challenge.
+                jdbc.update("UPDATE users SET role = 'ADMIN' WHERE username LIKE 'e2e-%-disable-admin'"
+                        + " OR username LIKE 'e2e-%-step-up-admin'"
+                        + " OR username LIKE 'e2e-%-role-admin'"
+                        + " OR username LIKE 'e2e-%-factor-reset-%'");
+                jdbc.queryForList("SELECT id FROM users WHERE username LIKE 'e2e-%-disable-admin'"
+                        + " OR username LIKE 'e2e-%-step-up-admin'"
+                        + " OR username LIKE 'e2e-%-role-admin'"
+                        + " OR username LIKE 'e2e-%-factor-reset-%'", UUID.class)
                         .forEach(id -> jdbc.update("INSERT INTO totp_user_details (user_id, totp_key, key_version,"
                                 + " created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)", id,
                                 cipher.seal(id, ADMIN_TOTP_SECRET), cipher.keyVersion()));
@@ -124,6 +132,17 @@ public final class E2eBackend {
         @Primary
         E2eMailbox e2eMailbox() {
             return new E2eMailbox();
+        }
+
+        /** Ages an account's factor past the mutation window for the step-up test; not an application route. */
+        @Bean
+        FilterRegistrationBean<E2eFactorAge> e2eFactorAgeEndpoint(
+                FindByIndexNameSessionRepository<? extends Session> sessions, Clock clock) {
+            FilterRegistrationBean<E2eFactorAge> registration =
+                    new FilterRegistrationBean<>(new E2eFactorAge(sessions, clock));
+            registration.addUrlPatterns(E2eFactorAge.PATH);
+            registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+            return registration;
         }
 
         /** Serves the mailbox ahead of every application filter; it is not an application route. */

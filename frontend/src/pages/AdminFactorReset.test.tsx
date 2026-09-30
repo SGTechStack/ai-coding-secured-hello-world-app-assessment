@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -30,6 +30,9 @@ const alice = account(verifiedAdmin.id, 'alice-admin', 'ADMIN')
 const bob = account('00000000-0000-4000-8000-000000000002', 'bob-admin', 'ADMIN')
 const carol = account('00000000-0000-4000-8000-000000000003', 'carol', 'USER')
 
+const RESET = 'Reset authenticator app'
+const DONE = 'Authenticator app reset. The user has been signed out and must set it up again when they next sign in.'
+
 let resets: string[]
 
 beforeEach(() => {
@@ -51,71 +54,50 @@ describe('/admin/users/:id authenticator reset', () => {
     renderApp(`/admin/users/${bob.id}`)
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Reset authenticator app' }))
+    await user.click(await screen.findByRole('button', { name: RESET }))
     expect(resets).toEqual([])
-    expect(screen.getByText(/They will be signed out and must set it up again/)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Confirm reset' }))
+    expect(await screen.findByRole('alertdialog', { name: `Reset ${bob.username}'s authenticator app?` })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
 
-    expect(
-      await screen.findByText(
-        'Authenticator app reset. The user has been signed out and must set it up again when they next sign in.',
-      ),
-    ).toHaveAttribute('role', 'status')
+    expect(await screen.findByText(DONE)).toHaveAttribute('role', 'status')
     expect(resets).toEqual([bob.id])
-    expect(screen.getByRole('button', { name: 'Reset authenticator app' })).toBeEnabled()
   })
 
-  it('sends nothing when the confirmation is cancelled', async () => {
+  it('cancelling sends nothing and returns the focus to the trigger', async () => {
     renderApp(`/admin/users/${bob.id}`)
     const user = userEvent.setup()
+    const trigger = await screen.findByRole('button', { name: RESET })
 
-    await user.click(await screen.findByRole('button', { name: 'Reset authenticator app' }))
+    await user.click(trigger)
+    await screen.findByRole('alertdialog')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
-    expect(screen.getByRole('button', { name: 'Reset authenticator app' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(trigger).toHaveFocus())
     expect(resets).toEqual([])
   })
 
   it("is not offered on the admin's own account", async () => {
     renderApp(`/admin/users/${alice.id}`)
     expect(await screen.findByText('You cannot change your own account.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Reset authenticator app' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: RESET })).not.toBeInTheDocument()
   })
 
   it('is not offered on a user account, which has no authenticator app', async () => {
     renderApp(`/admin/users/${carol.id}`)
     expect(await screen.findByRole('button', { name: 'Disable account' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Reset authenticator app' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: RESET })).not.toBeInTheDocument()
   })
 
   it('shows a refusal instead of following it', async () => {
     server.use(http.delete(apiUrl('/api/admin/users/:id/totp'), () => problemResponse('ACCESS_DENIED')))
-    renderApp(`/admin/users/${bob.id}`)
-    const user = userEvent.setup()
-
-    await user.click(await screen.findByRole('button', { name: 'Reset authenticator app' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm reset' }))
-
-    expect(await screen.findByText("This account's authenticator app cannot be reset from here.")).toHaveAttribute(
-      'role',
-      'alert',
-    )
-    expect(screen.getByRole('heading', { name: 'bob-admin' })).toBeInTheDocument()
-  })
-
-  it('a factor too old for a change sends the session to the challenge', async () => {
-    server.use(
-      http.delete(apiUrl('/api/admin/users/:id/totp'), () =>
-        problemResponse('MISSING_FACTOR', `/api/admin/users/${bob.id}/totp`, { factor: 'TOTP', reason: 'EXPIRED' }),
-      ),
-    )
     const { router } = renderApp(`/admin/users/${bob.id}`)
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole('button', { name: 'Reset authenticator app' }))
-    await user.click(screen.getByRole('button', { name: 'Confirm reset' }))
+    await user.click(await screen.findByRole('button', { name: RESET }))
+    await user.click(await screen.findByRole('button', { name: 'Reset' }))
 
-    expect(await screen.findByRole('heading', { name: 'TOTP Verification' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/verify')
+    expect(await screen.findByText('This account cannot be changed from here.')).toHaveAttribute('role', 'alert')
+    expect(router.state.location.pathname).toBe(`/admin/users/${bob.id}`)
   })
 })

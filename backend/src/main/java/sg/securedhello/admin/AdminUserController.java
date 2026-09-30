@@ -22,9 +22,11 @@ import sg.securedhello.user.SignedInUser;
  * The admin user routes. {@code GET /api/admin/users} and {@code GET /api/admin/users/{uuid}}: an administrator
  * holding the factor, of any age within the session, reads the user list or one user (PRD Story 8; ADR-021).
  * {@code PUT /api/admin/users/{uuid}/enabled}: with a factor from the last 10 minutes, enables or disables another
- * account through the guarded {@link AdminActions} (PRD Story 9; ADR-048). Paths are mapped here, in the controller
- * (REJ-024). An unknown UUID is a 404, which the envelope renders as {@code ACCESS_DENIED}, like any other route with
- * nothing behind it (ADR-043). No repository is reached from here (T-ADM-014).
+ * account through the guarded {@link AdminActions} (PRD Story 9; ADR-048); {@code PUT /api/admin/users/{uuid}/role}
+ * and {@code DELETE /api/admin/users/{uuid}}, likewise, change its role or delete it (PRD Stories 10 and 11). Paths
+ * are mapped here, in the controller (REJ-024). An unknown UUID is a 404, which the envelope renders as
+ * {@code ACCESS_DENIED}, like any other route with nothing behind it (ADR-043). No repository is reached from here
+ * (T-ADM-014).
  */
 @RestController
 public class AdminUserController {
@@ -51,6 +53,20 @@ public class AdminUserController {
     public AdminUserView setEnabled(@AuthenticationPrincipal SignedInUser admin, @PathVariable UUID id,
             @Valid @RequestBody EnabledRequest body) {
         return actions.setEnabled(admin.id(), id, body.enabled()).orElseThrow(AdminUserController::notFound);
+    }
+
+    @PutMapping("/api/admin/users/{id}/role")
+    public AdminUserView setRole(@AuthenticationPrincipal SignedInUser admin, @PathVariable UUID id,
+            @Valid @RequestBody RoleRequest body) {
+        return actions.setRole(admin.id(), id, body.role()).orElseThrow(AdminUserController::notFound);
+    }
+
+    @DeleteMapping("/api/admin/users/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal SignedInUser admin, @PathVariable UUID id) {
+        if (!actions.delete(admin.id(), id)) {
+            throw notFound();
+        }
     }
 
     /**

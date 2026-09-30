@@ -48,10 +48,13 @@ The Keying column says how often a row is written (ADR-019): per event, or as a 
 | TOTP_FACTOR_LOCKED | `totp-verify` | `error` | failure | WARN | high | yes | per event | — | `user.id` | — | TOTP factor locked. |
 | TOTP_FACTOR_DISABLED | `totp-verify` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP factor disabled. |
 | TOTP_REMOVED | `totp-remove` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | TOTP factor reset. |
-| ADMIN_USERS_LISTED | `admin-user-list` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.count` | — | Administrator listed users. |
-| ADMIN_USER_VIEWED | `admin-user-read` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Administrator read a user. |
+| ADMIN_USERS_LISTED | `user-administration` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.count` | — | Administrator listed users. |
+| ADMIN_USER_VIEWED | `user-administration` | `access` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Administrator read a user. |
 | ADMIN_USER_ENABLED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account enabled. |
 | ADMIN_USER_DISABLED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account disabled. |
+| ADMIN_USER_PROMOTED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account role changed to administrator. |
+| ADMIN_USER_DEMOTED | `user-administration` | `change` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account role changed to user. |
+| ADMIN_USER_DELETED | `user-administration` | `deletion` | success | INFO | low | yes | per event | — | `user.id`, `user.target.id` | — | Account deleted. |
 | ADMIN_ACTION_REFUSED | `user-administration` | `error` | failure | WARN | medium | yes | per event | `SELF_ACTION`, `TWO_ADMIN_INVARIANT` | `user.id`, `user.target.id` | — | Administrative action refused. |
 | TOTP_CONTEXT_MISMATCH | `totp-decrypt` | `error` | failure | ERROR | critical | yes | per event | — | `user.id` | — | TOTP secret context mismatch. |
 | APPLICATION_STARTUP | `application-startup` | `start` | success | INFO | low | no | per event | — | `host.name`, `host.ip`, `labels.active_profiles`, `labels.ipv6_prefix_length`, `labels.key_fingerprints`, `labels.audit_loggers` | — | Application started. |

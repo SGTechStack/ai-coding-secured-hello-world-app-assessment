@@ -13,6 +13,10 @@ export type FixtureTest =
   | 'golden-path'
   | 'disable-admin'
   | 'disable-user'
+  | 'step-up-admin'
+  | 'step-up-user'
+  | 'role-admin'
+  | 'role-user'
   | 'factor-reset-admin'
   | 'factor-reset-target'
 

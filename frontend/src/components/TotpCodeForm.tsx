@@ -29,13 +29,21 @@ interface TotpCodeFormProps {
   autoFocus?: boolean
   /** Hold the submit button disabled, as while a factor lock lasts. */
   disabled?: boolean
+  /** Show the in-flight spinner on the submit button, which is then not actionable; it also shows while submitting. */
+  showSpinner?: boolean
 }
 
 /**
  * A six-digit TOTP code field and its submit button, labelled, with its error linked by `aria-describedby` and
  * announced as an alert. The field is cleared on every submit, so a used code is never left to resend.
  */
-export function TotpCodeForm({ submitLabel, onCode, autoFocus = false, disabled = false }: TotpCodeFormProps) {
+export function TotpCodeForm({
+  submitLabel,
+  onCode,
+  autoFocus = false,
+  disabled = false,
+  showSpinner = false,
+}: TotpCodeFormProps) {
   const {
     register,
     handleSubmit,
@@ -43,6 +51,8 @@ export function TotpCodeForm({ submitLabel, onCode, autoFocus = false, disabled 
     resetField,
     formState: { errors, isSubmitting },
   } = useForm<CodeForm>({ resolver: zodResolver(schema), defaultValues: { code: '' } })
+
+  const busy = showSpinner || isSubmitting
 
   const onSubmit = async ({ code }: CodeForm) => {
     resetField('code')
@@ -73,10 +83,21 @@ export function TotpCodeForm({ submitLabel, onCode, autoFocus = false, disabled 
         )}
       </div>
       <div>
-        <Button type="submit" disabled={disabled || isSubmitting}>
+        <Button type="submit" disabled={disabled || busy} aria-busy={busy}>
+          {busy && <Spinner />}
           {submitLabel}
         </Button>
       </div>
     </form>
+  )
+}
+
+/** The in-flight indicator: decorative, since the button's `aria-busy` carries the state. */
+function Spinner() {
+  return (
+    <svg data-testid="spinner" aria-hidden="true" viewBox="0 0 24 24" className="animate-spin" fill="none">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeOpacity="0.25" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
   )
 }

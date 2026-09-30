@@ -19,6 +19,7 @@ import sg.securedhello.audit.AuditEvent;
 import sg.securedhello.mfa.TotpFactorRemoval;
 import sg.securedhello.password.PasswordService;
 import sg.securedhello.session.SessionTerminationService;
+import sg.securedhello.user.Tombstones;
 import sg.securedhello.user.UserAccount;
 import sg.securedhello.user.UserAccountRepository;
 
@@ -37,15 +38,18 @@ public class AdminActions {
     private final PasswordService passwords;
     private final SessionTerminationService sessions;
     private final AuditEmitter audit;
+    private final Tombstones tombstones;
     private final TotpFactorRemoval factorRemoval;
 
     AdminActions(AuthenticableAdmins admins, UserAccountRepository accounts, PasswordService passwords,
-            SessionTerminationService sessions, AuditEmitter audit, TotpFactorRemoval factorRemoval) {
+            SessionTerminationService sessions, AuditEmitter audit, Tombstones tombstones,
+            TotpFactorRemoval factorRemoval) {
         this.admins = admins;
         this.accounts = accounts;
         this.passwords = passwords;
         this.sessions = sessions;
         this.audit = audit;
+        this.tombstones = tombstones;
         this.factorRemoval = factorRemoval;
     }
 
@@ -71,6 +75,46 @@ public class AdminActions {
             afterCommit(() -> audit.emit(enabled ? AuditEvent.ADMIN_USER_ENABLED : AuditEvent.ADMIN_USER_DISABLED,
                     AdminActionContext.applied(actorId, subjectId)));
         });
+    }
+
+    /**
+     * Changes {@code subjectId}'s role to {@code role}, {@code USER} or {@code ADMIN}, for {@code actorId} (PRD Story
+     * 10). A change ends the subject's sessions after commit, so no session keeps the old authorities (ADR-037).
+     * Setting the role an account already has changes nothing but is still audited, as {@link #setEnabled} is.
+     *
+     * @return the account as it now is, or empty if no account has {@code subjectId}
+     * @throws AdminActionRefusedException if the guard refuses it; nothing changes
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public Optional<AdminUserView> setRole(UUID actorId, UUID subjectId, String role) {
+        boolean promote = RoleRequest.ADMIN.equals(role);
+        return guarded(promote ? Mutation.PROMOTE : Mutation.DEMOTE, actorId, subjectId, account -> {
+            if (!account.getRole().equals(role)) {
+                account.setRole(role);
+                sessions.endAll(account.getUsername());
+            }
+            afterCommit(() -> audit.emit(promote ? AuditEvent.ADMIN_USER_PROMOTED : AuditEvent.ADMIN_USER_DEMOTED,
+                    AdminActionContext.applied(actorId, subjectId)));
+        });
+    }
+
+    /**
+     * Deletes {@code subjectId} for {@code actorId}, leaving its tombstone in the same transaction (PRD Story 11;
+     * ADR-044), and ends its sessions after commit (ADR-037).
+     *
+     * @return whether an account had {@code subjectId}
+     * @throws AdminActionRefusedException if the guard refuses it; nothing changes
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
+    public boolean delete(UUID actorId, UUID subjectId) {
+        return guarded(Mutation.DELETE, actorId, subjectId, account -> {
+            tombstones.deleteLeavingTombstone(account, actorId);
+            sessions.endAll(account.getUsername());
+            afterCommit(() -> audit.emit(AuditEvent.ADMIN_USER_DELETED,
+                    AdminActionContext.applied(actorId, subjectId)));
+        }).isPresent();
     }
 
     /**

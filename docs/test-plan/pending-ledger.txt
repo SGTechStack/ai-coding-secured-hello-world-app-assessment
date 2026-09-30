@@ -1,4 +1,0 @@
-# Pending ledger for the @Proves traceability gate (ADR-068). One T-ID per line; blank lines and # comments are ignored.
-# Each entry is a test-plan row that has no test yet. A ticket that proves a row removes its line here in the same
-# change. The gate fails when an entry is missing, already proven, or not a row, so this file only shrinks.
-# Ticket 28 deletes it. Reconcile after a merge with the command in backend/README.md.

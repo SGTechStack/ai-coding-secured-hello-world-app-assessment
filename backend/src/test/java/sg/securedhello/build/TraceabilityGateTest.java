@@ -23,13 +23,12 @@ import sg.securedhello.build.fixtures.CitationFixtures;
 import sg.securedhello.build.fixtures.DisabledCitationFixtureTest;
 import sg.securedhello.testsupport.Proves;
 
-/** The traceability gate's decisions, against synthetic plans, ledgers and citations (ADR-068). */
+/** The traceability gate's decisions, against synthetic plans and citations (ADR-068). */
 class TraceabilityGateTest {
 
     private static final String HEADER =
             "| ID | pillar | control | assertion | level | context | isolation | clause | rationale | polarity |";
     private static final String SEPARATOR = "|---|---|---|---|---|---|---|---|---|---|";
-    private static final Path LEDGER = Path.of("pending-ledger.txt");
 
     @TempDir
     Path dir;
@@ -111,20 +110,19 @@ class TraceabilityGateTest {
         assertThatThrownBy(() -> TestPlanTable.readIds(duplicate)).hasMessageContaining("more than once");
     }
 
-    // --- the two-way gate and the ledger ---
+    // --- the strict two-way gate ---
 
     @Test
-    void passesWhenEveryRowHasATestOrALedgerEntry() {
-        TraceabilityGate gate = gate(List.of("T-AUTH-002"), Map.of("T-AUTH-001", Set.of("A#a")));
+    void passesWhenEveryRowHasATestAndEveryCitationIsARow() {
+        TraceabilityGate gate = gate(Map.of("T-AUTH-001", Set.of("A#a"), "T-AUTH-002", Set.of("src/x.test.ts")));
 
         assertThat(gate.problems()).isEmpty();
-        assertThat(gate.ledgerProven()).isEmpty();
     }
 
     @Test
     void failsWhenATestCitesAnUnknownId() {
-        TraceabilityGate gate = gate(List.of("T-AUTH-002"),
-                Map.of("T-AUTH-001", Set.of("A#a"), "T-AUTH-999", Set.of("B#b", "src/x.test.ts")));
+        TraceabilityGate gate = gate(Map.of("T-AUTH-001", Set.of("A#a"), "T-AUTH-002", Set.of("A#b"),
+                "T-AUTH-999", Set.of("B#b", "src/x.test.ts")));
 
         assertThat(gate.problems()).singleElement().asString()
                 .contains("not rows in the test plan")
@@ -132,41 +130,12 @@ class TraceabilityGateTest {
     }
 
     @Test
-    void failsWhenARowHasNoTestAndNoLedgerEntry() {
-        TraceabilityGate gate = gate(List.of(), Map.of("T-AUTH-001", Set.of("A#a")));
+    void failsWhenARowHasNoTest() {
+        TraceabilityGate gate = gate(Map.of("T-AUTH-001", Set.of("A#a")));
 
         assertThat(gate.problems()).singleElement().asString()
-                .contains("ADD these lines to pending-ledger.txt")
+                .contains("Rows with no test")
                 .endsWith("    T-AUTH-002");
-    }
-
-    @Test
-    void failsWhenALedgerEntryAlreadyHasATest() {
-        TraceabilityGate gate = gate(List.of("T-AUTH-001", "T-AUTH-002"), Map.of("T-AUTH-001", Set.of("A#a")));
-
-        assertThat(gate.ledgerProven()).containsExactly("T-AUTH-001");
-        assertThat(gate.problems()).singleElement().asString()
-                .contains("REMOVE these lines from pending-ledger.txt")
-                .endsWith("    T-AUTH-001");
-    }
-
-    @Test
-    void failsOnLedgerEntriesThatAreNotRowsOrAreRepeated() {
-        TraceabilityGate gate = gate(List.of("T-AUTH-002", "T-AUTH-002", "T-GONE-001"),
-                Map.of("T-AUTH-001", Set.of("A#a")));
-
-        assertThat(gate.problems()).hasSize(2)
-                .anySatisfy(problem -> assertThat(problem).contains("not test-plan rows").endsWith("T-GONE-001"))
-                .anySatisfy(problem -> assertThat(problem).contains("more than once").endsWith("T-AUTH-002"));
-    }
-
-    @Test
-    void readsTheLedgerIgnoringBlanksAndComments() throws IOException {
-        Path ledger = Files.writeString(dir.resolve("ledger.txt"), "# pending\n\nT-AUTH-001\n  T-AUTH-002  \n");
-
-        assertThat(TraceabilityGate.readLedger(ledger)).containsExactly("T-AUTH-001", "T-AUTH-002");
-        assertThatThrownBy(() -> TraceabilityGate.readLedger(dir.resolve("absent.txt")))
-                .isInstanceOf(GateFailure.class);
     }
 
     // --- citations ---
@@ -299,8 +268,8 @@ class TraceabilityGateTest {
                 .containsExactlyInAnyOrder("aTest", "aParameterizedTest");
     }
 
-    private TraceabilityGate gate(List<String> ledger, Map<String, Set<String>> citations) {
-        return new TraceabilityGate(Set.of("T-AUTH-001", "T-AUTH-002"), ledger, citations, LEDGER);
+    private static TraceabilityGate gate(Map<String, Set<String>> citations) {
+        return new TraceabilityGate(Set.of("T-AUTH-001", "T-AUTH-002"), citations);
     }
 
     private Path plan(String... lines) throws IOException {

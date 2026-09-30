@@ -48,12 +48,12 @@ Other agents are implementing other tickets in parallel in sibling worktrees; an
   generated `docs/api/error-contract.{md,schema.json}` with `ErrorContractDriftIT` — adding a code or extension member
   means updating the enum/renderer and regenerating with `-Derror-contract.regenerate=true`; SPA `src/lib/api/{errors,client}.ts`,
   MSW fixtures in `src/test/msw/problems.ts`).
-- Ticket 03 (merged at 2184851): `@Proves` traceability gate (`TraceabilityGateIT`), pending ledger
-  `docs/test-plan/pending-ledger.txt` (remove each T-ID you prove), register drift gate (`-Dregister.regenerate=true`),
+- Ticket 03 (merged at 2184851): `@Proves` traceability gate (`TraceabilityGateIT`; strict since ticket 28: every
+  test-plan row needs a test, and there is no pending ledger), register drift gate (`-Dregister.regenerate=true`),
   Dependency-Check in `verify` (ALWAYS pass `-Ddependency-check.skip=true` here: keyless NVD fails the build),
-  PIT `-Pmutation` (class-name scope, threshold 85). Ledger reconcile helper:
+  PIT `-Pmutation` (class-name scope, threshold 85). Run the gate alone with:
   `mvn -f backend/pom.xml verify -Ddependency-check.skip=true -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=TraceabilityGateIT`
-  (writes `backend/target/traceability/ledger-proven.txt`; failure message says which lines to add/remove).
+  (its failure message lists every row with no test and every citation that is not a row).
 - "Human Decision Needed": you cannot ask the user. Pick the option most consistent with docs/spec.md, ADRs, and the
   test plan, record it under "Decisions made" in your final report, and continue. Return blocked only if truly impossible.
 - If a registered code-reviewer check needs a tool that isn't installed (e.g. semgrep), note it as SKIPPED with the
@@ -76,7 +76,7 @@ Other agents are implementing other tickets in parallel in sibling worktrees; an
   (`sg.securedhello.e2e.E2eBackend`, fixture accounts; ports 18010/15110) — extend it for new e2e flows.
 - Also merged (ticket 11): `sg.securedhello.security.ratelimit` — `AuthRateLimiter`, `RateLimit` enum,
   `RateLimitProperties`; adding a budget = one `Route` component + YAML values under `app.security.rate-limit.*` + one
-  `RateLimit` constant (see its Javadoc) and extend `RateLimitBindingTest` (T-RL-010 stays on the ledger until the last
+  `RateLimit` constant (see its Javadoc) and extend `RateLimitBindingTest` (T-RL-010 stayed on the ledger until the last
   route lands). Shared test contexts raise budgets via `harness-budgets.properties`; `CtxBudgetTest` runs real budgets.
   `AuditKeying` provides tier-1/tier-2 keyed rows. `ClockTimes` gives a Caffeine `Ticker`/Bucket4j `TimeMeter` from the Clock.
 - Also merged (tickets 12–13): lockout (`security/lockout/LockoutCounter`, `LockoutLadder`, `LockoutRecorder`,
@@ -121,8 +121,8 @@ Other agents are implementing other tickets in parallel in sibling worktrees; an
   `PW_PREVIEW_PORT=15100+<ticket>` (e.g. ticket 12 → 18012/15112) so parallel runs never share ports.
 - OWASP Dependency-Check: always run with `-Ddependency-check.skip=true` (the orchestrator runs the full scan once at
   the end with the user's NVD key). Never use `-DskipITs` or `-Dmaven.test.skip`.
-- Every test-plan row you prove: remove it from `docs/test-plan/pending-ledger.txt`. Don't claim a row that is only
-  partly covered; say so in your report.
+- The traceability gate is strict: a new or amended test-plan row needs its test in the same change. Don't claim a row
+  that is only partly covered; say so in your report.
 - Rate limits: every new route adds its own budget row from the spec's budget table, via the `AuthRateLimiter`
   pattern from ticket 11 (once merged).
 - Keep changes scoped to your ticket; don't pre-build later tickets. Small, clean, idiomatic code.

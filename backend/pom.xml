@@ -30,7 +30,6 @@
 
         <!-- Build gates (ticket 03). Paths are relative to this module; moving a file is a one-line change here. -->
         <test-plan.path>${project.basedir}/../docs/test-plan/test-plan.md</test-plan.path>
-        <traceability.ledger.path>${project.basedir}/../docs/test-plan/pending-ledger.txt</traceability.ledger.path>
         <traceability.frontend.dir>${project.basedir}/../frontend</traceability.frontend.dir>
         <register.path>${project.basedir}/../docs/register/register.md</register.path>
         <register.compliance.path>${project.basedir}/../docs/register/deferral-register.md</register.compliance.path>
@@ -184,7 +183,6 @@
                     <!-- Inputs of the traceability gate (ADR-068) and the register drift gate (ADR-069). -->
                     <systemPropertyVariables>
                         <test-plan.path>${test-plan.path}</test-plan.path>
-                        <traceability.ledger.path>${traceability.ledger.path}</traceability.ledger.path>
                         <traceability.frontend.dir>${traceability.frontend.dir}</traceability.frontend.dir>
                         <register.path>${register.path}</register.path>
                         <register.compliance.path>${register.compliance.path}</register.compliance.path>

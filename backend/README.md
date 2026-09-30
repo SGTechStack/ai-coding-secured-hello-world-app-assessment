@@ -269,7 +269,7 @@ Failsafe are pinned at exactly 3.6.0, so `-DskipTests` no longer skips the Fails
 
 | Gate | What fails the build | Where |
 |---|---|---|
-| `@Proves` traceability (ADR-068) | a test cites an unknown T-ID; the test plan is missing, unreadable, empty or has the wrong header (T-BLD-007; T-BLD-008); a row has no test and is not on the pending ledger; a ledger entry already has a test | `TraceabilityGateIT` |
+| `@Proves` traceability (ADR-068) | a test cites an unknown T-ID; the test plan is missing, unreadable, empty or has the wrong header (T-BLD-007; T-BLD-008); a row has no test (strict: there is no pending ledger) | `TraceabilityGateIT` |
 | Register drift (ADR-069; T-BLD-006) | a committed rendering (`docs/register/deferral-register.md`, `docs/register/handover.md`) differs from what `docs/register/register.md` regenerates, or the table breaks the register schema | `RegisterDriftIT` |
 | Audit log inventory (R-AUD-027; T-AUD-017) | `docs/audit/log-inventory.md` differs from what `AuditEvent` generates; regenerate with `-Daudit-inventory.regenerate=true` | `AuditInventoryDriftIT` |
 | OWASP Dependency-Check (R-BLD-007; R-BLD-010) | a dependency finding at CVSS 7.0 or higher | `dependency-check-maven`, bound to `verify` |
@@ -297,19 +297,17 @@ Edit `docs/register/register.md` only. Then regenerate both renderings:
 mvn -f backend/pom.xml verify -Ddependency-check.skip=true -Dregister.regenerate=true
 ```
 
-## Pending ledger
+## Traceability gate
 
-`docs/test-plan/pending-ledger.txt` lists, one T-ID per line, the test-plan rows that have no test yet. A change that
-proves a row removes its line. Ticket 28 deletes the file.
-
-To reconcile after a merge, run only the traceability gate:
+Every row of `docs/test-plan/test-plan.md` must be cited by a test: `@Proves("T-…")` in Java, the ID in the test name
+in Vitest and Playwright. A retired ID leaves the table (its reason stays in the plan's prose) and no test may cite it.
+To run only the gate:
 
 ```sh
 mvn -f backend/pom.xml verify -Ddependency-check.skip=true -Dtest=NONE -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=TraceabilityGateIT
 ```
 
-It writes the ledger entries that already have tests to `backend/target/traceability/ledger-proven.txt`, one per
-line, and its failure message lists exactly which lines to add to or remove from the ledger.
+Its failure message lists every row with no test and every citation that is not a row.
 
 ## Mutation testing
 
